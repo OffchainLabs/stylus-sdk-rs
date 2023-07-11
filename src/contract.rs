@@ -11,17 +11,12 @@ pub struct Call {
     ink: Option<u64>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 enum CallKind {
+    #[default]
     Basic,
     Delegate,
     Static,
-}
-
-impl Default for CallKind {
-    fn default() -> Self {
-        CallKind::Basic
-    }
 }
 
 #[derive(Copy, Clone)]

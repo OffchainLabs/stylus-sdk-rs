@@ -17,7 +17,7 @@ pub fn memory_grow(pages: u16) {
     unsafe { hostio::memory_grow(pages) }
 }
 
-pub fn args(len: usize) -> Vec<u8> {    
+pub fn args(len: usize) -> Vec<u8> {
     let mut input = Vec::with_capacity(len);
     unsafe {
         hostio::read_args(input.as_mut_ptr());
