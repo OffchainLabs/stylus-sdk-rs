@@ -1,7 +1,7 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-#[link(wasm_import_module = "forward")]
+#[link(wasm_import_module = "vm_hooks")]
 extern "C" {
     /// Gets the ETH balance in wei of the account at the given address.
     /// The semantics are equivalent to that of the EVM’s [`BALANCE`] opcode.
@@ -221,6 +221,14 @@ extern "C" {
     ///
     /// [`CALLVALUE`]: https://www.evm.codes/#34
     pub(crate) fn msg_value(value: *mut u8);
+
+    /// Efficiently computes the [`keccak256`] hash of the given preimage.
+    /// The semantics are equivalent to that of the EVM's [`SHA3`] opcode.
+    ///
+    /// [`keccak256`]: https://en.wikipedia.org/wiki/SHA-3
+    /// [`SHA3`]: https://www.evm.codes/#20
+    #[allow(unused)]
+    pub(crate) fn native_keccak256(bytes: *const u8, len: usize, output: *mut u8);
 
     /// Reads the program calldata. The semantics are equivalent to that of the EVM's
     /// [`CALLDATA_COPY`] opcode when requesting the entirety of the current call's calldata.

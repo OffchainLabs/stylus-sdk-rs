@@ -7,6 +7,7 @@ use alloy_primitives::B256;
 
 pub mod block;
 pub mod contract;
+pub mod crypto;
 pub mod debug;
 pub mod evm;
 pub mod msg;
