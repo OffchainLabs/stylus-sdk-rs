@@ -1,36 +1,44 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use crate::{hostio, Bytes20, Bytes32};
+use crate::hostio::{self, wrap_hostio};
+use alloy_primitives::{Address, B256, U64};
 
-pub fn basefee() -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::block_basefee(data.as_mut_ptr()) };
-    Bytes32(data)
-}
+wrap_hostio!(
+    /// Gets the basefee of the current block.
+    basefee block_basefee B256
+);
 
-pub fn chainid() -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::block_chainid(data.as_mut_ptr()) };
-    Bytes32(data)
-}
+wrap_hostio!(
+    /// Gets the unique chain identifier of the Arbitrum chain.
+    chainid block_chainid B256
+);
 
-pub fn coinbase() -> Bytes20 {
-    let mut data = [0; 20];
-    unsafe { hostio::block_coinbase(data.as_mut_ptr()) };
-    Bytes20(data)
-}
+wrap_hostio!(
+    /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
+    /// address.
+    coinbase block_coinbase Address
+);
 
-pub fn gas_limit() -> u64 {
-    unsafe { hostio::block_gas_limit() }
-}
+wrap_hostio!(
+    /// Gets the gas limit of the current block.
+    gas_limit block_gas_limit U64
+);
 
-pub fn number() -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::block_number(data.as_mut_ptr()) };
-    Bytes32(data)
-}
+wrap_hostio!(
+    /// Gets a bounded estimate of the L1 block number at which the Sequencer sequenced the
+    /// transaction. See [`Block Numbers and Time`] for more information on how this value is
+    /// determined.
+    ///
+    /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
+    number block_number B256
+);
 
-pub fn timestamp() -> u64 {
-    unsafe { hostio::block_timestamp() }
-}
+wrap_hostio!(
+    /// Gets a bounded estimate of the Unix timestamp at which the Sequencer sequenced the
+    /// transaction. See [`Block Numbers and Time`] for more information on how this value is
+    /// determined.
+    ///
+    /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
+    timestamp block_timestamp U64
+);

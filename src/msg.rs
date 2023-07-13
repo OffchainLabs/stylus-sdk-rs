@@ -1,16 +1,24 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use crate::{hostio, Bytes20, Bytes32};
+use crate::hostio::{self, wrap_hostio};
+use alloy_primitives::{Address, B256};
 
-pub fn sender() -> Bytes20 {
-    let mut data = [0; 20];
-    unsafe { hostio::msg_sender(data.as_mut_ptr()) };
-    Bytes20(data)
-}
+wrap_hostio!(
+    /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
+    /// the semantics are equivalent to that of the EVM's [`CALLER`] opcode, including in cases
+    /// arising from [`DELEGATE_CALL`].
+    ///
+    /// For L1-to-L2 retryable ticket transactions, the top-level sender's address will be aliased.
+    /// See [`Retryable Ticket Address Aliasing`] for more information on how this works.
+    ///
+    /// [`CALLER`]: https://www.evm.codes/#33
+    /// [`DELEGATE_CALL`]: https://www.evm.codes/#f4
+    /// [`Retryable Ticket Address Aliasing`]: https://developer.arbitrum.io/arbos/l1-to-l2-messaging#address-aliasing
+    sender msg_sender Address
+);
 
-pub fn value() -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::msg_value(data.as_mut_ptr()) };
-    Bytes32(data)
-}
+wrap_hostio!(
+    /// Get the ETH value in wei sent to the program.
+    value msg_value B256
+);
