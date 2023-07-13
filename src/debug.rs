@@ -3,6 +3,7 @@
 
 use crate::hostio;
 
+/// Prints an encoded string to the console. Only available in debug mode.
 pub fn println<T: AsRef<str>>(text: T) {
     let text = text.as_ref();
     unsafe { hostio::log_txt(text.as_ptr(), text.len()) };

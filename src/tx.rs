@@ -1,20 +1,26 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use crate::{hostio, Bytes20, Bytes32};
+use crate::hostio::{self, wrap_hostio};
+use alloy_primitives::{Address, B256, U64};
 
-pub fn gas_price() -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::tx_gas_price(data.as_mut_ptr()) };
-    Bytes32(data)
-}
+wrap_hostio!(
+    /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee.
+    gas_price tx_gas_price B256
+);
 
-pub fn ink_price() -> u64 {
-    unsafe { hostio::tx_ink_price() }
-}
+wrap_hostio!(
+    /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
+    /// Stylus's compute-pricing model.
+    ///
+    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    ink_price tx_ink_price U64
+);
 
-pub fn origin() -> Bytes20 {
-    let mut data = [0; 20];
-    unsafe { hostio::tx_origin(data.as_mut_ptr()) };
-    Bytes20(data)
-}
+wrap_hostio!(
+    /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
+    /// EVM's [`ORIGIN`] opcode.
+    ///
+    /// [`ORIGIN`]: https://www.evm.codes/#32
+    origin tx_origin Address
+);

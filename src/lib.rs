@@ -1,17 +1,19 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-pub use util::{Bytes20, Bytes32};
+pub use alloy_primitives;
 
-pub mod address;
+use alloy_primitives::B256;
+
 pub mod block;
 pub mod contract;
 pub mod debug;
 pub mod evm;
-mod hostio;
 pub mod msg;
 pub mod tx;
-mod util;
+pub mod types;
+
+mod hostio;
 
 pub fn memory_grow(pages: u16) {
     unsafe { hostio::memory_grow(pages) }
@@ -56,12 +58,12 @@ macro_rules! arbitrum_main {
     };
 }
 
-pub fn load_bytes32(key: Bytes32) -> Bytes32 {
-    let mut data = [0; 32];
-    unsafe { hostio::account_load_bytes32(key.ptr(), data.as_mut_ptr()) };
-    Bytes32(data)
+pub fn load_bytes32(key: B256) -> B256 {
+    let mut data = B256::ZERO;
+    unsafe { hostio::account_load_bytes32(key.as_ptr(), data.as_mut_ptr()) };
+    data
 }
 
-pub fn store_bytes32(key: Bytes32, data: Bytes32) {
-    unsafe { hostio::account_store_bytes32(key.ptr(), data.ptr()) };
+pub fn store_bytes32(key: B256, data: B256) {
+    unsafe { hostio::account_store_bytes32(key.as_ptr(), data.as_ptr()) };
 }

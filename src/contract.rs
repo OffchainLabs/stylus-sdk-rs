@@ -1,13 +1,17 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use crate::{address as addr, hostio, Bytes20, Bytes32};
+use crate::{
+    hostio::{self, wrap_hostio},
+    types::AddressVM,
+};
+use alloy_primitives::{Address, B256};
 
 #[derive(Clone, Default)]
 #[must_use]
 pub struct Call {
     kind: CallKind,
-    value: Bytes32,
+    value: B256,
     ink: Option<u64>,
 }
 
@@ -56,7 +60,7 @@ impl Call {
         }
     }
 
-    pub fn value(mut self, value: Bytes32) -> Self {
+    pub fn value(mut self, value: B256) -> Self {
         if self.kind != CallKind::Basic {
             panic!("cannot set value for delegate or static calls");
         }
@@ -69,28 +73,28 @@ impl Call {
         self
     }
 
-    pub fn call(self, contract: Bytes20, calldata: &[u8]) -> Result<Vec<u8>, Vec<u8>> {
+    pub fn call(self, contract: Address, calldata: &[u8]) -> Result<Vec<u8>, Vec<u8>> {
         let mut outs_len = 0;
         let ink = self.ink.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let status = unsafe {
             match self.kind {
                 CallKind::Basic => hostio::call_contract(
-                    contract.ptr(),
+                    contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
-                    self.value.ptr(),
+                    self.value.as_ptr(),
                     ink,
                     &mut outs_len,
                 ),
                 CallKind::Delegate => hostio::delegate_call_contract(
-                    contract.ptr(),
+                    contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
                     ink,
                     &mut outs_len,
                 ),
                 CallKind::Static => hostio::static_call_contract(
-                    contract.ptr(),
+                    contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
                     ink,
@@ -113,7 +117,7 @@ impl Call {
     }
 }
 
-pub fn create(code: &[u8], endowment: Bytes32, salt: Option<Bytes32>) -> Result<Bytes20, Vec<u8>> {
+pub fn create(code: &[u8], endowment: B256, salt: Option<B256>) -> Result<Address, Vec<u8>> {
     let mut contract = [0; 20];
     let mut revert_data_len = 0;
     let contract = unsafe {
@@ -121,8 +125,8 @@ pub fn create(code: &[u8], endowment: Bytes32, salt: Option<Bytes32>) -> Result<
             hostio::create2(
                 code.as_ptr(),
                 code.len(),
-                endowment.ptr(),
-                salt.ptr(),
+                endowment.as_ptr(),
+                salt.as_ptr(),
                 contract.as_mut_ptr(),
                 &mut revert_data_len as *mut _,
             );
@@ -130,12 +134,12 @@ pub fn create(code: &[u8], endowment: Bytes32, salt: Option<Bytes32>) -> Result<
             hostio::create1(
                 code.as_ptr(),
                 code.len(),
-                endowment.ptr(),
+                endowment.as_ptr(),
                 contract.as_mut_ptr(),
                 &mut revert_data_len as *mut _,
             );
         }
-        Bytes20(contract)
+        Address::from(contract)
     };
     if contract.is_zero() {
         unsafe {
@@ -148,16 +152,18 @@ pub fn create(code: &[u8], endowment: Bytes32, salt: Option<Bytes32>) -> Result<
     Ok(contract)
 }
 
-pub fn return_data_len() -> usize {
-    unsafe { hostio::return_data_size() as usize }
-}
+wrap_hostio!(
+    /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
+    /// happened during the program's execution.
+    return_data_len return_data_size usize
+);
 
-pub fn address() -> Bytes20 {
-    let mut data = [0; 20];
-    unsafe { hostio::contract_address(data.as_mut_ptr()) };
-    Bytes20(data)
-}
+wrap_hostio!(
+    /// Gets the address of the current program.
+    address contract_address Address
+);
 
-pub fn balance() -> Bytes32 {
-    addr::balance(address())
+/// Gets the balance of the current program.
+pub fn balance() -> B256 {
+    address().balance()
 }
