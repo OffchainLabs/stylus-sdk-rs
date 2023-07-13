@@ -35,24 +35,24 @@ pub fn output(data: Vec<u8>) {
 }
 
 #[macro_export]
-macro_rules! arbitrum_main {
+macro_rules! entrypoint {
     ($name:expr) => {
         /// Force the compiler to import these symbols
         /// Note: calling these functions will unproductively consume gas
         #[no_mangle]
         pub unsafe fn mark_used() {
-            arbitrum::memory_grow(0);
+            stylus_sdk::memory_grow(0);
             panic!();
         }
 
         #[no_mangle]
         pub extern "C" fn arbitrum_main(len: usize) -> usize {
-            let input = arbitrum::args(len);
+            let input = stylus_sdk::args(len);
             let (data, status) = match $name(input) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            arbitrum::output(data);
+            stylus_sdk::output(data);
             status
         }
     };
