@@ -92,7 +92,7 @@ extern "C" {
         calldata: *const u8,
         calldata_len: usize,
         value: *const u8,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -167,7 +167,7 @@ extern "C" {
         contract: *const u8,
         calldata: *const u8,
         calldata_len: usize,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -272,7 +272,7 @@ extern "C" {
         contract: *const u8,
         calldata: *const u8,
         calldata_len: usize,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -357,6 +357,9 @@ pub(crate) use wrap_hostio;
 
 /// Caches the length of the most recent EVM return data
 pub(crate) static mut RETURN_DATA_SIZE: CachedOption<usize> = CachedOption::new(return_data_size);
+
+/// Caches the currenk price of ink
+pub(crate) static mut CACHED_INK_PRICE: CachedOption<u64> = CachedOption::new(tx_ink_price);
 
 /// Caches a value to avoid paying for hostio invocations.
 pub(crate) struct CachedOption<T: Copy> {

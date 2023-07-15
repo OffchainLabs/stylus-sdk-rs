@@ -3,16 +3,17 @@
 
 use crate::{
     hostio::{self, wrap_hostio, RETURN_DATA_SIZE},
+    tx,
     types::AddressVM,
 };
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U64};
 
 #[derive(Clone, Default)]
 #[must_use]
 pub struct Call {
     kind: CallKind,
     value: B256,
-    ink: Option<u64>,
+    gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
 }
@@ -70,8 +71,13 @@ impl Call {
         self
     }
 
-    pub fn ink(mut self, ink: u64) -> Self {
-        self.ink = Some(ink);
+    pub fn gas(mut self, gas: U64) -> Self {
+        self.gas = Some(gas.try_into().unwrap());
+        self
+    }
+
+    pub fn ink(mut self, ink: U64) -> Self {
+        self.gas = Some(tx::ink_to_gas(ink).try_into().unwrap());
         self
     }
 
@@ -87,7 +93,7 @@ impl Call {
 
     pub fn call(self, contract: Address, calldata: &[u8]) -> Result<Vec<u8>, Vec<u8>> {
         let mut outs_len = 0;
-        let ink = self.ink.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
+        let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let status = unsafe {
             match self.kind {
                 CallKind::Basic => hostio::call_contract(
@@ -95,21 +101,21 @@ impl Call {
                     calldata.as_ptr(),
                     calldata.len(),
                     self.value.as_ptr(),
-                    ink,
+                    gas,
                     &mut outs_len,
                 ),
                 CallKind::Delegate => hostio::delegate_call_contract(
                     contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
-                    ink,
+                    gas,
                     &mut outs_len,
                 ),
                 CallKind::Static => hostio::static_call_contract(
                     contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
-                    ink,
+                    gas,
                     &mut outs_len,
                 ),
             }
@@ -158,7 +164,7 @@ pub fn create(code: &[u8], endowment: B256, salt: Option<B256>) -> Result<Addres
 }
 
 pub fn read_return_data(offset: usize, size: Option<usize>) -> Vec<u8> {
-    let size = unsafe { size.unwrap_or_else(|| RETURN_DATA_SIZE.get() - offset) };
+    let size = unsafe { size.unwrap_or_else(|| RETURN_DATA_SIZE.get().saturating_sub(offset)) };
 
     let mut data = Vec::with_capacity(size);
     if size > 0 {
