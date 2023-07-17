@@ -146,12 +146,12 @@ impl Deploy {
         Default::default()
     }
 
-    pub fn salt(mut self, salt: Bytes32) -> Self {
+    pub fn salt(mut self, salt: B256) -> Self {
         self.salt = Some(salt);
         self
     }
 
-    pub fn salt_option(mut self, salt: Option<Bytes32>) -> Self {
+    pub fn salt_option(mut self, salt: Option<B256>) -> Self {
         self.salt = salt;
         self
     }
@@ -166,8 +166,8 @@ impl Deploy {
         self.limit_return_data(0, 0)
     }
 
-    pub fn deploy(self, code: &[u8], endowment: Bytes32) -> Result<Bytes20, Vec<u8>> {
-        let mut contract = Bytes20::default();
+    pub fn deploy(self, code: &[u8], endowment: B256) -> Result<Address, Vec<u8>> {
+        let mut contract = Address::default();
         let mut revert_data_len = 0;
         unsafe {
             if let Some(salt) = self.salt {
