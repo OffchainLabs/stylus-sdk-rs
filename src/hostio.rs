@@ -358,7 +358,7 @@ pub(crate) use wrap_hostio;
 /// Caches the length of the most recent EVM return data
 pub(crate) static mut RETURN_DATA_SIZE: CachedOption<usize> = CachedOption::new(return_data_size);
 
-/// Caches the currenk price of ink
+/// Caches the current price of ink
 pub(crate) static mut CACHED_INK_PRICE: CachedOption<u64> = CachedOption::new(tx_ink_price);
 
 /// Caches a value to avoid paying for hostio invocations.
