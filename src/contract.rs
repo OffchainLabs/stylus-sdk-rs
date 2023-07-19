@@ -133,34 +133,68 @@ impl Call {
     }
 }
 
-pub fn create(code: &[u8], endowment: B256, salt: Option<B256>) -> Result<Address, Vec<u8>> {
-    let mut contract = Address::default();
-    let mut revert_data_len = 0;
-    unsafe {
-        if let Some(salt) = salt {
-            hostio::create2(
-                code.as_ptr(),
-                code.len(),
-                endowment.as_ptr(),
-                salt.as_ptr(),
-                contract.as_mut_ptr(),
-                &mut revert_data_len as *mut _,
-            );
-        } else {
-            hostio::create1(
-                code.as_ptr(),
-                code.len(),
-                endowment.as_ptr(),
-                contract.as_mut_ptr(),
-                &mut revert_data_len as *mut _,
-            );
+#[derive(Clone, Default)]
+#[must_use]
+pub struct Deploy {
+    salt: Option<B256>,
+    offset: usize,
+    size: Option<usize>,
+}
+
+impl Deploy {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn salt(mut self, salt: B256) -> Self {
+        self.salt = Some(salt);
+        self
+    }
+
+    pub fn salt_option(mut self, salt: Option<B256>) -> Self {
+        self.salt = salt;
+        self
+    }
+
+    pub fn limit_return_data(mut self, offset: usize, size: usize) -> Self {
+        self.offset = offset;
+        self.size = Some(size);
+        self
+    }
+
+    pub fn skip_return_data(self) -> Self {
+        self.limit_return_data(0, 0)
+    }
+
+    pub fn deploy(self, code: &[u8], endowment: B256) -> Result<Address, Vec<u8>> {
+        let mut contract = Address::default();
+        let mut revert_data_len = 0;
+        unsafe {
+            if let Some(salt) = self.salt {
+                hostio::create2(
+                    code.as_ptr(),
+                    code.len(),
+                    endowment.as_ptr(),
+                    salt.as_ptr(),
+                    contract.as_mut_ptr(),
+                    &mut revert_data_len as *mut _,
+                );
+            } else {
+                hostio::create1(
+                    code.as_ptr(),
+                    code.len(),
+                    endowment.as_ptr(),
+                    contract.as_mut_ptr(),
+                    &mut revert_data_len as *mut _,
+                );
+            }
+            RETURN_DATA_SIZE.set(revert_data_len);
         }
-        RETURN_DATA_SIZE.set(revert_data_len);
+        if contract.is_zero() {
+            return Err(read_return_data(0, None));
+        }
+        Ok(contract)
     }
-    if contract.is_zero() {
-        return Err(read_return_data(0, None));
-    }
-    Ok(contract)
 }
 
 pub fn read_return_data(offset: usize, size: Option<usize>) -> Vec<u8> {
