@@ -23,7 +23,7 @@ extern "C" {
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
     /// [`SLOAD`]: <https://www.evm.codes/#54>
-    pub(crate) fn account_load_bytes32(key: *const u8, dest: *mut u8);
+    pub(crate) fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
     /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
@@ -31,7 +31,7 @@ extern "C" {
     /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
     /// [`SSTORE`]: <https://www.evm.codes/#55>
-    pub(crate) fn account_store_bytes32(key: *const u8, value: *const u8);
+    pub(crate) fn storage_store_bytes32(key: *const u8, value: *const u8);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.
@@ -43,7 +43,7 @@ extern "C" {
     /// that of the EVM's [`CHAIN_ID`] opcode.
     ///
     /// [`CHAIN_ID`]: <https://www.evm.codes/#46>
-    pub(crate) fn block_chainid(chainid: *mut u8);
+    pub(crate) fn chainid(chainid: *mut u8);
 
     /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
     /// address. This differs from Ethereum where the validator including the transaction
@@ -245,7 +245,7 @@ extern "C" {
     /// Writes the final return data. If not called before the program exists, the return data will
     /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
     /// naturally when the `arbitrum_main` entry-point returns.
-    pub(crate) fn return_data(data: *const u8, len: usize);
+    pub(crate) fn write_result(data: *const u8, len: usize);
 
     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
     /// happened during the program's execution. The semantics are equivalent to that of the EVM's
