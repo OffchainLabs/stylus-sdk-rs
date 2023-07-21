@@ -2,7 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use crate::{
-    hostio::{self, wrap_hostio},
+    hostio::{self, wrap_hostio, RETURN_DATA_SIZE},
     types::AddressVM,
 };
 use alloy_primitives::{Address, B256};
@@ -13,6 +13,8 @@ pub struct Call {
     kind: CallKind,
     value: B256,
     ink: Option<u64>,
+    offset: usize,
+    size: Option<usize>,
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -60,17 +62,27 @@ impl Call {
         }
     }
 
-    pub fn value(mut self, value: B256) -> Self {
+    pub fn value(mut self, callvalue: B256) -> Self {
         if self.kind != CallKind::Basic {
             panic!("cannot set value for delegate or static calls");
         }
-        self.value = value;
+        self.value = callvalue;
         self
     }
 
     pub fn ink(mut self, ink: u64) -> Self {
         self.ink = Some(ink);
         self
+    }
+
+    pub fn limit_return_data(mut self, offset: usize, size: usize) -> Self {
+        self.offset = offset;
+        self.size = Some(size);
+        self
+    }
+
+    pub fn skip_return_data(self) -> Self {
+        self.limit_return_data(0, 0)
     }
 
     pub fn call(self, contract: Address, calldata: &[u8]) -> Result<Vec<u8>, Vec<u8>> {
@@ -103,13 +115,11 @@ impl Call {
             }
         };
 
-        let mut outs = Vec::with_capacity(outs_len);
-        if outs_len != 0 {
-            unsafe {
-                hostio::read_return_data(outs.as_mut_ptr());
-                outs.set_len(outs_len);
-            }
-        };
+        unsafe {
+            RETURN_DATA_SIZE.set(outs_len);
+        }
+
+        let outs = read_return_data(self.offset, self.size);
         match status {
             0 => Ok(outs),
             _ => Err(outs),
@@ -118,9 +128,9 @@ impl Call {
 }
 
 pub fn create(code: &[u8], endowment: B256, salt: Option<B256>) -> Result<Address, Vec<u8>> {
-    let mut contract = [0; 20];
+    let mut contract = Address::default();
     let mut revert_data_len = 0;
-    let contract = unsafe {
+    unsafe {
         if let Some(salt) = salt {
             hostio::create2(
                 code.as_ptr(),
@@ -139,17 +149,26 @@ pub fn create(code: &[u8], endowment: B256, salt: Option<B256>) -> Result<Addres
                 &mut revert_data_len as *mut _,
             );
         }
-        Address::from(contract)
-    };
+        RETURN_DATA_SIZE.set(revert_data_len);
+    }
     if contract.is_zero() {
-        unsafe {
-            let mut revert_data = Vec::with_capacity(revert_data_len);
-            hostio::read_return_data(revert_data.as_mut_ptr());
-            revert_data.set_len(revert_data_len);
-            return Err(revert_data);
-        }
+        return Err(read_return_data(0, None));
     }
     Ok(contract)
+}
+
+pub fn read_return_data(offset: usize, size: Option<usize>) -> Vec<u8> {
+    let size = unsafe { size.unwrap_or_else(|| RETURN_DATA_SIZE.get() - offset) };
+
+    let mut data = Vec::with_capacity(size);
+    if size > 0 {
+        unsafe {
+            let bytes_written = hostio::read_return_data(data.as_mut_ptr(), offset, size);
+            debug_assert!(bytes_written <= size);
+            data.set_len(bytes_written);
+        }
+    };
+    data
 }
 
 wrap_hostio!(
