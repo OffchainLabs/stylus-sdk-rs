@@ -6,6 +6,7 @@ pub use alloy_primitives;
 use alloy_primitives::B256;
 
 pub mod block;
+pub mod caching_storage;
 pub mod contract;
 pub mod crypto;
 pub mod debug;
