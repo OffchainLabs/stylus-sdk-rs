@@ -1,0 +1,19 @@
+[package]
+name = "stylus-sdk"
+keywords = ["arbitrum", "ethereum"]
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+fnv.workspace = true
+hex = { workspace = true, default-features = false, features = ["alloc"] }
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+lazy_static.workspace = true
+
+# local deps
+stylus-proc.workspace = true

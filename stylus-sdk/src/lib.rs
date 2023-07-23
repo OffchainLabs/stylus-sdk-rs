@@ -2,6 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 pub use alloy_primitives;
+pub use stylus_proc;
 
 use alloy_primitives::B256;
 
@@ -11,6 +12,7 @@ pub mod crypto;
 pub mod debug;
 pub mod evm;
 pub mod msg;
+pub mod storage;
 pub mod tx;
 pub mod types;
 
@@ -54,6 +56,7 @@ macro_rules! entrypoint {
                 Err(data) => (data, 1),
             };
             stylus_sdk::output(data);
+            //StorageCache::flush();
             status
         }
     };

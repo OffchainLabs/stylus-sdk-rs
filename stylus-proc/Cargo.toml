@@ -1,0 +1,19 @@
+[package]
+name = "stylus-proc"
+keywords = ["arbitrum", "ethereum"]
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+
+[lib]
+proc-macro = true
