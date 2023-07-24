@@ -3,7 +3,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, ItemStruct, Type};
+use syn::{parse_macro_input, ItemStruct, Type};
 
 #[proc_macro_attribute]
 pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -51,7 +51,7 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         init.extend(quote! {
             #ident: {
-                let size = <#ty as storage::InitStorage>::SIZE;
+                let size = <#ty as storage::StorageType>::SIZE;
                 if space < size {
                     space = 32;
                     slot += 1;
@@ -59,7 +59,7 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 space -= size;
 
                 root += alloy_primitives::U256::from(slot);
-                <#ty as storage::InitStorage>::init(root, space)
+                <#ty as storage::StorageType>::new(root, space)
             },
         });
     }
@@ -68,7 +68,7 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         #input
 
         impl #impl_generics stylus_sdk::storage::StorageType for #name #ty_generics #where_clause {
-            fn init(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
+            fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
                 use stylus_sdk::{storage, alloy_primitives};
                 debug_assert!(offset == 0);
 

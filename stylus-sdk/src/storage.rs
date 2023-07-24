@@ -6,7 +6,13 @@ use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint
 use fnv::FnvHashMap as HashMap;
 use lazy_static::lazy_static;
 use std::{
-    cell::OnceCell, marker::PhantomData, mem::transmute, ptr, slice::SliceIndex, sync::Mutex,
+    cell::OnceCell,
+    marker::PhantomData,
+    mem::transmute,
+    ops::{Deref, DerefMut},
+    ptr,
+    slice::SliceIndex,
+    sync::Mutex,
 };
 
 /// Global cache managing permanent storage operations
@@ -57,6 +63,7 @@ impl StorageCache {
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the read would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -74,6 +81,7 @@ impl StorageCache {
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the read would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -91,6 +99,7 @@ impl StorageCache {
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the read would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -118,6 +127,7 @@ impl StorageCache {
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the write would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -143,6 +153,7 @@ impl StorageCache {
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the write would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -173,6 +184,7 @@ impl StorageCache {
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
+    ///
     /// UB if the write would cross a word boundary.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
@@ -218,6 +230,60 @@ pub trait StorageType {
     const SIZE: u8 = 32;
 
     fn new(slot: U256, offset: u8) -> Self;
+}
+
+/// Binds a storage accessor to a lifetime to prevent aliasing.
+/// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
+/// For a mutable accessor, see [`StorageGuardMut`].
+pub struct StorageGuard<'a, T: 'a> {
+    inner: T,
+    marker: PhantomData<&'a T>,
+}
+
+impl<'a, T: 'a> StorageGuard<'a, T> {
+    fn new(inner: T) -> Self {
+        Self {
+            inner,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, T: 'a> Deref for StorageGuard<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+/// Binds a storage accessor to a lifetime to prevent aliasing.
+pub struct StorageGuardMut<'a, T: 'a> {
+    inner: T,
+    marker: PhantomData<&'a T>,
+}
+
+impl<'a, T: 'a> StorageGuardMut<'a, T> {
+    fn new(inner: T) -> Self {
+        Self {
+            inner,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, T: 'a> Deref for StorageGuardMut<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
 }
 
 macro_rules! alias_ints {
@@ -398,17 +464,53 @@ impl<S: StorageType> StorageType for StorageVec<S> {
         Self {
             slot,
             base: OnceCell::new(),
-            marker: PhantomData::default(),
+            marker: PhantomData,
         }
     }
 }
 
 impl<S: StorageType> StorageVec<S> {
+    /// Returns `true` if the collection contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    
+    /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        todo!()
+        let word: U256 = StorageCache::get_word(self.slot.into()).into();
+        word.try_into().unwrap()
     }
 
-    pub fn get<I>(&self, index: I) -> Option<&S>
+    /// Gets an accessor to the element at a given index, if it exists.
+    /// Note: the accessor is protected by a [`StoreageGuard`], which restricts
+    /// its lifetime to that of `&self`.
+    pub fn get<I>(&self, index: I) -> Option<StorageGuard<S>>
+    where
+        I: SliceIndex<[S]> + TryInto<usize>,
+    {
+        let accessor = unsafe { self.get_raw(index)? };
+        Some(StorageGuard::new(accessor))
+    }
+
+    /// Gets a mutable accessor to the element at a given index, if it exists.
+    /// Note: the accessor is protected by a [`StoreageGuardMut`], which restricts
+    /// its lifetime to that of `&mut self`.
+    pub fn get_mut<I>(&mut self, index: I) -> Option<StorageGuardMut<S>>
+    where
+        I: SliceIndex<[S]> + TryInto<usize>,
+    {
+        let accessor = unsafe { self.get_raw(index)? };
+        Some(StorageGuardMut::new(accessor))
+    }
+
+    /// Gets the underlying accessor to the element at a given index, if it exists.
+    ///
+    /// # Safety
+    ///
+    /// Because the accessor is unconstrained by a storage guard, storage aliasing is possible
+    /// if used incorrectly. Two or more mutable references to the same `S` are possible, as are
+    /// read-after-write scenarios.
+    pub unsafe fn get_raw<I>(&self, index: I) -> Option<S>
     where
         I: SliceIndex<[S]> + TryInto<usize>,
     {
@@ -419,23 +521,27 @@ impl<S: StorageType> StorageVec<S> {
             return None;
         }
 
-        let index = self.base() + U256::from(width * index);
-
-        let item = S::new(index, 0);
-        //Some(&S::new(index, 0))
-        todo!()
+        let density = 32 / width;
+        let offset = self.base() + U256::from(width * index / density);
+        Some(S::new(offset, (index % density) as u8))
     }
 
     pub fn push(&mut self, _item: S) {
+        let _index = self.len();
         todo!()
     }
 
-    pub fn pop(&mut self) {
+    pub fn pop(&mut self) -> Option<S> {
+        let _index = match self.len() {
+            0 => return None,
+            x => x - 1,
+        };
         todo!()
     }
 
+    /// Determines where in storage indices start. Could be made const in the future.
     fn base(&self) -> &U256 {
         self.base
-            .get_or_init(|| crypto::keccak(&self.slot.to_be_bytes::<32>()).into())
+            .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
     }
 }
