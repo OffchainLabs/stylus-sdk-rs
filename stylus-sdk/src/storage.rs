@@ -16,7 +16,7 @@ use std::{
 };
 
 /// Global cache managing permanent storage operations
-pub struct StorageCache(HashMap<B256, StorageWord>);
+pub struct StorageCache(HashMap<U256, StorageWord>);
 
 /// Represents the EVM word at a given key
 pub struct StorageWord {
@@ -69,7 +69,7 @@ impl StorageCache {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    pub unsafe fn get<const N: usize>(key: B256, offset: usize) -> FixedBytes<N> {
+    pub unsafe fn get<const N: usize>(key: U256, offset: usize) -> FixedBytes<N> {
         debug_assert!(N + offset <= 32);
         let word = Self::get_word(key);
         let (_, value) = word.split_at(offset);
@@ -87,7 +87,7 @@ impl StorageCache {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    pub unsafe fn get_uint<const B: usize, const L: usize>(key: B256, offset: usize) -> Uint<B, L> {
+    pub unsafe fn get_uint<const B: usize, const L: usize>(key: U256, offset: usize) -> Uint<B, L> {
         debug_assert!(B / 8 + offset <= 32);
         let word = Self::get_word(key);
         let (_, value) = word.split_at(offset);
@@ -106,7 +106,7 @@ impl StorageCache {
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn get_signed<const B: usize, const L: usize>(
-        key: B256,
+        key: U256,
         offset: usize,
     ) -> Signed<B, L> {
         Signed::from_raw(Self::get_uint(key, offset))
@@ -115,7 +115,7 @@ impl StorageCache {
     /// Retrieves a 32-byte EVM word from permanent storage, performing [`SLOAD`]'s only as needed.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
-    pub fn get_word(key: B256) -> B256 {
+    pub fn get_word(key: U256) -> B256 {
         cache!()
             .entry(key)
             .or_insert_with(|| StorageWord::new_known(load_bytes32(key)))
@@ -133,7 +133,7 @@ impl StorageCache {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    pub unsafe fn set<const N: usize>(key: B256, offset: usize, value: FixedBytes<N>) {
+    pub unsafe fn set<const N: usize>(key: U256, offset: usize, value: FixedBytes<N>) {
         debug_assert!(N + offset <= 32);
 
         if N == 32 {
@@ -160,7 +160,7 @@ impl StorageCache {
     /// [`SSTORE`]: https://www.evm.codes/#55
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn set_uint<const B: usize, const L: usize>(
-        key: B256,
+        key: U256,
         offset: usize,
         value: Uint<B, L>,
     ) {
@@ -191,7 +191,7 @@ impl StorageCache {
     /// [`SSTORE`]: https://www.evm.codes/#55
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn set_signed<const B: usize, const L: usize>(
-        key: B256,
+        key: U256,
         offset: usize,
         value: Signed<B, L>,
     ) {
@@ -201,7 +201,7 @@ impl StorageCache {
     /// Stores a 32-byte EVM word to permanent storage, performing [`SSTORE`]'s only as needed.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    pub fn set_word(key: B256, value: B256) {
+    pub fn set_word(key: U256, value: B256) {
         cache!().insert(key, StorageWord::new_unknown(value));
     }
 
@@ -225,10 +225,20 @@ impl StorageCache {
     }
 }
 
+/// Accessor trait that lets a type be used in permanent storage.
+/// Users can implement this trait to add novel data structures to their contract definitions.
+/// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
+///
+/// [`the same way`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html
 // TODO: use const generics once stable to elide runtime keccaks
 pub trait StorageType {
+    /// The number of bytes needed to represent the type. Must not exceed 32.
+    /// For implementing dynamic types, see how Solidity slots are assigned for [`Arrays and Maps`].
+    ///
+    /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html#mappings-and-dynamic-arrays
     const SIZE: u8 = 32;
 
+    /// Where in permanent storage the type should live.
     fn new(slot: U256, offset: u8) -> Self;
 }
 
@@ -341,7 +351,11 @@ pub struct StorageUint<const B: usize, const L: usize> {
 
 impl<const B: usize, const L: usize> StorageUint<B, L> {
     pub fn get(&self) -> Uint<B, L> {
-        unsafe { StorageCache::get_uint(self.slot.into(), self.offset.into()) }
+        unsafe { StorageCache::get_uint(self.slot, self.offset.into()) }
+    }
+
+    pub fn set(&mut self, value: Uint<B, L>) {
+        unsafe { StorageCache::set_uint(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -361,7 +375,11 @@ pub struct StorageSigned<const B: usize, const L: usize> {
 
 impl<const B: usize, const L: usize> StorageSigned<B, L> {
     pub fn get(&self) -> Signed<B, L> {
-        unsafe { StorageCache::get_signed(self.slot.into(), self.offset.into()) }
+        unsafe { StorageCache::get_signed(self.slot, self.offset.into()) }
+    }
+
+    pub fn set(&mut self, value: Signed<B, L>) {
+        unsafe { StorageCache::set_signed(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -380,7 +398,11 @@ pub struct StorageFixedBytes<const N: usize> {
 
 impl<const N: usize> StorageFixedBytes<N> {
     pub fn get(&self) -> FixedBytes<N> {
-        unsafe { StorageCache::get(self.slot.into(), self.offset.into()) }
+        unsafe { StorageCache::get(self.slot, self.offset.into()) }
+    }
+
+    pub fn set(&mut self, value: FixedBytes<N>) {
+        unsafe { StorageCache::set(self.slot, self.offset.into(), value) }
     }
 }
 
@@ -400,8 +422,12 @@ pub struct StorageAddress {
 
 impl StorageAddress {
     pub fn get(&self) -> Address {
-        let data = unsafe { StorageCache::get::<20>(self.slot.into(), self.offset.into()) };
+        let data = unsafe { StorageCache::get::<20>(self.slot, self.offset.into()) };
         Address::from(data)
+    }
+
+    pub fn set(&mut self, value: Address) {
+        unsafe { StorageCache::set::<20>(self.slot, self.offset.into(), value.into()) }
     }
 }
 
@@ -421,8 +447,13 @@ pub struct StorageBlockNumber {
 
 impl StorageBlockNumber {
     pub fn get(&self) -> BlockNumber {
-        let data = unsafe { StorageCache::get::<8>(self.slot.into(), self.offset.into()) };
+        let data = unsafe { StorageCache::get::<8>(self.slot, self.offset.into()) };
         unsafe { transmute(data) }
+    }
+
+    pub fn set(&self, value: BlockNumber) {
+        let value = FixedBytes::from(value.to_be_bytes());
+        unsafe { StorageCache::set::<8>(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -441,7 +472,11 @@ pub struct StorageBlockHash {
 
 impl StorageBlockHash {
     pub fn get(&self) -> BlockHash {
-        StorageCache::get_word(self.slot.into())
+        StorageCache::get_word(self.slot)
+    }
+
+    pub fn set(&mut self, value: BlockHash) {
+        StorageCache::set_word(self.slot, value)
     }
 }
 
@@ -474,10 +509,10 @@ impl<S: StorageType> StorageVec<S> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    
+
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = StorageCache::get_word(self.slot.into()).into();
+        let word: U256 = StorageCache::get_word(self.slot).into();
         word.try_into().unwrap()
     }
 

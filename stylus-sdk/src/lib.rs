@@ -4,7 +4,7 @@
 pub use alloy_primitives;
 pub use stylus_proc;
 
-use alloy_primitives::B256;
+use alloy_primitives::{B256, U256};
 
 pub mod block;
 pub mod contract;
@@ -62,12 +62,12 @@ macro_rules! entrypoint {
     };
 }
 
-pub fn load_bytes32(key: B256) -> B256 {
+pub fn load_bytes32(key: U256) -> B256 {
     let mut data = B256::ZERO;
-    unsafe { hostio::account_load_bytes32(key.as_ptr(), data.as_mut_ptr()) };
+    unsafe { hostio::account_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
     data
 }
 
-pub fn store_bytes32(key: B256, data: B256) {
-    unsafe { hostio::account_store_bytes32(key.as_ptr(), data.as_ptr()) };
+pub fn store_bytes32(key: U256, data: B256) {
+    unsafe { hostio::account_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
 }
