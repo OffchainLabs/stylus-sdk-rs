@@ -40,21 +40,9 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     x.to_uppercase()
                 );
             }
-            "usize" => error!(&field, "{not_supported}. Instead try `StorageU32`."),
-            "isize" => error!(&field, "{not_supported}. Instead try `StorageI32`."),
-
-            // supported types
-            "Address" => *ty = parse_quote! { stylus_sdk::storage::AddressAcc },
-            "BlockHash" => *ty = parse_quote! { stylus_sdk::storage::BlockHashAcc },
-            _ => {} /*"BlockNumber" => {}
-
-                    _x @ ("U0" | "U1" | "U8" | "U16" | "U32" | "U64" | "U128" | "U160" | "U192"
-                    | "U256" | "U320" | "U384" | "U448" | "U512" | "U1024" | "U2048" | "U4096") => {}
-                    _x @ ("I0" | "I1" | "I8" | "I16" | "I32" | "I64" | "I128" | "I160" | "I192"
-                    | "I256" | "I512") => {}
-                    _x @ ("B0" | "B16" | "B32" | "B64" | "B96" | "B128" | "B160" | "B192" | "B224"
-                    | "B256" | "B512" | "B1024" | "B2048") => {}
-                    _ => {}*/
+            "usize" => error!(&field, "{not_supported}. Instead try `StorageUsize`."),
+            "isize" => error!(&field, "{not_supported}. Instead try `StorageIsize`."),
+            _ => {}
         }
 
         let Some(ident) = &field.ident else {
@@ -79,7 +67,7 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #input
 
-        impl #impl_generics stylus_sdk::storage::InitStorage for #name #ty_generics #where_clause {
+        impl #impl_generics stylus_sdk::storage::StorageType for #name #ty_generics #where_clause {
             fn init(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
                 use stylus_sdk::{storage, alloy_primitives};
                 debug_assert!(offset == 0);

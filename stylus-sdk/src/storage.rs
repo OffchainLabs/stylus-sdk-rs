@@ -1,11 +1,13 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use crate::{load_bytes32, store_bytes32};
+use crate::{crypto, load_bytes32, store_bytes32};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use fnv::FnvHashMap as HashMap;
 use lazy_static::lazy_static;
-use std::{marker::PhantomData, mem::transmute, ptr, sync::Mutex};
+use std::{
+    cell::OnceCell, marker::PhantomData, mem::transmute, ptr, slice::SliceIndex, sync::Mutex,
+};
 
 /// Global cache managing permanent storage operations
 pub struct StorageCache(HashMap<B256, StorageWord>);
@@ -212,10 +214,10 @@ impl StorageCache {
 }
 
 // TODO: use const generics once stable to elide runtime keccaks
-pub trait InitStorage {
+pub trait StorageType {
     const SIZE: u8 = 32;
 
-    fn init(slot: U256, offset: u8) -> Self;
+    fn new(slot: U256, offset: u8) -> Self;
 }
 
 macro_rules! alias_ints {
@@ -277,10 +279,10 @@ impl<const B: usize, const L: usize> StorageUint<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> InitStorage for StorageUint<B, L> {
+impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     const SIZE: u8 = (B / 8) as u8;
 
-    fn init(slot: U256, offset: u8) -> Self {
+    fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(B <= 256);
         Self { slot, offset }
     }
@@ -297,10 +299,10 @@ impl<const B: usize, const L: usize> StorageSigned<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> InitStorage for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     const SIZE: u8 = (B / 8) as u8;
 
-    fn init(slot: U256, offset: u8) -> Self {
+    fn new(slot: U256, offset: u8) -> Self {
         Self { slot, offset }
     }
 }
@@ -316,10 +318,10 @@ impl<const N: usize> StorageFixedBytes<N> {
     }
 }
 
-impl<const N: usize> InitStorage for StorageFixedBytes<N> {
+impl<const N: usize> StorageType for StorageFixedBytes<N> {
     const SIZE: u8 = N as u8;
 
-    fn init(slot: U256, offset: u8) -> Self {
+    fn new(slot: U256, offset: u8) -> Self {
         Self { slot, offset }
     }
 }
@@ -337,10 +339,10 @@ impl StorageAddress {
     }
 }
 
-impl InitStorage for StorageAddress {
+impl StorageType for StorageAddress {
     const SIZE: u8 = 20;
 
-    fn init(slot: U256, offset: u8) -> Self {
+    fn new(slot: U256, offset: u8) -> Self {
         Self { slot, offset }
     }
 }
@@ -358,10 +360,10 @@ impl StorageBlockNumber {
     }
 }
 
-impl InitStorage for StorageBlockNumber {
+impl StorageType for StorageBlockNumber {
     const SIZE: u8 = 8;
 
-    fn init(slot: U256, offset: u8) -> Self {
+    fn new(slot: U256, offset: u8) -> Self {
         Self { slot, offset }
     }
 }
@@ -377,33 +379,50 @@ impl StorageBlockHash {
     }
 }
 
-impl InitStorage for StorageBlockHash {
-    fn init(slot: U256, _offset: u8) -> Self {
+impl StorageType for StorageBlockHash {
+    fn new(slot: U256, _offset: u8) -> Self {
         Self { slot }
     }
 }
 
-/// Accessor for a storage-backed array
-pub struct StorageArray<S: InitStorage> {
+/// Accessor for a storage-backed vector
+pub struct StorageVec<S: StorageType> {
     slot: U256,
-    base: Option<B256>,
+    base: OnceCell<U256>,
     marker: PhantomData<S>,
 }
 
-impl<S: InitStorage> InitStorage for StorageArray<S> {
-    fn init(slot: U256, offset: u8) -> Self {
+impl<S: StorageType> StorageType for StorageVec<S> {
+    fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
-        //let base = crypto::keccak(&slot.to_be_bytes::<32>());
         Self {
             slot,
-            base: None,
+            base: OnceCell::new(),
             marker: PhantomData::default(),
         }
     }
 }
 
-impl<S: InitStorage> StorageArray<S> {
-    pub fn len() -> usize {
+impl<S: StorageType> StorageVec<S> {
+    pub fn len(&self) -> usize {
+        todo!()
+    }
+
+    pub fn get<I>(&self, index: I) -> Option<&S>
+    where
+        I: SliceIndex<[S]> + TryInto<usize>,
+    {
+        let index = index.try_into().ok()?;
+        let width = S::SIZE as usize;
+
+        if index > self.len() {
+            return None;
+        }
+
+        let index = self.base() + U256::from(width * index);
+
+        let item = S::new(index, 0);
+        //Some(&S::new(index, 0))
         todo!()
     }
 
@@ -413,5 +432,10 @@ impl<S: InitStorage> StorageArray<S> {
 
     pub fn pop(&mut self) {
         todo!()
+    }
+
+    fn base(&self) -> &U256 {
+        self.base
+            .get_or_init(|| crypto::keccak(&self.slot.to_be_bytes::<32>()).into())
     }
 }
