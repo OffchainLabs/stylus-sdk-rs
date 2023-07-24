@@ -41,7 +41,7 @@ pub fn output(data: Vec<u8>) {
 macro_rules! entrypoint {
     ($name:expr) => {
         /// Force the compiler to import these symbols
-        /// Note: calling these functions will unproductively consume gas
+        /// Note: calling this function will unproductively consume gas
         #[no_mangle]
         pub unsafe fn mark_used() {
             stylus_sdk::memory_grow(0);
@@ -55,8 +55,8 @@ macro_rules! entrypoint {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
+            stylus_sdk::storage::StorageCache::flush();
             stylus_sdk::output(data);
-            //StorageCache::flush();
             status
         }
     };
