@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 alloy-primitives.workspace = true
-alloy-sol-types.workspace = true
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true

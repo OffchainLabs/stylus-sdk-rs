@@ -31,31 +31,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alloy-sol-macro"
-version = "0.2.0"
-source = "git+https://github.com/rachel-bousfield/alloy-core.git?branch=native-keccak#fd40d0a68a538a7583c8094c97e77fa2d9e49eb0"
-dependencies = [
- "dunce",
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.27",
- "syn-solidity",
- "tiny-keccak",
-]
-
-[[package]]
-name = "alloy-sol-types"
-version = "0.2.0"
-source = "git+https://github.com/rachel-bousfield/alloy-core.git?branch=native-keccak#fd40d0a68a538a7583c8094c97e77fa2d9e49eb0"
-dependencies = [
- "alloy-primitives",
- "alloy-sol-macro",
- "const-hex",
- "serde",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -165,12 +140,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dunce"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
-
-[[package]]
 name = "errno"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -213,12 +182,6 @@ dependencies = [
  "libc",
  "wasi",
 ]
-
-[[package]]
-name = "heck"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hex"
@@ -439,20 +402,6 @@ name = "serde"
 version = "1.0.174"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b88756493a5bd5e5395d53baa70b194b05764ab85b59e43e4b8f4e1192fa9b1"
-dependencies = [
- "serde_derive",
-]
-
-[[package]]
-name = "serde_derive"
-version = "1.0.174"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e5c3a298c7f978e53536f95a63bdc4c4a64550582f31a0359a9afda6aede62e"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.27",
-]
 
 [[package]]
 name = "smol_str"
@@ -468,7 +417,6 @@ name = "stylus-proc"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
- "alloy-sol-types",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -479,7 +427,6 @@ name = "stylus-sdk"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
- "alloy-sol-types",
  "fnv",
  "hex",
  "lazy_static",
@@ -506,16 +453,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "syn-solidity"
-version = "0.2.0"
-source = "git+https://github.com/rachel-bousfield/alloy-core.git?branch=native-keccak#fd40d0a68a538a7583c8094c97e77fa2d9e49eb0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.27",
 ]
 
 [[package]]
