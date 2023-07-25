@@ -244,7 +244,7 @@ pub trait StorageType {
 }
 
 /// Trait for simple accessors that use no more storage than their starting slot.
-pub trait SimpleStorageType: StorageType + Copy {
+pub trait SizedStorageType: StorageType {
     type Value;
 
     fn set_exact(&mut self, value: Self::Value);
@@ -383,7 +383,7 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> SimpleStorageType for StorageUint<B, L> {
+impl<const B: usize, const L: usize> SizedStorageType for StorageUint<B, L> {
     type Value = Uint<B, L>;
 
     fn set_exact(&mut self, value: Self::Value) {
@@ -418,7 +418,7 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> SimpleStorageType for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> SizedStorageType for StorageSigned<B, L> {
     type Value = Signed<B, L>;
 
     fn set_exact(&mut self, value: Self::Value) {
@@ -453,8 +453,46 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     }
 }
 
-impl<const N: usize> SimpleStorageType for StorageFixedBytes<N> {
+impl<const N: usize> SizedStorageType for StorageFixedBytes<N> {
     type Value = FixedBytes<N>;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
+/// Accessor for a storage-backed [`bool`].
+#[derive(Clone, Copy, Debug)]
+pub struct StorageBool {
+    slot: U256,
+    offset: u8,
+}
+
+impl StorageBool {
+    /// Gets the underlying [`bool`] in persistent storage.
+    pub fn get(&self) -> bool {
+        let data = unsafe { StorageCache::get::<1>(self.slot, self.offset.into()) };
+        data.as_slice()[0] != 0
+    }
+
+    /// Gets the underlying [`bool`] in persistent storage.
+    pub fn set(&mut self, value: bool) {
+        let value = value.then_some(1).unwrap_or_default();
+        let fixed = FixedBytes::from_slice(&[value]);
+        unsafe { StorageCache::set::<1>(self.slot, self.offset.into(), fixed) }
+    }
+}
+
+impl StorageType for StorageBool {
+    const SIZE: u8 = 1;
+
+    fn new(slot: U256, offset: u8) -> Self {
+        Self { slot, offset }
+    }
+}
+
+impl SizedStorageType for StorageBool {
+    type Value = bool;
 
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
@@ -489,7 +527,7 @@ impl StorageType for StorageAddress {
     }
 }
 
-impl SimpleStorageType for StorageAddress {
+impl SizedStorageType for StorageAddress {
     type Value = Address;
 
     fn set_exact(&mut self, value: Self::Value) {
@@ -526,7 +564,7 @@ impl StorageType for StorageBlockNumber {
     }
 }
 
-impl SimpleStorageType for StorageBlockNumber {
+impl SizedStorageType for StorageBlockNumber {
     type Value = BlockNumber;
 
     fn set_exact(&mut self, value: Self::Value) {
@@ -558,7 +596,7 @@ impl StorageType for StorageBlockHash {
     }
 }
 
-impl SimpleStorageType for StorageBlockHash {
+impl SizedStorageType for StorageBlockHash {
     type Value = BlockHash;
 
     fn set_exact(&mut self, value: Self::Value) {
@@ -707,10 +745,95 @@ impl<S: StorageType> StorageVec<S> {
     }
 }
 
-impl<S: SimpleStorageType> StorageVec<S> {
+impl<S: SizedStorageType> StorageVec<S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Value) {
         let mut store = self.open();
         store.set_exact(value);
+    }
+}
+
+pub trait StorageKey {
+    fn hash(&self, root: U256) -> U256 {
+        root
+    }
+}
+
+/// Accessor for a storage-backed map
+pub struct StorageMap<K: StorageKey, V: StorageType> {
+    slot: U256,
+    marker: PhantomData<(K, V)>,
+}
+
+impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
+    fn new(slot: U256, offset: u8) -> Self {
+        debug_assert!(offset == 0);
+        Self {
+            slot,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
+    pub fn open(&mut self, key: K) -> V {
+        let slot = key.hash(self.slot);
+        V::new(slot, 0)
+    }
+}
+
+impl<K: StorageKey, V: SizedStorageType> StorageMap<K, V> {
+    pub fn insert(&mut self, key: K, value: V::Value) {
+        let mut store = self.open(key);
+        store.set_exact(value);
+    }
+}
+
+/// Accessor for storage-backed bytes
+pub struct StorageBytes {
+    slot: U256,
+    base: OnceCell<U256>,
+}
+
+impl StorageType for StorageBytes {
+    fn new(slot: U256, offset: u8) -> Self {
+        debug_assert!(offset == 0);
+        Self {
+            slot,
+            base: OnceCell::new(),
+        }
+    }
+}
+
+impl StorageBytes {
+    /// Returns `true` if the collection contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Gets the number of bytes stored.
+    pub fn len(&self) -> usize {
+        let word = StorageCache::get_word(self.slot);
+
+        // check if the data is short
+        let slot: &[u8] = word.as_ref();
+        if slot[31] == 0 {
+            return (slot[31] / 2) as usize;
+        }
+
+        let word: U256 = word.into();
+        let len = word / U256::from(2);
+        len.try_into().unwrap()
+    }
+
+    /// Adds a byte to the end.
+    fn push(&mut self, b: u8) {
+        todo!()
+    }
+
+    /// Determines where in storage indices start. Could be made const in the future.
+    fn base(&self) -> &U256 {
+        self.base
+            .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
     }
 }
