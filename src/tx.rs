@@ -2,14 +2,14 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, B256, U64};
+use alloy_primitives::{Address, B256};
 
 /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-pub fn ink_price() -> U64 {
-    unsafe { hostio::CACHED_INK_PRICE.get().try_into().unwrap() }
+pub fn ink_price() -> u64 {
+    unsafe { hostio::CACHED_INK_PRICE.get() }
 }
 
 /// Converts evm gas to ink. See [`Ink and Gas`] for more information on
@@ -17,8 +17,8 @@ pub fn ink_price() -> U64 {
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
 #[allow(clippy::inconsistent_digit_grouping)]
-pub fn gas_to_ink(gas: U64) -> U64 {
-    gas.saturating_mul(U64::try_from(100_00).unwrap()) / ink_price()
+pub fn gas_to_ink(gas: u64) -> u64 {
+    gas.saturating_mul(100_00) / ink_price()
 }
 
 /// Converts ink to evm gas. See [`Ink and Gas`] for more information on
@@ -26,8 +26,8 @@ pub fn gas_to_ink(gas: U64) -> U64 {
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
 #[allow(clippy::inconsistent_digit_grouping)]
-pub fn ink_to_gas(ink: U64) -> U64 {
-    ink.saturating_mul(ink_price()) / U64::try_from(100_00).unwrap()
+pub fn ink_to_gas(ink: u64) -> u64 {
+    ink.saturating_mul(ink_price()) / 100_00
 }
 
 wrap_hostio!(

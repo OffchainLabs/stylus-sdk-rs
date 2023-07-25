@@ -2,7 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, B256, U64};
+use alloy_primitives::{Address, B256};
 
 wrap_hostio!(
     /// Gets the basefee of the current block.
@@ -22,7 +22,7 @@ wrap_hostio!(
 
 wrap_hostio!(
     /// Gets the gas limit of the current block.
-    gas_limit block_gas_limit U64
+    gas_limit block_gas_limit u64
 );
 
 wrap_hostio!(
@@ -40,5 +40,5 @@ wrap_hostio!(
     /// determined.
     ///
     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-    timestamp block_timestamp U64
+    timestamp block_timestamp u64
 );

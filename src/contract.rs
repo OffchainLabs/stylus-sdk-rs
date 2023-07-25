@@ -6,13 +6,13 @@ use crate::{
     tx,
     types::AddressVM,
 };
-use alloy_primitives::{Address, B256, U64};
+use alloy_primitives::{Address, B256};
 
 #[derive(Clone, Default)]
 #[must_use]
 pub struct Call {
     kind: CallKind,
-    value: B256,
+    callvalue: B256,
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
@@ -67,16 +67,16 @@ impl Call {
         if self.kind != CallKind::Basic {
             panic!("cannot set value for delegate or static calls");
         }
-        self.value = callvalue;
+        self.callvalue = callvalue;
         self
     }
 
-    pub fn gas(mut self, gas: U64) -> Self {
+    pub fn gas(mut self, gas: u64) -> Self {
         self.gas = Some(gas.try_into().unwrap());
         self
     }
 
-    pub fn ink(mut self, ink: U64) -> Self {
+    pub fn ink(mut self, ink: u64) -> Self {
         self.gas = Some(tx::ink_to_gas(ink).try_into().unwrap());
         self
     }
@@ -100,7 +100,7 @@ impl Call {
                     contract.as_ptr(),
                     calldata.as_ptr(),
                     calldata.len(),
-                    self.value.as_ptr(),
+                    self.callvalue.as_ptr(),
                     gas,
                     &mut outs_len,
                 ),
