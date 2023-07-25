@@ -9,6 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+derivative.workspace = true
 fnv.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 alloy-primitives.workspace = true

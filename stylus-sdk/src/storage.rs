@@ -3,6 +3,7 @@
 
 use crate::{crypto, load_bytes32, store_bytes32};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
+use derivative::Derivative;
 use fnv::FnvHashMap as HashMap;
 use lazy_static::lazy_static;
 use std::{
@@ -242,11 +243,21 @@ pub trait StorageType {
     fn new(slot: U256, offset: u8) -> Self;
 }
 
+/// Trait for simple accessors that use no more storage than their starting slot.
+pub trait SimpleStorageType: StorageType + Copy {
+    type Value;
+
+    fn set_exact(&mut self, value: Self::Value);
+}
+
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
 /// For a mutable accessor, see [`StorageGuardMut`].
+#[derive(Derivative)]
+#[derivative(Debug = "transparent")]
 pub struct StorageGuard<'a, T: 'a> {
     inner: T,
+    #[derivative(Debug = "ignore")]
     marker: PhantomData<&'a T>,
 }
 
@@ -345,6 +356,7 @@ alias_bytes! {
 }
 
 /// Accessor for a storage-backed [`Uint`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageUint<const B: usize, const L: usize> {
     slot: U256,
     offset: u8,
@@ -371,7 +383,16 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     }
 }
 
+impl<const B: usize, const L: usize> SimpleStorageType for StorageUint<B, L> {
+    type Value = Uint<B, L>;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
 /// Accessor for a storage-backed [`Signed`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageSigned<const B: usize, const L: usize> {
     slot: U256,
     offset: u8,
@@ -397,7 +418,16 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     }
 }
 
+impl<const B: usize, const L: usize> SimpleStorageType for StorageSigned<B, L> {
+    type Value = Signed<B, L>;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
 /// Accessor for a storage-backed [`FixedBytes`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageFixedBytes<const N: usize> {
     slot: U256,
     offset: u8,
@@ -423,7 +453,16 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     }
 }
 
+impl<const N: usize> SimpleStorageType for StorageFixedBytes<N> {
+    type Value = FixedBytes<N>;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
 /// Accessor for a storage-backed [`Address`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageAddress {
     slot: U256,
     offset: u8,
@@ -450,7 +489,16 @@ impl StorageType for StorageAddress {
     }
 }
 
+impl SimpleStorageType for StorageAddress {
+    type Value = Address;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
 /// Accessor for a storage-backed [`BlockNumber`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageBlockNumber {
     slot: U256,
     offset: u8,
@@ -478,7 +526,16 @@ impl StorageType for StorageBlockNumber {
     }
 }
 
+impl SimpleStorageType for StorageBlockNumber {
+    type Value = BlockNumber;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
 /// Accessor for a storage-backed [`BlockHash`].
+#[derive(Clone, Copy, Debug)]
 pub struct StorageBlockHash {
     slot: U256,
 }
@@ -498,6 +555,14 @@ impl StorageBlockHash {
 impl StorageType for StorageBlockHash {
     fn new(slot: U256, _offset: u8) -> Self {
         Self { slot }
+    }
+}
+
+impl SimpleStorageType for StorageBlockHash {
+    type Value = BlockHash;
+
+    fn set_exact(&mut self, value: Self::Value) {
+        self.set(value);
     }
 }
 
@@ -549,8 +614,8 @@ impl<S: StorageType> StorageVec<S> {
     where
         I: SliceIndex<[S]> + TryInto<usize>,
     {
-        let accessor = unsafe { self.get_raw(index)? };
-        Some(StorageGuard::new(accessor))
+        let store = unsafe { self.get_raw(index)? };
+        Some(StorageGuard::new(store))
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
@@ -560,8 +625,8 @@ impl<S: StorageType> StorageVec<S> {
     where
         I: SliceIndex<[S]> + TryInto<usize>,
     {
-        let accessor = unsafe { self.get_raw(index)? };
-        Some(StorageGuardMut::new(accessor))
+        let store = unsafe { self.get_raw(index)? };
+        Some(StorageGuardMut::new(store))
     }
 
     /// Gets the underlying accessor to the element at a given index, if it exists.
@@ -587,9 +652,32 @@ impl<S: StorageType> StorageVec<S> {
         Some(S::new(offset, (index % density) as u8))
     }
 
-    pub fn push(&mut self, _item: S) {
-        let _index = self.len();
-        todo!()
+    /// Like [`std::Vec::push`], but returns a mutable accessor to the new slot.
+    /// This enables pushing elements without constructing them first.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
+    /// use stylus_sdk::alloy_primitives::U256;
+    ///
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::new(U256::ZERO, 0);
+    /// let mut inner_vec = vec.open();
+    /// inner_vec.push(U256::from(8));
+    ///
+    /// let value = inner_vec.get(0).unwrap();
+    /// assert_eq!(value.get(), U256::from(8));
+    /// assert_eq!(inner_vec.len(), 1);
+    /// ```
+    pub fn open(&mut self) -> StorageGuardMut<S> {
+        let index = self.len();
+        let width = S::SIZE as usize;
+        unsafe { self.set_len(index) };
+
+        let density = 32 / width;
+        let offset = self.base() + U256::from(width * index / density);
+        let store = S::new(offset, (index % density) as u8);
+        StorageGuardMut::new(store)
     }
 
     /// Removes and returns the last element of the vector, if any.
@@ -616,5 +704,13 @@ impl<S: StorageType> StorageVec<S> {
     fn base(&self) -> &U256 {
         self.base
             .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
+    }
+}
+
+impl<S: SimpleStorageType> StorageVec<S> {
+    /// Adds an element to the end of the vector.
+    pub fn push(&mut self, value: S::Value) {
+        let mut store = self.open();
+        store.set_exact(value);
     }
 }
