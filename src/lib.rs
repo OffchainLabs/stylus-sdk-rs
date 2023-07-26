@@ -31,7 +31,7 @@ pub fn args(len: usize) -> Vec<u8> {
 
 pub fn output(data: Vec<u8>) {
     unsafe {
-        hostio::return_data(data.as_ptr(), data.len());
+        hostio::write_result(data.as_ptr(), data.len());
     }
 }
 
@@ -61,10 +61,10 @@ macro_rules! entrypoint {
 
 pub fn load_bytes32(key: B256) -> B256 {
     let mut data = B256::ZERO;
-    unsafe { hostio::account_load_bytes32(key.as_ptr(), data.as_mut_ptr()) };
+    unsafe { hostio::storage_load_bytes32(key.as_ptr(), data.as_mut_ptr()) };
     data
 }
 
 pub fn store_bytes32(key: B256, data: B256) {
-    unsafe { hostio::account_store_bytes32(key.as_ptr(), data.as_ptr()) };
+    unsafe { hostio::storage_store_bytes32(key.as_ptr(), data.as_ptr()) };
 }
