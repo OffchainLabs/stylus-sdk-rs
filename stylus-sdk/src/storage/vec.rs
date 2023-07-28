@@ -147,12 +147,12 @@ impl<S: StorageType> StorageVec<S> {
             .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
     }
 
-    pub fn get<'s>(&'s self, index: impl TryInto<usize>) -> Option<S::Wraps<'s>> {
+    pub fn get(&self, index: impl TryInto<usize>) -> Option<S::Wraps<'_>> {
         let store = unsafe { self.accessor(index)? };
         Some(store.load())
     }
 
-    pub fn get_mut<'s>(&'s mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'s>> {
+    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'_>> {
         let store = unsafe { self.accessor(index)? };
         Some(store.load_mut())
     }

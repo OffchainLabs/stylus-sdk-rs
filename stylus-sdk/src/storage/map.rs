@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{SizedStorageType, StorageGuardMut, StorageType, StorageGuard};
+use super::{SizedStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use std::marker::PhantomData;
 

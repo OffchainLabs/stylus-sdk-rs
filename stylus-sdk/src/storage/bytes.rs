@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{StorageCache, StorageType, StorageGuardMut, StorageGuard};
+use super::{StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::{B256, U256, U8};
 use std::cell::OnceCell;
