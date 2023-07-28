@@ -92,6 +92,23 @@ impl StorageCache {
         Uint::try_from_be_slice(value).unwrap()
     }
 
+    /// Retrieves a [`u8`] from persistent storage, performing [`SLOAD`]'s only as needed.
+    /// The byte is read from slot `key`, starting `offset` bytes from the right.
+    /// Note that the bytes must exist within a single, 32-byte EVM word.
+    ///
+    /// # Safety
+    ///
+    /// UB if the read would cross a word boundary.
+    /// May become safe when Rust stabilizes [`generic_const_exprs`].
+    ///
+    /// [`SLOAD`]: https://www.evm.codes/#54
+    /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
+    pub unsafe fn get_byte(key: U256, offset: usize) -> u8 {
+        debug_assert!(offset <= 32);
+        let word = Self::get::<1>(key, offset);
+        word[0]
+    }
+
     /// Retrieves a [`Signed`] from persistent storage, performing [`SLOAD`]'s only as needed.
     /// The integer's bytes are read from slot `key`, starting `offset` bytes from the right.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
@@ -241,10 +258,13 @@ pub trait StorageType {
 }
 
 /// Trait for simple accessors that use no more storage than their starting slot.
-pub trait SizedStorageType: StorageType {
+pub trait SizedStorageType: StorageType + Into<Self::Value> {
     type Value;
 
     fn set_exact(&mut self, value: Self::Value);
+
+    /// Erases the value from persistent storage.
+    fn erase(&mut self);
 }
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.

@@ -4,7 +4,7 @@
 use super::{SizedStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::U256;
-use std::{cell::OnceCell, marker::PhantomData, slice::SliceIndex};
+use std::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector
 pub struct StorageVec<S: StorageType> {
@@ -41,7 +41,7 @@ impl<S: StorageType> StorageVec<S> {
     /// # Safety
     ///
     /// It must be sensible to create accessors for `S` from zero-slots,
-    /// or any junk data left over from previous dirty removal operations such as [`StorageVec::pop`].
+    /// or any junk data left over from previous dirty removal operations.
     /// Note that `StorageVec` has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
         StorageCache::set_word(self.slot, U256::from(len).into())
@@ -50,22 +50,16 @@ impl<S: StorageType> StorageVec<S> {
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StoreageGuard`], which restricts
     /// its lifetime to that of `&self`.
-    pub fn getter<I>(&self, index: I) -> Option<StorageGuard<S>>
-    where
-        I: SliceIndex<[S]> + TryInto<usize>,
-    {
-        let store = unsafe { self.get_raw(index)? };
+    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
+        let store = unsafe { self.accessor(index)? };
         Some(StorageGuard::new(store))
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StoreageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
-    pub fn setter<I>(&mut self, index: I) -> Option<StorageGuardMut<S>>
-    where
-        I: SliceIndex<[S]> + TryInto<usize>,
-    {
-        let store = unsafe { self.get_raw(index)? };
+    pub fn setter<I>(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
+        let store = unsafe { self.accessor(index)? };
         Some(StorageGuardMut::new(store))
     }
 
@@ -76,10 +70,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Because the accessor is unconstrained by a storage guard, storage aliasing is possible
     /// if used incorrectly. Two or more mutable references to the same `S` are possible, as are
     /// read-after-write scenarios.
-    pub unsafe fn get_raw<I>(&self, index: I) -> Option<S>
-    where
-        I: SliceIndex<[S]> + TryInto<usize>,
-    {
+    pub unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
         let index = index.try_into().ok()?;
         let width = S::SIZE as usize;
 
@@ -109,7 +100,7 @@ impl<S: StorageType> StorageVec<S> {
     /// assert_eq!(value.get(), U256::from(8));
     /// assert_eq!(inner_vec.len(), 1);
     /// ```
-    pub fn open(&mut self) -> StorageGuardMut<S> {
+    pub fn grow(&mut self) -> StorageGuardMut<S> {
         let index = self.len();
         let width = S::SIZE as usize;
         unsafe { self.set_len(index) };
@@ -120,13 +111,13 @@ impl<S: StorageType> StorageVec<S> {
         StorageGuardMut::new(store)
     }
 
-    /// Removes and returns the last element of the vector, if any.
-    pub fn pop(&mut self) -> Option<S> {
+    /// Removes and returns an accessor to the last element of the vector, if any.
+    pub fn shrink(&mut self) -> Option<S> {
         let index = match self.len() {
             0 => return None,
             x => x - 1,
         };
-        let item = unsafe { self.get_raw(index) };
+        let item = unsafe { self.accessor(index) };
         StorageCache::set_word(self.slot, U256::from(index).into());
         item
     }
@@ -150,7 +141,24 @@ impl<S: StorageType> StorageVec<S> {
 impl<S: SizedStorageType> StorageVec<S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Value) {
-        let mut store = self.open();
+        let mut store = self.grow();
         store.set_exact(value);
+    }
+
+    /// Removes and returns the last element of the vector, if any.
+    /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
+    pub fn pop(&mut self) -> Option<S::Value> {
+        let store = self.shrink()?;
+        let index = self.len();
+        let value = store.into();
+        let width = S::SIZE as usize;
+
+        // TODO: cleanup with accessor trait
+        let density = (32 / S::SIZE) as usize;
+        if index % density == 0 {
+            let offset = self.base() + U256::from(width * index / density);
+            S::new(offset, 0).erase();
+        }
+        Some(value)
     }
 }

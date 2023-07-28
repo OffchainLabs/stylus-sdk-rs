@@ -2,7 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, U256};
-use std::mem::transmute;
+use std::{cell::OnceCell, mem::transmute, ops::Deref};
 
 pub use bytes::StorageBytes;
 pub use cache::{SizedStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
@@ -63,16 +63,17 @@ alias_bytes! {
 }
 
 /// Accessor for a storage-backed [`Uint`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageUint<const B: usize, const L: usize> {
     slot: U256,
     offset: u8,
+    cached: OnceCell<Uint<B, L>>,
 }
 
 impl<const B: usize, const L: usize> StorageUint<B, L> {
     /// Gets the underlying [`Uint`] in persistent storage.
     pub fn get(&self) -> Uint<B, L> {
-        unsafe { StorageCache::get_uint(self.slot, self.offset.into()) }
+        **self
     }
 
     /// Sets the underlying [`Uint`] in persistent storage.
@@ -86,7 +87,11 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
 
     fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(B <= 256);
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -96,19 +101,39 @@ impl<const B: usize, const L: usize> SizedStorageType for StorageUint<B, L> {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(Self::Value::ZERO);
+    }
+}
+
+impl<const B: usize, const L: usize> Deref for StorageUint<B, L> {
+    type Target = Uint<B, L>;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached
+            .get_or_init(|| unsafe { StorageCache::get_uint(self.slot, self.offset.into()) })
+    }
+}
+
+impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
+    fn from(value: StorageUint<B, L>) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`Signed`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageSigned<const B: usize, const L: usize> {
     slot: U256,
     offset: u8,
+    cached: OnceCell<Signed<B, L>>,
 }
 
 impl<const B: usize, const L: usize> StorageSigned<B, L> {
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn get(&self) -> Signed<B, L> {
-        unsafe { StorageCache::get_signed(self.slot, self.offset.into()) }
+        **self
     }
 
     /// Gets the underlying [`Signed`] in persistent storage.
@@ -121,7 +146,11 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     const SIZE: u8 = (B / 8) as u8;
 
     fn new(slot: U256, offset: u8) -> Self {
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -131,19 +160,39 @@ impl<const B: usize, const L: usize> SizedStorageType for StorageSigned<B, L> {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(Self::Value::ZERO)
+    }
+}
+
+impl<const B: usize, const L: usize> Deref for StorageSigned<B, L> {
+    type Target = Signed<B, L>;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached
+            .get_or_init(|| unsafe { StorageCache::get_signed(self.slot, self.offset.into()) })
+    }
+}
+
+impl<const B: usize, const L: usize> From<StorageSigned<B, L>> for Signed<B, L> {
+    fn from(value: StorageSigned<B, L>) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`FixedBytes`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageFixedBytes<const N: usize> {
     slot: U256,
     offset: u8,
+    cached: OnceCell<FixedBytes<N>>,
 }
 
 impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn get(&self) -> FixedBytes<N> {
-        unsafe { StorageCache::get(self.slot, self.offset.into()) }
+        **self
     }
 
     /// Gets the underlying [`FixedBytes`] in persistent storage.
@@ -156,7 +205,11 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     const SIZE: u8 = N as u8;
 
     fn new(slot: U256, offset: u8) -> Self {
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -166,24 +219,46 @@ impl<const N: usize> SizedStorageType for StorageFixedBytes<N> {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(Self::Value::ZERO)
+    }
+}
+
+impl<const N: usize> Deref for StorageFixedBytes<N> {
+    type Target = FixedBytes<N>;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached
+            .get_or_init(|| unsafe { StorageCache::get(self.slot, self.offset.into()) })
+    }
+}
+
+impl<const N: usize> From<StorageFixedBytes<N>> for FixedBytes<N> {
+    fn from(value: StorageFixedBytes<N>) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`bool`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageBool {
     slot: U256,
     offset: u8,
+    cached: OnceCell<bool>,
 }
 
 impl StorageBool {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn get(&self) -> bool {
-        let data = unsafe { StorageCache::get::<1>(self.slot, self.offset.into()) };
-        data.as_slice()[0] != 0
+        **self
     }
 
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn set(&mut self, value: bool) {
+        self.cached.take();
+        _ = self.cached.set(value);
+
         let value = value.then_some(1).unwrap_or_default();
         let fixed = FixedBytes::from_slice(&[value]);
         unsafe { StorageCache::set::<1>(self.slot, self.offset.into(), fixed) }
@@ -194,7 +269,11 @@ impl StorageType for StorageBool {
     const SIZE: u8 = 1;
 
     fn new(slot: U256, offset: u8) -> Self {
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -204,20 +283,41 @@ impl SizedStorageType for StorageBool {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(false);
+    }
+}
+
+impl Deref for StorageBool {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached.get_or_init(|| unsafe {
+            let data = StorageCache::get::<1>(self.slot, self.offset.into());
+            data.as_slice()[0] != 0
+        })
+    }
+}
+
+impl From<StorageBool> for bool {
+    fn from(value: StorageBool) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`Address`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageAddress {
     slot: U256,
     offset: u8,
+    cached: OnceCell<Address>,
 }
 
 impl StorageAddress {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn get(&self) -> Address {
-        let data = unsafe { StorageCache::get::<20>(self.slot, self.offset.into()) };
-        Address::from(data)
+        **self
     }
 
     /// Gets the underlying [`Address`] in persistent storage.
@@ -230,7 +330,11 @@ impl StorageType for StorageAddress {
     const SIZE: u8 = 20;
 
     fn new(slot: U256, offset: u8) -> Self {
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -240,20 +344,40 @@ impl SizedStorageType for StorageAddress {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(Self::Value::ZERO);
+    }
+}
+
+impl Deref for StorageAddress {
+    type Target = Address;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached.get_or_init(|| unsafe {
+            StorageCache::get::<20>(self.slot, self.offset.into()).into()
+        })
+    }
+}
+
+impl From<StorageAddress> for Address {
+    fn from(value: StorageAddress) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`BlockNumber`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct StorageBlockNumber {
     slot: U256,
     offset: u8,
+    cached: OnceCell<BlockNumber>,
 }
 
 impl StorageBlockNumber {
     /// Gets the underlying [`BlockNumber`] in persistent storage.
     pub fn get(&self) -> BlockNumber {
-        let data = unsafe { StorageCache::get::<8>(self.slot, self.offset.into()) };
-        unsafe { transmute(data) }
+        **self
     }
 
     /// Gets the underlying [`BlockNumber`] in persistent storage.
@@ -267,7 +391,11 @@ impl StorageType for StorageBlockNumber {
     const SIZE: u8 = 8;
 
     fn new(slot: U256, offset: u8) -> Self {
-        Self { slot, offset }
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
     }
 }
 
@@ -277,29 +405,54 @@ impl SizedStorageType for StorageBlockNumber {
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
     }
+
+    fn erase(&mut self) {
+        self.set(0);
+    }
+}
+
+impl Deref for StorageBlockNumber {
+    type Target = BlockNumber;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached.get_or_init(|| unsafe {
+            let data = StorageCache::get::<8>(self.slot, self.offset.into());
+            transmute(data)
+        })
+    }
+}
+
+impl From<StorageBlockNumber> for BlockNumber {
+    fn from(value: StorageBlockNumber) -> Self {
+        *value
+    }
 }
 
 /// Accessor for a storage-backed [`BlockHash`].
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct StorageBlockHash {
     slot: U256,
+    cached: OnceCell<BlockHash>,
 }
 
 impl StorageBlockHash {
     /// Gets the underlying [`BlockHash`] in persistent storage.
     pub fn get(&self) -> BlockHash {
-        StorageCache::get_word(self.slot)
+        **self
     }
 
     /// Sets the underlying [`BlockHash`] in persistent storage.
     pub fn set(&mut self, value: BlockHash) {
+        self.cached.take();
+        _ = self.cached.set(value);
         StorageCache::set_word(self.slot, value)
     }
 }
 
 impl StorageType for StorageBlockHash {
     fn new(slot: U256, _offset: u8) -> Self {
-        Self { slot }
+        let cached = OnceCell::new();
+        Self { slot, cached }
     }
 }
 
@@ -308,5 +461,24 @@ impl SizedStorageType for StorageBlockHash {
 
     fn set_exact(&mut self, value: Self::Value) {
         self.set(value);
+    }
+
+    fn erase(&mut self) {
+        self.set(Self::Value::ZERO);
+    }
+}
+
+impl Deref for StorageBlockHash {
+    type Target = BlockHash;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached
+            .get_or_init(|| StorageCache::get_word(self.slot))
+    }
+}
+
+impl From<StorageBlockHash> for BlockHash {
+    fn from(value: StorageBlockHash) -> Self {
+        *value
     }
 }
