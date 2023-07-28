@@ -83,6 +83,9 @@ impl<const B: usize, const L: usize> StorageUint<B, L> {
 }
 
 impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
+    type Wraps<'a> = Uint<B, L>;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = (B / 8) as u8;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -93,17 +96,23 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl<const B: usize, const L: usize> SizedStorageType for StorageUint<B, L> {
-    type Value = Uint<B, L>;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a, const B: usize, const L: usize> SizedStorageType<'a> for StorageUint<B, L> {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
     fn erase(&mut self) {
-        self.set(Self::Value::ZERO);
+        self.set(Self::Wraps::ZERO);
     }
 }
 
@@ -143,6 +152,9 @@ impl<const B: usize, const L: usize> StorageSigned<B, L> {
 }
 
 impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
+    type Wraps<'a> = Signed<B, L>;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = (B / 8) as u8;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -152,17 +164,23 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl<const B: usize, const L: usize> SizedStorageType for StorageSigned<B, L> {
-    type Value = Signed<B, L>;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a, const B: usize, const L: usize> SizedStorageType<'a> for StorageSigned<B, L> {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
     fn erase(&mut self) {
-        self.set(Self::Value::ZERO)
+        self.set(Self::Wraps::ZERO)
     }
 }
 
@@ -202,6 +220,9 @@ impl<const N: usize> StorageFixedBytes<N> {
 }
 
 impl<const N: usize> StorageType for StorageFixedBytes<N> {
+    type Wraps<'a> = FixedBytes<N>;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = N as u8;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -211,17 +232,23 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl<const N: usize> SizedStorageType for StorageFixedBytes<N> {
-    type Value = FixedBytes<N>;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a, const N: usize> SizedStorageType<'a> for StorageFixedBytes<N> {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
     fn erase(&mut self) {
-        self.set(Self::Value::ZERO)
+        self.set(Self::Wraps::ZERO)
     }
 }
 
@@ -266,6 +293,9 @@ impl StorageBool {
 }
 
 impl StorageType for StorageBool {
+    type Wraps<'a> = bool;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = 1;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -275,12 +305,18 @@ impl StorageType for StorageBool {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl SizedStorageType for StorageBool {
-    type Value = bool;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a> SizedStorageType<'a> for StorageBool {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
@@ -327,6 +363,9 @@ impl StorageAddress {
 }
 
 impl StorageType for StorageAddress {
+    type Wraps<'a> = Address;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = 20;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -336,17 +375,23 @@ impl StorageType for StorageAddress {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl SizedStorageType for StorageAddress {
-    type Value = Address;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a> SizedStorageType<'a> for StorageAddress {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
     fn erase(&mut self) {
-        self.set(Self::Value::ZERO);
+        self.set(Self::Wraps::ZERO);
     }
 }
 
@@ -388,6 +433,9 @@ impl StorageBlockNumber {
 }
 
 impl StorageType for StorageBlockNumber {
+    type Wraps<'a> = BlockNumber;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     const SIZE: u8 = 8;
 
     fn new(slot: U256, offset: u8) -> Self {
@@ -397,12 +445,18 @@ impl StorageType for StorageBlockNumber {
             cached: OnceCell::new(),
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl SizedStorageType for StorageBlockNumber {
-    type Value = BlockNumber;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a> SizedStorageType<'a> for StorageBlockNumber {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
@@ -450,21 +504,30 @@ impl StorageBlockHash {
 }
 
 impl StorageType for StorageBlockHash {
+    type Wraps<'a> = BlockHash;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
     fn new(slot: U256, _offset: u8) -> Self {
         let cached = OnceCell::new();
         Self { slot, cached }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
-impl SizedStorageType for StorageBlockHash {
-    type Value = BlockHash;
-
-    fn set_exact(&mut self, value: Self::Value) {
+impl<'a> SizedStorageType<'a> for StorageBlockHash {
+    fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 
     fn erase(&mut self) {
-        self.set(Self::Value::ZERO);
+        self.set(Self::Wraps::ZERO);
     }
 }
 

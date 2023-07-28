@@ -246,7 +246,14 @@ impl StorageCache {
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html
 // TODO: use const generics once stable to elide runtime keccaks
-pub trait StorageType {
+pub trait StorageType: Sized {
+    /// For primative types, this is the type being stored.
+    /// For collections, this is the [`StorageType`] being collected.
+    type Wraps<'a>: 'a where Self: 'a;
+
+    /// Mutable accessor to the type being stored.
+    type WrapsMut<'a>: 'a where Self: 'a;
+
     /// The number of bytes needed to represent the type. Must not exceed 32.
     /// For implementing dynamic types, see how Solidity slots are assigned for [`Arrays and Maps`].
     ///
@@ -255,13 +262,15 @@ pub trait StorageType {
 
     /// Where in persistent storage the type should live.
     fn new(slot: U256, offset: u8) -> Self;
+
+    fn load<'s>(self) -> Self::Wraps<'s> where Self: 's;
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> where Self: 's;
 }
 
 /// Trait for simple accessors that use no more storage than their starting slot.
-pub trait SizedStorageType: StorageType + Into<Self::Value> {
-    type Value;
-
-    fn set_exact(&mut self, value: Self::Value);
+pub trait SizedStorageType<'a>: StorageType + Into<Self::Wraps<'a>> where Self: 'a {
+    fn set_exact(&mut self, value: Self::Wraps<'a>);
 
     /// Erases the value from persistent storage.
     fn erase(&mut self);

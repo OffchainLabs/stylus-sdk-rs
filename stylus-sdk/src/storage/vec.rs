@@ -14,6 +14,9 @@ pub struct StorageVec<S: StorageType> {
 }
 
 impl<S: StorageType> StorageType for StorageVec<S> {
+    type Wraps<'a> = StorageGuard<'a, StorageVec<S>> where Self: 'a;
+    type WrapsMut<'a> = StorageGuardMut<'a, StorageVec<S>> where Self: 'a;
+
     fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
@@ -21,6 +24,14 @@ impl<S: StorageType> StorageType for StorageVec<S> {
             base: OnceCell::new(),
             marker: PhantomData,
         }
+    }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        StorageGuard::new(self)
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
     }
 }
 
@@ -46,7 +57,6 @@ impl<S: StorageType> StorageVec<S> {
     pub unsafe fn set_len(&mut self, len: usize) {
         StorageCache::set_word(self.slot, U256::from(len).into())
     }
-
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StoreageGuard`], which restricts
     /// its lifetime to that of `&self`.
@@ -58,7 +68,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Gets a mutable accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StoreageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
-    pub fn setter<I>(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
+    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
         let store = unsafe { self.accessor(index)? };
         Some(StorageGuardMut::new(store))
     }
@@ -136,18 +146,28 @@ impl<S: StorageType> StorageVec<S> {
         self.base
             .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
     }
+
+    pub fn get<'s>(&'s self, index: impl TryInto<usize>) -> Option<S::Wraps<'s>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load())
+    }
+
+    pub fn get_mut<'s>(&'s mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'s>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load_mut())
+    }
 }
 
-impl<S: SizedStorageType> StorageVec<S> {
+impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
     /// Adds an element to the end of the vector.
-    pub fn push(&mut self, value: S::Value) {
+    pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
         store.set_exact(value);
     }
 
     /// Removes and returns the last element of the vector, if any.
     /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
-    pub fn pop(&mut self) -> Option<S::Value> {
+    pub fn pop(&mut self) -> Option<S::Wraps<'a>> {
         let store = self.shrink()?;
         let index = self.len();
         let value = store.into();
@@ -160,5 +180,13 @@ impl<S: SizedStorageType> StorageVec<S> {
             S::new(offset, 0).erase();
         }
         Some(value)
+    }
+}
+
+impl<'a, S: SizedStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
+    fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
+        for elem in iter {
+            self.push(elem);
+        }
     }
 }

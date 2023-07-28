@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{StorageCache, StorageType};
+use super::{StorageCache, StorageType, StorageGuardMut, StorageGuard};
 use crate::crypto;
 use alloy_primitives::{B256, U256, U8};
 use std::cell::OnceCell;
@@ -13,12 +13,23 @@ pub struct StorageBytes {
 }
 
 impl StorageType for StorageBytes {
+    type Wraps<'a> = StorageGuard<'a, StorageBytes> where Self: 'a;
+    type WrapsMut<'a> = StorageGuardMut<'a, StorageBytes> where Self: 'a;
+
     fn new(root: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
             base: OnceCell::new(),
         }
+    }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        StorageGuard::new(self)
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
     }
 }
 
@@ -92,7 +103,7 @@ impl StorageBytes {
 
         if len == 32 {}
 
-        todo!()
+        todo!("finish pop implementation")
     }
 
     /// Determines where in storage indices start. Could be made const in the future.
@@ -115,8 +126,19 @@ impl Extend<u8> for StorageBytes {
 pub struct StorageString(pub StorageBytes);
 
 impl StorageType for StorageString {
+    type Wraps<'a> = StorageGuard<'a, StorageString> where Self: 'a;
+    type WrapsMut<'a> = StorageGuardMut<'a, StorageString> where Self: 'a;
+
     fn new(slot: U256, offset: u8) -> Self {
         Self(StorageBytes::new(slot, offset))
+    }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        StorageGuard::new(self)
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
     }
 }
 

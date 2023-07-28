@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{SizedStorageType, StorageGuardMut, StorageType};
+use super::{SizedStorageType, StorageGuardMut, StorageType, StorageGuard};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use std::marker::PhantomData;
 
@@ -12,6 +12,9 @@ pub struct StorageMap<K: StorageKey, V: StorageType> {
 }
 
 impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
+    type Wraps<'a> = StorageGuard<'a, StorageMap<K, V>> where Self: 'a;
+    type WrapsMut<'a> = StorageGuardMut<'a, StorageMap<K, V>> where Self: 'a;
+
     fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
@@ -19,22 +22,35 @@ impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
             marker: PhantomData,
         }
     }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        StorageGuard::new(self)
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
 }
 
 impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
-    pub fn open(&mut self, key: K) -> StorageGuardMut<V> {
+    pub fn getter(&mut self, key: K) -> StorageGuard<V> {
+        let slot = key.to_slot(self.slot.into());
+        StorageGuard::new(V::new(slot, 0))
+    }
+
+    pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
         StorageGuardMut::new(V::new(slot, 0))
     }
 }
 
-impl<K: StorageKey, V: SizedStorageType> StorageMap<K, V> {
-    pub fn insert(&mut self, key: K, value: V::Value) {
-        let mut store = self.open(key);
+impl<'a, K: StorageKey, V: SizedStorageType<'a>> StorageMap<K, V> {
+    pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
+        let mut store = self.setter(key);
         store.set_exact(value);
     }
 
-    pub fn get(&self, key: K) -> V::Value {
+    pub fn get(&self, key: K) -> V::Wraps<'a> {
         let slot = key.to_slot(self.slot.into());
         V::new(slot, 0).into()
     }
