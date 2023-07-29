@@ -12,6 +12,7 @@ pub mod crypto;
 pub mod debug;
 pub mod evm;
 pub mod msg;
+pub mod prelude;
 pub mod storage;
 pub mod tx;
 pub mod types;

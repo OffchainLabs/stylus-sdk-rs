@@ -1,8 +1,11 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{SizedStorageType, StorageGuard, StorageGuardMut, StorageType};
-use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
+use super::{
+    bytes::StorageString, SizedStorageType, StorageBytes, StorageGuard, StorageGuardMut,
+    StorageType,
+};
+use alloy_primitives::{Address, FixedBytes, Signed, Uint, B160, B256, U256};
 use std::marker::PhantomData;
 
 /// Accessor for a storage-backed map
@@ -15,7 +18,7 @@ impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
     type Wraps<'a> = StorageGuard<'a, StorageMap<K, V>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageMap<K, V>> where Self: 'a;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -35,12 +38,12 @@ impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
 impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
     pub fn getter(&mut self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        StorageGuard::new(V::new(slot, 0))
+        StorageGuard::new(unsafe { V::new(slot, 0) })
     }
 
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        StorageGuardMut::new(V::new(slot, 0))
+        StorageGuardMut::new(unsafe { V::new(slot, 0) })
     }
 }
 
@@ -52,7 +55,7 @@ impl<'a, K: StorageKey, V: SizedStorageType<'a>> StorageMap<K, V> {
 
     pub fn get(&self, key: K) -> V::Wraps<'a> {
         let slot = key.to_slot(self.slot.into());
-        V::new(slot, 0).into()
+        unsafe { V::new(slot, 0).into() }
     }
 }
 
@@ -85,6 +88,24 @@ impl<const N: usize> StorageKey for FixedBytes<N> {
         let data = B256::from(pad);
         data.concat_const::<32, 64>(root);
         data.into()
+    }
+}
+
+impl StorageKey for StorageBytes {
+    fn to_slot(&self, _root: B256) -> U256 {
+        todo!()
+    }
+}
+
+impl StorageKey for StorageString {
+    fn to_slot(&self, root: B256) -> U256 {
+        self.0.to_slot(root)
+    }
+}
+
+impl StorageKey for Address {
+    fn to_slot(&self, root: B256) -> U256 {
+        B160::from(*self).to_slot(root)
     }
 }
 

@@ -16,7 +16,7 @@ impl StorageType for StorageBytes {
     type Wraps<'a> = StorageGuard<'a, StorageBytes> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageBytes> where Self: 'a;
 
-    fn new(root: U256, offset: u8) -> Self {
+    unsafe fn new(root: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
@@ -129,7 +129,7 @@ impl StorageType for StorageString {
     type Wraps<'a> = StorageGuard<'a, StorageString> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageString> where Self: 'a;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self(StorageBytes::new(slot, offset))
     }
 

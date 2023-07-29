@@ -17,7 +17,7 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     type Wraps<'a> = StorageGuard<'a, StorageVec<S>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageVec<S>> where Self: 'a;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -90,7 +90,7 @@ impl<S: StorageType> StorageVec<S> {
 
         let density = 32 / width;
         let offset = self.base() + U256::from(width * index / density);
-        Some(S::new(offset, (index % density) as u8))
+        unsafe { Some(S::new(offset, (index % density) as u8)) }
     }
 
     /// Like [`std::Vec::push`], but returns a mutable accessor to the new slot.
@@ -117,7 +117,7 @@ impl<S: StorageType> StorageVec<S> {
 
         let density = 32 / width;
         let offset = self.base() + U256::from(width * index / density);
-        let store = S::new(offset, (index % density) as u8);
+        let store = unsafe { S::new(offset, (index % density) as u8) };
         StorageGuardMut::new(store)
     }
 
@@ -177,7 +177,7 @@ impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
         let density = (32 / S::SIZE) as usize;
         if index % density == 0 {
             let offset = self.base() + U256::from(width * index / density);
-            S::new(offset, 0).erase();
+            unsafe { S::new(offset, 0).erase() };
         }
         Some(value)
     }

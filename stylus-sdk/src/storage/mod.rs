@@ -4,15 +4,15 @@
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, U256};
 use std::{cell::OnceCell, mem::transmute, ops::Deref};
 
-pub use bytes::StorageBytes;
+pub use bytes::{StorageBytes, StorageString};
 pub use cache::{SizedStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 pub use map::StorageMap;
 pub use vec::StorageVec;
 
-pub mod bytes;
-pub mod cache;
-pub mod map;
-pub mod vec;
+mod bytes;
+mod cache;
+mod map;
+mod vec;
 
 macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
@@ -88,7 +88,7 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
 
     const SIZE: u8 = (B / 8) as u8;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
@@ -157,7 +157,7 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
 
     const SIZE: u8 = (B / 8) as u8;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
             slot,
             offset,
@@ -225,7 +225,7 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
 
     const SIZE: u8 = N as u8;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
             slot,
             offset,
@@ -298,7 +298,7 @@ impl StorageType for StorageBool {
 
     const SIZE: u8 = 1;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
             slot,
             offset,
@@ -368,7 +368,7 @@ impl StorageType for StorageAddress {
 
     const SIZE: u8 = 20;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
             slot,
             offset,
@@ -438,7 +438,7 @@ impl StorageType for StorageBlockNumber {
 
     const SIZE: u8 = 8;
 
-    fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
             slot,
             offset,
@@ -507,7 +507,7 @@ impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    fn new(slot: U256, _offset: u8) -> Self {
+    unsafe fn new(slot: U256, _offset: u8) -> Self {
         let cached = OnceCell::new();
         Self { slot, cached }
     }

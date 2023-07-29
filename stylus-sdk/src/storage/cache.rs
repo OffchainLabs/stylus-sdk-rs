@@ -265,7 +265,7 @@ pub trait StorageType: Sized {
     const SIZE: u8 = 32;
 
     /// Where in persistent storage the type should live.
-    fn new(slot: U256, offset: u8) -> Self;
+    unsafe fn new(slot: U256, offset: u8) -> Self;
 
     fn load<'s>(self) -> Self::Wraps<'s>
     where
