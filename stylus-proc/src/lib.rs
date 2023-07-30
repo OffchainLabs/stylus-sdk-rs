@@ -2,16 +2,11 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
 use quote::quote;
-use syn::{
-    bracketed,
-    parse::{Parse, ParseStream},
-    parse_macro_input, parse_quote,
-    punctuated::Punctuated,
-    token::Bracket,
-    ItemStruct, Path, Result, Token, Type,
-};
+use storage::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
+use syn::{parse_macro_input, punctuated::Punctuated, ItemStruct, Token, Type};
+
+mod storage;
 
 #[proc_macro_attribute]
 pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -30,7 +25,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut init = quote! {};
 
     if input.fields.is_empty() {
-        error!(input, "Empty structs are not allowed in Solidity");
+        error!(name, "Empty structs are not allowed in Solidity");
     }
 
     for field in &mut input.fields {
@@ -108,65 +103,30 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-struct SolidityField {
-    pub name: Ident,
-    pub ty: Path,
-}
-
-impl Parse for SolidityField {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let ty: Ident = input.parse()?;
-        let sdk = |x| format!("stylus_sdk::storage::{x}");
-        
-        let base = match ty.to_string().as_str() {
-            "bool" => sdk("StorageBool"),
-            "address" => sdk("StorageAddress"),
-            name => match name.chars().all(|x| x.is_ascii_lowercase()) {
-                false => name.to_string(),
-                true => return Err(input.error("Unsupported type")),
-            }
-        };
-        
-        let mut ty = syn::parse_str(&base)?;
-
-        while input.peek(Bracket) {
-            let _content;
-            let _brackets = bracketed!(_content in input); // TODO: fixed arrays
-            let outer = sdk("StorageVec");
-            let inner = quote! { #ty };
-            ty = syn::parse_str(&format!("{outer}<{inner}>"))?;
-        }
-
-        let name: Ident = input.parse()?;
-
-        Ok(SolidityField { name, ty })
-    }
-}
-
-struct SolidityFields(Punctuated<SolidityField, Token![;]>);
-
-impl Parse for SolidityFields {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let fields = Punctuated::parse_terminated(input)?;
-        Ok(Self(fields))
-    }
-}
-
 #[proc_macro]
 pub fn sol_storage(input: TokenStream) -> TokenStream {
-    let SolidityFields(input) = parse_macro_input!(input as SolidityFields);
+    let SolidityStructs(decls) = parse_macro_input!(input as SolidityStructs);
+    let mut out = quote!();
 
-    let fields: Punctuated<_, Token![,]> = input
-        .into_iter()
-        .map(|SolidityField { name, ty }| quote! { pub #name: #ty })
-        .collect();
+    for decl in decls {
+        let SolidityStruct {
+            vis,
+            name,
+            fields: SolidityFields(fields),
+        } = decl;
 
-    let item: ItemStruct = parse_quote! {
-        #[stylus_sdk::stylus_proc::solidity_storage]
-        pub struct Contract {
-            #fields
-        }
-    };
+        let fields: Punctuated<_, Token![,]> = fields
+            .into_iter()
+            .map(|SolidityField { name, ty }| quote! { pub #name: #ty })
+            .collect();
 
-    TokenStream::from(quote! { #item })
+        out.extend(quote! {
+            #[stylus_sdk::stylus_proc::solidity_storage]
+            #vis struct #name {
+                #fields
+            }
+        });
+    }
+
+    out.into()
 }

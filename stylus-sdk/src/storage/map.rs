@@ -2,7 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 use super::{
-    bytes::StorageString, SizedStorageType, StorageBytes, StorageGuard, StorageGuardMut,
+    SizedStorageType, StorageGuard, StorageGuardMut,
     StorageType,
 };
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B160, B256, U256};
@@ -91,15 +91,17 @@ impl<const N: usize> StorageKey for FixedBytes<N> {
     }
 }
 
-impl StorageKey for StorageBytes {
+// TODO: AsRef<[u8]> in a macro-compatible way
+impl StorageKey for Vec<u8> {
     fn to_slot(&self, _root: B256) -> U256 {
         todo!()
     }
 }
 
-impl StorageKey for StorageString {
-    fn to_slot(&self, root: B256) -> U256 {
-        self.0.to_slot(root)
+// TODO: AsRef<str> in a macro-compatible way
+impl StorageKey for String {
+    fn to_slot(&self, _root: B256) -> U256 {
+        todo!()
     }
 }
 

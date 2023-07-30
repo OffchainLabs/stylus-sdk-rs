@@ -21,6 +21,7 @@ lazy_static = "1.4.0"
 syn = { version = "1.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1.0"
+regex = "1.9.1"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
