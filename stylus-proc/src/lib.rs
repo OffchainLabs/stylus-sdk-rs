@@ -23,6 +23,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let mut init = quote! {};
+    let mut size = quote! {};
 
     if input.fields.is_empty() {
         error!(name, "Empty structs are not allowed in Solidity");
@@ -59,27 +60,56 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         init.extend(quote! {
             #ident: {
-                let size = <#ty as storage::StorageType>::SLOT_BYTES;
-                if space < size {
+                let bytes = <#ty as storage::StorageType>::SLOT_BYTES;
+                let words = <#ty as storage::StorageType>::REQUIRED_SLOTS;
+                if space < bytes {
                     space = 32;
                     slot += 1;
                 }
-                space -= size;
+                space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let (field, extra) = <#ty as storage::StorageType>::new_with_info(root, space as u8);
-                //stylus_sdk::debug::println(format!("Assign: to ({slot} {space}), taking {} => {} {}", extra + 1, slot + extra, stringify!(#ty)));
-                if extra > 0 {
-                    slot += extra + 1;
+                let field = <#ty as storage::StorageType>::new(root, space as u8);
+                if words > 0 {
+                    slot += words;
                     space = 32;
                 }
                 field
             },
         });
+
+        size.extend(quote! {
+            let bytes = <#ty as storage::StorageType>::SLOT_BYTES;
+            let words = <#ty as storage::StorageType>::REQUIRED_SLOTS;
+
+            if words > 0 {
+                total += words;
+                space = 32;
+            } else {
+                if space < bytes {
+                    space = 32;
+                    total += 1;
+                }
+                space -= bytes;
+            }
+        });
     }
 
     let expanded = quote! {
         #input
+
+        impl #impl_generics #name #ty_generics #where_clause {
+            const fn required_slots() -> usize {
+                use stylus_sdk::storage;
+                let mut total: usize = 0;
+                let mut space: usize = 32;
+                #size
+                if space != 32 {
+                    total += 1;
+                }
+                total
+            }
+        }
 
         impl #impl_generics stylus_sdk::storage::StorageType for #name #ty_generics #where_clause {
             type Wraps<'a> = stylus_sdk::storage::StorageGuard<'a, #name> where Self: 'a;
@@ -87,13 +117,9 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
             // start a new word
             const SLOT_BYTES: usize = 32;
+            const REQUIRED_SLOTS: usize = Self::required_slots();
 
             unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
-                Self::new_with_info(root, offset).0
-            }
-
-            unsafe fn new_with_info(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> (Self, usize) {
-                //stylus_sdk::debug::println(format!("New struct at {}", root));
                 use stylus_sdk::{storage, alloy_primitives};
                 debug_assert!(offset == 0);
 
@@ -102,10 +128,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 let accessor = Self {
                     #init
                 };
-                if space != 32 {
-                    slot += 1;
-                }
-                (accessor, slot.saturating_sub(1))
+                accessor
             }
 
             fn load<'s>(self) -> Self::Wraps<'s> {

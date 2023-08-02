@@ -152,8 +152,10 @@ impl<S: StorageType> StorageVec<S> {
     /// Determines the slot and offset for the element at an index
     fn index_slot(&self, index: usize) -> (U256, u8) {
         let width = S::SLOT_BYTES;
+        let words = S::REQUIRED_SLOTS.max(1);
         let density = 32 / width;
-        let slot = self.base() + U256::from(index / density);
+
+        let slot = self.base() + U256::from(words * index / density);
         let offset = 32 - (width * (1 + index % density)) as u8; // TODO: structs
         (slot, offset)
     }

@@ -4,7 +4,7 @@
 use crate::crypto;
 
 use super::{SizedStorageType, StorageGuard, StorageGuardMut, StorageType};
-use alloy_primitives::{Address, FixedBytes, Signed, Uint, B160, B256, U256};
+use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use std::marker::PhantomData;
 
 /// Accessor for a storage-backed map
@@ -44,7 +44,6 @@ impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
 
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        crate::debug::println(format!("Map {}", slot));
         unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
     }
 }
@@ -86,7 +85,7 @@ impl<const B: usize, const L: usize> StorageKey for Signed<B, L> {
 impl<const N: usize> StorageKey for FixedBytes<N> {
     fn to_slot(&self, root: B256) -> U256 {
         let mut pad = [0; 32];
-        pad[N..].copy_from_slice(&self.0);
+        pad[..N].copy_from_slice(&self.0);
 
         let data = B256::from(pad);
         let data = data.concat_const::<32, 64>(root);
@@ -94,23 +93,37 @@ impl<const N: usize> StorageKey for FixedBytes<N> {
     }
 }
 
-// TODO: AsRef<[u8]> in a macro-compatible way
-impl StorageKey for Vec<u8> {
-    fn to_slot(&self, _root: B256) -> U256 {
-        todo!()
+impl StorageKey for &[u8] {
+    fn to_slot(&self, root: B256) -> U256 {
+        let mut vec = self.to_vec();
+        vec.extend(root);
+        crypto::keccak(vec).into()
     }
 }
 
-// TODO: AsRef<str> in a macro-compatible way
+impl StorageKey for Vec<u8> {
+    fn to_slot(&self, root: B256) -> U256 {
+        let bytes: &[u8] = self.as_ref();
+        bytes.to_slot(root)
+    }
+}
+
+impl StorageKey for &str {
+    fn to_slot(&self, root: B256) -> U256 {
+        self.as_bytes().to_slot(root)
+    }
+}
+
 impl StorageKey for String {
-    fn to_slot(&self, _root: B256) -> U256 {
-        todo!()
+    fn to_slot(&self, root: B256) -> U256 {
+        self.as_bytes().to_slot(root)
     }
 }
 
 impl StorageKey for Address {
     fn to_slot(&self, root: B256) -> U256 {
-        B160::from(*self).to_slot(root)
+        let int: U160 = self.0.try_into().unwrap();
+        int.to_slot(root)
     }
 }
 

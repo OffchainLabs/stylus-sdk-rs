@@ -277,6 +277,10 @@ pub trait StorageType: Sized {
     /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html#mappings-and-dynamic-arrays
     const SLOT_BYTES: usize = 32;
 
+    /// The number of words this type must fill. For primitives this is always 0.
+    /// For complex types requiring more than one inline word, set this to the total size.
+    const REQUIRED_SLOTS: usize = 0;
+
     /// Where in persistent storage the type should live. Although useful for framework designers
     /// creating new storage types, most user programs shouldn't call this.
     /// Note: implementations will have to be `const` once [`generic_const_exprs`] stabilizes.
@@ -287,17 +291,6 @@ pub trait StorageType: Sized {
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn new(slot: U256, offset: u8) -> Self;
-
-    /// Same as [`StorageType::new`] but also returns the extra number of words allocated in cases
-    /// of inline types larger than 32 bytes. This defaults to 0, which is correct for all types except
-    /// those that are multi-word and inline like [`StorageArray`].
-    ///
-    /// # Safety
-    ///
-    /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
-    unsafe fn new_with_info(slot: U256, offset: u8) -> (Self, usize) {
-        (Self::new(slot, offset), 0)
-    }
 
     fn load<'s>(self) -> Self::Wraps<'s>
     where
@@ -344,7 +337,7 @@ impl<'a, T: 'a> StorageGuard<'a, T> {
     /// # Safety
     ///
     /// Enables storage aliasing.
-    pub(crate) unsafe fn into_raw(self) -> T {
+    pub unsafe fn into_raw(self) -> T {
         self.inner
     }
 }
@@ -370,6 +363,15 @@ impl<'a, T: 'a> StorageGuardMut<'a, T> {
             inner,
             marker: PhantomData,
         }
+    }
+
+    /// Get the underlying `T`.
+    ///
+    /// # Safety
+    ///
+    /// Enables storage aliasing.
+    pub unsafe fn into_raw(self) -> T {
+        self.inner
     }
 }
 
