@@ -1,10 +1,9 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{
-    SizedStorageType, StorageGuard, StorageGuardMut,
-    StorageType,
-};
+use crate::crypto;
+
+use super::{SizedStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B160, B256, U256};
 use std::marker::PhantomData;
 
@@ -60,6 +59,7 @@ impl<'a, K: StorageKey, V: SizedStorageType<'a>> StorageMap<K, V> {
 }
 
 /// Trait that allows types to be the key of a [`StorageMap`].
+/// Note: the assignment of slots must be injective.
 pub trait StorageKey {
     fn to_slot(&self, root: B256) -> U256;
 }
@@ -68,7 +68,7 @@ impl<const B: usize, const L: usize> StorageKey for Uint<B, L> {
     fn to_slot(&self, root: B256) -> U256 {
         let data = B256::from(U256::from(*self));
         data.concat_const::<32, 64>(root);
-        data.into()
+        crypto::keccak(data).into()
     }
 }
 
@@ -76,7 +76,7 @@ impl<const B: usize, const L: usize> StorageKey for Signed<B, L> {
     fn to_slot(&self, root: B256) -> U256 {
         let data = B256::from(U256::from(self.into_raw()));
         data.concat_const::<32, 64>(root);
-        data.into()
+        crypto::keccak(data).into()
     }
 }
 
@@ -87,7 +87,7 @@ impl<const N: usize> StorageKey for FixedBytes<N> {
 
         let data = B256::from(pad);
         data.concat_const::<32, 64>(root);
-        data.into()
+        crypto::keccak(data).into()
     }
 }
 
@@ -124,7 +124,7 @@ macro_rules! impl_key {
             fn to_slot(&self, root: B256) -> U256 {
                 let data = B256::from(U256::from(*self));
                 data.concat_const::<32, 64>(root.into());
-                data.into()
+                crypto::keccak(data).into()
             }
         })+
     };

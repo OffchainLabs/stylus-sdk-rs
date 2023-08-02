@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::{B256, U256, U8};
 use std::cell::OnceCell;
@@ -45,7 +45,7 @@ impl StorageBytes {
 
         // check if the data is short
         let slot: &[u8] = word.as_ref();
-        if slot[31] == 0 {
+        if slot[31] & 1 == 0 {
             return (slot[31] / 2) as usize;
         }
 
@@ -54,13 +54,32 @@ impl StorageBytes {
         len.try_into().unwrap()
     }
 
+    unsafe fn set_len(&mut self, len: usize) {
+        if len < 32 {
+            // place the len in the last byte of the root with the long bit low
+            StorageCache::set_uint(self.root, 31, U8::from(len * 2));
+        } else {
+            // place the len in the root with the long bit high
+            StorageCache::set_word(self.root, U256::from(len * 2 + 1).into())
+        }
+    }
+
     /// Adds a byte to the end.
     pub fn push(&mut self, b: u8) {
         let index = self.len();
         let value = U8::from(b);
 
+        macro_rules! assign {
+            ($slot:expr) => {
+                unsafe {
+                    StorageCache::set_uint($slot, index % 32, value); // pack value
+                    self.set_len(index + 1);
+                }
+            };
+        }
+
         if index < 31 {
-            return unsafe { StorageCache::set_uint(self.root, index, value) };
+            return assign!(self.root);
         }
 
         // convert to multi-word representation
@@ -68,16 +87,14 @@ impl StorageBytes {
             // copy content over (len byte will be overwritten)
             let word = StorageCache::get_word(self.root);
             StorageCache::set_word(*self.base(), word);
-
-            // place the len in the root with the long bit high
-            StorageCache::set_word(self.root, U256::from(32 * 2 + 1).into())
         }
 
         let slot = self.base() + U256::from(index / 32);
-        unsafe { StorageCache::set_uint(slot, index % 32, value) };
+        assign!(slot);
     }
 
-    /// Removes and returns the last byte.
+    /// Removes and returns the last byte, if it exists.
+    /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
     pub fn pop(&mut self) -> Option<u8> {
         let len = self.len();
         if len == 0 {
@@ -86,24 +103,52 @@ impl StorageBytes {
 
         let index = len - 1;
         let clean = index % 32 == 0;
+        let byte = self.get(index)?;
 
-        if len > 32 {
-            let slot = self.base() + U256::from(index / 32);
-            let byte = unsafe { StorageCache::get_byte(slot, index % 32) };
-
-            // place the len in the root with the long bit high
-            let len = U256::from(len * 2 + 1);
-            StorageCache::set_word(self.root, len.into());
-
-            if clean {
-                StorageCache::set_word(slot, B256::ZERO);
-            }
-            return Some(byte);
+        // convert to single-word representation
+        if len == 32 {
+            // copy content over
+            let word = StorageCache::get_word(*self.base());
+            StorageCache::set_word(self.root, word);
         }
 
-        if len == 32 {}
+        if len >= 32 && clean {
+            let slot = self.base() + U256::from(index / 32);
+            StorageCache::set_word(slot, B256::ZERO);
+        }
 
-        todo!("finish pop implementation")
+        unsafe { self.set_len(index) }
+        Some(byte)
+    }
+
+    /// Gets the byte at the given index, if it exists.
+    pub fn get(&self, index: impl TryInto<usize>) -> Option<u8> {
+        let index = index.try_into().ok()?;
+        if index >= self.len() {
+            return None;
+        }
+        let (slot, offset) = self.index_slot(index);
+        unsafe { Some(StorageCache::get_byte(slot, offset.into())) }
+    }
+
+    /// Gets a mutable accessor to the byte at the given index, if it exists.
+    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<StorageB8>> {
+        let index = index.try_into().ok()?;
+        if index >= self.len() {
+            return None;
+        }
+        let (slot, offset) = self.index_slot(index);
+        let value = unsafe { StorageB8::new(slot, offset) };
+        Some(StorageGuardMut::new(value))
+    }
+
+    /// Determines the slot and offset for the element at an index
+    fn index_slot(&self, index: usize) -> (U256, u8) {
+        let slot = match self.len() {
+            33.. => self.base() + U256::from(index / 32),
+            _ => self.root,
+        };
+        (slot, (index % 32) as u8)
     }
 
     /// Determines where in storage indices start. Could be made const in the future.

@@ -46,7 +46,13 @@ impl StorageWord {
 
 lazy_static! {
     /// Global cache managing persistent storage operations
-    static ref CACHE: Mutex<StorageCache> = Mutex::new(StorageCache(HashMap::default()));
+    static ref CACHE: Mutex<StorageCache> = {
+        /*let origin: U160 = crate::tx::origin().into();
+        let data = origin.as_limbs();
+        let state = ahash::RandomState::with_seeds(data[2], data[1], data[0], 0);
+        Mutex::new(StorageCache(HashMap::with_hasher(state)))*/
+        Mutex::new(StorageCache(HashMap::default()))
+    };
 }
 
 macro_rules! cache {
@@ -57,7 +63,7 @@ macro_rules! cache {
 
 impl StorageCache {
     /// Retrieves `N ≤ 32` bytes from persistent storage, performing [`SLOAD`]'s only as needed.
-    /// The bytes are read from slot `key`, starting `offset` bytes from the right.
+    /// The bytes are read from slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -70,12 +76,12 @@ impl StorageCache {
     pub unsafe fn get<const N: usize>(key: U256, offset: usize) -> FixedBytes<N> {
         debug_assert!(N + offset <= 32);
         let word = Self::get_word(key);
-        let (_, value) = word.split_at(offset);
+        let value = &word[offset..][..N];
         FixedBytes::from_slice(value)
     }
 
     /// Retrieves a [`Uint`] from persistent storage, performing [`SLOAD`]'s only as needed.
-    /// The integer's bytes are read from slot `key`, starting `offset` bytes from the right.
+    /// The integer's bytes are read from slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -88,12 +94,12 @@ impl StorageCache {
     pub unsafe fn get_uint<const B: usize, const L: usize>(key: U256, offset: usize) -> Uint<B, L> {
         debug_assert!(B / 8 + offset <= 32);
         let word = Self::get_word(key);
-        let (_, value) = word.split_at(offset);
+        let value = &word[offset..][..B / 8];
         Uint::try_from_be_slice(value).unwrap()
     }
 
     /// Retrieves a [`u8`] from persistent storage, performing [`SLOAD`]'s only as needed.
-    /// The byte is read from slot `key`, starting `offset` bytes from the right.
+    /// The byte is read from slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -110,7 +116,7 @@ impl StorageCache {
     }
 
     /// Retrieves a [`Signed`] from persistent storage, performing [`SLOAD`]'s only as needed.
-    /// The integer's bytes are read from slot `key`, starting `offset` bytes from the right.
+    /// The integer's bytes are read from slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -138,7 +144,7 @@ impl StorageCache {
     }
 
     /// Writes `N ≤ 32` bytes to persistent storage, performing [`SSTORE`]'s only as needed.
-    /// The bytes are written to slot `key`, starting `offset` bytes from the right.
+    /// The bytes are written to slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -160,11 +166,12 @@ impl StorageCache {
             .entry(key)
             .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
 
-        ptr::copy(value.as_ptr(), word.value[32 - N..].as_mut_ptr(), N)
+        let dest = word.value[offset..].as_mut_ptr();
+        ptr::copy(value.as_ptr(), dest, N)
     }
 
     /// Writes a [`Uint`] to persistent storage, performing [`SSTORE`]'s only as needed.
-    /// The integer's bytes are written to slot `key`, starting `offset` bytes from the right.
+    /// The integer's bytes are written to slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -190,12 +197,13 @@ impl StorageCache {
             .entry(key)
             .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
 
-        let value = value.as_le_bytes();
-        ptr::copy(value.as_ptr(), word.value[32 - B / 8..].as_mut_ptr(), B / 8)
+        let value = value.to_be_bytes_vec();
+        let dest = word.value[offset..].as_mut_ptr();
+        ptr::copy(value.as_ptr(), dest, B / 8)
     }
 
     /// Writes a [`Signed`] to persistent storage, performing [`SSTORE`]'s only as needed.
-    /// The bytes are written to slot `key`, starting `offset` bytes from the right.
+    /// The bytes are written to slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must be written to a single, 32-byte EVM word.
     ///
     /// # Safety
@@ -258,14 +266,38 @@ pub trait StorageType: Sized {
     where
         Self: 'a;
 
-    /// The number of bytes needed to represent the type. Must not exceed 32.
-    /// For implementing dynamic types, see how Solidity slots are assigned for [`Arrays and Maps`].
+    /// The number of bytes in a slot needed to represent the type. Must not exceed 32.
+    /// For types larger than 32 bytes that are stored inline with a struct's fields,
+    /// set this to 32 and return the full size in [`StorageType::new`].
+    ///
+    /// For implementing collections, see how Solidity slots are assigned for [`Arrays and Maps`] and their
+    /// Stylus equivalents [`StorageVec`] and [`StorageMap`].
+    /// For multi-word, but still-fixed-size types, see the implementations for structs and [`StorageArray`].
     ///
     /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html#mappings-and-dynamic-arrays
-    const SIZE: u8 = 32;
+    const SLOT_BYTES: usize = 32;
 
-    /// Where in persistent storage the type should live.
+    /// Where in persistent storage the type should live. Although useful for framework designers
+    /// creating new storage types, most user programs shouldn't call this.
+    /// Note: implementations will have to be `const` once [`generic_const_exprs`] stabilizes.
+    ///
+    /// # Safety
+    ///
+    /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
+    ///
+    /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn new(slot: U256, offset: u8) -> Self;
+
+    /// Same as [`StorageType::new`] but also returns the extra number of words allocated in cases
+    /// of inline types larger than 32 bytes. This defaults to 0, which is correct for all types except
+    /// those that are multi-word and inline like [`StorageArray`].
+    ///
+    /// # Safety
+    ///
+    /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
+    unsafe fn new_with_info(slot: U256, offset: u8) -> (Self, usize) {
+        (Self::new(slot, offset), 0)
+    }
 
     fn load<'s>(self) -> Self::Wraps<'s>
     where

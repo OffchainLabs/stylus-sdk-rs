@@ -11,11 +11,15 @@ repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 
 [workspace.dependencies]
 derivative = "2.2.0"
-fnv = "1.0.7"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 alloy-primitives = { git = "https://github.com/rachel-bousfield/alloy-core.git", branch = "native-keccak" }
 alloy-sol-types = { git = "https://github.com/rachel-bousfield/alloy-core.git", branch = "native-keccak" }
 lazy_static = "1.4.0"
+
+# data structures
+#ahash = { version = "0.8.3", default-features = false, features = ["const-random"] }
+fnv = "1.0.7"
+#hashbrown = "0.14.0"
 
 # proc macros
 syn = { version = "1.0", features = ["full"] }

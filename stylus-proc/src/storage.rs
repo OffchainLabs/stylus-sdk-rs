@@ -174,7 +174,7 @@ impl Parse for Primitive {
             "uint" => "StorageU256",
             x => match LOWER_REGEX.is_match(x) {
                 true => return Err(Error::new_spanned(&ident, "Type not supported")),
-                false => return Ok(Self(syn::parse_str(&x)?)),
+                false => return Ok(Self(syn::parse_str(x)?)),
             },
         };
 
@@ -233,11 +233,11 @@ impl Parse for PrimitiveKey {
             "bool" => "U8", // TODO: ask alloy to add a Bool type
             "int" => "I256",
             "uint" => "U256",
-            "bytes" => return Ok(Self(syn::parse_str(&"Vec<u8>")?)),
-            "string" => return Ok(Self(syn::parse_str(&"String")?)),
+            "bytes" => return Ok(Self(syn::parse_str("Vec<u8>")?)),
+            "string" => return Ok(Self(syn::parse_str("String")?)),
             x => match LOWER_REGEX.is_match(x) {
                 true => return Err(Error::new_spanned(&ident, "Type not supported")),
-                false => return Ok(Self(syn::parse_str(&x)?)),
+                false => return Ok(Self(syn::parse_str(x)?)),
             },
         };
 

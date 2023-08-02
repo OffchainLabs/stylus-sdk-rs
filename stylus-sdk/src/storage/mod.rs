@@ -86,7 +86,7 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     type Wraps<'a> = Uint<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = (B / 8) as u8;
+    const SLOT_BYTES: usize = (B / 8);
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(B <= 256);
@@ -155,7 +155,7 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     type Wraps<'a> = Signed<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = (B / 8) as u8;
+    const SLOT_BYTES: usize = (B / 8);
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
@@ -223,7 +223,7 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     type Wraps<'a> = FixedBytes<N>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = N as u8;
+    const SLOT_BYTES: usize = N;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
@@ -286,8 +286,7 @@ impl StorageBool {
         self.cached.take();
         _ = self.cached.set(value);
 
-        let value = value.then_some(1).unwrap_or_default();
-        let fixed = FixedBytes::from_slice(&[value]);
+        let fixed = FixedBytes::from_slice(&[value as u8]);
         unsafe { StorageCache::set::<1>(self.slot, self.offset.into(), fixed) }
     }
 }
@@ -296,7 +295,7 @@ impl StorageType for StorageBool {
     type Wraps<'a> = bool;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = 1;
+    const SLOT_BYTES: usize = 1;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
@@ -366,7 +365,7 @@ impl StorageType for StorageAddress {
     type Wraps<'a> = Address;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = 20;
+    const SLOT_BYTES: usize = 20;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {
@@ -436,7 +435,7 @@ impl StorageType for StorageBlockNumber {
     type Wraps<'a> = BlockNumber;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    const SIZE: u8 = 8;
+    const SLOT_BYTES: usize = 8;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         Self {

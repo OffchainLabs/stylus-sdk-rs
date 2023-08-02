@@ -82,15 +82,23 @@ impl<S: StorageType> StorageVec<S> {
     /// read-after-write scenarios.
     pub unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
         let index = index.try_into().ok()?;
-        let width = S::SIZE as usize;
-
-        if index > self.len() {
+        if index >= self.len() {
             return None;
         }
+        let (slot, offset) = self.index_slot(index);
+        unsafe { Some(S::new(slot, offset)) }
+    }
 
-        let density = 32 / width;
-        let offset = self.base() + U256::from(width * index / density);
-        unsafe { Some(S::new(offset, (index % density) as u8)) }
+    /// Gets the element at the given index, if it exists.
+    pub fn get(&self, index: impl TryInto<usize>) -> Option<S::Wraps<'_>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load())
+    }
+
+    /// Gets a mutable accessor to the element at a given index, if it exists.
+    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'_>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load_mut())
     }
 
     /// Like [`std::Vec::push`], but returns a mutable accessor to the new slot.
@@ -103,7 +111,7 @@ impl<S: StorageType> StorageVec<S> {
     /// use stylus_sdk::alloy_primitives::U256;
     ///
     /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::new(U256::ZERO, 0);
-    /// let mut inner_vec = vec.open();
+    /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///
     /// let value = inner_vec.get(0).unwrap();
@@ -112,22 +120,22 @@ impl<S: StorageType> StorageVec<S> {
     /// ```
     pub fn grow(&mut self) -> StorageGuardMut<S> {
         let index = self.len();
-        let width = S::SIZE as usize;
-        unsafe { self.set_len(index) };
+        unsafe { self.set_len(index + 1) };
 
-        let density = 32 / width;
-        let offset = self.base() + U256::from(width * index / density);
-        let store = unsafe { S::new(offset, (index % density) as u8) };
+        let (slot, offset) = self.index_slot(index);
+        let store = unsafe { S::new(slot, offset) };
         StorageGuardMut::new(store)
     }
 
     /// Removes and returns an accessor to the last element of the vector, if any.
     pub fn shrink(&mut self) -> Option<S> {
+        // TODO: fix aliasing
         let index = match self.len() {
             0 => return None,
             x => x - 1,
         };
         let item = unsafe { self.accessor(index) };
+        // TODO: fix bug that assumes it's word-based
         StorageCache::set_word(self.slot, U256::from(index).into());
         item
     }
@@ -141,20 +149,19 @@ impl<S: StorageType> StorageVec<S> {
         }
     }
 
+    /// Determines the slot and offset for the element at an index
+    fn index_slot(&self, index: usize) -> (U256, u8) {
+        let width = S::SLOT_BYTES;
+        let density = 32 / width;
+        let slot = self.base() + U256::from(index / density);
+        let offset = 32 - (width * (1 + index % density)) as u8; // TODO: structs
+        (slot, offset)
+    }
+
     /// Determines where in storage indices start. Could be made const in the future.
     fn base(&self) -> &U256 {
         self.base
             .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
-    }
-
-    pub fn get(&self, index: impl TryInto<usize>) -> Option<S::Wraps<'_>> {
-        let store = unsafe { self.accessor(index)? };
-        Some(store.load())
-    }
-
-    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'_>> {
-        let store = unsafe { self.accessor(index)? };
-        Some(store.load_mut())
     }
 }
 
@@ -165,19 +172,16 @@ impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
         store.set_exact(value);
     }
 
-    /// Removes and returns the last element of the vector, if any.
+    /// Removes and returns the last element of the vector, if it exists.
     /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
     pub fn pop(&mut self) -> Option<S::Wraps<'a>> {
         let store = self.shrink()?;
         let index = self.len();
         let value = store.into();
-        let width = S::SIZE as usize;
 
-        // TODO: cleanup with accessor trait
-        let density = (32 / S::SIZE) as usize;
-        if index % density == 0 {
-            let offset = self.base() + U256::from(width * index / density);
-            unsafe { S::new(offset, 0).erase() };
+        let (slot, offset) = self.index_slot(index);
+        if offset == 0 {
+            unsafe { S::new(slot, 0).erase() };
         }
         Some(value)
     }
