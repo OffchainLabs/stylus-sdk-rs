@@ -35,14 +35,17 @@ impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
 }
 
 impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
-    pub fn getter(&mut self, key: K) -> StorageGuard<V> {
+    const CHILD_OFFSET: u8 = 32 - V::SLOT_BYTES as u8;
+
+    pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        StorageGuard::new(unsafe { V::new(slot, 0) })
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET)) }
     }
 
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        StorageGuardMut::new(unsafe { V::new(slot, 0) })
+        crate::debug::println(format!("Map {}", slot));
+        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
     }
 }
 
@@ -53,8 +56,8 @@ impl<'a, K: StorageKey, V: SizedStorageType<'a>> StorageMap<K, V> {
     }
 
     pub fn get(&self, key: K) -> V::Wraps<'a> {
-        let slot = key.to_slot(self.slot.into());
-        unsafe { V::new(slot, 0).into() }
+        let store = self.getter(key);
+        unsafe { store.into_raw().load() }
     }
 }
 
@@ -67,7 +70,7 @@ pub trait StorageKey {
 impl<const B: usize, const L: usize> StorageKey for Uint<B, L> {
     fn to_slot(&self, root: B256) -> U256 {
         let data = B256::from(U256::from(*self));
-        data.concat_const::<32, 64>(root);
+        let data = data.concat_const::<32, 64>(root);
         crypto::keccak(data).into()
     }
 }
@@ -75,7 +78,7 @@ impl<const B: usize, const L: usize> StorageKey for Uint<B, L> {
 impl<const B: usize, const L: usize> StorageKey for Signed<B, L> {
     fn to_slot(&self, root: B256) -> U256 {
         let data = B256::from(U256::from(self.into_raw()));
-        data.concat_const::<32, 64>(root);
+        let data = data.concat_const::<32, 64>(root);
         crypto::keccak(data).into()
     }
 }
@@ -86,7 +89,7 @@ impl<const N: usize> StorageKey for FixedBytes<N> {
         pad[N..].copy_from_slice(&self.0);
 
         let data = B256::from(pad);
-        data.concat_const::<32, 64>(root);
+        let data = data.concat_const::<32, 64>(root);
         crypto::keccak(data).into()
     }
 }
@@ -123,7 +126,7 @@ macro_rules! impl_key {
         $(impl StorageKey for $ty {
             fn to_slot(&self, root: B256) -> U256 {
                 let data = B256::from(U256::from(*self));
-                data.concat_const::<32, 64>(root.into());
+                let data = data.concat_const::<32, 64>(root.into());
                 crypto::keccak(data).into()
             }
         })+

@@ -338,6 +338,15 @@ impl<'a, T: 'a> StorageGuard<'a, T> {
             marker: PhantomData,
         }
     }
+
+    /// Get the underlying `T`.
+    ///
+    /// # Safety
+    ///
+    /// Enables storage aliasing.
+    pub(crate) unsafe fn into_raw(self) -> T {
+        self.inner
+    }
 }
 
 impl<'a, T: 'a> Deref for StorageGuard<'a, T> {
