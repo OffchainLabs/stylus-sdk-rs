@@ -401,7 +401,7 @@ pub(crate) struct CachedOption<T: Copy> {
 }
 
 impl<T: Copy> CachedOption<T> {
-    pub const fn new(loader: fn() -> T) -> Self {
+    pub(crate) const fn new(loader: fn() -> T) -> Self {
         let value = None;
         Self { value, loader }
     }

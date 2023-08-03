@@ -15,10 +15,10 @@ wrap_hostio!(
     /// [`CALLER`]: https://www.evm.codes/#33
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#f4
     /// [`Retryable Ticket Address Aliasing`]: https://developer.arbitrum.io/arbos/l1-to-l2-messaging#address-aliasing
-    sender CACHED_SENDER msg_sender Address
+    sender SENDER msg_sender Address
 );
 
 wrap_hostio!(
     /// Get the ETH value in wei sent to the program.
-    value CACHED_VALUE msg_value B256
+    value VALUE msg_value B256
 );
