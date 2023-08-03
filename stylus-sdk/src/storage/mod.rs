@@ -5,7 +5,7 @@ use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint
 use std::{cell::OnceCell, mem::transmute, ops::Deref};
 
 pub use bytes::{StorageBytes, StorageString};
-pub use cache::{SizedStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+pub use cache::{SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 pub use map::StorageMap;
 pub use vec::StorageVec;
 
@@ -106,7 +106,7 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     }
 }
 
-impl<'a, const B: usize, const L: usize> SizedStorageType<'a> for StorageUint<B, L> {
+impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L> {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -174,7 +174,7 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     }
 }
 
-impl<'a, const B: usize, const L: usize> SizedStorageType<'a> for StorageSigned<B, L> {
+impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned<B, L> {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -242,7 +242,7 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     }
 }
 
-impl<'a, const N: usize> SizedStorageType<'a> for StorageFixedBytes<N> {
+impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N> {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -314,7 +314,7 @@ impl StorageType for StorageBool {
     }
 }
 
-impl<'a> SizedStorageType<'a> for StorageBool {
+impl<'a> SimpleStorageType<'a> for StorageBool {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -384,7 +384,7 @@ impl StorageType for StorageAddress {
     }
 }
 
-impl<'a> SizedStorageType<'a> for StorageAddress {
+impl<'a> SimpleStorageType<'a> for StorageAddress {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -454,7 +454,7 @@ impl StorageType for StorageBlockNumber {
     }
 }
 
-impl<'a> SizedStorageType<'a> for StorageBlockNumber {
+impl<'a> SimpleStorageType<'a> for StorageBlockNumber {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
@@ -520,7 +520,7 @@ impl StorageType for StorageBlockHash {
     }
 }
 
-impl<'a> SizedStorageType<'a> for StorageBlockHash {
+impl<'a> SimpleStorageType<'a> for StorageBlockHash {
     fn set_exact(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }

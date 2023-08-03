@@ -302,7 +302,7 @@ pub trait StorageType: Sized {
 }
 
 /// Trait for simple accessors that use no more storage than their starting slot.
-pub trait SizedStorageType<'a>: StorageType + Into<Self::Wraps<'a>>
+pub trait SimpleStorageType<'a>: StorageType + Into<Self::Wraps<'a>>
 where
     Self: 'a,
 {

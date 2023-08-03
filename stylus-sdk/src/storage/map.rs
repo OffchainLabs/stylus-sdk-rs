@@ -3,7 +3,7 @@
 
 use crate::crypto;
 
-use super::{SizedStorageType, StorageGuard, StorageGuardMut, StorageType};
+use super::{SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use std::marker::PhantomData;
 
@@ -48,7 +48,7 @@ impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
     }
 }
 
-impl<'a, K: StorageKey, V: SizedStorageType<'a>> StorageMap<K, V> {
+impl<'a, K: StorageKey, V: SimpleStorageType<'a>> StorageMap<K, V> {
     pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
         let mut store = self.setter(key);
         store.set_exact(value);

@@ -33,6 +33,7 @@ impl StorageType for StorageBytes {
     }
 }
 
+// TODO: add nice setters for slices
 impl StorageBytes {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -187,6 +188,7 @@ impl StorageType for StorageString {
     }
 }
 
+// TODO: add nice setters for strings and slices
 impl StorageString {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {

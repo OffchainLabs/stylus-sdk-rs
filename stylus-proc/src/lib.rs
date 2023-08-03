@@ -96,6 +96,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         });
     }
 
+    // TODO: add mechanism for struct assignment
     let expanded = quote! {
         #input
 

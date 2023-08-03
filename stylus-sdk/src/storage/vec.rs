@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{SizedStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::U256;
 use std::{cell::OnceCell, marker::PhantomData};
@@ -167,7 +167,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 }
 
-impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
+impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
@@ -176,6 +176,7 @@ impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
 
     /// Removes and returns the last element of the vector, if it exists.
     /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
+    // TODO: consider zero-ing out non-primitives like vectors
     pub fn pop(&mut self) -> Option<S::Wraps<'a>> {
         let store = self.shrink()?;
         let index = self.len();
@@ -189,7 +190,7 @@ impl<'a, S: SizedStorageType<'a>> StorageVec<S> {
     }
 }
 
-impl<'a, S: SizedStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
+impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
     fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);
