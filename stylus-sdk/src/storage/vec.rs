@@ -136,7 +136,7 @@ impl<S: StorageType> StorageVec<S> {
         };
         let item = unsafe { self.accessor(index) };
         // TODO: fix bug that assumes it's word-based
-        StorageCache::set_word(self.slot, U256::from(index).into());
+        unsafe { StorageCache::set_word(self.slot, U256::from(index).into()) };
         item
     }
 

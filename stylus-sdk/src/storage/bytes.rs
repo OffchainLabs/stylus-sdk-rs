@@ -87,7 +87,7 @@ impl StorageBytes {
         if index == 31 {
             // copy content over (len byte will be overwritten)
             let word = StorageCache::get_word(self.root);
-            StorageCache::set_word(*self.base(), word);
+            unsafe { StorageCache::set_word(*self.base(), word) };
         }
 
         let slot = self.base() + U256::from(index / 32);
@@ -110,12 +110,12 @@ impl StorageBytes {
         if len == 32 {
             // copy content over
             let word = StorageCache::get_word(*self.base());
-            StorageCache::set_word(self.root, word);
+            unsafe { StorageCache::set_word(self.root, word) };
         }
 
         if len >= 32 && clean {
             let slot = self.base() + U256::from(index / 32);
-            StorageCache::set_word(slot, B256::ZERO);
+            unsafe { StorageCache::set_word(slot, B256::ZERO) };
         }
 
         unsafe { self.set_len(index) }

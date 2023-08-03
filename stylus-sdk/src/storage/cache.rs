@@ -46,13 +46,7 @@ impl StorageWord {
 
 lazy_static! {
     /// Global cache managing persistent storage operations
-    static ref CACHE: Mutex<StorageCache> = {
-        /*let origin: U160 = crate::tx::origin().into();
-        let data = origin.as_limbs();
-        let state = ahash::RandomState::with_seeds(data[2], data[1], data[0], 0);
-        Mutex::new(StorageCache(HashMap::with_hasher(state)))*/
-        Mutex::new(StorageCache(HashMap::default()))
-    };
+    static ref CACHE: Mutex<StorageCache> = Mutex::new(StorageCache(HashMap::default()));
 }
 
 macro_rules! cache {
@@ -100,11 +94,10 @@ impl StorageCache {
 
     /// Retrieves a [`u8`] from persistent storage, performing [`SLOAD`]'s only as needed.
     /// The byte is read from slot `key`, starting `offset` bytes from the left.
-    /// Note that the bytes must exist within a single, 32-byte EVM word.
     ///
     /// # Safety
     ///
-    /// UB if the read would cross a word boundary.
+    /// UB if the read is out of bounds.
     /// May become safe when Rust stabilizes [`generic_const_exprs`].
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
@@ -150,10 +143,9 @@ impl StorageCache {
     /// # Safety
     ///
     /// UB if the write would cross a word boundary.
-    /// May become safe when Rust stabilizes [`generic_const_exprs`].
+    /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn set<const N: usize>(key: U256, offset: usize, value: FixedBytes<N>) {
         debug_assert!(N + offset <= 32);
 
@@ -177,10 +169,9 @@ impl StorageCache {
     /// # Safety
     ///
     /// UB if the write would cross a word boundary.
-    /// May become safe when Rust stabilizes [`generic_const_exprs`].
+    /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn set_uint<const B: usize, const L: usize>(
         key: U256,
         offset: usize,
@@ -209,10 +200,9 @@ impl StorageCache {
     /// # Safety
     ///
     /// UB if the write would cross a word boundary.
-    /// May become safe when Rust stabilizes [`generic_const_exprs`].
+    /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     pub unsafe fn set_signed<const B: usize, const L: usize>(
         key: U256,
         offset: usize,
@@ -221,10 +211,28 @@ impl StorageCache {
         Self::set_uint(key, offset, value.into_raw())
     }
 
-    /// Stores a 32-byte EVM word to persistent storage, performing [`SSTORE`]'s only as needed.
+    /// Writes a [`u8`] to persistent storage, performing [`SSTORE`]'s only as needed.
+    /// The byte is written to slot `key`, starting `offset` bytes from the left.
+    ///
+    /// # Safety
+    ///
+    /// UB if the write is out of bounds.
+    /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    pub fn set_word(key: U256, value: B256) {
+    pub unsafe fn set_byte(key: U256, offset: usize, value: u8) {
+        let fixed = FixedBytes::from_slice(&[value]);
+        StorageCache::set::<1>(key, offset, fixed)
+    }
+
+    /// Stores a 32-byte EVM word to persistent storage, performing [`SSTORE`]'s only as needed.
+    ///
+    /// # Safety
+    ///
+    /// Aliases if called during the lifetime an overlapping accessor.
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
+    pub unsafe fn set_word(key: U256, value: B256) {
         cache!().insert(key, StorageWord::new_unknown(value));
     }
 
