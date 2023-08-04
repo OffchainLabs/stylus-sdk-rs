@@ -166,7 +166,7 @@ impl<S: StorageType> StorageVec<S> {
         let density = self.density();
 
         let slot = self.base() + U256::from(words * index / density);
-        let offset = 32 - (width * (1 + index % density)) as u8; // TODO: structs
+        let offset = 32 - (width * (1 + index % density)) as u8;
         (slot, offset)
     }
 

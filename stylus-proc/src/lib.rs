@@ -49,9 +49,10 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     x.to_uppercase()
                 );
             }
-            "usize" => error!(&field, "{not_supported}. Instead try `StorageUsize`."),
-            "isize" => error!(&field, "{not_supported}. Instead try `StorageIsize`."),
+            "usize" => error!(&field, "{not_supported}."), // TODO: add usize
+            "isize" => error!(&field, "{not_supported}."), // TODO: add isize
             "bool" => error!(&field, "{not_supported}. Instead try `StorageBool`."),
+            "f32" | "f64" => error!(&field, "{not_supported}. Consider fixed-point arithmetic."),
             _ => {}
         }
 
