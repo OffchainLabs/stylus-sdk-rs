@@ -1,12 +1,14 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{
+    EraseStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+};
 use crate::crypto;
 use alloy_primitives::U256;
 use std::{cell::OnceCell, marker::PhantomData};
 
-/// Accessor for a storage-backed vector
+/// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {
     slot: U256,
     base: OnceCell<U256>,
@@ -53,10 +55,11 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// It must be sensible to create accessors for `S` from zero-slots,
     /// or any junk data left over from prior dirty operations.
-    /// Note that `StorageVec` has unlimited capacity, so all lengths are valid.
+    /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
         StorageCache::set_word(self.slot, U256::from(len).into())
     }
+
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
@@ -77,9 +80,7 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// # Safety
     ///
-    /// Because the accessor is unconstrained by a storage guard, storage aliasing is possible
-    /// if used incorrectly. Two or more mutable references to the same `S` are possible, as are
-    /// read-after-write scenarios.
+    /// Enables aliasing.
     unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
         let index = index.try_into().ok()?;
         if index >= self.len() {
@@ -87,6 +88,16 @@ impl<S: StorageType> StorageVec<S> {
         }
         let (slot, offset) = self.index_slot(index);
         Some(S::new(slot, offset))
+    }
+
+    /// Gets the underlying accessor to the element at a given index, even if out of bounds.
+    ///
+    /// # Safety
+    ///
+    /// Enables aliasing. UB if out of bounds.
+    unsafe fn accessor_unchecked(&self, index: usize) -> S {
+        let (slot, offset) = self.index_slot(index);
+        S::new(slot, offset)
     }
 
     /// Gets the element at the given index, if it exists.
@@ -110,12 +121,12 @@ impl<S: StorageType> StorageVec<S> {
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
     ///
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::new(U256::ZERO, 0);
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0) };
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///
     /// let value = inner_vec.get(0).unwrap();
-    /// assert_eq!(value.get(), U256::from(8));
+    /// assert_eq!(value, U256::from(8));
     /// assert_eq!(inner_vec.len(), 1);
     /// ```
     pub fn grow(&mut self) -> StorageGuardMut<S> {
@@ -128,20 +139,19 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Removes and returns an accessor to the last element of the vector, if any.
-    pub fn shrink(&mut self) -> Option<S> {
-        // TODO: fix aliasing
+    pub fn shrink(&mut self) -> Option<StorageGuardMut<S>> {
         let index = match self.len() {
             0 => return None,
             x => x - 1,
         };
-        let item = unsafe { self.accessor(index) };
-        // TODO: fix bug that assumes it's word-based
-        unsafe { StorageCache::set_word(self.slot, U256::from(index).into()) };
-        item
+        unsafe {
+            self.set_len(index);
+            Some(StorageGuardMut::new(self.accessor_unchecked(index)))
+        }
     }
 
     /// Shortens the vector, keeping the first `len` elements.
-    /// Note: this method does not clear any underlying storage.
+    /// Note: this method does not erase any underlying storage.
     pub fn truncate(&mut self, len: usize) {
         if len < self.len() {
             // SAFETY: operation leaves only existing values
@@ -175,18 +185,43 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     }
 
     /// Removes and returns the last element of the vector, if it exists.
-    /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
-    // TODO: consider zero-ing out non-primitives like vectors
+    /// Note: the underlying storage slot is erased when all elements in a word are freed.
     pub fn pop(&mut self) -> Option<S::Wraps<'a>> {
-        let store = self.shrink()?;
+        let store = unsafe { self.shrink()?.into_raw() };
         let index = self.len();
         let value = store.into();
 
         let (slot, offset) = self.index_slot(index);
         if offset == 0 {
-            unsafe { S::new(slot, 0).erase() };
+            let words = S::REQUIRED_SLOTS.max(1);
+            for i in 0..words {
+                unsafe { S::new(slot + U256::from(i), 0).erase() };
+            }
         }
         Some(value)
+    }
+}
+
+impl<S: EraseStorageType> StorageVec<S> {
+    /// Removes and erases the last element of the vector.
+    pub fn erase_last(&mut self) {
+        if self.is_empty() {
+            return;
+        }
+        let index = self.len() - 1;
+        unsafe {
+            self.accessor_unchecked(index).erase();
+            self.set_len(index);
+        }
+    }
+}
+
+impl<S: EraseStorageType> EraseStorageType for StorageVec<S> {
+    fn erase(&mut self) {
+        for i in 0..self.len() {
+            let mut store = unsafe { self.accessor_unchecked(i) };
+            store.erase()
+        }
     }
 }
 

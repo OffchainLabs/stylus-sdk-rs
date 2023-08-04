@@ -61,7 +61,6 @@ impl StorageBytes {
     /// # Safety
     ///
     /// May populate the vector with junk bytes from prior dirty operations.
-    /// If no `unsafe` calls have been made, any new bytes will be zero filled.
     /// Note that [`StorageBytes`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
         let old = self.len();
@@ -126,7 +125,7 @@ impl StorageBytes {
     }
 
     /// Removes and returns the last byte, if it exists.
-    /// Note: the underlying storage slot is zero'd out when all elements in the word are freed.
+    /// Note: the underlying storage slot is erased when all elements in the word are freed.
     pub fn pop(&mut self) -> Option<u8> {
         let len = self.len();
         if len == 0 {

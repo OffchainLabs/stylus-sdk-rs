@@ -4,7 +4,6 @@
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, U256};
 use std::{cell::OnceCell, ops::Deref};
 
-pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
 pub use cache::{
     EraseStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
@@ -12,7 +11,6 @@ pub use cache::{
 pub use map::StorageMap;
 pub use vec::StorageVec;
 
-mod array;
 mod bytes;
 mod cache;
 mod map;
