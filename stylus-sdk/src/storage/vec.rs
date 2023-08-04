@@ -52,7 +52,7 @@ impl<S: StorageType> StorageVec<S> {
     /// # Safety
     ///
     /// It must be sensible to create accessors for `S` from zero-slots,
-    /// or any junk data left over from previous dirty removal operations.
+    /// or any junk data left over from prior dirty operations.
     /// Note that `StorageVec` has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
         StorageCache::set_word(self.slot, U256::from(len).into())

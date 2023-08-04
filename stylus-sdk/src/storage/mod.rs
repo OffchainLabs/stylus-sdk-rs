@@ -124,7 +124,7 @@ impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B
     }
 }
 
-impl<'a, const B: usize, const L: usize> EraseStorageType<'a> for StorageUint<B, L> {
+impl<const B: usize, const L: usize> EraseStorageType for StorageUint<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -195,7 +195,7 @@ impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned
     }
 }
 
-impl<'a, const B: usize, const L: usize> EraseStorageType<'a> for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> EraseStorageType for StorageSigned<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -266,7 +266,7 @@ impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N> {
     }
 }
 
-impl<'a, const N: usize> EraseStorageType<'a> for StorageFixedBytes<N> {
+impl<const N: usize> EraseStorageType for StorageFixedBytes<N> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -337,7 +337,7 @@ impl<'a> SimpleStorageType<'a> for StorageBool {
     }
 }
 
-impl<'a> EraseStorageType<'a> for StorageBool {
+impl EraseStorageType for StorageBool {
     fn erase(&mut self) {
         self.set(false);
     }
@@ -410,7 +410,7 @@ impl<'a> SimpleStorageType<'a> for StorageAddress {
     }
 }
 
-impl<'a> EraseStorageType<'a> for StorageAddress {
+impl EraseStorageType for StorageAddress {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -483,7 +483,7 @@ impl<'a> SimpleStorageType<'a> for StorageBlockNumber {
     }
 }
 
-impl<'a> EraseStorageType<'a> for StorageBlockNumber {
+impl EraseStorageType for StorageBlockNumber {
     fn erase(&mut self) {
         self.set(0);
     }
@@ -550,7 +550,7 @@ impl<'a> SimpleStorageType<'a> for StorageBlockHash {
     }
 }
 
-impl<'a> EraseStorageType<'a> for StorageBlockHash {
+impl EraseStorageType for StorageBlockHash {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }

@@ -1,12 +1,14 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
-use super::{StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{
+    EraseStorageType, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+};
 use crate::crypto;
 use alloy_primitives::{B256, U256, U8};
 use std::cell::OnceCell;
 
-/// Accessor for storage-backed bytes
+/// Accessor for storage-backed bytes.
 pub struct StorageBytes {
     root: U256,
     base: OnceCell<U256>,
@@ -33,7 +35,6 @@ impl StorageType for StorageBytes {
     }
 }
 
-// TODO: add nice setters for slices
 impl StorageBytes {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -55,7 +56,37 @@ impl StorageBytes {
         len.try_into().unwrap()
     }
 
-    unsafe fn set_len(&mut self, len: usize) {
+    /// Overwrites the collection's length, moving bytes as needed.
+    ///
+    /// # Safety
+    ///
+    /// May populate the vector with junk bytes from prior dirty operations.
+    /// If no `unsafe` calls have been made, any new bytes will be zero filled.
+    /// Note that [`StorageBytes`] has unlimited capacity, so all lengths are valid.
+    pub unsafe fn set_len(&mut self, len: usize) {
+        let old = self.len();
+
+        // if representation hasn't changed, just update the length
+        if (old < 32) == (len < 32) {
+            return self.write_len(len);
+        }
+
+        // if shrinking, pull data in
+        if (len < 32) && (old > 32) {
+            let word = StorageCache::get_word(*self.base());
+            StorageCache::set_word(self.root, word);
+            return self.write_len(len);
+        }
+
+        // if growing, push data out
+        let mut word = StorageCache::get_word(self.root);
+        word[31] = 0; // clear len byte
+        StorageCache::set_word(*self.base(), word);
+        self.write_len(len)
+    }
+
+    /// Updates the length while being concious of representation.
+    unsafe fn write_len(&mut self, len: usize) {
         if len < 32 {
             // place the len in the last byte of the root with the long bit low
             StorageCache::set_uint(self.root, 31, U8::from(len * 2));
@@ -74,7 +105,7 @@ impl StorageBytes {
             ($slot:expr) => {
                 unsafe {
                     StorageCache::set_uint($slot, index % 32, value); // pack value
-                    self.set_len(index + 1);
+                    self.write_len(index + 1);
                 }
             };
         }
@@ -118,7 +149,7 @@ impl StorageBytes {
             unsafe { StorageCache::set_word(slot, B256::ZERO) };
         }
 
-        unsafe { self.set_len(index) }
+        unsafe { self.write_len(index) }
         Some(byte)
     }
 
@@ -128,8 +159,7 @@ impl StorageBytes {
         if index >= self.len() {
             return None;
         }
-        let (slot, offset) = self.index_slot(index);
-        unsafe { Some(StorageCache::get_byte(slot, offset.into())) }
+        unsafe { Some(self.get_unchecked(index)) }
     }
 
     /// Gets a mutable accessor to the byte at the given index, if it exists.
@@ -143,7 +173,36 @@ impl StorageBytes {
         Some(StorageGuardMut::new(value))
     }
 
-    /// Determines the slot and offset for the element at an index
+    /// Gets the byte at the given index, even if beyond the collection.
+    ///
+    /// # Safety
+    ///
+    /// UB if index is out of bounds.
+    pub unsafe fn get_unchecked(&self, index: usize) -> u8 {
+        let (slot, offset) = self.index_slot(index);
+        unsafe { StorageCache::get_byte(slot, offset.into()) }
+    }
+
+    /// Gets the full contents of the collection.
+    pub fn get_bytes(&self) -> Vec<u8> {
+        let len = self.len();
+        let mut bytes = Vec::with_capacity(len);
+
+        // TODO: efficient extraction
+        for i in 0..len {
+            let byte = unsafe { self.get_unchecked(i) };
+            bytes.push(byte);
+        }
+        bytes
+    }
+
+    /// Overwrites the contents of the collection, erasing what was previously stored.
+    pub fn set_bytes(&mut self, bytes: impl AsRef<[u8]>) {
+        self.erase();
+        self.extend(bytes.as_ref());
+    }
+
+    /// Determines the slot and offset for the element at an index.
     fn index_slot(&self, index: usize) -> (U256, u8) {
         let slot = match self.len() {
             33.. => self.base() + U256::from(index / 32),
@@ -159,11 +218,32 @@ impl StorageBytes {
     }
 }
 
+impl EraseStorageType for StorageBytes {
+    fn erase(&mut self) {
+        let mut len = self.len();
+        while len >= 32 {
+            let slot = self.index_slot(len - 1).0;
+            unsafe { StorageCache::set_word(slot, B256::ZERO) };
+            len -= 32;
+        }
+        unsafe { StorageCache::set_word(self.root, B256::ZERO) };
+    }
+}
+
 // TODO: efficient bulk insertion
 impl Extend<u8> for StorageBytes {
     fn extend<T: IntoIterator<Item = u8>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);
+        }
+    }
+}
+
+// TODO: efficient bulk insertion
+impl<'a> Extend<&'a u8> for StorageBytes {
+    fn extend<T: IntoIterator<Item = &'a u8>>(&mut self, iter: T) {
+        for elem in iter {
+            self.push(*elem);
         }
     }
 }
@@ -188,7 +268,6 @@ impl StorageType for StorageString {
     }
 }
 
-// TODO: add nice setters for strings and slices
 impl StorageString {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -200,10 +279,31 @@ impl StorageString {
         self.0.len()
     }
 
+    /// Adds a char to the end.
     pub fn push(&mut self, c: char) {
         for byte in c.to_string().bytes() {
             self.0.push(byte)
         }
+    }
+
+    /// Gets the underlying [`String`], ignoring any invalid data.
+    pub fn get_string(&mut self) -> String {
+        let bytes = self.0.get_bytes();
+        String::from_utf8_lossy(&bytes).into()
+    }
+
+    /// Overwrites the underlying [`String`], erasing what was previously stored.
+    pub fn set_str(&mut self, text: impl AsRef<str>) {
+        self.erase();
+        for c in text.as_ref().chars() {
+            self.push(c);
+        }
+    }
+}
+
+impl EraseStorageType for StorageString {
+    fn erase(&mut self) {
+        self.0.erase()
     }
 }
 

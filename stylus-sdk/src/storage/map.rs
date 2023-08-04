@@ -111,10 +111,10 @@ where
     }
 }
 
-impl<'a, K, V> StorageMap<K, V>
+impl<K, V> StorageMap<K, V>
 where
     K: StorageKey,
-    V: EraseStorageType<'a>,
+    V: EraseStorageType,
 {
     /// Delete the element at the given key, if it exists.
     pub fn delete(&mut self, key: K) {
