@@ -5,7 +5,7 @@ use super::{
     EraseStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::crypto;
-use alloy_primitives::U256;
+use alloy_primitives::{B256, U256};
 use std::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
@@ -159,15 +159,20 @@ impl<S: StorageType> StorageVec<S> {
         }
     }
 
-    /// Determines the slot and offset for the element at an index
+    /// Determines the slot and offset for the element at an index.
     fn index_slot(&self, index: usize) -> (U256, u8) {
         let width = S::SLOT_BYTES;
         let words = S::REQUIRED_SLOTS.max(1);
-        let density = 32 / width;
+        let density = self.density();
 
         let slot = self.base() + U256::from(words * index / density);
         let offset = 32 - (width * (1 + index % density)) as u8; // TODO: structs
         (slot, offset)
+    }
+
+    /// Number of elements per slot.
+    const fn density(&self) -> usize {
+        32 / S::SLOT_BYTES
     }
 
     /// Determines where in storage indices start. Could be made const in the future.
@@ -190,12 +195,13 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
         let store = unsafe { self.shrink()?.into_raw() };
         let index = self.len();
         let value = store.into();
+        let first = index % self.density() == 0;
 
-        let (slot, offset) = self.index_slot(index);
-        if offset == 0 {
+        if first {
+            let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { S::new(slot + U256::from(i), 0).erase() };
+                unsafe { StorageCache::set_word(slot + U256::from(i), B256::ZERO) };
             }
         }
         Some(value)
