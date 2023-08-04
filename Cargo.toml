@@ -5,7 +5,7 @@ members = ["stylus-sdk", "stylus-proc"]
 version = "0.1.0"
 edition = "2021"
 authors = ["Offchain Labs"]
-license = "Proprietary"
+license = "MIT OR Apache-2.0"
 homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 
@@ -17,9 +17,7 @@ alloy-sol-types = { git = "https://github.com/rachel-bousfield/alloy-core.git", 
 lazy_static = "1.4.0"
 
 # data structures
-#ahash = { version = "0.8.3", default-features = false, features = ["const-random"] }
 fnv = "1.0.7"
-#hashbrown = "0.14.0"
 
 # proc macros
 syn = { version = "1.0", features = ["full"] }

@@ -1,5 +1,5 @@
 // Copyright 2023, Offchain Labs, Inc.
-// For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, U256};
 use std::{cell::OnceCell, ops::Deref};

@@ -1,5 +1,5 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
-// For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 #[link(wasm_import_module = "vm_hooks")]
 extern "C" {
@@ -23,7 +23,7 @@ extern "C" {
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
-    pub(crate) fn account_load_bytes32(key: *const u8, dest: *mut u8);
+    pub(crate) fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
     /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
@@ -31,7 +31,7 @@ extern "C" {
     /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    pub(crate) fn account_store_bytes32(key: *const u8, value: *const u8);
+    pub(crate) fn storage_store_bytes32(key: *const u8, value: *const u8);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.
@@ -43,7 +43,7 @@ extern "C" {
     /// that of the EVM's [`CHAIN_ID`] opcode.
     ///
     /// [`CHAIN_ID`]: https://www.evm.codes/#46
-    pub(crate) fn block_chainid(chainid: *mut u8);
+    pub(crate) fn chainid(chainid: *mut u8);
 
     /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
     /// address. This differs from Ethereum where the validator including the transaction
@@ -92,7 +92,7 @@ extern "C" {
         calldata: *const u8,
         calldata_len: usize,
         value: *const u8,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -138,7 +138,7 @@ extern "C" {
     /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
     /// `[CREATE2`] opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: <https://developer.arbitrum.io/TODO>
+    /// [`Deploying Stylus Programs`]: https://developer.arbitrum.io/TODO
     /// [`CREATE2`]: https://www.evm.codes/#f5
     pub(crate) fn create2(
         code: *const u8,
@@ -167,7 +167,7 @@ extern "C" {
         contract: *const u8,
         calldata: *const u8,
         calldata_len: usize,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -237,15 +237,15 @@ extern "C" {
     pub(crate) fn read_args(dest: *mut u8);
 
     /// Copies the bytes of the last EVM call or deployment return result. Reverts if out of
-    /// bounds. Te semantics are equivalent to that of the EVM's [`RETURN_DATA_COPY`] opcode.
+    /// bounds. The semantics are equivalent to that of the EVM's [`RETURN_DATA_COPY`] opcode.
     ///
     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
-    pub(crate) fn read_return_data(dest: *mut u8);
+    pub(crate) fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize;
 
     /// Writes the final return data. If not called before the program exists, the return data will
     /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
     /// naturally when the `arbitrum_main` entry-point returns.
-    pub(crate) fn return_data(data: *const u8, len: usize);
+    pub(crate) fn write_result(data: *const u8, len: usize);
 
     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
     /// happened during the program's execution. The semantics are equivalent to that of the EVM's
@@ -272,7 +272,7 @@ extern "C" {
         contract: *const u8,
         calldata: *const u8,
         calldata_len: usize,
-        ink: u64,
+        gas: u64,
         return_data_len: *mut usize,
     ) -> u8;
 
@@ -322,8 +322,8 @@ macro_rules! wrap_hostio {
     ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
     };
-    ($(#[$meta:meta])* $name:ident $hostio:ident U64) => {
-        wrap_hostio!(@cast $(#[$meta])* $name, $hostio, U64);
+    ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
+        wrap_hostio!(@cast $(#[$meta])* $name, $hostio, u64);
     };
     ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
         wrap_hostio!(@arg $(#[$meta])* $name, $hostio, Address);
@@ -354,3 +354,36 @@ macro_rules! wrap_hostio {
 }
 
 pub(crate) use wrap_hostio;
+
+/// Caches the length of the most recent EVM return data
+pub(crate) static mut RETURN_DATA_SIZE: CachedOption<usize> = CachedOption::new(return_data_size);
+
+/// Caches the current price of ink
+pub(crate) static mut CACHED_INK_PRICE: CachedOption<u64> = CachedOption::new(tx_ink_price);
+
+/// Caches a value to avoid paying for hostio invocations.
+pub(crate) struct CachedOption<T: Copy> {
+    value: Option<T>,
+    loader: unsafe extern "C" fn() -> T,
+}
+
+impl<T: Copy> CachedOption<T> {
+    const fn new(loader: unsafe extern "C" fn() -> T) -> Self {
+        let value = None;
+        Self { value, loader }
+    }
+
+    pub(crate) fn set(&mut self, value: T) {
+        self.value = Some(value);
+    }
+
+    pub(crate) fn get(&mut self) -> T {
+        if let Some(value) = &self.value {
+            return *value;
+        }
+
+        let value = unsafe { (self.loader)() };
+        self.value = Some(value);
+        value
+    }
+}
