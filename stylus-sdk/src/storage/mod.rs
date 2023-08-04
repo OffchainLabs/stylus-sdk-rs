@@ -6,7 +6,9 @@ use std::{cell::OnceCell, ops::Deref};
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
-pub use cache::{SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+pub use cache::{
+    EraseStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+};
 pub use map::StorageMap;
 pub use vec::StorageVec;
 
@@ -16,6 +18,7 @@ mod cache;
 mod map;
 mod vec;
 
+/// Overwrites the value in a cell.
 #[inline]
 fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {
     cell.take();
@@ -25,10 +28,10 @@ fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {
 macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
-            #[doc = concat!("Accessor for a storage-backed [`U", stringify!($bits), "`]")]
+            #[doc = concat!("Accessor for a storage-backed [`U", stringify!($bits), "`].")]
             pub type $name = StorageUint<$bits, $limbs>;
 
-            #[doc = concat!("Accessor for a storage-backed [`I", stringify!($bits), "`]")]
+            #[doc = concat!("Accessor for a storage-backed [`I", stringify!($bits), "`].")]
             pub type $signed_name = StorageSigned<$bits, $limbs>;
         )*
     };
@@ -37,7 +40,7 @@ macro_rules! alias_ints {
 macro_rules! alias_bytes {
     ($($name:ident, $bytes:expr;)*) => {
         $(
-            #[doc = concat!("Accessor for a storage-backed [`B", stringify!($bytes), "`]")]
+            #[doc = concat!("Accessor for a storage-backed [`B", stringify!($bytes), "`].")]
             pub type $name = StorageFixedBytes<$bytes>;
         )*
     };
@@ -116,10 +119,12 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
 }
 
 impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L> {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a, const B: usize, const L: usize> EraseStorageType<'a> for StorageUint<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -185,10 +190,12 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
 }
 
 impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned<B, L> {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a, const B: usize, const L: usize> EraseStorageType<'a> for StorageSigned<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -254,10 +261,12 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
 }
 
 impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N> {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a, const N: usize> EraseStorageType<'a> for StorageFixedBytes<N> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -323,10 +332,12 @@ impl StorageType for StorageBool {
 }
 
 impl<'a> SimpleStorageType<'a> for StorageBool {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a> EraseStorageType<'a> for StorageBool {
     fn erase(&mut self) {
         self.set(false);
     }
@@ -394,10 +405,12 @@ impl StorageType for StorageAddress {
 }
 
 impl<'a> SimpleStorageType<'a> for StorageAddress {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a> EraseStorageType<'a> for StorageAddress {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -465,10 +478,12 @@ impl StorageType for StorageBlockNumber {
 }
 
 impl<'a> SimpleStorageType<'a> for StorageBlockNumber {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a> EraseStorageType<'a> for StorageBlockNumber {
     fn erase(&mut self) {
         self.set(0);
     }
@@ -530,10 +545,12 @@ impl StorageType for StorageBlockHash {
 }
 
 impl<'a> SimpleStorageType<'a> for StorageBlockHash {
-    fn set_exact(&mut self, value: Self::Wraps<'a>) {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
+}
 
+impl<'a> EraseStorageType<'a> for StorageBlockHash {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }

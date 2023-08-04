@@ -58,7 +58,7 @@ impl<S: StorageType> StorageVec<S> {
         StorageCache::set_word(self.slot, U256::from(len).into())
     }
     /// Gets an accessor to the element at a given index, if it exists.
-    /// Note: the accessor is protected by a [`StoreageGuard`], which restricts
+    /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
     pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
         let store = unsafe { self.accessor(index)? };
@@ -66,7 +66,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
-    /// Note: the accessor is protected by a [`StoreageGuardMut`], which restricts
+    /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
     pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
         let store = unsafe { self.accessor(index)? };
@@ -80,13 +80,13 @@ impl<S: StorageType> StorageVec<S> {
     /// Because the accessor is unconstrained by a storage guard, storage aliasing is possible
     /// if used incorrectly. Two or more mutable references to the same `S` are possible, as are
     /// read-after-write scenarios.
-    pub unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
+    unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
         let index = index.try_into().ok()?;
         if index >= self.len() {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        unsafe { Some(S::new(slot, offset)) }
+        Some(S::new(slot, offset))
     }
 
     /// Gets the element at the given index, if it exists.
@@ -171,7 +171,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
-        store.set_exact(value);
+        store.set_by_wrapped(value);
     }
 
     /// Removes and returns the last element of the vector, if it exists.

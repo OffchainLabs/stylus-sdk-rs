@@ -13,14 +13,14 @@ use std::{
     sync::Mutex,
 };
 
-/// Global cache managing persistent storage operations
+/// Global cache managing persistent storage operations.
 pub struct StorageCache(HashMap<U256, StorageWord>);
 
-/// Represents the EVM word at a given key
+/// Represents the EVM word at a given key.
 pub struct StorageWord {
-    /// The current value of the slot
+    /// The current value of the slot.
     value: B256,
-    /// The value in the EVM state trie, if known
+    /// The value in the EVM state trie, if known.
     known: Option<B256>,
 }
 
@@ -38,14 +38,14 @@ impl StorageWord {
         Self { value, known: None }
     }
 
-    /// Whether a slot should be written to disk
+    /// Whether a slot should be written to disk.
     fn dirty(&self) -> bool {
         Some(self.value) != self.known
     }
 }
 
 lazy_static! {
-    /// Global cache managing persistent storage operations
+    /// Global cache managing persistent storage operations.
     static ref CACHE: Mutex<StorageCache> = Mutex::new(StorageCache(HashMap::default()));
 }
 
@@ -261,7 +261,6 @@ impl StorageCache {
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html
-// TODO: use const generics once stable to elide runtime keccaks
 pub trait StorageType: Sized {
     /// For primative types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
@@ -300,24 +299,38 @@ pub trait StorageType: Sized {
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn new(slot: U256, offset: u8) -> Self;
 
+    /// Load the wrapped type, consuming the accessor.
+    /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.
     fn load<'s>(self) -> Self::Wraps<'s>
     where
         Self: 's;
 
+    /// Load the wrapped mutable type, consuming the accessor.
+    /// Note: most types have a `set` and/or `setter`, which don't consume `Self`.
     fn load_mut<'s>(self) -> Self::WrapsMut<'s>
     where
         Self: 's;
 }
 
-/// Trait for simple accessors that use no more storage than their starting slot.
-pub trait SimpleStorageType<'a>: StorageType + Into<Self::Wraps<'a>>
+/// Trait for accessors that can be used to completely erase their underlying value.
+/// Note that some collections, like [`StorageMap`], don't implement this trait.
+pub trait EraseStorageType<'a>: StorageType
 where
     Self: 'a,
 {
-    fn set_exact(&mut self, value: Self::Wraps<'a>);
-
-    /// Erases the value from persistent storage.
+    /// Erase the value from persistent storage.
     fn erase(&mut self);
+}
+
+/// Trait for simple accessors that store no more than their wrapped value.
+/// Note: it is a logic error if erasure does anything more than writing the zero-value.
+pub trait SimpleStorageType<'a>:
+    StorageType + EraseStorageType<'a> + Into<Self::Wraps<'a>>
+where
+    Self: 'a,
+{
+    /// Write the value to persistent storage.
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>);
 }
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.
@@ -340,7 +353,7 @@ impl<'a, T: 'a> StorageGuard<'a, T> {
         }
     }
 
-    /// Get the underlying `T`.
+    /// Get the underlying `T` directly, bypassing the borrow checker.
     ///
     /// # Safety
     ///
@@ -373,7 +386,7 @@ impl<'a, T: 'a> StorageGuardMut<'a, T> {
         }
     }
 
-    /// Get the underlying `T`.
+    /// Get the underlying `T` directly, bypassing the borrow checker.
     ///
     /// # Safety
     ///

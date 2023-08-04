@@ -3,7 +3,9 @@
 
 use crate::crypto;
 
-use super::{SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
+use super::{
+    cache::EraseStorageType, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
+};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use std::marker::PhantomData;
 
@@ -13,7 +15,11 @@ pub struct StorageMap<K: StorageKey, V: StorageType> {
     marker: PhantomData<(K, V)>,
 }
 
-impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
+impl<K, V> StorageType for StorageMap<K, V>
+where
+    K: StorageKey,
+    V: StorageType,
+{
     type Wraps<'a> = StorageGuard<'a, StorageMap<K, V>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageMap<K, V>> where Self: 'a;
 
@@ -34,29 +40,86 @@ impl<K: StorageKey, V: StorageType> StorageType for StorageMap<K, V> {
     }
 }
 
-impl<K: StorageKey, V: StorageType> StorageMap<K, V> {
+impl<K, V> StorageMap<K, V>
+where
+    K: StorageKey,
+    V: StorageType,
+{
+    /// Where in a word to access the wrapped value.
     const CHILD_OFFSET: u8 = 32 - V::SLOT_BYTES as u8;
 
+    /// Gets an accessor to the element at the given key, or the zero-value if none is there.
+    /// Note: the accessor is protected by a [`StorageGuard`], which restricts its lifetime
+    /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
         unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET)) }
     }
 
+    /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
+    /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts its lifetime
+    /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
         unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
     }
-}
 
-impl<'a, K: StorageKey, V: SimpleStorageType<'a>> StorageMap<K, V> {
-    pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
-        let mut store = self.setter(key);
-        store.set_exact(value);
-    }
-
-    pub fn get(&self, key: K) -> V::Wraps<'a> {
+    /// Gets the element at the given key, or the zero value if none is there.
+    pub fn get(&self, key: K) -> V::Wraps<'_> {
         let store = self.getter(key);
         unsafe { store.into_raw().load() }
+    }
+}
+
+impl<'a, K, V> StorageMap<K, V>
+where
+    K: StorageKey,
+    V: SimpleStorageType<'a>,
+{
+    /// Sets the element at a given key, overwritting what may have been there.
+    pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
+        let mut store = self.setter(key);
+        store.set_by_wrapped(value);
+    }
+
+    /// Replace the element at the given key.
+    /// Returns the old element, or the zero-value if none was there.
+    pub fn replace(&mut self, key: K, value: V::Wraps<'a>) -> V::Wraps<'a> {
+        let slot = key.to_slot(self.slot.into());
+        // intentionally alias so that we can erase after load
+        unsafe {
+            let store = V::new(slot, Self::CHILD_OFFSET);
+            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let prior = store.load();
+            alias.set_by_wrapped(value);
+            prior
+        }
+    }
+
+    /// Remove the element at the given key.
+    /// Returns the element, or the zero-value if none was there.
+    pub fn take(&mut self, key: K) -> V::Wraps<'a> {
+        let slot = key.to_slot(self.slot.into());
+        // intentionally alias so that we can erase after load
+        unsafe {
+            let store = V::new(slot, Self::CHILD_OFFSET);
+            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let value = store.load();
+            alias.erase();
+            value
+        }
+    }
+}
+
+impl<'a, K, V> StorageMap<K, V>
+where
+    K: StorageKey,
+    V: EraseStorageType<'a>,
+{
+    /// Delete the element at the given key, if it exists.
+    pub fn delete(&mut self, key: K) {
+        let mut store = self.setter(key);
+        store.erase();
     }
 }
 
@@ -135,15 +198,25 @@ impl StorageKey for bool {
 }
 
 macro_rules! impl_key {
-    ($($ty:ident)+) => {
-        $(impl StorageKey for $ty {
-            fn to_slot(&self, root: B256) -> U256 {
-                let data = B256::from(U256::from(*self));
-                let data = data.concat_const::<32, 64>(root.into());
-                crypto::keccak(data).into()
+    ($($uint:ident $int:ident)+) => {
+        $(
+            impl StorageKey for $uint {
+                fn to_slot(&self, root: B256) -> U256 {
+                    let data = B256::from(U256::from(*self));
+                    let data = data.concat_const::<32, 64>(root.into());
+                    crypto::keccak(data).into()
+                }
             }
-        })+
+
+            impl StorageKey for $int {
+                fn to_slot(&self, root: B256) -> U256 {
+                    let data = B256::from(U256::from(*self as $uint)); // wrap-around
+                    let data = data.concat_const::<32, 64>(root.into());
+                    crypto::keccak(data).into()
+                }
+            }
+        )+
     };
 }
 
-impl_key!(u8 u16 u32 u64 usize);
+impl_key!(u8 i8 u16 i16 u32 i32 u64 i64 u128 i128 usize isize);
