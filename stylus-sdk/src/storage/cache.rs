@@ -320,6 +320,7 @@ pub trait EraseStorageType: StorageType {
 }
 
 /// Trait for simple accessors that store no more than their wrapped value.
+/// The type's representation must be entirely inline, or storage leaks become possible.
 /// Note: it is a logic error if erasure does anything more than writing the zero-value.
 pub trait SimpleStorageType<'a>: StorageType + EraseStorageType + Into<Self::Wraps<'a>>
 where
