@@ -47,15 +47,10 @@ macro_rules! entrypoint {
         }
 
         #[no_mangle]
-        pub extern "C" fn user_entrypoint(len: usize, reentrant: usize) -> usize {
-            let reentrant = reentrant != 0;
-            if reentrant {
+        pub extern "C" fn user_entrypoint(len: usize) -> usize {
+            if stylus_sdk::msg::reentrant() {
                 return 1; // revert on reentrancy
             }
-
-            // TODO: ineffectual rn, but will be useful for opt-outs
-            unsafe { stylus_sdk::msg::REENTRANT = reentrant };
-
             let input = stylus_sdk::args(len);
             let (data, status) = match $name(input) {
                 Ok(data) => (data, 0),

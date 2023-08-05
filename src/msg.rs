@@ -4,12 +4,10 @@
 use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::{Address, B256};
 
-pub static mut REENTRANT: bool = false;
-
-/// Returns `true` if the current call is reentrant.
-pub fn reentrant() -> bool {
-    unsafe { REENTRANT }
-}
+wrap_hostio!(
+    /// Whether the current call is reentrant.
+    reentrant msg_reentrant bool
+);
 
 wrap_hostio!(
     /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
