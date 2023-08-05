@@ -197,7 +197,7 @@ extern "C" {
     /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
     pub(crate) fn evm_ink_left() -> u64;
 
-    /// The `arbitrum_main!` macro handles importing this hostio, which is required if the
+    /// The `entrypoint!` macro handles importing this hostio, which is required if the
     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
@@ -244,7 +244,7 @@ extern "C" {
 
     /// Writes the final return data. If not called before the program exists, the return data will
     /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
-    /// naturally when the `arbitrum_main` entry-point returns.
+    /// naturally when `user_entrypoint` returns.
     pub(crate) fn write_result(data: *const u8, len: usize);
 
     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
