@@ -38,6 +38,9 @@ pub fn output(data: Vec<u8>) {
 #[macro_export]
 macro_rules! entrypoint {
     ($name:expr) => {
+        stylus_sdk::entrypoint!($name, false);
+    };
+    ($name:expr, $allow_reentrant:expr) => {
         /// Force the compiler to import these symbols
         /// Note: calling these functions will unproductively consume gas
         #[no_mangle]
@@ -48,7 +51,7 @@ macro_rules! entrypoint {
 
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            if stylus_sdk::msg::reentrant() {
+            if !$allow_reentrant && stylus_sdk::msg::reentrant() {
                 return 1; // revert on reentrancy
             }
             let input = stylus_sdk::args(len);
