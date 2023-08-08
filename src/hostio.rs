@@ -197,12 +197,15 @@ extern "C" {
     /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
     pub(crate) fn evm_ink_left() -> u64;
 
-    /// The `arbitrum_main!` macro handles importing this hostio, which is required if the
+    /// The `entrypoint!` macro handles importing this hostio, which is required if the
     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
     #[allow(dead_code)]
     pub(crate) fn memory_grow(pages: u16);
+
+    /// Whether the current call is reentrant.
+    pub(crate) fn msg_reentrant() -> bool;
 
     /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
     /// the semantics are equivalent to that of the EVM's [`CALLER`] opcode, including in cases
@@ -244,7 +247,7 @@ extern "C" {
 
     /// Writes the final return data. If not called before the program exists, the return data will
     /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
-    /// naturally when the `arbitrum_main` entry-point returns.
+    /// naturally when `user_entrypoint` returns.
     pub(crate) fn write_result(data: *const u8, len: usize);
 
     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
@@ -319,11 +322,14 @@ extern "C" {
 }
 
 macro_rules! wrap_hostio {
+    ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
+    };
     ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
     };
     ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
-        wrap_hostio!(@cast $(#[$meta])* $name, $hostio, u64);
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64);
     };
     ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
         wrap_hostio!(@arg $(#[$meta])* $name, $hostio, Address);
@@ -334,7 +340,7 @@ macro_rules! wrap_hostio {
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            unsafe { hostio::$hostio() }
+            unsafe { $ty::from(hostio::$hostio()) }
         }
     };
     (@arg $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
@@ -343,12 +349,6 @@ macro_rules! wrap_hostio {
             let mut data = $ty::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data
-        }
-    };
-    (@cast $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            unsafe { $ty::from(hostio::$hostio()) }
         }
     };
 }

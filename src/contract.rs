@@ -72,12 +72,12 @@ impl Call {
     }
 
     pub fn gas(mut self, gas: u64) -> Self {
-        self.gas = Some(gas.try_into().unwrap());
+        self.gas = Some(gas);
         self
     }
 
     pub fn ink(mut self, ink: u64) -> Self {
-        self.gas = Some(tx::ink_to_gas(ink).try_into().unwrap());
+        self.gas = Some(tx::ink_to_gas(ink));
         self
     }
 
