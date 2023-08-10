@@ -5,6 +5,11 @@ use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::{Address, B256};
 
 wrap_hostio!(
+    /// Whether the current call is reentrant.
+    reentrant msg_reentrant bool
+);
+
+wrap_hostio!(
     /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
     /// the semantics are equivalent to that of the EVM's [`CALLER`] opcode, including in cases
     /// arising from [`DELEGATE_CALL`].
