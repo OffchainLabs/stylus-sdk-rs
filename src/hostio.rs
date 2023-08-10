@@ -286,7 +286,7 @@ extern "C" {
     /// Stylus's compute-pricing model.
     ///
     /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-    pub(crate) fn tx_ink_price() -> u64;
+    pub(crate) fn tx_ink_price() -> u32;
 
     /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
     /// EVM's [`ORIGIN`] opcode.
@@ -359,7 +359,7 @@ pub(crate) use wrap_hostio;
 pub(crate) static mut RETURN_DATA_SIZE: CachedOption<usize> = CachedOption::new(return_data_size);
 
 /// Caches the current price of ink
-pub(crate) static mut CACHED_INK_PRICE: CachedOption<u64> = CachedOption::new(tx_ink_price);
+pub(crate) static mut CACHED_INK_PRICE: CachedOption<u32> = CachedOption::new(tx_ink_price);
 
 /// Caches a value to avoid paying for hostio invocations.
 pub(crate) struct CachedOption<T: Copy> {

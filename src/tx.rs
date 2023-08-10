@@ -8,7 +8,7 @@ use alloy_primitives::{Address, B256};
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-pub fn ink_price() -> u64 {
+pub fn ink_price() -> u32 {
     unsafe { hostio::CACHED_INK_PRICE.get() }
 }
 
@@ -16,18 +16,16 @@ pub fn ink_price() -> u64 {
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-#[allow(clippy::inconsistent_digit_grouping)]
 pub fn gas_to_ink(gas: u64) -> u64 {
-    gas.saturating_mul(100_00) / ink_price()
+    gas.saturating_mul(ink_price().into())
 }
 
 /// Converts ink to evm gas. See [`Ink and Gas`] for more information on
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-#[allow(clippy::inconsistent_digit_grouping)]
 pub fn ink_to_gas(ink: u64) -> u64 {
-    ink.saturating_mul(ink_price()) / 100_00
+    ink / ink_price() as u64
 }
 
 wrap_hostio!(
