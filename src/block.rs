@@ -11,7 +11,7 @@ wrap_hostio!(
 
 wrap_hostio!(
     /// Gets the unique chain identifier of the Arbitrum chain.
-    chainid chainid B256
+    chainid chainid u64
 );
 
 wrap_hostio!(
