@@ -1,11 +1,30 @@
-[package]
-name = "stylus-sdk"
+[workspace]
+members = ["stylus-sdk", "stylus-proc"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
+authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
+homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
+repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 
-[dependencies]
+[workspace.dependencies]
+derivative = "2.2.0"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 alloy-primitives = { git = "https://github.com/rachel-bousfield/alloy-core.git", branch = "native-keccak" }
+alloy-sol-types = { git = "https://github.com/rachel-bousfield/alloy-core.git", branch = "native-keccak" }
+lazy_static = "1.4.0"
 
-[workspace]
+# data structures
+fnv = "1.0.7"
+
+# proc macros
+syn = { version = "1.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+regex = "1.9.1"
+
+# members
+stylus-sdk = { path = "stylus-sdk" }
+stylus-proc = { path = "stylus-proc" }
