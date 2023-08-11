@@ -6,7 +6,7 @@ use std::{cell::OnceCell, ops::Deref};
 
 pub use bytes::{StorageBytes, StorageString};
 pub use cache::{
-    Erasable, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    Erase, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 pub use map::StorageMap;
 pub use vec::StorageVec;
@@ -122,7 +122,7 @@ impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B
     }
 }
 
-impl<const B: usize, const L: usize> Erasable for StorageUint<B, L> {
+impl<const B: usize, const L: usize> Erase for StorageUint<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -193,7 +193,7 @@ impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned
     }
 }
 
-impl<const B: usize, const L: usize> Erasable for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> Erase for StorageSigned<B, L> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -264,7 +264,7 @@ impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N> {
     }
 }
 
-impl<const N: usize> Erasable for StorageFixedBytes<N> {
+impl<const N: usize> Erase for StorageFixedBytes<N> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -335,7 +335,7 @@ impl<'a> SimpleStorageType<'a> for StorageBool {
     }
 }
 
-impl Erasable for StorageBool {
+impl Erase for StorageBool {
     fn erase(&mut self) {
         self.set(false);
     }
@@ -408,7 +408,7 @@ impl<'a> SimpleStorageType<'a> for StorageAddress {
     }
 }
 
-impl Erasable for StorageAddress {
+impl Erase for StorageAddress {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -481,7 +481,7 @@ impl<'a> SimpleStorageType<'a> for StorageBlockNumber {
     }
 }
 
-impl Erasable for StorageBlockNumber {
+impl Erase for StorageBlockNumber {
     fn erase(&mut self) {
         self.set(0);
     }
@@ -548,7 +548,7 @@ impl<'a> SimpleStorageType<'a> for StorageBlockHash {
     }
 }
 
-impl Erasable for StorageBlockHash {
+impl Erase for StorageBlockHash {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }

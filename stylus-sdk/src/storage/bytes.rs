@@ -1,9 +1,7 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{
-    Erasable, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
-};
+use super::{Erase, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::{U256, U8};
 use std::cell::OnceCell;
@@ -227,7 +225,7 @@ impl StorageBytes {
     }
 }
 
-impl Erasable for StorageBytes {
+impl Erase for StorageBytes {
     fn erase(&mut self) {
         let mut len = self.len() as isize;
         if len > 31 {
@@ -312,7 +310,7 @@ impl StorageString {
     }
 }
 
-impl Erasable for StorageString {
+impl Erase for StorageString {
     fn erase(&mut self) {
         self.0.erase()
     }
