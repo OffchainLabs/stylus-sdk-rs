@@ -327,7 +327,7 @@ pub trait StorageType: Sized {
 /// Note that some collections, like [`StorageMap`], don't implement this trait.
 pub trait ClearStorageType: StorageType {
     /// Erase the value from persistent storage.
-    fn clear(&mut self);
+    fn erase(&mut self);
 }
 
 /// Trait for simple accessors that store no more than their wrapped value.

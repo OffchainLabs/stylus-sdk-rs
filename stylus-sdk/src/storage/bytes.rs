@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{
-    ClearStorageType, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    Erasable, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::crypto;
 use alloy_primitives::{U256, U8};
@@ -207,7 +207,7 @@ impl StorageBytes {
 
     /// Overwrites the contents of the collection, erasing what was previously stored.
     pub fn set_bytes(&mut self, bytes: impl AsRef<[u8]>) {
-        self.clear();
+        self.erase();
         self.extend(bytes.as_ref());
     }
 
@@ -227,8 +227,8 @@ impl StorageBytes {
     }
 }
 
-impl ClearStorageType for StorageBytes {
-    fn clear(&mut self) {
+impl Erasable for StorageBytes {
+    fn erase(&mut self) {
         let mut len = self.len() as isize;
         if len > 31 {
             while len > 0 {
@@ -305,16 +305,16 @@ impl StorageString {
 
     /// Overwrites the underlying [`String`], erasing what was previously stored.
     pub fn set_str(&mut self, text: impl AsRef<str>) {
-        self.clear();
+        self.erase();
         for c in text.as_ref().chars() {
             self.push(c);
         }
     }
 }
 
-impl ClearStorageType for StorageString {
-    fn clear(&mut self) {
-        self.0.clear()
+impl Erasable for StorageString {
+    fn erase(&mut self) {
+        self.0.erase()
     }
 }
 

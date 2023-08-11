@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{
-    ClearStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    Erasable, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::crypto;
 use alloy_primitives::U256;
@@ -208,25 +208,25 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     }
 }
 
-impl<S: ClearStorageType> StorageVec<S> {
+impl<S: Erasable> StorageVec<S> {
     /// Removes and erases the last element of the vector.
-    pub fn clear_last(&mut self) {
+    pub fn erase_last(&mut self) {
         if self.is_empty() {
             return;
         }
         let index = self.len() - 1;
         unsafe {
-            self.accessor_unchecked(index).clear();
+            self.accessor_unchecked(index).erase();
             self.set_len(index);
         }
     }
 }
 
-impl<S: ClearStorageType> ClearStorageType for StorageVec<S> {
-    fn clear(&mut self) {
+impl<S: Erasable> Erasable for StorageVec<S> {
+    fn erase(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
-            store.clear()
+            store.erase()
         }
         self.truncate(0);
     }
