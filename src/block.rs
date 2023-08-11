@@ -11,7 +11,7 @@ wrap_hostio!(
 
 wrap_hostio!(
     /// Gets the unique chain identifier of the Arbitrum chain.
-    chainid chainid B256
+    chainid chainid u64
 );
 
 wrap_hostio!(
@@ -31,7 +31,7 @@ wrap_hostio!(
     /// determined.
     ///
     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-    number block_number B256
+    number block_number u64
 );
 
 wrap_hostio!(
