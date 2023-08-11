@@ -23,7 +23,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     }
     let output = quote! {
         impl #impl_generics stylus_sdk::storage::ClearStorageType for #name #ty_generics #where_clause {
-            pub fn clear(&mut self) {
+            fn clear(&mut self) {
                 #clear_fields
             }
         }
@@ -176,17 +176,23 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 
     for decl in decls {
         let SolidityStruct {
+            attrs,
             vis,
             name,
             fields: SolidityFields(fields),
         } = decl;
-
+        let attr_defs = attrs.into_iter().map(|attr| {
+            quote! {
+                #attr
+            }
+        });
         let fields: Punctuated<_, Token![,]> = fields
             .into_iter()
             .map(|SolidityField { name, ty }| quote! { pub #name: #ty })
             .collect();
 
         out.extend(quote! {
+            #(#attr_defs)*
             #[stylus_sdk::stylus_proc::solidity_storage]
             #vis struct #name {
                 #fields

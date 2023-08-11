@@ -10,7 +10,7 @@ use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::Bracket,
-    Error, Path, Result, Token, Visibility,
+    Attribute, Error, Path, Result, Token, Visibility,
 };
 
 macro_rules! sdk {
@@ -29,6 +29,7 @@ impl Parse for SolidityStructs {
 }
 
 pub struct SolidityStruct {
+    pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     pub name: Ident,
     pub fields: SolidityFields,
@@ -37,6 +38,7 @@ pub struct SolidityStruct {
 impl Parse for SolidityStruct {
     fn parse(input: ParseStream) -> Result<Self> {
         // pub? struct name
+        let attrs: Vec<Attribute> = Attribute::parse_outer(input)?;
         let vis: Visibility = input.parse()?;
         let _: Token![struct] = input.parse()?;
         let name: Ident = input.parse()?;
@@ -44,7 +46,12 @@ impl Parse for SolidityStruct {
         let content;
         let _ = braced!(content in input);
         let fields = content.parse()?;
-        Ok(Self { vis, name, fields })
+        Ok(Self {
+            attrs,
+            vis,
+            name,
+            fields,
+        })
     }
 }
 
