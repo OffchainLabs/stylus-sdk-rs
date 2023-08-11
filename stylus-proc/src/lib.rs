@@ -8,23 +8,23 @@ use syn::{parse_macro_input, punctuated::Punctuated, ItemStruct, Token, Type};
 
 mod storage;
 
-#[proc_macro_derive(ClearStorageType)]
+#[proc_macro_derive(Erase)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ItemStruct);
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-    let mut clear_fields = quote! {};
+    let mut erase_fields = quote! {};
     for field in &mut input.fields {
         let ident = &field.ident;
-        clear_fields.extend(quote! {
-            self.#ident.clear();
+        erase_fields.extend(quote! {
+            self.#ident.erase();
         });
     }
     let output = quote! {
-        impl #impl_generics stylus_sdk::storage::ClearStorageType for #name #ty_generics #where_clause {
-            fn clear(&mut self) {
-                #clear_fields
+        impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
+            fn erase(&mut self) {
+                #erase_fields
             }
         }
     };
