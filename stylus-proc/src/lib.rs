@@ -4,9 +4,32 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use storage::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
-use syn::{parse_macro_input, punctuated::Punctuated, ItemStruct, Token, Type};
+use syn::{parse_macro_input, punctuated::Punctuated, DeriveInput, ItemStruct, Token, Type};
 
 mod storage;
+
+#[proc_macro_derive(ClearStorageType)]
+pub fn derive(input: TokenStream) -> TokenStream {
+    let mut input = parse_macro_input!(input as ItemStruct);
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let mut clear_fields = quote! {};
+    for field in &mut input.fields {
+        let ident = &field.ident;
+        clear_fields.extend(quote! {
+            self.#ident.clear();
+        });
+    }
+    let output = quote! {
+        impl #impl_generics stylus_sdk::storage::ClearStorageType for #name #ty_generics #where_clause {
+            pub fn clear(&mut self) {
+                #clear_fields
+            }
+        }
+    };
+    output.into()
+}
 
 #[proc_macro_attribute]
 pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -143,7 +166,6 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
     };
-
     TokenStream::from(expanded)
 }
 
