@@ -2,10 +2,10 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{
-    EraseStorageType, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    ClearStorageType, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::crypto;
-use alloy_primitives::{B256, U256, U8};
+use alloy_primitives::{U256, U8};
 use std::cell::OnceCell;
 
 /// Accessor for storage-backed bytes.
@@ -125,7 +125,8 @@ impl StorageBytes {
     }
 
     /// Removes and returns the last byte, if it exists.
-    /// Note: the underlying storage slot is erased when all elements in the word are freed.
+    /// As an optimization, underlying storage slots are only erased when all bytes in
+    /// a given word are freed when in the multi-word representation.
     pub fn pop(&mut self) -> Option<u8> {
         let len = self.len();
         if len == 0 {
@@ -136,19 +137,28 @@ impl StorageBytes {
         let clean = index % 32 == 0;
         let byte = self.get(index)?;
 
+        let clear = |slot| unsafe { StorageCache::clear_word(slot) };
+
         // convert to single-word representation
         if len == 32 {
             // copy content over
             let word = StorageCache::get_word(*self.base());
             unsafe { StorageCache::set_word(self.root, word) };
+            clear(*self.base());
         }
 
-        if len >= 32 && clean {
-            let slot = self.base() + U256::from(index / 32);
-            unsafe { StorageCache::set_word(slot, B256::ZERO) };
+        // clear distant word
+        if len > 32 && clean {
+            clear(self.index_slot(len - 1).0);
         }
 
-        unsafe { self.write_len(index) }
+        // clear the value
+        if len < 32 {
+            unsafe { StorageCache::set_byte(self.root, index, 0) };
+        }
+
+        // set the new length
+        unsafe { self.write_len(index) };
         Some(byte)
     }
 
@@ -197,7 +207,7 @@ impl StorageBytes {
 
     /// Overwrites the contents of the collection, erasing what was previously stored.
     pub fn set_bytes(&mut self, bytes: impl AsRef<[u8]>) {
-        self.erase();
+        self.clear();
         self.extend(bytes.as_ref());
     }
 
@@ -217,15 +227,17 @@ impl StorageBytes {
     }
 }
 
-impl EraseStorageType for StorageBytes {
-    fn erase(&mut self) {
-        let mut len = self.len();
-        while len >= 32 {
-            let slot = self.index_slot(len - 1).0;
-            unsafe { StorageCache::set_word(slot, B256::ZERO) };
-            len -= 32;
+impl ClearStorageType for StorageBytes {
+    fn clear(&mut self) {
+        let mut len = self.len() as isize;
+        if len > 31 {
+            while len > 0 {
+                let slot = self.index_slot(len as usize - 1).0;
+                unsafe { StorageCache::clear_word(slot) };
+                len -= 32;
+            }
         }
-        unsafe { StorageCache::set_word(self.root, B256::ZERO) };
+        unsafe { StorageCache::clear_word(self.root) };
     }
 }
 
@@ -293,16 +305,16 @@ impl StorageString {
 
     /// Overwrites the underlying [`String`], erasing what was previously stored.
     pub fn set_str(&mut self, text: impl AsRef<str>) {
-        self.erase();
+        self.clear();
         for c in text.as_ref().chars() {
             self.push(c);
         }
     }
 }
 
-impl EraseStorageType for StorageString {
-    fn erase(&mut self) {
-        self.0.erase()
+impl ClearStorageType for StorageString {
+    fn clear(&mut self) {
+        self.0.clear()
     }
 }
 

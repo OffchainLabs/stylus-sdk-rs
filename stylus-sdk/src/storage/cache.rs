@@ -236,6 +236,17 @@ impl StorageCache {
         cache!().insert(key, StorageWord::new_unknown(value));
     }
 
+    /// Clears the 32-byte word at the given key, performing [`SSTORE`]'s only as needed.
+    ///
+    /// # Safety
+    ///
+    /// Aliases if called during the lifetime an overlapping accessor.
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
+    pub unsafe fn clear_word(key: U256) {
+        Self::set_word(key, B256::ZERO)
+    }
+
     /// Write all cached values to persistent storage.
     /// Note: this operation retains [`SLOAD`] information for optimization purposes.
     /// If reentrancy is possible, use [`StorageCache::clear`].
@@ -314,15 +325,15 @@ pub trait StorageType: Sized {
 
 /// Trait for accessors that can be used to completely erase their underlying value.
 /// Note that some collections, like [`StorageMap`], don't implement this trait.
-pub trait EraseStorageType: StorageType {
+pub trait ClearStorageType: StorageType {
     /// Erase the value from persistent storage.
-    fn erase(&mut self);
+    fn clear(&mut self);
 }
 
 /// Trait for simple accessors that store no more than their wrapped value.
 /// The type's representation must be entirely inline, or storage leaks become possible.
 /// Note: it is a logic error if erasure does anything more than writing the zero-value.
-pub trait SimpleStorageType<'a>: StorageType + EraseStorageType + Into<Self::Wraps<'a>>
+pub trait SimpleStorageType<'a>: StorageType + ClearStorageType + Into<Self::Wraps<'a>>
 where
     Self: 'a,
 {

@@ -2,10 +2,10 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{
-    EraseStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    ClearStorageType, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::crypto;
-use alloy_primitives::{B256, U256};
+use alloy_primitives::U256;
 use std::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
@@ -201,33 +201,34 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { StorageCache::set_word(slot + U256::from(i), B256::ZERO) };
+                unsafe { StorageCache::clear_word(slot + U256::from(i)) };
             }
         }
         Some(value)
     }
 }
 
-impl<S: EraseStorageType> StorageVec<S> {
+impl<S: ClearStorageType> StorageVec<S> {
     /// Removes and erases the last element of the vector.
-    pub fn erase_last(&mut self) {
+    pub fn clear_last(&mut self) {
         if self.is_empty() {
             return;
         }
         let index = self.len() - 1;
         unsafe {
-            self.accessor_unchecked(index).erase();
+            self.accessor_unchecked(index).clear();
             self.set_len(index);
         }
     }
 }
 
-impl<S: EraseStorageType> EraseStorageType for StorageVec<S> {
-    fn erase(&mut self) {
+impl<S: ClearStorageType> ClearStorageType for StorageVec<S> {
+    fn clear(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
-            store.erase()
+            store.clear()
         }
+        self.truncate(0);
     }
 }
 

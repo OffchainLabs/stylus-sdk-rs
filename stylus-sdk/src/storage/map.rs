@@ -4,7 +4,7 @@
 use crate::crypto;
 
 use super::{
-    cache::EraseStorageType, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
+    cache::ClearStorageType, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
 };
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use std::marker::PhantomData;
@@ -105,7 +105,7 @@ where
             let store = V::new(slot, Self::CHILD_OFFSET);
             let mut alias = V::new(slot, Self::CHILD_OFFSET);
             let value = store.load();
-            alias.erase();
+            alias.clear();
             value
         }
     }
@@ -114,12 +114,12 @@ where
 impl<K, V> StorageMap<K, V>
 where
     K: StorageKey,
-    V: EraseStorageType,
+    V: ClearStorageType,
 {
     /// Delete the element at the given key, if it exists.
     pub fn delete(&mut self, key: K) {
         let mut store = self.setter(key);
-        store.erase();
+        store.clear();
     }
 }
 
