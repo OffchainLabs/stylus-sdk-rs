@@ -43,7 +43,7 @@ extern "C" {
     /// that of the EVM's [`CHAIN_ID`] opcode.
     ///
     /// [`CHAIN_ID`]: https://www.evm.codes/#46
-    pub(crate) fn chainid(chainid: *mut u8);
+    pub(crate) fn chainid() -> u64;
 
     /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
     /// address. This differs from Ethereum where the validator including the transaction
@@ -64,7 +64,7 @@ extern "C" {
     /// determined.
     ///
     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-    pub(crate) fn block_number(number: *mut u8);
+    pub(crate) fn block_number() -> u64;
 
     /// Gets a bounded estimate of the Unix timestamp at which the Sequencer sequenced the
     /// transaction. See [`Block Numbers and Time`] for more information on how this value is
