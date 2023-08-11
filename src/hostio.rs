@@ -64,7 +64,7 @@ extern "C" {
     /// determined.
     ///
     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-    pub(crate) fn block_number(number: *mut u8);
+    pub(crate) fn block_number() -> u64;
 
     /// Gets a bounded estimate of the Unix timestamp at which the Sequencer sequenced the
     /// transaction. See [`Block Numbers and Time`] for more information on how this value is
