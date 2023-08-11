@@ -4,7 +4,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use storage::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
-use syn::{parse_macro_input, punctuated::Punctuated, DeriveInput, ItemStruct, Token, Type};
+use syn::{parse_macro_input, punctuated::Punctuated, ItemStruct, Token, Type};
 
 mod storage;
 
