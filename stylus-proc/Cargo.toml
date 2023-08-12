@@ -10,6 +10,7 @@ version.workspace = true
 
 [dependencies]
 alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
 lazy_static.workspace = true
 regex.workspace = true
 syn.workspace = true

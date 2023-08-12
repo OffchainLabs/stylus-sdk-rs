@@ -2,6 +2,7 @@
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
 pub use alloy_primitives;
+pub use alloy_sol_types;
 pub use stylus_proc;
 
 use alloy_primitives::{B256, U256};
@@ -11,6 +12,7 @@ pub mod contract;
 pub mod crypto;
 pub mod debug;
 pub mod evm;
+pub mod handler;
 pub mod msg;
 pub mod prelude;
 pub mod storage;
