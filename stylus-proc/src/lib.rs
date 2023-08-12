@@ -143,7 +143,6 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
     };
-
     TokenStream::from(expanded)
 }
 
@@ -154,17 +153,19 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 
     for decl in decls {
         let SolidityStruct {
+            attrs,
             vis,
             name,
             fields: SolidityFields(fields),
         } = decl;
-
+        let attr_defs = attrs.into_iter();
         let fields: Punctuated<_, Token![,]> = fields
             .into_iter()
             .map(|SolidityField { name, ty }| quote! { pub #name: #ty })
             .collect();
 
         out.extend(quote! {
+            #(#attr_defs)*
             #[stylus_sdk::stylus_proc::solidity_storage]
             #vis struct #name {
                 #fields
@@ -173,4 +174,27 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
     }
 
     out.into()
+}
+
+#[proc_macro_derive(Erase)]
+pub fn derive(input: TokenStream) -> TokenStream {
+    let mut input = parse_macro_input!(input as ItemStruct);
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let mut erase_fields = quote! {};
+    for field in &mut input.fields {
+        let ident = &field.ident;
+        erase_fields.extend(quote! {
+            self.#ident.erase();
+        });
+    }
+    let output = quote! {
+        impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
+            fn erase(&mut self) {
+                #erase_fields
+            }
+        }
+    };
+    output.into()
 }
