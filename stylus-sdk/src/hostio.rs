@@ -325,23 +325,51 @@ macro_rules! wrap_hostio {
     ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
     };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident bool) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, bool);
+    };
     ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
+    };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident usize) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, usize);
+    };
+    ($(#[$meta:meta])* $name:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u32);
+    };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, u32);
     };
     ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64);
     };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident u64) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, u64);
+    };
     ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
         wrap_hostio!(@arg $(#[$meta])* $name, $hostio, Address);
     };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident Address) => {
+        wrap_hostio!(@arg $(#[$meta])* $name, $cache_name, $hostio, Address);
+    };
     ($(#[$meta:meta])* $name:ident $hostio:ident B256) => {
         wrap_hostio!(@arg $(#[$meta])* $name, $hostio, B256);
+    };
+    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident B256) => {
+        wrap_hostio!(@arg $(#[$meta])* $name, $cache_name, $hostio, B256);
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
             unsafe { $ty::from(hostio::$hostio()) }
         }
+    };
+    (@simple $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe{ $cache_name.get() }
+        }
+        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
     };
     (@arg $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
@@ -351,24 +379,29 @@ macro_rules! wrap_hostio {
             data
         }
     };
+    (@arg $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe{ $cache_name.get() }
+        }
+        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+            let mut data = $ty::ZERO;
+            unsafe { hostio::$hostio(data.as_mut_ptr()) };
+            data
+        });
+    };
 }
 
 pub(crate) use wrap_hostio;
 
-/// Caches the length of the most recent EVM return data
-pub(crate) static mut RETURN_DATA_SIZE: CachedOption<usize> = CachedOption::new(return_data_size);
-
-/// Caches the current price of ink
-pub(crate) static mut CACHED_INK_PRICE: CachedOption<u32> = CachedOption::new(tx_ink_price);
-
 /// Caches a value to avoid paying for hostio invocations.
 pub(crate) struct CachedOption<T: Copy> {
     value: Option<T>,
-    loader: unsafe extern "C" fn() -> T,
+    loader: fn() -> T,
 }
 
 impl<T: Copy> CachedOption<T> {
-    const fn new(loader: unsafe extern "C" fn() -> T) -> Self {
+    pub(crate) const fn new(loader: fn() -> T) -> Self {
         let value = None;
         Self { value, loader }
     }
@@ -382,7 +415,7 @@ impl<T: Copy> CachedOption<T> {
             return *value;
         }
 
-        let value = unsafe { (self.loader)() };
+        let value = (self.loader)();
         self.value = Some(value);
         value
     }

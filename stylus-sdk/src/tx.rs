@@ -4,12 +4,12 @@
 use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::{Address, B256};
 
-/// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
-/// Stylus's compute-pricing model.
-///
-/// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
-pub fn ink_price() -> u32 {
-    unsafe { hostio::CACHED_INK_PRICE.get() }
+wrap_hostio! {
+    /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
+    /// Stylus's compute-pricing model.
+    ///
+    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    ink_price INK_PRICE tx_ink_price u32
 }
 
 /// Converts evm gas to ink. See [`Ink and Gas`] for more information on
@@ -30,7 +30,7 @@ pub fn ink_to_gas(ink: u64) -> u64 {
 
 wrap_hostio!(
     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee.
-    gas_price tx_gas_price B256
+    gas_price GAS_PRICE tx_gas_price B256
 );
 
 wrap_hostio!(
@@ -38,5 +38,5 @@ wrap_hostio!(
     /// EVM's [`ORIGIN`] opcode.
     ///
     /// [`ORIGIN`]: https://www.evm.codes/#32
-    origin tx_origin Address
+    origin ORIGIN tx_origin Address
 );

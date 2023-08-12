@@ -6,7 +6,7 @@ use alloy_primitives::{Address, B256};
 
 wrap_hostio!(
     /// Whether the current call is reentrant.
-    reentrant msg_reentrant bool
+    reentrant REENTRANT msg_reentrant bool
 );
 
 wrap_hostio!(
@@ -20,10 +20,10 @@ wrap_hostio!(
     /// [`CALLER`]: https://www.evm.codes/#33
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#f4
     /// [`Retryable Ticket Address Aliasing`]: https://developer.arbitrum.io/arbos/l1-to-l2-messaging#address-aliasing
-    sender msg_sender Address
+    sender SENDER msg_sender Address
 );
 
 wrap_hostio!(
     /// Get the ETH value in wei sent to the program.
-    value msg_value B256
+    value VALUE msg_value B256
 );
