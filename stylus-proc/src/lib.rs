@@ -251,6 +251,9 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
         });
 
         let calldata_ident = format_ident!("__{}__Calldata", name);
+        let handler_ident = format_ident!("__{}__Handler", name);
+        let returndata_ident = format_ident!("__{}__Returndata", name);
+
         let sol_type_calldata_sig = quote! {
           (#(#param_types ,)*)
         };
@@ -259,15 +262,12 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
           (#(#param_idents: <::stylus_sdk::alloy_sol_types::#param_types as ::stylus_sdk::alloy_sol_types::SolType>::RustType,)*)
         };
 
-        let handler_ident = format_ident!("__{}__Handler", name);
-        let returndata_ident = format_ident!("__{}__Returndata", name);
-
         let (sol_type_returndata_sig, rust_type_returndata_sig) = match output {
-            ReturnType::Default => (quote! { ((),) }, quote! {}),
+            ReturnType::Default => (quote! { () }, quote! {}),
             ReturnType::Type(_, box_type) => {
                 let return_type = *box_type;
                 (
-                    quote! { (#return_type,) },
+                    quote! { #return_type },
                     quote! { -> <#return_type as ::stylus_sdk::alloy_sol_types::SolType>::RustType},
                 )
             }
@@ -282,8 +282,6 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
 
             #[allow(non_snake_case)]
             fn #name #generics #rust_type_calldata_sig #rust_type_returndata_sig {
-                debug::println("about to exec user behavior");
-
                 #block
             }
 
@@ -292,22 +290,12 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
               use stylus_sdk::handler::*;
               use stylus_sdk::alloy_sol_types::{sol_data, SolType};
 
-              //let _args = <#sol_type_calldata_sig as ::stylus_sdk::alloy_sol_types::SolType>::decode(&input, true).unwrap();
-              // let _result = #name.apply(args);
               let args = <#calldata_ident as ::stylus_sdk::alloy_sol_types::SolType>::decode(&input, true).unwrap();
               let result = (#name).apply(args);
-
-              let encoded_response = <#returndata_ident as ::stylus_sdk::alloy_sol_types::SolType>::encode(&(result,));
+              let encoded_response = <#returndata_ident as ::stylus_sdk::alloy_sol_types::SolType>::encode(&result);
 
               Ok(encoded_response)
             }
-
-            // fn #name(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8> {
-            //   let args = #calldata_ident::decode(&input, true).unwrap();
-            //   let _result = (#user_handler_ident).apply(args);
-
-            //   Ok(vec![])
-            // }
         };
 
         gen.into()
