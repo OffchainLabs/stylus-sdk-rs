@@ -16,6 +16,7 @@ regex.workspace = true
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
+syn-solidity = { workspace = true, features = ["visit", "visit-mut"] }
 
 [lib]
 proc-macro = true
