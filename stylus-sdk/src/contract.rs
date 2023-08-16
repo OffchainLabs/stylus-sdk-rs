@@ -222,6 +222,16 @@ wrap_hostio!(
     address contract_address Address
 );
 
+wrap_hostio!(
+    /// Gets the memory footprint of the current program.
+    footprint contract_footprint u32
+);
+
+wrap_hostio!(
+    /// Gets the uncompressed size of the current program.
+    wasm_size contract_wasm_size u32
+);
+
 /// Gets the balance of the current program.
 pub fn balance() -> B256 {
     address().balance()

@@ -102,6 +102,20 @@ extern "C" {
     /// [`ADDRESS`]: https://www.evm.codes/#30
     pub(crate) fn contract_address(address: *mut u8);
 
+    /**
+     * Gets memory footprint of the wasm contract
+     *
+     * [`Stylus Memory`]: https://developer.arbitrum.io/TODO
+     */
+    pub(crate) fn contract_footprint() -> u32;
+
+    /**
+     * Gets uncompressed size of the wasm contract
+     *
+     * [`Stylus Memory`]: https://developer.arbitrum.io/TODO
+     */
+    pub(crate) fn contract_wasm_size() -> u32;
+
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
@@ -324,6 +338,9 @@ extern "C" {
 macro_rules! wrap_hostio {
     ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
+    };
+    ($(#[$meta:meta])* $name:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u32);
     };
     ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
