@@ -2,33 +2,30 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
+use crate::crypto;
 use alloy_primitives::U256;
-use std::marker::PhantomData;
+use std::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed array.
-pub struct StorageArray<S: StorageType, const L: usize> {
+pub struct StorageArray<S: StorageType, const N: usize> {
+    slot: U256,
+    base: OnceCell<U256>,
     marker: PhantomData<S>,
-    item_slots: Vec<U256>,
 }
 
-impl<S: StorageType, const L: usize> StorageType for StorageArray<S, L> {
-    type Wraps<'a> = StorageGuard<'a, StorageArray<S, L>> where Self: 'a;
-    type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, L>> where Self: 'a;
+impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
+    type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
+    type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, N>> where Self: 'a;
 
-    // Must have at least one required slot.
-    const REQUIRED_SLOTS: usize = 1;
+    const REQUIRED_SLOTS: usize = N * S::REQUIRED_SLOTS;
 
-    unsafe fn new(slot: U256, _offset: u8) -> Self {
-        debug_assert!(L != 0);
-        let mut curr_slot = slot;
-        let mut item_slots = vec![];
-        for _ in 0..L {
-            curr_slot = curr_slot + alloy_primitives::U256::from(S::REQUIRED_SLOTS);
-            item_slots.push(curr_slot);
-        }
+    unsafe fn new(slot: U256, offset: u8) -> Self {
+        debug_assert!(offset == 0);
+        debug_assert!(N > 0);
         Self {
+            slot,
+            base: OnceCell::new(),
             marker: PhantomData,
-            item_slots,
         }
     }
 
@@ -41,27 +38,87 @@ impl<S: StorageType, const L: usize> StorageType for StorageArray<S, L> {
     }
 }
 
-impl<S: StorageType, const L: usize> StorageArray<S, L> {
+impl<S: StorageType, const N: usize> StorageArray<S, N> {
+    /// Gets an accessor to the element at a given index, if it exists.
+    /// Note: the accessor is protected by a [`StorageGuard`], which restricts
+    /// its lifetime to that of `&self`.
+    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(StorageGuard::new(store))
+    }
+
+    /// Gets a mutable accessor to the element at a given index, if it exists.
+    /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts
+    /// its lifetime to that of `&mut self`.
+    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
+        let store = unsafe { self.accessor(index)? };
+        Some(StorageGuardMut::new(store))
+    }
+
+    /// Gets the underlying accessor to the element at a given index, if it exists.
+    ///
+    /// # Safety
+    ///
+    /// Enables aliasing.
+    unsafe fn accessor(&self, index: impl TryInto<usize>) -> Option<S> {
+        let index = index.try_into().ok()?;
+        if index >= N {
+            return None;
+        }
+        let (slot, offset) = self.index_slot(index);
+        Some(S::new(slot, offset))
+    }
+
+    /// Gets the underlying accessor to the element at a given index, even if out of bounds.
+    ///
+    /// # Safety
+    ///
+    /// Enables aliasing. UB if out of bounds.
+    unsafe fn accessor_unchecked(&self, index: usize) -> S {
+        let (slot, offset) = self.index_slot(index);
+        S::new(slot, offset)
+    }
+
     /// Gets the element at the given index, if it exists.
     pub fn get(&self, index: impl TryInto<usize>) -> Option<S::Wraps<'_>> {
-        let slot = self.item_slots.get(index.try_into().ok()?)?;
-        let s = unsafe { S::new(*slot, 0) };
-        Some(s.load())
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load())
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
     pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'_>> {
-        let slot = self.item_slots.get(index.try_into().ok()?)?;
-        let s = unsafe { S::new(*slot, 0) };
-        Some(s.load_mut())
+        let store = unsafe { self.accessor(index)? };
+        Some(store.load_mut())
+    }
+
+    /// Determines the slot and offset for the element at an index.
+    fn index_slot(&self, index: usize) -> (U256, u8) {
+        let width = S::SLOT_BYTES;
+        let words = S::REQUIRED_SLOTS.max(1);
+        let density = self.density();
+
+        let slot = self.base() + U256::from(words * index / density);
+        let offset = 32 - (width * (1 + index % density)) as u8;
+        (slot, offset)
+    }
+
+    /// Number of elements per slot.
+    const fn density(&self) -> usize {
+        32 / S::SLOT_BYTES
+    }
+
+    /// Determines where in storage indices start. Could be made const in the future.
+    fn base(&self) -> &U256 {
+        self.base
+            .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
     }
 }
 
-impl<S: Erase, const L: usize> Erase for StorageArray<S, L> {
+impl<S: Erase, const N: usize> Erase for StorageArray<S, N> {
     fn erase(&mut self) {
-        for slot in self.item_slots.iter() {
-            let mut s = unsafe { S::new(*slot, 0) };
-            s.erase();
+        for i in 0..N {
+            let mut store = unsafe { self.accessor_unchecked(i) };
+            store.erase()
         }
     }
 }
