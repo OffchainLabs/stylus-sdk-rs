@@ -18,16 +18,14 @@ impl<S: StorageType, const L: usize> StorageType for StorageArray<S, L> {
     // Must have at least one required slot.
     const REQUIRED_SLOTS: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, _offset: u8) -> Self {
+        debug_assert!(L != 0);
         let mut curr_slot = slot;
         let mut item_slots = vec![];
         for _ in 0..L {
-            // TODO: Deal with offsets properly.
-            let _ = S::new(curr_slot, 0);
             curr_slot = curr_slot + alloy_primitives::U256::from(S::REQUIRED_SLOTS);
             item_slots.push(curr_slot);
         }
-        debug_assert!(offset == 0);
         Self {
             marker: PhantomData,
             item_slots,
