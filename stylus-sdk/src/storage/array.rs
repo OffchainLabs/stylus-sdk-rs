@@ -19,7 +19,6 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
-        debug_assert!(N > 0);
         Self {
             slot,
             marker: PhantomData,
