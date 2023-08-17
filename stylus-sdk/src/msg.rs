@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U256};
 
 wrap_hostio!(
     /// Whether the current call is reentrant.
@@ -25,5 +25,5 @@ wrap_hostio!(
 
 wrap_hostio!(
     /// Get the ETH value in wei sent to the program.
-    value msg_value B256
+    value msg_value U256
 );
