@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use lazy_static::lazy_static;
-use proc_macro2::{Ident, Literal, TokenStream};
+use proc_macro2::{Ident, Literal};
 use quote::quote;
 use regex::Regex;
 use syn::{
@@ -113,9 +113,9 @@ impl Parse for SolidityTy {
             let content;
             let _ = bracketed!(content in input);
             if let Ok(bracket_contents) = content.parse::<Literal>() {
-                println!("Got a literal");
-                // TODO: Check it is an integer.
-                let size = bracket_contents;
+                let size = bracket_contents.to_string().parse::<usize>().map_err(|_| {
+                    Error::new_spanned(&bracket_contents, "Array size must be a positive integer")
+                })?;
                 let outer = sdk!("StorageArray");
                 let inner = quote! { #path };
                 path = syn::parse_str(&format!("{outer}<{inner}, {size}>"))?;

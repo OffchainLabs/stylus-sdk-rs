@@ -15,6 +15,9 @@ impl<S: StorageType, const L: usize> StorageType for StorageArray<S, L> {
     type Wraps<'a> = StorageGuard<'a, StorageArray<S, L>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, L>> where Self: 'a;
 
+    // Must have at least one required slot.
+    const REQUIRED_SLOTS: usize = 1;
+
     unsafe fn new(slot: U256, offset: u8) -> Self {
         let mut curr_slot = slot;
         let mut item_slots = vec![];
@@ -43,16 +46,14 @@ impl<S: StorageType, const L: usize> StorageType for StorageArray<S, L> {
 impl<S: StorageType, const L: usize> StorageArray<S, L> {
     /// Gets the element at the given index, if it exists.
     pub fn get(&self, index: impl TryInto<usize>) -> Option<S::Wraps<'_>> {
-        // TODO: Check that item exists at index.
-        let slot = self.item_slots.get(index.try_into().ok()?).unwrap();
+        let slot = self.item_slots.get(index.try_into().ok()?)?;
         let s = unsafe { S::new(*slot, 0) };
         Some(s.load())
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
     pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<S::WrapsMut<'_>> {
-        // TODO: Check that item exists at index.
-        let slot = self.item_slots.get(index.try_into().ok()?).unwrap();
+        let slot = self.item_slots.get(index.try_into().ok()?)?;
         let s = unsafe { S::new(*slot, 0) };
         Some(s.load_mut())
     }
@@ -60,9 +61,7 @@ impl<S: StorageType, const L: usize> StorageArray<S, L> {
 
 impl<S: Erase, const L: usize> Erase for StorageArray<S, L> {
     fn erase(&mut self) {
-        for i in 0..L {
-            // TODO: iter over item slots instead.
-            let slot = self.item_slots.get(i).unwrap();
+        for slot in self.item_slots.iter() {
             let mut s = unsafe { S::new(*slot, 0) };
             s.erase();
         }
