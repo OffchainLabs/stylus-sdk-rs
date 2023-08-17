@@ -37,6 +37,7 @@ pub struct SolidityStruct {
 
 impl Parse for SolidityStruct {
     fn parse(input: ParseStream) -> Result<Self> {
+        // #[attrs?]
         // pub? struct name
         let attrs: Vec<Attribute> = Attribute::parse_outer(input)?;
         let vis: Visibility = input.parse()?;

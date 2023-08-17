@@ -8,29 +8,6 @@ use syn::{parse_macro_input, punctuated::Punctuated, ItemStruct, Token, Type};
 
 mod storage;
 
-#[proc_macro_derive(Erase)]
-pub fn derive(input: TokenStream) -> TokenStream {
-    let mut input = parse_macro_input!(input as ItemStruct);
-    let name = &input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-
-    let mut erase_fields = quote! {};
-    for field in &mut input.fields {
-        let ident = &field.ident;
-        erase_fields.extend(quote! {
-            self.#ident.erase();
-        });
-    }
-    let output = quote! {
-        impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
-            fn erase(&mut self) {
-                #erase_fields
-            }
-        }
-    };
-    output.into()
-}
-
 #[proc_macro_attribute]
 pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ItemStruct);
@@ -181,11 +158,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             name,
             fields: SolidityFields(fields),
         } = decl;
-        let attr_defs = attrs.into_iter().map(|attr| {
-            quote! {
-                #attr
-            }
-        });
+        let attr_defs = attrs.into_iter();
         let fields: Punctuated<_, Token![,]> = fields
             .into_iter()
             .map(|SolidityField { name, ty }| quote! { pub #name: #ty })
@@ -201,4 +174,27 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
     }
 
     out.into()
+}
+
+#[proc_macro_derive(Erase)]
+pub fn derive(input: TokenStream) -> TokenStream {
+    let mut input = parse_macro_input!(input as ItemStruct);
+    let name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let mut erase_fields = quote! {};
+    for field in &mut input.fields {
+        let ident = &field.ident;
+        erase_fields.extend(quote! {
+            self.#ident.erase();
+        });
+    }
+    let output = quote! {
+        impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
+            fn erase(&mut self) {
+                #erase_fields
+            }
+        }
+    };
+    output.into()
 }
