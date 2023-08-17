@@ -2,14 +2,12 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
-use crate::crypto;
 use alloy_primitives::U256;
-use std::{cell::OnceCell, marker::PhantomData};
+use std::marker::PhantomData;
 
 /// Accessor for a storage-backed array.
 pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
-    base: OnceCell<U256>,
     marker: PhantomData<S>,
 }
 
@@ -17,14 +15,19 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
     type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, N>> where Self: 'a;
 
-    const REQUIRED_SLOTS: usize = N * S::REQUIRED_SLOTS;
+    // Because certain types, such as some primitives, can have 0 required slots
+    // (many of them can fit in a single slot), we need to do a computation
+    // to figure out how many slots in total the array will take up.
+    // For example, if we have an element that takes up 8 bytes, and we want
+    // a fixed array of 10 of these elements, we will need 80 bytes in total,
+    // which would fit into 3 slots.
+    const REQUIRED_SLOTS: usize = Self::required_slots();
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
         debug_assert!(N > 0);
         Self {
             slot,
-            base: OnceCell::new(),
             marker: PhantomData,
         }
     }
@@ -97,7 +100,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
         let words = S::REQUIRED_SLOTS.max(1);
         let density = self.density();
 
-        let slot = self.base() + U256::from(words * index / density);
+        let slot = self.slot + U256::from(words * index / density);
         let offset = 32 - (width * (1 + index % density)) as u8;
         (slot, offset)
     }
@@ -107,10 +110,16 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
         32 / S::SLOT_BYTES
     }
 
-    /// Determines where in storage indices start. Could be made const in the future.
-    fn base(&self) -> &U256 {
-        self.base
-            .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())
+    /// Required slots for the storage array. A maximum of either N * S::REQUIRED_SLOTS,
+    /// or ceil((S::SLOT_BYTES * N) / 32), as there are items that can fit multiple times
+    /// in a single slot.
+    const fn required_slots() -> usize {
+        let left = N * S::REQUIRED_SLOTS;
+        let right = ceil_div(S::SLOT_BYTES * N, 32);
+        if left > right {
+            return left;
+        }
+        right
     }
 }
 
@@ -120,5 +129,23 @@ impl<S: Erase, const N: usize> Erase for StorageArray<S, N> {
             let mut store = unsafe { self.accessor_unchecked(i) };
             store.erase()
         }
+    }
+}
+
+// Note: b must be non-zero.
+const fn ceil_div(a: usize, b: usize) -> usize {
+    (a + (b - 1)) / b
+}
+
+#[cfg(test)]
+mod test {
+    use super::ceil_div;
+
+    #[test]
+    fn test_ceil() {
+        assert_eq!(ceil_div(80, 32), 3);
+        assert_eq!(ceil_div(1, 1), 1);
+        assert_eq!(ceil_div(0, 1), 0);
+        assert_eq!(ceil_div(100, 30), 4);
     }
 }
