@@ -15,12 +15,6 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
     type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
     type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, N>> where Self: 'a;
 
-    // Because certain types, such as some primitives, can have 0 required slots
-    // (many of them can fit in a single slot), we need to do a computation
-    // to figure out how many slots in total the array will take up.
-    // For example, if we have an element that takes up 8 bytes, and we want
-    // a fixed array of 10 of these elements, we will need 80 bytes in total,
-    // which would fit into 3 slots.
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
@@ -98,7 +92,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     fn index_slot(&self, index: usize) -> (U256, u8) {
         let width = S::SLOT_BYTES;
         let words = S::REQUIRED_SLOTS.max(1);
-        let density = self.density();
+        let density = Self::density();
 
         let slot = self.slot + U256::from(words * index / density);
         let offset = 32 - (width * (1 + index % density)) as u8;
@@ -106,16 +100,17 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     }
 
     /// Number of elements per slot.
-    const fn density(&self) -> usize {
+    const fn density() -> usize {
         32 / S::SLOT_BYTES
     }
 
     /// Required slots for the storage array. A maximum of either N * S::REQUIRED_SLOTS,
-    /// or ceil((S::SLOT_BYTES * N) / 32), as there are items that can fit multiple times
+    /// or ceil(N / density), as there are items that can fit multiple times
     /// in a single slot.
     const fn required_slots() -> usize {
         let left = N * S::REQUIRED_SLOTS;
-        let right = ceil_div(S::SLOT_BYTES * N, 32);
+        let density = Self::density();
+        let right = (N + density - 1) / density; // ceil division.
         if left > right {
             return left;
         }
@@ -129,23 +124,5 @@ impl<S: Erase, const N: usize> Erase for StorageArray<S, N> {
             let mut store = unsafe { self.accessor_unchecked(i) };
             store.erase()
         }
-    }
-}
-
-// Note: b must be non-zero.
-const fn ceil_div(a: usize, b: usize) -> usize {
-    (a + (b - 1)) / b
-}
-
-#[cfg(test)]
-mod test {
-    use super::ceil_div;
-
-    #[test]
-    fn test_ceil() {
-        assert_eq!(ceil_div(80, 32), 3);
-        assert_eq!(ceil_div(1, 1), 1);
-        assert_eq!(ceil_div(0, 1), 0);
-        assert_eq!(ceil_div(100, 30), 4);
     }
 }
