@@ -96,6 +96,8 @@ impl RouterParser {
             })
             .collect();
 
+        println!("{:?}", calldata_sig_idents);
+
         let calldata_type_idents: Vec<TokenStream> = self
             .routes
             .clone()
@@ -107,27 +109,32 @@ impl RouterParser {
             })
             .collect();
 
-        // NOTE: I wanted to declare these as static
-        let calldata_sigs = quote! {
-          #(let #calldata_sig_idents = <#calldata_type_idents as ::stylus_sdk::alloy_sol_types::SolType>::sol_type_name();)*
-        };
+        println!("calldata_type_idents: {:?}", calldata_type_idents);
 
-        let calldata_sig_name = format_ident!(
-            calldata_sig_name_template!(),
-            "balance_of".to_string().to_uppercase()
-        );
+        let calldata_match_arms: Vec<TokenStream> = self
+            .routes
+            .clone()
+            .into_iter()
+            .map(|parsed_route| {
+                let calldata_sig_name = format_ident!(
+                    calldata_sig_name_template!(),
+                    parsed_route.handler.to_string().to_uppercase()
+                );
+                let generated_handler_name =
+            format_ident!(generated_handler_name_template!(), parsed_route.handler.to_string());
+                
+                quote! { #calldata_sig_name::CAMEL_SELECTOR | #calldata_sig_name::SNAKE_SELECTOR => { #generated_handler_name(data) }}
+            })
+            .collect();
+
+        println!("calldata_match_patterns: {:?}", calldata_match_arms);
 
         quote! {
           use stylus_sdk::router::extract_call_parts;
           let (selector, data) = extract_call_parts(input);
 
-          #calldata_sigs
-
-          debug::println(format!("calldata: {:?}", sig_transfer));
-          debug::println(format!("sig_BALANCE_OF::SIGNATURE: {}", #calldata_sig_name::SIGNATURE));
-
           match selector {
-            // TODO: Unfurl selectors =>
+            #(#calldata_match_arms ,)*
             _ => {
               debug::println("Default Selector");
               return Ok(vec![])

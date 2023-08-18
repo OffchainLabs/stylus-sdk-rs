@@ -17,6 +17,8 @@ syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
 syn-solidity = { workspace = true, features = ["visit", "visit-mut"] }
+keccak-const.workspace = true
+case.workspace = true
 
 [lib]
 proc-macro = true

@@ -1,12 +1,15 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For license information, see https://github.com/OffchainLabs/nitro/blob/master/LICENSE
 
+use case::CaseExt;
+use keccak_const::Keccak256;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span as Span2, TokenStream as TokenStream2, TokenTree as TokenTree2};
 use quote::{format_ident, quote, ToTokens};
 use storage::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, ItemStruct, ReturnType, Token, Type, TypeTuple,
+    parse_macro_input, punctuated::Punctuated, ItemStruct, Path, PathArguments, PathSegment,
+    ReturnType, Token, Type, TypeTuple,
 };
 
 // use handler::calldata_type_template;
@@ -187,6 +190,89 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
     out.into()
 }
 
+fn extract_type_path(ty: &syn::Type) -> Option<&Path> {
+    match *ty {
+        syn::Type::Path(ref typepath) if typepath.qself.is_none() => Some(&typepath.path),
+        _ => None,
+    }
+}
+
+fn extract_single_generic_const_abi_string(arguments: &PathArguments) -> String {
+    let mut generic_abi_string: String = "".to_string();
+
+    if let PathArguments::AngleBracketed(ref ab) = *arguments {
+        let arg = ab.args.first().unwrap();
+        if let syn::GenericArgument::Const(syn::Expr::Lit(ref expr_lit)) = *arg {
+            if let syn::Lit::Int(ref int_lit) = expr_lit.lit {
+                generic_abi_string = int_lit.base10_digits().to_string();
+            }
+        }
+    }
+
+    generic_abi_string
+}
+
+fn extract_array_generics(arguments: &PathArguments) -> String {
+    let mut generic_abi_strings = Vec::<String>::new();
+
+    if let PathArguments::AngleBracketed(ref ab) = *arguments {
+        let _ = &ab.args.iter().for_each(|gen_arg| {
+            if let syn::GenericArgument::Type(ref ty) = *gen_arg {
+                if let Some(type_path) = extract_type_path(ty) {
+                    if let Some(last_segment) = type_path.segments.iter().last() {
+                        let abi_string = sol_type_path_segment_to_abi_string(last_segment);
+                        generic_abi_strings.push(abi_string.to_string());
+                    }
+                }
+            }
+        });
+    }
+
+    generic_abi_strings.push("[]".to_string());
+    generic_abi_strings.join("")
+}
+
+fn extract_uint_generic(arguments: &PathArguments) -> String {
+    let single_const_generic = extract_single_generic_const_abi_string(arguments);
+
+    format!("uint{}", single_const_generic)
+}
+
+fn extract_int_generic(arguments: &PathArguments) -> String {
+    let single_const_generic = extract_single_generic_const_abi_string(arguments);
+
+    format!("int{}", single_const_generic)
+}
+
+fn sol_type_path_segment_to_abi_string(path_segment: &PathSegment) -> String {
+    let PathSegment { ident, arguments } = path_segment;
+
+    match ident.to_string().as_ref() {
+        "Address" => "address".to_string(),
+        "Bool" => "bool".to_string(),
+        "Bytes" => "bytes".to_string(),
+        "Int" => extract_int_generic(arguments),
+        "Uint" => extract_uint_generic(arguments),
+        "Array" => extract_array_generics(arguments),
+        "String" => "string".to_string(),
+        // ByteCount<N>
+        // FixedArray format!("{}[{}]", T::sol_type_name(), N).into() FixedArray<T, N>
+        // tuple
+        _ => {
+            println!("............unknown type: {:?}", ident);
+            println!("arguments: {:?}", arguments);
+            "unknown".to_string()
+        }
+    }
+}
+
+fn gen_selector(prefix: String, abi_params: String) -> u32 {
+    let abi_signature = format!("{}{}", prefix.as_str(), abi_params.as_str());
+    let bytes: [u8; 32] = Keccak256::new().update(abi_signature.as_bytes()).finalize();
+    let selector_bytes: [u8; 4] = bytes[..4].try_into().unwrap();
+    u32::from_be_bytes(selector_bytes)
+}
+
 #[proc_macro_attribute]
 pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
     if let syn::Item::Fn(function_item) = syn::parse(item.clone()).unwrap() {
@@ -206,6 +292,23 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
             })
             .collect();
 
+        let param_type_path_segments: Vec<&PathSegment> = param_types
+            .iter()
+            .filter_map(|ty| {
+                if let Some(type_path) = extract_type_path(ty) {
+                    if let Some(last_segment) = type_path.segments.last() {
+                        return Some(last_segment);
+                    }
+                }
+                None
+            })
+            .collect();
+
+        let sol_sigs: Vec<String> = param_type_path_segments
+            .iter()
+            .map(|path_segment| sol_type_path_segment_to_abi_string(path_segment))
+            .collect();
+
         let param_idents = params.iter().filter_map(|param| {
             if let syn::FnArg::Typed(pat_type) = param {
                 if let syn::Pat::Ident(pat_ident) = *pat_type.pat.clone() {
@@ -223,6 +326,9 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
             calldata_sig_name_template!(),
             user_handler_name.to_string().to_uppercase()
         );
+
+        let formatted_calldata_sig = format!("({})", sol_sigs.join(","));
+        let calldata_param_sig_ident = formatted_calldata_sig.as_str();
 
         let sol_type_calldata_sig = quote! {
           (#(#param_types ,)*)
@@ -244,7 +350,25 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
             }
         };
 
-        // let sol_abi_sig = signature(param_types);
+        let user_handler_snake = user_handler_name.to_string().to_snake();
+        let user_handler_camel = user_handler_name.to_string().to_camel_lowercase();
+        let snake = user_handler_snake.as_str();
+        let camel = user_handler_camel.as_str();
+
+        let user_handler_snake_selector = gen_selector(
+            user_handler_snake.to_owned(),
+            calldata_param_sig_ident.to_string(),
+        );
+        let user_handler_camel_selector = gen_selector(
+            user_handler_camel.to_owned(),
+            calldata_param_sig_ident.to_string(),
+        );
+
+        println!("{} - {}", calldata_sig_name, calldata_param_sig_ident);
+        println!(
+            "prefixes: {} {}; selectors: {:x} {:x}",
+            snake, camel, user_handler_snake_selector, user_handler_camel_selector
+        );
 
         let gen = quote! {
             #[allow(non_camel_case_types)]
@@ -272,8 +396,10 @@ pub fn handler(_attrs: TokenStream, item: TokenStream) -> TokenStream {
 
             struct #calldata_sig_name;
 
-            impl Handler for  #calldata_sig_name {
-              const SIGNATURE: &'static str = <#calldata_type_alias as ::stylus_sdk::alloy_sol_types::SolType>::sol_type_name().as_ref();
+            impl #calldata_sig_name {
+              const PARAM_SIGNATURE: &'static str = #calldata_param_sig_ident;
+              const CAMEL_SELECTOR: u32 = #user_handler_camel_selector;
+              const SNAKE_SELECTOR: u32 = #user_handler_snake_selector;
             }
         };
 
