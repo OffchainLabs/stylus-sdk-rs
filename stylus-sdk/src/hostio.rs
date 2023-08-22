@@ -362,7 +362,7 @@ macro_rules! wrap_hostio {
         wrap_hostio!(@convert $(#[$meta])* $name, $hostio, B256, U256);
     };
     ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident U256) => {
-        wrap_hostio!(@arg $(#[$meta])* $name, $cache_name, $hostio, U256);
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache_name, $hostio, B256, U256);
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
@@ -403,6 +403,17 @@ macro_rules! wrap_hostio {
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data.into()
         }
+    };
+    (@convert $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $from:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe{ $cache_name.get() }
+        }
+        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+            let mut data = $from::ZERO;
+            unsafe { hostio::$hostio(data.as_mut_ptr()) };
+            data.into()
+        });
     };
 }
 

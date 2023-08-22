@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, U256};
+use alloy_primitives::{Address, B256, U256};
 
 wrap_hostio!(
     /// Whether the current call is reentrant.
