@@ -139,11 +139,11 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                 pub fn #name(&self, context: #context #(, #rust_args)*) ->
                     Result<<#return_type as #sol_type>::RustType, stylus_sdk::call::Error>
                 {
-                    let args = <(#(#sol_args,)*) as #sol_type>::encode_single(&(#(#rust_arg_names,)*));
+                    let args = <(#(#sol_args),*,) as #sol_type>::encode(&(#(#rust_arg_names,)*));
                     let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                     calldata.extend(args);
                     let returned = #call(context, self.address, &calldata)?;
-                    Ok(<#return_type as #sol_type>::decode_single(&returned, true)?)
+                    Ok(<(#return_type,) as #sol_type>::decode(&returned, true)?.0)
                 }
             });
         }
@@ -206,7 +206,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
             impl stylus_sdk::abi::AbiType for #name {
                 type SolType = #sol_name;
 
-                const ABI: stylus_sdk::abi::AbiType = <#alloy_address as stylus_sdk::abi::AbiType>::ABI;
+                const ABI: stylus_sdk::abi::ConstString = <#alloy_address as stylus_sdk::abi::AbiType>::ABI;
             }
         });
     }

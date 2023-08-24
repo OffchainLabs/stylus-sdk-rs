@@ -12,8 +12,9 @@ use alloy_primitives::U256;
 use alloy_sol_types::SolType;
 
 #[inline(always)]
-pub fn encode_abi_type<T: AbiType>(x: T) -> Vec<u8> {
-    T::SolType::encode_single(&x)
+pub fn encode_return_type<T: AbiType>(x: T) -> Vec<u8> {
+    // coerce types into a tuple of at least 1 element
+    <(T,) as AbiType>::SolType::encode(&(x,))
 }
 
 #[inline(always)]

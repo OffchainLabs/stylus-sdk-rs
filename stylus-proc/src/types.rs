@@ -113,6 +113,8 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
                     path += &inner_path;
                     abi += &inner_abi;
                 }
+                path += ")";
+                abi += ")";
                 (path.into(), abi.into())
             }
         }

@@ -131,7 +131,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 };
                 let result = Self::#name(#storage #(#expand_args, )* );
                 match result {
-                    Ok(result) => Some(Ok(internal::encode_abi_type(result))),
+                    Ok(result) => Some(Ok(internal::encode_return_type(result))),
                     Err(err) => Some(Err(err.into())),
                 }
             }
