@@ -19,7 +19,7 @@ pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     let mut bytes: Vec<u8> = vec![];
     bytes.extend(topics.iter().flat_map(|x| x.0.iter()));
     bytes.extend(data);
-    emit_log(data, topics.len());
+    emit_log(&bytes, topics.len());
     Ok(())
 }
 
