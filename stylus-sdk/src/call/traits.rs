@@ -15,7 +15,7 @@ pub trait CallContext {
 /// Users should rarely implement this trait outside of proc macros.
 pub trait StaticCallContext: CallContext {}
 
-/// Triat for calling the mutable methods of other contracts.
+/// Trait for calling the mutable methods of other contracts.
 /// Users should rarely implement this trait outside of proc macros.
 ///
 /// # Safety

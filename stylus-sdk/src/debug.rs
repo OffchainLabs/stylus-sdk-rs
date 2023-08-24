@@ -22,7 +22,5 @@ macro_rules! console {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules! console {
-    ($($msg:tt)*) => {
-        $crate::debug::console_log(format!($($msg)*));
-    };
+    ($($msg:tt)*) => {};
 }
