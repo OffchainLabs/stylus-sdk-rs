@@ -5,8 +5,10 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::{fmt, marker::PhantomData};
 
+/// Trait for storage types so that users can print a Solidity interface to the console.
+/// This is auto-derived via the [`external`] marco when the `export-abi` feature is enabled.
 pub trait GenerateAbi {
-    /// The interface's name
+    /// The interface's name.
     const NAME: &'static str;
 
     /// How to format the ABI. Analogous to [`Display`].

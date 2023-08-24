@@ -7,6 +7,8 @@ use crate::{
 };
 use alloy_primitives::{Address, B256};
 
+/// Copies the bytes of the last EVM call or deployment return result.
+/// Note: this function does not revert if out of bounds, but rather will copy the overlapping portion.
 pub fn read_return_data(offset: usize, size: Option<usize>) -> Vec<u8> {
     let size = unsafe { size.unwrap_or_else(|| RETURN_DATA_SIZE.get().saturating_sub(offset)) };
 

@@ -9,7 +9,7 @@ use crate::{
 use alloy_sol_types::{token::PackedSeqToken, Encodable, SolType};
 use std::ops::{Deref, DerefMut};
 
-/// Represents a [`bytes`] in Solidity
+/// Represents a [`bytes`] in Solidity.
 ///
 /// [`bytes`]: https://docs.soliditylang.org/en/v0.8.21/types.html#bytes-and-string-as-arrays
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

@@ -7,7 +7,7 @@ use super::{cache::Erase, SimpleStorageType, StorageGuard, StorageGuardMut, Stor
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use std::marker::PhantomData;
 
-/// Accessor for a storage-backed map
+/// Accessor for a storage-backed map.
 pub struct StorageMap<K: StorageKey, V: StorageType> {
     slot: U256,
     marker: PhantomData<(K, V)>,

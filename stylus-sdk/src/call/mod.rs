@@ -16,7 +16,7 @@ mod traits;
 ///
 /// # Safety
 ///
-/// If a contract calls another that then calls itself, it is said to be reentrant.
+/// If a contract calls another that then calls the first, it is said to be reentrant.
 /// By default, all Stylus programs revert when this happened.
 /// This method overrides this behavior, allowing reentrant calls to proceed.
 ///
@@ -31,12 +31,12 @@ pub unsafe fn opt_into_reentrancy() {
     ENABLE_REENTRANCY.store(true, Ordering::Relaxed)
 }
 
-/// Whether the program has opted into reentrancy
+/// Whether the program has opted into reentrancy.
 pub fn reentrancy_enabled() -> bool {
     ENABLE_REENTRANCY.load(Ordering::Relaxed)
 }
 
-/// Whether the program has opted in to reentrancy
+/// Whether the program has opted in to reentrancy.
 static ENABLE_REENTRANCY: AtomicBool = AtomicBool::new(false);
 
 /// Static calls the contract at the given address.

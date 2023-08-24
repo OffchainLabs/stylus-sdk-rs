@@ -9,7 +9,7 @@ use alloy_sol_types::{
 };
 use std::ops::{Deref, DerefMut};
 
-/// Represents a [`fixed-size byte array`] in Solidity
+/// Represents a [`fixed-size byte array`] in Solidity.
 ///
 /// [`fixed-size byte array`]: https://docs.soliditylang.org/en/v0.8.21/types.html#fixed-size-byte-arrays
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
