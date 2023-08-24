@@ -78,3 +78,27 @@ unsafe impl<S: TopLevelStorage, const HAS_VALUE: bool> MutatingCallContext
 }
 
 impl<S: TopLevelStorage> NonPayableCallContext for Context<&mut S, false> {}
+
+// allow &self to be a `pure` and `static` call context
+impl<'a, T> CallContext for &'a T where T: TopLevelStorage {
+    fn gas(&self) -> u64 {
+        u64::MAX
+    }
+}
+
+impl<'a, T> StaticCallContext for &'a T where T: TopLevelStorage {}
+
+// allow &mut self to be a non-static call context
+impl<T> CallContext for &mut T where T: TopLevelStorage {
+    fn gas(&self) -> u64 {
+        u64::MAX
+    }
+}
+
+unsafe impl<T> MutatingCallContext for &mut T where T: TopLevelStorage {
+    fn value(&self) -> U256 {
+        U256::ZERO
+    }
+}
+
+impl<T> NonPayableCallContext for &mut T where T: TopLevelStorage {}
