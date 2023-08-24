@@ -4,8 +4,14 @@
 use crate::hostio;
 use alloy_primitives::{Address, B256};
 
+/// Trait that allows the [`Address`] type to inspect the corresponding account's balance and codehash.
 pub trait AddressVM {
+    /// The balance in wei of the account.
     fn balance(&self) -> B256;
+
+    /// The codehash of the contract at the given address, or `None` when an [`EOA`].
+    ///
+    /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
     fn codehash(&self) -> Option<B256>;
 }
 

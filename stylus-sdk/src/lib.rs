@@ -2,22 +2,34 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 pub use alloy_primitives;
+pub use alloy_sol_types;
+pub use hex;
+pub use keccak_const;
 pub use stylus_proc;
 
-use alloy_primitives::{B256, U256};
+#[macro_use]
+pub mod abi;
+
+#[macro_use]
+pub mod debug;
 
 pub mod block;
+pub mod call;
 pub mod contract;
 pub mod crypto;
-pub mod debug;
+pub mod deploy;
 pub mod evm;
 pub mod msg;
 pub mod prelude;
 pub mod storage;
 pub mod tx;
 pub mod types;
+pub mod util;
 
 mod hostio;
+
+/// Represents a contract invocation outcome
+pub type ArbResult = Result<Vec<u8>, Vec<u8>>;
 
 pub fn memory_grow(pages: u16) {
     unsafe { hostio::memory_grow(pages) }
@@ -57,6 +69,10 @@ macro_rules! entrypoint {
             if !$allow_reentrant && stylus_sdk::msg::reentrant() {
                 return 1; // revert on reentrancy
             }
+            if $allow_reentrant {
+                unsafe { stylus_sdk::call::opt_into_reentrancy() };
+            }
+
             let input = stylus_sdk::args(len);
             let (data, status) = match $name(input) {
                 Ok(data) => (data, 0),
@@ -67,14 +83,4 @@ macro_rules! entrypoint {
             status
         }
     };
-}
-
-pub fn load_bytes32(key: U256) -> B256 {
-    let mut data = B256::ZERO;
-    unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-    data
-}
-
-pub fn store_bytes32(key: U256, data: B256) {
-    unsafe { hostio::storage_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
 }

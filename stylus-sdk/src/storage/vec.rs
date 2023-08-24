@@ -115,7 +115,7 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
     ///
