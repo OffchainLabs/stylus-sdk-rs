@@ -3,6 +3,9 @@
 
 use alloy_primitives::B256;
 
+/// Efficiently computes the [`keccak256`] hash of the given preimage.
+///
+/// [`keccak256`]: https://en.wikipedia.org/wiki/SHA-3
 pub fn keccak<T: AsRef<[u8]>>(bytes: T) -> B256 {
     alloy_primitives::keccak256(bytes)
 }

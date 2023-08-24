@@ -1,7 +1,7 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::{load_bytes32, store_bytes32};
+use super::{load_bytes32, store_bytes32};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use derivative::Derivative;
 use fnv::FnvHashMap as HashMap;
@@ -132,7 +132,7 @@ impl StorageCache {
     pub fn get_word(key: U256) -> B256 {
         cache!()
             .entry(key)
-            .or_insert_with(|| StorageWord::new_known(load_bytes32(key)))
+            .or_insert_with(|| unsafe { StorageWord::new_known(load_bytes32(key)) })
             .value
     }
 
@@ -255,7 +255,7 @@ impl StorageCache {
     pub fn flush() {
         for (key, entry) in &mut cache!() {
             if entry.dirty() {
-                store_bytes32(*key, entry.value);
+                unsafe { store_bytes32(*key, entry.value) };
             }
         }
     }
@@ -340,6 +340,19 @@ where
     /// Write the value to persistent storage.
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>);
 }
+
+/// Trait for top-level storage types, usually implemented by proc macros.
+/// Top-level types are special in that their lifetimes track the entirety
+/// of all the EVM state-changes throughout a contract invocation.
+///
+/// To prevent storage aliasing during reentrancy, you must hold a reference
+/// to such a type when making an EVM call. This may change in the future
+/// for programs that prevent reentrancy.
+///
+/// # Safety
+///
+/// The type must be top-level to prevent storage aliasing.
+pub unsafe trait TopLevelStorage {}
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
