@@ -3,7 +3,7 @@
 
 use crate::storage::{StorageCache, TopLevelStorage};
 use alloy_primitives::{Address, U256};
-use std::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, Ordering};
 
 pub use self::{context::Context, error::Error, raw::RawCall, traits::*};
 

@@ -4,7 +4,7 @@
 use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
-use std::{cell::OnceCell, marker::PhantomData, ops::Deref};
+use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use bytes::{StorageBytes, StorageString};
 pub use cache::{

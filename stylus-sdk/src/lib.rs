@@ -1,6 +1,8 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+extern crate alloc;
+
 pub use alloy_primitives;
 pub use alloy_sol_types;
 pub use hex;

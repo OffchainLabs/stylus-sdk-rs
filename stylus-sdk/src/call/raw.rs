@@ -39,7 +39,7 @@ struct RustVec {
 impl Default for RustVec {
     fn default() -> Self {
         Self {
-            ptr: std::ptr::null_mut(),
+            ptr: core::ptr::null_mut(),
             len: 0,
             cap: 0,
         }

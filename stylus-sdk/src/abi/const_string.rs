@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use std::{
+use core::{
     fmt::{Debug, Display},
     ops::Deref,
 };
@@ -90,7 +90,7 @@ impl ConstString {
     pub const fn as_str(&self) -> &str {
         // # Safety
         // A `ConstString` represents a valid, utf8-encoded string
-        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+        unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
 }
 
@@ -103,13 +103,13 @@ impl Deref for ConstString {
 }
 
 impl Display for ConstString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
 impl Debug for ConstString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", self.as_str())
     }
 }

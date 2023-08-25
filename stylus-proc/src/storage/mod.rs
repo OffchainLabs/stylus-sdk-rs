@@ -45,12 +45,12 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 None => Index::from(field_index).into_token_stream(),
             };
             borrows.extend(quote! {
-                impl std::borrow::Borrow<#ty> for #name {
+                impl core::borrow::Borrow<#ty> for #name {
                     fn borrow(&self) -> &#ty {
                         &self.#accessor
                     }
                 }
-                impl std::borrow::BorrowMut<#ty> for #name {
+                impl core::borrow::BorrowMut<#ty> for #name {
                     fn borrow_mut(&mut self) -> &mut #ty {
                         &mut self.#accessor
                     }

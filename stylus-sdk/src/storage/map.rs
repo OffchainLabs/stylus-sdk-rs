@@ -5,7 +5,7 @@ use crate::crypto;
 
 use super::{cache::Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Accessor for a storage-backed map.
 pub struct StorageMap<K: StorageKey, V: StorageType> {

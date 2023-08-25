@@ -2,12 +2,13 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{AbiType, ConstString};
+use alloc::borrow::Cow;
 use alloy_sol_types::{
     sol_data::{ByteCount, SupportedFixedBytes},
     token::WordToken,
     Encodable, SolType, Word,
 };
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
 
 /// Represents a [`fixed-size byte array`] in Solidity.
 ///
@@ -74,7 +75,7 @@ where
 
     type TokenType<'a> = WordToken;
 
-    fn sol_type_name() -> std::borrow::Cow<'static, str> {
+    fn sol_type_name() -> Cow<'static, str> {
         Self::SOL_TYPE_NAME.as_str().into()
     }
 

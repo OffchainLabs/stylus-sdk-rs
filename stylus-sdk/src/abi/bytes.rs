@@ -6,8 +6,9 @@ use crate::{
     crypto,
     util::evm_padded_length,
 };
+use alloc::borrow::Cow;
 use alloy_sol_types::{token::PackedSeqToken, Encodable, SolType};
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
 
 /// Represents a [`bytes`] in Solidity.
 ///
@@ -68,7 +69,7 @@ impl SolType for BytesSolType {
     }
 
     #[inline]
-    fn sol_type_name() -> std::borrow::Cow<'static, str> {
+    fn sol_type_name() -> Cow<'static, str> {
         "bytes".into()
     }
 
