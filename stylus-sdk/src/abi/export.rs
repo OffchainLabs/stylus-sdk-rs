@@ -1,9 +1,9 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+use core::{fmt, marker::PhantomData};
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{fmt, marker::PhantomData};
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
 /// This is auto-derived via the [`external`] marco when the `export-abi` feature is enabled.
@@ -12,7 +12,7 @@ pub trait GenerateAbi {
     const NAME: &'static str;
 
     /// How to format the ABI. Analogous to [`Display`].
-    fn fmt_abi(f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+    fn fmt_abi(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
 pub struct AbiPrinter<T: GenerateAbi>(PhantomData<T>);

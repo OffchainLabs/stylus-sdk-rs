@@ -3,7 +3,7 @@
 
 use crate::{storage::TopLevelStorage, ArbResult};
 use alloy_sol_types::SolType;
-use std::borrow::BorrowMut;
+use core::borrow::BorrowMut;
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;

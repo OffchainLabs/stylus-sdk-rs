@@ -20,13 +20,17 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
-            continue
+            continue;
         };
 
         // see if user chose a purity (TODO: use drain_filter when stable)
         let mut purity = None;
         for attr in mem::take(&mut method.attrs) {
-            let Some(Ok(elem)) = attr.path.get_ident().map(|x| Purity::from_str(&x.to_string())) else {
+            let Some(Ok(elem)) = attr
+                .path
+                .get_ident()
+                .map(|x| Purity::from_str(&x.to_string()))
+            else {
                 method.attrs.push(attr);
                 continue;
             };
@@ -100,7 +104,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let storage = if needed_purity == Pure {
             quote!()
         } else if has_self {
-            quote! { std::borrow::BorrowMut::borrow_mut(storage), }
+            quote! { core::borrow::BorrowMut::borrow_mut(storage), }
         } else {
             quote! { storage, }
         };
@@ -196,7 +200,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     // ensure we can actually borrow the things we inherit
     let borrow_clauses = inherits.iter().map(|ty| {
         quote! {
-            S: std::borrow::BorrowMut<#ty>
+            S: core::borrow::BorrowMut<#ty>
         }
     });
 
@@ -215,7 +219,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         impl<S, #generic_params> stylus_sdk::abi::Router<S> for #self_ty
         where
-            S: stylus_sdk::storage::TopLevelStorage + std::borrow::BorrowMut<Self>,
+            S: stylus_sdk::storage::TopLevelStorage + core::borrow::BorrowMut<Self>,
             #(#borrow_clauses,)*
             #where_clauses
         {
@@ -226,6 +230,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};
                 use stylus_sdk::abi::{internal, AbiType, Router};
+                use alloc::vec;
 
                 #[cfg(feature = "export-abi")]
                 use stylus_sdk::abi::export;
@@ -275,7 +280,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         impl<#generic_params> stylus_sdk::abi::GenerateAbi for #self_ty where #where_clauses {
             const NAME: &'static str = #name;
 
-            fn fmt_abi(f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 use stylus_sdk::abi::{AbiType, GenerateAbi};
                 use stylus_sdk::abi::internal::{type_for_solidity, write_solidity_returns};
                 use stylus_sdk::abi::export::{underscore_if_sol};

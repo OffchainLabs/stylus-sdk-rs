@@ -10,6 +10,7 @@ use crate::{
 };
 use alloy_primitives::U256;
 use alloy_sol_types::SolType;
+use core::fmt;
 
 #[inline(always)]
 pub fn encode_return_type<T: AbiType>(x: T) -> Vec<u8> {
@@ -66,7 +67,7 @@ pub const fn type_for_solidity<T: AbiType>(is_return: bool) -> ConstString {
     }
 }
 
-pub fn write_solidity_returns<T: AbiResult>(f: &mut std::fmt::Formatter) -> std::fmt::Result
+pub fn write_solidity_returns<T: AbiResult>(f: &mut fmt::Formatter) -> fmt::Result
 where
     T::OkType: AbiType,
 {

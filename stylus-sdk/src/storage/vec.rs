@@ -4,7 +4,7 @@
 use super::{Erase, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::U256;
-use std::{cell::OnceCell, marker::PhantomData};
+use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {

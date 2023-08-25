@@ -1,5 +1,6 @@
 [workspace]
 members = ["stylus-sdk", "stylus-proc"]
+resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
@@ -10,9 +11,9 @@ homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 
 [workspace.dependencies]
-alloy-primitives = "0.3.1"
-alloy-sol-types = "0.3.1"
-derivative = "2.2.0"
+alloy-primitives = { version = "0.3.1", default-features = false }
+alloy-sol-types = { version = "0.3.1", default-features = false }
+derivative = { version = "2.2.0", use_core = true }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"
 lazy_static = "1.4.0"

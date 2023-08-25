@@ -4,7 +4,7 @@
 use super::{Erase, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::{U256, U8};
-use std::cell::OnceCell;
+use core::cell::OnceCell;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {

@@ -3,15 +3,15 @@
 
 use super::{load_bytes32, store_bytes32};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
-use derivative::Derivative;
-use fnv::FnvHashMap as HashMap;
-use lazy_static::lazy_static;
-use std::{
+use core::{
+    cell::UnsafeCell,
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr,
-    sync::Mutex,
 };
+use derivative::Derivative;
+use fnv::FnvHashMap as HashMap;
+use lazy_static::lazy_static;
 
 /// Global cache managing persistent storage operations.
 pub struct StorageCache(HashMap<U256, StorageWord>);
@@ -44,14 +44,20 @@ impl StorageWord {
     }
 }
 
+/// Forces a type to implement [`Sync`].
+struct ForceSync<T>(T);
+
+unsafe impl<T> Sync for ForceSync<T> {}
+
 lazy_static! {
     /// Global cache managing persistent storage operations.
-    static ref CACHE: Mutex<StorageCache> = Mutex::new(StorageCache(HashMap::default()));
+    static ref CACHE: ForceSync<UnsafeCell<StorageCache>> = ForceSync(UnsafeCell::new(StorageCache(HashMap::default())));
 }
 
+/// Mutably accesses the global cache's hashmap
 macro_rules! cache {
     () => {
-        CACHE.lock().unwrap().0
+        unsafe { &mut (*CACHE.0.get()).0 }
     };
 }
 
@@ -153,8 +159,7 @@ impl StorageCache {
             return Self::set_word(key, FixedBytes::from_slice(value.as_slice()));
         }
 
-        let cache = &mut cache!();
-        let word = cache
+        let word = cache!()
             .entry(key)
             .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
 
@@ -253,7 +258,7 @@ impl StorageCache {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     pub fn flush() {
-        for (key, entry) in &mut cache!() {
+        for (key, entry) in cache!() {
             if entry.dirty() {
                 unsafe { store_bytes32(*key, entry.value) };
             }
