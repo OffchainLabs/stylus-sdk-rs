@@ -11,7 +11,7 @@ homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 
 [workspace.dependencies]
-alloy-primitives = { version = "0.3.1", default-features = false }
+alloy-primitives = { version = "0.3.1", default-features = false , features = ["native-keccak"] }
 alloy-sol-types = { version = "0.3.1", default-features = false }
 derivative = { version = "2.2.0", use_core = true }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
