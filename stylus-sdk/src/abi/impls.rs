@@ -24,7 +24,13 @@ macro_rules! test_type {
     };
 }
 
-macro_rules! concat {
+macro_rules! append {
+    ($stem:expr, $leaf:expr) => {
+        $stem.concat(ConstString::new($leaf))
+    };
+}
+
+macro_rules! append_dec {
     ($stem:expr, $num:expr) => {
         ConstString::new($stem).concat(ConstString::from_decimal_number($num))
     };
@@ -38,7 +44,7 @@ where
 {
     type SolType = sol_data::Uint<BITS>;
 
-    const ABI: ConstString = concat!("uint", BITS);
+    const ABI: ConstString = append_dec!("uint", BITS);
 }
 
 test_type!(uint160, Uint<256, 4>);
@@ -50,7 +56,7 @@ where
 {
     type SolType = sol_data::Int<BITS>;
 
-    const ABI: ConstString = concat!("int", BITS);
+    const ABI: ConstString = append_dec!("int", BITS);
 }
 
 test_type!(int160, Signed<256, 4>);
@@ -64,7 +70,7 @@ macro_rules! impl_int {
         {
             type SolType = sol_data::Uint<$bits>;
 
-            const ABI: ConstString = concat!("uint", $bits);
+            const ABI: ConstString = append_dec!("uint", $bits);
         }
 
         impl AbiType for $signed
@@ -73,7 +79,7 @@ macro_rules! impl_int {
         {
             type SolType = sol_data::Int<$bits>;
 
-            const ABI: ConstString = concat!("int", $bits);
+            const ABI: ConstString = append_dec!("int", $bits);
         }
 
         test_type!($unsigned, $unsigned);
@@ -100,12 +106,25 @@ macro_rules! impl_alloy {
 
 impl_alloy!(bool, Bool, "bool");
 impl_alloy!(Address, Address, "address");
-impl_alloy!(String, String, "string");
+
+impl AbiType for String {
+    type SolType = sol_data::String;
+
+    const ABI: ConstString = ConstString::new("string");
+
+    const EXPORT_ABI_ARG: ConstString = append!(Self::ABI, " calldata");
+
+    const EXPORT_ABI_RET: ConstString = append!(Self::ABI, " memory");
+}
 
 impl<T: AbiType> AbiType for Vec<T> {
     type SolType = sol_data::Array<T::SolType>;
 
-    const ABI: ConstString = T::ABI.concat(ConstString::new("[]"));
+    const ABI: ConstString = append!(T::ABI, "[]");
+
+    const EXPORT_ABI_ARG: ConstString = append!(T::EXPORT_ABI_ARG, "[] calldata");
+
+    const EXPORT_ABI_RET: ConstString = append!(T::EXPORT_ABI_RET, "[] memory");
 }
 
 test_type!(vec_of_u8s, Vec<u8>);
@@ -145,6 +164,22 @@ macro_rules! impl_tuple {
                 $(
                     .concat(ConstString::new(","))
                     .concat($rest::ABI)
+                )*
+                .concat(ConstString::new(")"));
+
+            const EXPORT_ABI_ARG: ConstString = ConstString::new("(")
+                .concat($first::EXPORT_ABI_ARG)
+                $(
+                    .concat(ConstString::new(", "))
+                    .concat($rest::EXPORT_ABI_ARG)
+                )*
+                .concat(ConstString::new(")"));
+
+            const EXPORT_ABI_RET: ConstString = ConstString::new("(")
+                .concat($first::EXPORT_ABI_RET)
+                $(
+                    .concat(ConstString::new(", "))
+                    .concat($rest::EXPORT_ABI_RET)
                 )*
                 .concat(ConstString::new(")"));
         }

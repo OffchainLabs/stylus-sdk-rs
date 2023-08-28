@@ -47,6 +47,12 @@ pub trait AbiType {
 
     /// Equivalent to [`SolType::sol_type_name`], but `const`.
     const ABI: ConstString;
+
+    /// String to use when the type is an interface method argument.
+    const EXPORT_ABI_ARG: ConstString = Self::ABI;
+
+    /// String to use when the type is an interface method return value.
+    const EXPORT_ABI_RET: ConstString = Self::ABI;
 }
 
 /// Generates a function selector for the given method and its args.
