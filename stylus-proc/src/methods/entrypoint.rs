@@ -6,63 +6,60 @@ use proc_macro2::Ident;
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, ItemFn, ItemStruct, LitBool, Result, Token,
+    parse_macro_input, Item, LitBool, Result, Token,
 };
 
-pub fn derive_entrypoint(input: TokenStream) -> TokenStream {
-    let input: ItemStruct = parse_macro_input!(input);
-    let ident = &input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-
-    let mut output = quote! {
-        unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #ident #ty_generics #where_clause {}
-
-        #[entrypoint]
-        fn entrypoint(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
-            use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};
-            use core::convert::TryInto;
-            use alloc::vec;
-
-            if input.len() < 4 {
-                console!("calldata too short: {}", hex::encode(input));
-                return Err(vec![]);
-            }
-            let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-            let mut storage = unsafe { <#ident as StorageType>::new(U256::ZERO, 0) };
-            match <#ident as Router<_>>::route(&mut storage, selector, &input[4..]) {
-                Some(res) => res,
-                None => {
-                    console!("unknown method selector: {selector:08x}");
-                    Err(vec![])
-                },
-            }
-        }
-    };
-
-    if cfg!(feature = "export-abi") {
-        output.extend(quote! {
-            fn main() {
-                stylus_sdk::abi::export::print_abi::<#ident>();
-            }
-        });
-    }
-    output.into()
-}
-
 pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
-    if let Ok(ItemStruct { .. }) = syn::parse_macro_input::parse(input.clone()) {
-        return derive_entrypoint(input);
-    }
-
-    let input: ItemFn = parse_macro_input!(input);
     let args: EntrypointArgs = parse_macro_input!(attr);
-
-    let name = &input.sig.ident;
+    let input: Item = parse_macro_input!(input);
     let allow_reentrancy = args.allow_reentrancy;
 
-    quote! {
-        #input
+    let mut output = quote! { #input };
 
+    let user = match input {
+        Item::Struct(input) => {
+            let name = &input.ident;
+            let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+            output.extend(quote!{
+                unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #name #ty_generics #where_clause {}
+
+                fn entrypoint(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
+                    use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};
+                    use core::convert::TryInto;
+                    use alloc::vec;
+
+                    if input.len() < 4 {
+                        console!("calldata too short: {}", hex::encode(input));
+                        return Err(vec![]);
+                    }
+                    let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
+                    let mut storage = unsafe { <#name as StorageType>::new(U256::ZERO, 0) };
+                    match <#name as Router<_>>::route(&mut storage, selector, &input[4..]) {
+                        Some(res) => res,
+                        None => {
+                            console!("unknown method selector: {selector:08x}");
+                            Err(vec![])
+                        },
+                    }
+                }
+            });
+
+            if cfg!(feature = "export-abi") {
+                output.extend(quote! {
+                    fn main() {
+                        stylus_sdk::abi::export::print_abi::<#name>();
+                    }
+                });
+            }
+
+            Ident::new("entrypoint", name.span())
+        }
+        Item::Fn(input) => input.sig.ident.clone(),
+        _ => error!(input, "not a struct or fn"),
+    };
+
+    output.extend(quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
             stylus_sdk::evm::memory_grow(0);
@@ -79,7 +76,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             let input = stylus_sdk::contract::args(len);
-            let (data, status) = match #name(input) {
+            let (data, status) = match #user(input) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
@@ -87,8 +84,9 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
             stylus_sdk::contract::output(&data);
             status
         }
-    }
-    .into()
+    });
+
+    output.into()
 }
 
 struct EntrypointArgs {
