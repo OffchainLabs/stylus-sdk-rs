@@ -39,6 +39,12 @@ pub fn log<T: SolEvent>(event: T) {
     emit_log(&bytes, count);
 }
 
+/// This function exists to force the compiler to import this symbol.
+/// Calling it will unproductively consume gas.
+pub fn memory_grow(pages: u16) {
+    unsafe { hostio::memory_grow(pages) }
+}
+
 wrap_hostio!(
     /// Gets the amount of gas remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///

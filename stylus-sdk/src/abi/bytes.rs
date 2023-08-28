@@ -106,4 +106,8 @@ impl AbiType for Bytes {
     type SolType = BytesSolType;
 
     const ABI: ConstString = ConstString::new("bytes");
+
+    const EXPORT_ABI_ARG: ConstString = Self::ABI.concat(ConstString::new(" calldata"));
+
+    const EXPORT_ABI_RET: ConstString = Self::ABI.concat(ConstString::new(" memory"));
 }

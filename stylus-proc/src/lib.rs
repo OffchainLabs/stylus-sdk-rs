@@ -10,6 +10,9 @@ macro_rules! error {
         let error = syn::Error::new(syn::spanned::Spanned::span(&$tokens), format!($($msg),+));
         return error.to_compile_error().into();
     }};
+    (@ $tokens:expr, $($msg:expr),+ $(,)?) => {{
+        return Err(syn::Error::new(syn::spanned::Spanned::span(&$tokens), format!($($msg),+)))
+    }};
 }
 
 mod calls;
@@ -37,9 +40,14 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
     storage::derive_erase(input)
 }
 
-#[proc_macro_derive(Entrypoint)]
-pub fn derive_entrypoint(input: TokenStream) -> TokenStream {
-    methods::entrypoint::derive_entrypoint(input)
+/// For structs, this macro generates a richly-typed entrypoint that parses incoming calldata.
+/// For functions, this macro generates a simple, untyped entrypoint that's bytes-in, bytes-out.
+///
+/// Reentrancy is disabled by default, which will cause the program to revert in cases of nested calls.
+/// This behavior can be overridden by passing `#[entrypoint(allow_reentrancy = true)]`
+#[proc_macro_attribute]
+pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
+    methods::entrypoint::entrypoint(attr, input)
 }
 
 #[proc_macro_attribute]
