@@ -17,6 +17,7 @@ pub fn derive_entrypoint(input: TokenStream) -> TokenStream {
     let mut output = quote! {
         unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #ident #ty_generics #where_clause {}
 
+        #[entrypoint]
         fn entrypoint(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
             use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};
             use core::convert::TryInto;
@@ -36,8 +37,6 @@ pub fn derive_entrypoint(input: TokenStream) -> TokenStream {
                 },
             }
         }
-
-        stylus_sdk::entrypoint!(entrypoint);
     };
 
     if cfg!(feature = "export-abi") {
