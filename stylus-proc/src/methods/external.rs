@@ -150,7 +150,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             let comma = (i > 0).then_some(", ").unwrap_or_default();
             let name = ident.as_ref().map(ToString::to_string).unwrap_or_default();
             quote! {
-                write!(f, "{}{}{}", #comma, <#ty as AbiType>::EXPORT_ABI_RET, underscore_if_sol(#name))?;
+                write!(f, "{}{}{}", #comma, <#ty as AbiType>::EXPORT_ABI_ARG, underscore_if_sol(#name))?;
             }
         });
         let sol_outs = match &method.sig.output {
