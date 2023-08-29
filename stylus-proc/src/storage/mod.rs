@@ -19,10 +19,6 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut size = quote! {};
     let mut borrows = quote! {};
 
-    if input.fields.is_empty() {
-        error!(name, "Empty structs are not allowed in Solidity");
-    }
-
     for (field_index, field) in input.fields.iter_mut().enumerate() {
         // deny complex types
         let Type::Path(ty) = &field.ty else {
@@ -130,7 +126,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 let mut total: usize = 0;
                 let mut space: usize = 32;
                 #size
-                if space != 32 {
+                if space != 32 || total == 0 {
                     total += 1;
                 }
                 total
