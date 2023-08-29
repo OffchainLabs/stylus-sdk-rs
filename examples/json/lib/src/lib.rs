@@ -6,7 +6,7 @@ use alloc::string::String;
 
 use serde_json::Value;
 
-pub fn json_main(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
+pub fn parse_json(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
     let input = String::from_utf8_lossy(&input);
     let (path, json) = input.split_once(":").unwrap();
     let mut value: Value = serde_json::from_str(json).unwrap();
@@ -33,14 +33,14 @@ pub fn json_main(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::json_main;
+    use crate::parse_json;
     use alloc::borrow::ToOwned;
 
     fn expect_string(json: &str, path: &str, res: &str) {
         let mut input = path.to_owned();
         input.push_str("|String:");
         input.push_str(json);
-        let ret = json_main(input.as_bytes().to_vec());
+        let ret = parse_json(input.as_bytes().to_vec());
         assert_eq!(ret, Ok(res.as_bytes().to_vec()));
     }
 
@@ -48,7 +48,7 @@ mod tests {
         let mut input = path.to_owned();
         input.push_str("|U64:");
         input.push_str(json);
-        let ret = json_main(input.as_bytes().to_vec());
+        let ret = parse_json(input.as_bytes().to_vec());
         assert_eq!(ret, Ok(res.to_be_bytes().to_vec()));
     }
 

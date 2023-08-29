@@ -229,9 +229,7 @@ name = "json"
 version = "0.1.0"
 dependencies = [
  "json_lib",
- "serde_json",
  "stylus-sdk",
- "webassembly-test",
 ]
 
 [[package]]
@@ -582,16 +580,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "webassembly-test"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45e64391864794db026d27b15cbe6edd3c25864222bd90229dfa1a26ebf30705"
-dependencies = [
- "quote",
- "syn 1.0.109",
-]
 
 [[package]]
 name = "zeroize"

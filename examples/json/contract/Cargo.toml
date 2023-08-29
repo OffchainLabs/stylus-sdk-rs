@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-stylus-sdk = { path = "../../stylus-sdk" }
-json_lib = { path = "../json_lib" }
+stylus-sdk = { path = "../../../stylus-sdk" }
+json_lib = { path = "../lib" }
 
 
 [features]
@@ -13,7 +13,7 @@ export-abi = ["stylus-sdk/export-abi"]
 
 [profile.release]
 codegen-units = 1
-strip = false
+strip = true
 lto = true
 panic = "abort"
 opt-level = "s"
