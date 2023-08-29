@@ -1,0 +1,21 @@
+[package]
+name = "json"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stylus-sdk = { path = "../../stylus-sdk" }
+json_lib = { path = "../json_lib" }
+
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[profile.release]
+codegen-units = 1
+strip = false
+lto = true
+panic = "abort"
+opt-level = "s"
+
+[workspace]
