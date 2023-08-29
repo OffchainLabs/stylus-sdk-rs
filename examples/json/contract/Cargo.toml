@@ -7,7 +7,6 @@ edition = "2021"
 stylus-sdk = { path = "../../../stylus-sdk" }
 json_lib = { path = "../lib" }
 
-
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 
