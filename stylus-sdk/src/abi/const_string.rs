@@ -62,7 +62,15 @@ impl ConstString {
             data[position] = b'0' + (number % 10) as u8;
             number /= 10;
         }
-        ConstString { data, len: digits }
+        Self { data, len: digits }
+    }
+
+    /// Selects a [`ConstString`] depending on the condition.
+    pub const fn select(cond: bool, true_value: &str, false_value: &str) -> Self {
+        match cond {
+            true => Self::new(true_value),
+            false => Self::new(false_value),
+        }
     }
 
     /// Clones a [`ConstString`] in a `const` context.

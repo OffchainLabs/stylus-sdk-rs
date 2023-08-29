@@ -53,6 +53,9 @@ pub trait AbiType {
 
     /// String to use when the type is an interface method return value.
     const EXPORT_ABI_RET: ConstString = Self::ABI;
+
+    /// Whether the type is allowed in calldata
+    const CAN_BE_CALLDATA: bool = true;
 }
 
 /// Generates a function selector for the given method and its args.

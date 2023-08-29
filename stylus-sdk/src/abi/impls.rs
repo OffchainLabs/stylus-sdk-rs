@@ -7,7 +7,7 @@ use alloy_sol_types::sol_data::{self, IntBitCount, SupportedInt};
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
 macro_rules! test_type {
-    ($name:tt, $($ty:tt)*) => {
+    ($name:tt, $as_arg:expr, $($ty:tt)*) => {
         #[cfg(test)]
         paste::paste! {
             #[allow(non_snake_case)]
@@ -18,6 +18,10 @@ macro_rules! test_type {
                     <<$($ty)* as AbiType>::SolType as alloy_sol_types::SolType>::sol_type_name(),
                     "{}'s ABI didn't match its SolType sol_type_name",
                     stringify!($($ty)*),
+                );
+                assert_eq!(
+                    <$($ty)* as AbiType>::EXPORT_ABI_ARG.as_str(),
+                    $as_arg,
                 );
             }
         }
@@ -36,7 +40,7 @@ macro_rules! append_dec {
     };
 }
 
-test_type!(bytes, super::Bytes);
+test_type!(bytes, "bytes calldata", super::Bytes);
 
 impl<const BITS: usize, const LIMBS: usize> AbiType for Uint<BITS, LIMBS>
 where
@@ -47,8 +51,8 @@ where
     const ABI: ConstString = append_dec!("uint", BITS);
 }
 
-test_type!(uint160, Uint<256, 4>);
-test_type!(uint256, Uint<256, 4>);
+// test_type!(uint160, "uint160", Uint<160, 3>); TODO: audit alloy
+test_type!(uint256, "uint256", Uint<256, 4>);
 
 impl<const BITS: usize, const LIMBS: usize> AbiType for Signed<BITS, LIMBS>
 where
@@ -59,11 +63,11 @@ where
     const ABI: ConstString = append_dec!("int", BITS);
 }
 
-test_type!(int160, Signed<256, 4>);
-test_type!(int256, Signed<256, 4>);
+// test_type!(int160, "int160", Signed<160, 3>); TODO: audit alloy
+test_type!(int256, "int256", Signed<256, 4>);
 
 macro_rules! impl_int {
-    ($bits:literal, $unsigned:ty, $signed:ty) => {
+    ($bits:literal, $as_arg:expr, $unsigned:ty, $signed:ty) => {
         impl AbiType for $unsigned
         where
             IntBitCount<$bits>: SupportedInt<Uint = Self>,
@@ -82,16 +86,16 @@ macro_rules! impl_int {
             const ABI: ConstString = append_dec!("int", $bits);
         }
 
-        test_type!($unsigned, $unsigned);
-        test_type!($signed, $signed);
+        test_type!($unsigned, format!("u{}", $as_arg), $unsigned);
+        test_type!($signed, $as_arg, $signed);
     };
 }
 
-impl_int!(8, u8, i8);
-impl_int!(16, u16, i16);
-impl_int!(32, u32, i32);
-impl_int!(64, u64, i64);
-impl_int!(128, u128, i128);
+impl_int!(8, "int8", u8, i8);
+impl_int!(16, "int16", u16, i16);
+impl_int!(32, "int32", u32, i32);
+impl_int!(64, "int64", u64, i64);
+impl_int!(128, "int128", u128, i128);
 
 macro_rules! impl_alloy {
     ($rust_type:ty, $sol_type:ident $(<$generic:tt>)?, $signature:literal) => {
@@ -100,7 +104,7 @@ macro_rules! impl_alloy {
 
             const ABI: ConstString = ConstString::new($signature);
         }
-        test_type!($signature, $rust_type);
+        test_type!($signature, $signature, $rust_type);
     };
 }
 
@@ -122,15 +126,25 @@ impl<T: AbiType> AbiType for Vec<T> {
 
     const ABI: ConstString = append!(T::ABI, "[]");
 
-    const EXPORT_ABI_ARG: ConstString = append!(T::EXPORT_ABI_ARG, "[] calldata");
+    const EXPORT_ABI_ARG: ConstString = Self::EXPORT_ABI_RET; // vectors are never calldata
 
-    const EXPORT_ABI_RET: ConstString = append!(T::EXPORT_ABI_RET, "[] memory");
+    const EXPORT_ABI_RET: ConstString = append!(T::ABI, "[] memory");
+
+    const CAN_BE_CALLDATA: bool = false;
 }
 
-test_type!(vec_of_u8s, Vec<u8>);
-test_type!(vec_of_u256s, Vec<alloy_primitives::U256>);
-test_type!(vec_of_bytes, Vec<super::Bytes>);
-test_type!(vec_of_fixed_bytes, Vec<super::FixedBytes<18>>);
+test_type!(vec_of_u8s, "uint8[] memory", Vec<u8>);
+test_type!(
+    vec_of_u256s,
+    "uint256[] memory",
+    Vec<alloy_primitives::U256>
+);
+test_type!(vec_of_bytes, "bytes[] memory", Vec<super::Bytes>);
+test_type!(
+    vec_of_fixed_bytes,
+    "bytes18[] memory",
+    Vec<super::FixedBytes<18>>
+);
 
 impl<T: AbiType, const N: usize> AbiType for [T; N] {
     type SolType = sol_data::FixedArray<T::SolType, N>;
@@ -139,11 +153,25 @@ impl<T: AbiType, const N: usize> AbiType for [T; N] {
         .concat(ConstString::new("["))
         .concat(ConstString::from_decimal_number(N))
         .concat(ConstString::new("]"));
+
+    const EXPORT_ABI_ARG: ConstString = Self::ABI.concat(ConstString::select(
+        T::CAN_BE_CALLDATA,
+        " calldata",
+        " memory",
+    ));
+
+    const EXPORT_ABI_RET: ConstString = append!(Self::ABI, " memory");
+
+    const CAN_BE_CALLDATA: bool = T::CAN_BE_CALLDATA;
 }
 
-test_type!(array_of_bools, [bool; 5]);
-test_type!(array_of_nested_u32s, [[u32; 2]; 4]);
-test_type!(array_of_fixed_bytes, Vec<super::FixedBytes<32>>);
+test_type!(array_of_bools, "bool[5] calldata", [bool; 5]);
+test_type!(array_of_nested_u32s, "uint32[2][4] calldata", [[u32; 2]; 4]);
+test_type!(
+    array_of_fixed_bytes,
+    "bytes32[] memory",
+    Vec<super::FixedBytes<32>>
+);
 
 impl AbiType for () {
     type SolType = ();
@@ -151,7 +179,7 @@ impl AbiType for () {
     const ABI: ConstString = ConstString::new("()");
 }
 
-test_type!(empty_tuple, ());
+test_type!(empty_tuple, "()", ());
 
 macro_rules! impl_tuple {
     () => {};
@@ -182,6 +210,8 @@ macro_rules! impl_tuple {
                     .concat($rest::EXPORT_ABI_RET)
                 )*
                 .concat(ConstString::new(")"));
+
+            const CAN_BE_CALLDATA: bool = false;
         }
 
         impl_tuple! { $($rest),* }
@@ -190,18 +220,24 @@ macro_rules! impl_tuple {
 
 impl_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X);
 
-test_type!(tuple_of_single_u8, (u8,));
-test_type!(tuple_of_single_u256, (alloy_primitives::U256,));
+test_type!(tuple_of_single_u8, "(uint8)", (u8,));
+test_type!(tuple_of_single_u256, "(uint256)", (alloy_primitives::U256,));
 
-test_type!(tuple_of_two_u8s, (u8, u8));
-test_type!(tuple_of_u8_and_u256, (u8, alloy_primitives::U256));
+test_type!(tuple_of_two_u8s, "(uint8, uint8)", (u8, u8));
+test_type!(
+    tuple_of_u8_and_u256,
+    "(uint8, uint256)",
+    (u8, alloy_primitives::U256)
+);
 
 test_type!(
-    tuple_of_four_types,
+    tuple_of_five_types,
+    "(uint8, uint256[] memory, bytes calldata, bytes2, bool[][8] memory)",
     (
         u8,
         Vec<alloy_primitives::U256>,
         super::Bytes,
-        super::FixedBytes<2>
+        super::FixedBytes<2>,
+        [Vec<bool>; 8],
     )
 );
