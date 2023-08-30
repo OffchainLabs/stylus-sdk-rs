@@ -28,5 +28,7 @@ paste.workspace = true
 sha3.workspace = true
 
 [features]
+default = ["storage_cache"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi"]
 debug = []
+storage_cache = []

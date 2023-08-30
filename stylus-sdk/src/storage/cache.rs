@@ -4,19 +4,27 @@
 use super::{load_bytes32, store_bytes32};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use core::{
-    cell::UnsafeCell,
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr,
 };
+#[cfg(feature = "storage_cache")]
+use core::cell::UnsafeCell;
 use derivative::Derivative;
+#[cfg(feature = "storage_cache")]
 use fnv::FnvHashMap as HashMap;
+#[cfg(feature = "storage_cache")]
 use lazy_static::lazy_static;
 
 /// Global cache managing persistent storage operations.
+#[cfg(feature = "storage_cache")]
 pub struct StorageCache(HashMap<U256, StorageWord>);
 
+#[cfg(not (feature = "storage_cache"))]
+pub struct StorageCache;
+
 /// Represents the EVM word at a given key.
+#[cfg(feature = "storage_cache")]
 pub struct StorageWord {
     /// The current value of the slot.
     value: B256,
@@ -24,6 +32,7 @@ pub struct StorageWord {
     known: Option<B256>,
 }
 
+#[cfg(feature = "storage_cache")]
 impl StorageWord {
     /// Creates a new slot from a known value in the EVM state trie.
     fn new_known(known: B256) -> Self {
@@ -49,12 +58,14 @@ struct ForceSync<T>(T);
 
 unsafe impl<T> Sync for ForceSync<T> {}
 
+#[cfg(feature = "storage_cache")]
 lazy_static! {
     /// Global cache managing persistent storage operations.
     static ref CACHE: ForceSync<UnsafeCell<StorageCache>> = ForceSync(UnsafeCell::new(StorageCache(HashMap::default())));
 }
 
 /// Mutably accesses the global cache's hashmap
+#[cfg(feature = "storage_cache")]
 macro_rules! cache {
     () => {
         unsafe { &mut (*CACHE.0.get()).0 }
@@ -135,11 +146,16 @@ impl StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage, performing [`SLOAD`]'s only as needed.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
+    #[cfg(feature = "storage_cache")]
     pub fn get_word(key: U256) -> B256 {
         cache!()
             .entry(key)
-            .or_insert_with(|| unsafe { StorageWord::new_known(load_bytes32(key)) })
-            .value
+            .or_insert_with(|| unsafe { StorageWord::new_known(load_bytes32(key)) }).value
+    }
+
+    #[cfg(not (feature = "storage_cache"))]
+    pub fn get_word(key: U256) -> B256 {
+        unsafe { load_bytes32(key) }
     }
 
     /// Writes `N ≤ 32` bytes to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -159,12 +175,12 @@ impl StorageCache {
             return Self::set_word(key, FixedBytes::from_slice(value.as_slice()));
         }
 
-        let word = cache!()
-            .entry(key)
-            .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
+        let mut word = Self::get_word(key);
 
-        let dest = word.value[offset..].as_mut_ptr();
-        ptr::copy(value.as_ptr(), dest, N)
+        let dest = word[offset..].as_mut_ptr();
+        ptr::copy(value.as_ptr(), dest, N);
+
+        Self::set_word(key, word);
     }
 
     /// Writes a [`Uint`] to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -188,14 +204,12 @@ impl StorageCache {
             return Self::set_word(key, FixedBytes::from_slice(&value.to_be_bytes::<32>()));
         }
 
-        let cache = &mut cache!();
-        let word = cache
-            .entry(key)
-            .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
+        let mut word = Self::get_word(key);
 
         let value = value.to_be_bytes_vec();
-        let dest = word.value[offset..].as_mut_ptr();
-        ptr::copy(value.as_ptr(), dest, B / 8)
+        let dest = word[offset..].as_mut_ptr();
+        ptr::copy(value.as_ptr(), dest, B / 8);
+        Self::set_word(key, word);
     }
 
     /// Writes a [`Signed`] to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -237,8 +251,14 @@ impl StorageCache {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
+    #[cfg(feature = "storage_cache")]
     pub unsafe fn set_word(key: U256, value: B256) {
         cache!().insert(key, StorageWord::new_unknown(value));
+    }
+
+    #[cfg(not (feature = "storage_cache"))]
+    pub unsafe fn set_word(key: U256, value: B256) {
+        store_bytes32(key, value);
     }
 
     /// Clears the 32-byte word at the given key, performing [`SSTORE`]'s only as needed.
@@ -257,6 +277,7 @@ impl StorageCache {
     /// If reentrancy is possible, use [`StorageCache::clear`].
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
+    #[cfg(feature = "storage_cache")]
     pub fn flush() {
         for (key, entry) in cache!() {
             if entry.dirty() {
@@ -265,11 +286,18 @@ impl StorageCache {
         }
     }
 
+    #[cfg(not (feature = "storage_cache"))]
+    pub fn flush() {}
+
     /// Flush and clear the storage cache.
+    #[cfg(feature = "storage_cache")]
     pub fn clear() {
         StorageCache::flush();
         cache!().clear();
     }
+
+    #[cfg(not (feature = "storage_cache"))]
+    pub fn clear() {}
 }
 
 /// Accessor trait that lets a type be used in persistent storage.
