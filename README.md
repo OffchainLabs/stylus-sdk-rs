@@ -7,7 +7,7 @@
   <h3 align="center">The Stylus SDK</h3>
 
   <p align="center">
-    <a href="https://developer.arbitrum.io/"><strong>Rust programs on Arbitrum »</strong></a>
+    <a href="https://developer.arbitrum.io/"><strong>Rust contracts on Arbitrum »</strong></a>
     <br />
   </p>
 </p>
