@@ -1,12 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::{
-    contract::read_return_data,
-    hostio::{self, RETURN_DATA_SIZE},
-    storage::StorageCache,
-    tx, ArbResult,
-};
+use crate::{contract::read_return_data, hostio::{self, RETURN_DATA_SIZE}, storage::StorageCache, tx, ArbResult, storage};
 use alloy_primitives::{Address, B256, U256};
 
 /// Mechanism for performing raw calls to other contracts.
@@ -18,6 +13,8 @@ pub struct RawCall {
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
+    clear: bool,
+    flush: bool,
 }
 
 /// What kind of call to perform.
@@ -112,15 +109,15 @@ impl RawCall {
         self.limit_return_data(0, 0)
     }
 
-    /// Write all cached values to persistent storage before calling contract
-    pub fn flush(self) -> Self {
-        StorageCache::flush();
+    /// Flush and clear the storage cache
+    pub fn clear(self) -> Self {
+        self.clear = true
         self
     }
 
-    /// Flush and clear the storage cache
-    pub fn clear(self) -> Self {
-        StorageCache::clear();
+    /// Write all cached values to persistent storage before calling contract
+    pub fn flush(self) -> Self {
+        self.flush = true;
         self
     }
 
@@ -137,6 +134,12 @@ impl RawCall {
         let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let value = B256::from(self.callvalue);
         let status = unsafe {
+            if self.clear {
+                storage::StorageCache::clear();
+            } else if self.flush {
+                storage::StorageCache::flush();
+            }
+
             match self.kind {
                 CallKind::Basic => hostio::call_contract(
                     contract.as_ptr(),
