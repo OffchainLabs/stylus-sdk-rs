@@ -23,7 +23,7 @@ regex = { workspace = true, optional = true }
 fnv.workspace = true
 
 # local deps
-stylus-proc.workspace = true
+stylus-proc = "0.1.2"
 
 [dev-dependencies]
 paste.workspace = true
