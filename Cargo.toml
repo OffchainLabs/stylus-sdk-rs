@@ -3,13 +3,12 @@ members = ["stylus-sdk", "stylus-proc"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
-readme = "../README.md"
 
 [workspace.dependencies]
 alloy-primitives = { version = "0.3.1", default-features = false , features = ["native-keccak"] }

@@ -2,6 +2,7 @@
 name = "stylus-proc"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Procedural macros for stylus-sdk"
+readme = "../README.md"
 
 authors.workspace = true
 edition.workspace = true
