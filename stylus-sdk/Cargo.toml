@@ -1,6 +1,6 @@
 [package]
 name = "stylus-sdk"
-keywords = ["arbitrum", "ethereum"]
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 
 authors.workspace = true
 edition.workspace = true

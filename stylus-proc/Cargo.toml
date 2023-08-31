@@ -1,6 +1,6 @@
 [package]
 name = "stylus-proc"
-keywords = ["arbitrum", "ethereum"]
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 
 authors.workspace = true
 edition.workspace = true
