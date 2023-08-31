@@ -4,6 +4,7 @@
 use crate::hostio;
 
 /// Prints a UTF-8 encoded string to the console. Only available in debug mode.
+#[cfg(feature = "debug")]
 pub fn console_log<T: AsRef<str>>(text: T) {
     let text = text.as_ref();
     unsafe { hostio::log_txt(text.as_ptr(), text.len()) };
