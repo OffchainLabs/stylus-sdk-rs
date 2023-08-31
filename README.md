@@ -22,9 +22,9 @@ Comprehensive documentation on the Rust SDK can be found [here](https://docs.arb
 
 ## Feature highlights
 
-The SDK makes it easy to develop Ethereum ABI-equivalent Stylus contracts in Rust. It provides a full suite of types and shortcuts that abstract away the details of Ethereum's storage layout, making it easy to _just write Rust_.
+The SDK makes it easy to develop Ethereum ABI-equivalent Stylus contracts in Rust. It provides a full suite of types and shortcuts that abstract away the details of Ethereum's storage layout, making it easy to _just write Rust_. For an in depth exploration of the features, please see comprehensive [Feature Overview][overview].
 
-Some of the features available in the SDK include, but are not limited to:
+Some of the features available in the SDK include:
 
 - **Generic**, storage-backed Rust types for programming **Ethereum-equivalent** smart contracts
 - Simple macros for writing Solidity structs and **entrypoints** that get converted to SDK-types internally
@@ -60,6 +60,8 @@ impl Counter {
 Additionally, the Stylus SDK supports `#[no_std]` for contracts that wish to opt out of the standard library. In fact, the entire SDK is available from `#[no_std]`, so no special feature flag is required. This can be helpful for reducing binary size, and may be preferable in pure-compute use cases like cryptography.
 
 Most users will want to use the standard library, which is available since the Stylus VM supports `rustc`'s `wasm32-unknown-unknown` target triple. In the future we may add `wasm32-wasi` too, along with floating point and SIMD, which the Stylus VM does not yet support.
+
+[overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide
 
 ## Don't know Rust?
 
