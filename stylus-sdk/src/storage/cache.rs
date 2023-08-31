@@ -1,17 +1,17 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::{load_bytes32, store_bytes32};
+use super::{load_bytes32, store_bytes32};
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
-use derivative::Derivative;
-use fnv::FnvHashMap as HashMap;
-use lazy_static::lazy_static;
-use std::{
+use core::{
+    cell::UnsafeCell,
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr,
-    sync::Mutex,
 };
+use derivative::Derivative;
+use fnv::FnvHashMap as HashMap;
+use lazy_static::lazy_static;
 
 /// Global cache managing persistent storage operations.
 pub struct StorageCache(HashMap<U256, StorageWord>);
@@ -44,14 +44,20 @@ impl StorageWord {
     }
 }
 
+/// Forces a type to implement [`Sync`].
+struct ForceSync<T>(T);
+
+unsafe impl<T> Sync for ForceSync<T> {}
+
 lazy_static! {
     /// Global cache managing persistent storage operations.
-    static ref CACHE: Mutex<StorageCache> = Mutex::new(StorageCache(HashMap::default()));
+    static ref CACHE: ForceSync<UnsafeCell<StorageCache>> = ForceSync(UnsafeCell::new(StorageCache(HashMap::default())));
 }
 
+/// Mutably accesses the global cache's hashmap
 macro_rules! cache {
     () => {
-        CACHE.lock().unwrap().0
+        unsafe { &mut (*CACHE.0.get()).0 }
     };
 }
 
@@ -132,7 +138,7 @@ impl StorageCache {
     pub fn get_word(key: U256) -> B256 {
         cache!()
             .entry(key)
-            .or_insert_with(|| StorageWord::new_known(load_bytes32(key)))
+            .or_insert_with(|| unsafe { StorageWord::new_known(load_bytes32(key)) })
             .value
     }
 
@@ -153,8 +159,7 @@ impl StorageCache {
             return Self::set_word(key, FixedBytes::from_slice(value.as_slice()));
         }
 
-        let cache = &mut cache!();
-        let word = cache
+        let word = cache!()
             .entry(key)
             .or_insert_with(|| StorageWord::new_known(load_bytes32(key)));
 
@@ -253,9 +258,9 @@ impl StorageCache {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     pub fn flush() {
-        for (key, entry) in &mut cache!() {
+        for (key, entry) in cache!() {
             if entry.dirty() {
-                store_bytes32(*key, entry.value);
+                unsafe { store_bytes32(*key, entry.value) };
             }
         }
     }
@@ -340,6 +345,19 @@ where
     /// Write the value to persistent storage.
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>);
 }
+
+/// Trait for top-level storage types, usually implemented by proc macros.
+/// Top-level types are special in that their lifetimes track the entirety
+/// of all the EVM state-changes throughout a contract invocation.
+///
+/// To prevent storage aliasing during reentrancy, you must hold a reference
+/// to such a type when making an EVM call. This may change in the future
+/// for programs that prevent reentrancy.
+///
+/// # Safety
+///
+/// The type must be top-level to prevent storage aliasing.
+pub unsafe trait TopLevelStorage {}
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.

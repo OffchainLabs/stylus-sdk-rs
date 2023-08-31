@@ -1,12 +1,15 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, U256};
-use std::{cell::OnceCell, ops::Deref};
+use crate::hostio;
+use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
+use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
+use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use bytes::{StorageBytes, StorageString};
 pub use cache::{
     Erase, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+    TopLevelStorage,
 };
 pub use map::StorageMap;
 pub use vec::StorageVec;
@@ -15,6 +18,26 @@ mod bytes;
 mod cache;
 mod map;
 mod vec;
+
+/// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
+///
+/// # Safety
+///
+/// May alias storage.
+pub unsafe fn load_bytes32(key: U256) -> B256 {
+    let mut data = B256::ZERO;
+    unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+    data
+}
+
+/// Stores a 32-byte EVM word to persistent storage directly, bypassing all caches.
+///
+/// # Safety
+///
+/// May alias storage.
+pub unsafe fn store_bytes32(key: U256, data: B256) {
+    unsafe { hostio::storage_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
+}
 
 /// Overwrites the value in a cell.
 #[inline]
@@ -72,6 +95,8 @@ alias_bytes! {
 }
 
 /// Accessor for a storage-backed [`Uint`].
+/// Note: in the future `L` won't be needed.
+// TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 #[derive(Debug)]
 pub struct StorageUint<const B: usize, const L: usize> {
     slot: U256,
@@ -144,6 +169,8 @@ impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
 }
 
 /// Accessor for a storage-backed [`Signed`].
+/// Note: in the future `L` won't be needed.
+// TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 #[derive(Debug)]
 pub struct StorageSigned<const B: usize, const L: usize> {
     slot: U256,
@@ -235,7 +262,10 @@ impl<const N: usize> StorageFixedBytes<N> {
     }
 }
 
-impl<const N: usize> StorageType for StorageFixedBytes<N> {
+impl<const N: usize> StorageType for StorageFixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
     type Wraps<'a> = FixedBytes<N>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
@@ -258,13 +288,19 @@ impl<const N: usize> StorageType for StorageFixedBytes<N> {
     }
 }
 
-impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N> {
+impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<const N: usize> Erase for StorageFixedBytes<N> {
+impl<const N: usize> Erase for StorageFixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
@@ -566,5 +602,32 @@ impl Deref for StorageBlockHash {
 impl From<StorageBlockHash> for BlockHash {
     fn from(value: StorageBlockHash) -> Self {
         *value
+    }
+}
+
+/// We implement `StorageType` for `PhantomData` so that storage types can be generic.
+impl<T> StorageType for PhantomData<T> {
+    type Wraps<'a> = Self where Self: 'a;
+    type WrapsMut<'a> = Self where Self: 'a;
+
+    const REQUIRED_SLOTS: usize = 0;
+    const SLOT_BYTES: usize = 0;
+
+    unsafe fn new(_slot: U256, _offset: u8) -> Self {
+        Self
+    }
+
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
+        self
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s>
+    where
+        Self: 's,
+    {
+        self
     }
 }

@@ -1,6 +1,8 @@
 [package]
 name = "stylus-sdk"
-keywords = ["arbitrum", "ethereum"]
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Rust smart contracts with Arbitrum Stylus"
+readme = "../README.md"
 
 authors.workspace = true
 edition.workspace = true
@@ -9,15 +11,24 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
 derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
-alloy-primitives.workspace = true
+keccak-const.workspace = true
 lazy_static.workspace = true
+regex = { workspace = true, optional = true }
 
 # data structures
-#ahash.workspace = true
 fnv.workspace = true
-#hashbrown.workspace = true
 
 # local deps
-stylus-proc.workspace = true
+stylus-proc = "0.1.2"
+
+[dev-dependencies]
+paste.workspace = true
+sha3.workspace = true
+
+[features]
+export-abi = ["debug", "regex", "stylus-proc/export-abi"]
+debug = []

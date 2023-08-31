@@ -239,8 +239,9 @@ extern "C" {
     /// [`CALLDATA_COPY`]: https://www.evm.codes/#37
     pub(crate) fn read_args(dest: *mut u8);
 
-    /// Copies the bytes of the last EVM call or deployment return result. Reverts if out of
-    /// bounds. The semantics are equivalent to that of the EVM's [`RETURN_DATA_COPY`] opcode.
+    /// Copies the bytes of the last EVM call or deployment return result. Does not revert if out of
+    /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
+    /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
     ///
     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
     pub(crate) fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize;
