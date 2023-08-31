@@ -9,6 +9,7 @@ authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
+readme = "../README.md"
 
 [workspace.dependencies]
 alloy-primitives = { version = "0.3.1", default-features = false , features = ["native-keccak"] }
