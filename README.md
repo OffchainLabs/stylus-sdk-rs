@@ -1,7 +1,7 @@
 <br />
 <p align="center">
   <a href="https://arbitrum.io/">
-    <img src="https://thereisatoken.com/media/stylus-logo.svg" alt="Logo" width="100%" height="80">
+    <img src="https://arbitrum.io/wp-content/uploads/2023/08/stylus-thumbnail-1000.png" alt="Logo" width="100%">
   </a>
 
   <h3 align="center">The Stylus SDK</h3>
@@ -32,7 +32,30 @@ Some of the features available in the SDK include, but are not limited to:
 
 Rust programs implemented with the Stylus SDK can **call and be called** by Solidity smart contracts through Ethereum ABIs and also share the same storage layout.
 
-![Image](example.png)
+```rust
+use stylus_sdk::{alloy_primitives::U256, prelude::*};
+
+// Generate Solidity-equivalent, Rust structs backed by storage.
+sol_storage! {
+  #[entrypoint]
+  pub struct Counter {
+    uint256 number;
+  }
+}
+
+#[external]
+impl Counter {
+  // Gets the number value from storage.
+  pub fn number(&self) -> Result<U256, Vec<u8>> {
+    Ok(self.number.get())
+  }
+  // Sets a number in storage to a user-specified value.
+  pub fn set_number(&mut self, new_number: U256) -> Result<(), Vec<u8>> {
+    self.number.set(new_number);
+    Ok(())
+  }
+}
+```
 
 Additionally, the Stylus SDK supports `#[no_std]` for contracts that wish to opt out of the standard library. In fact, the entire SDK is available from `#[no_std]`, so no special feature flag is required. This can be helpful for reducing binary size, and may be preferable in pure-compute use cases like cryptography.
 
