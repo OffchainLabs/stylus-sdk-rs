@@ -4,6 +4,7 @@
 use crate::{
     contract::read_return_data,
     hostio::{self, RETURN_DATA_SIZE},
+    storage::StorageCache,
     tx, ArbResult,
 };
 use alloy_primitives::{Address, B256, U256};
@@ -109,6 +110,18 @@ impl RawCall {
     /// Equivalent to `limit_return_data(0, 0)`.
     pub fn skip_return_data(self) -> Self {
         self.limit_return_data(0, 0)
+    }
+
+    /// Write all cached values to persistent storage before calling contract
+    pub fn flush(self) -> Self {
+        StorageCache::flush();
+        self
+    }
+
+    /// Flush and clear the storage cache
+    pub fn clear(self) -> Self {
+        StorageCache::clear();
+        self
     }
 
     /// Performs a raw call to another contract at the given address with the given `calldata`.
