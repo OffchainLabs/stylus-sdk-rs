@@ -1,6 +1,7 @@
 [package]
 name = "stylus-proc"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Procedural macros for stylus-sdk"
 
 authors.workspace = true
 edition.workspace = true
