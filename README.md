@@ -1,7 +1,7 @@
 <br />
 <p align="center">
   <a href="https://arbitrum.io/">
-    <img src="./assets/Arbitrum_Stylus-Logomark.png" alt="Logo" width="100%">
+    <img src="./assets/Arbitrum_Stylus-Logomark.png" alt="Logo" width="250px">
   </a>
 
   <h3 align="center">The Stylus SDK</h3>
