@@ -109,15 +109,27 @@ impl RawCall {
         self.limit_return_data(0, 0)
     }
 
-    /// Flush and clear the storage cache
-    pub fn clear(self) -> Self {
-        self.clear = true
+    /// Flush and clear the storage cache.
+    pub fn storage_cache_clear(self) -> Self {
+        self.clear = true;
+        self
+    }
+    pub fn storage_cache_maybe_clear(self, clear: bool) ->Self {
+        if clear {
+            self.storage_cache_clear();
+        }
         self
     }
 
-    /// Write all cached values to persistent storage before calling contract
-    pub fn flush(self) -> Self {
+    /// Write all cached values to persistent storage before calling contract.j
+    pub fn storage_cache_flush(self) -> Self {
         self.flush = true;
+        self
+    }
+    pub fn storage_cache_maybe_flush(self, flush: bool) ->Self {
+        if flush {
+            self.storage_cache_flush();
+        }
         self
     }
 
