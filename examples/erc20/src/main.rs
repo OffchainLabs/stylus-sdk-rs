@@ -39,12 +39,12 @@ sol_interface! {
 #[inherit(Erc20<WethParams>)]
 impl Weth {
     #[payable]
-    pub fn mint(&mut self) -> Result<(), Vec<u8>> {
+    pub fn deposit(&mut self) -> Result<(), Vec<u8>> {
         self.erc20.mint(msg::sender(), msg::value());
         Ok(())
     }
 
-    pub fn burn(&mut self, amount: U256) -> Result<(), Vec<u8>> {
+    pub fn withdraw(&mut self, amount: U256) -> Result<(), Vec<u8>> {
         self.erc20.burn(msg::sender(), amount)?;
 
         // send the user their funds
