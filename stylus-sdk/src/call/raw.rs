@@ -1,7 +1,12 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::{contract::read_return_data, hostio::{self, RETURN_DATA_SIZE}, storage::StorageCache, tx, ArbResult, storage};
+use crate::{
+    contract::read_return_data,
+    hostio::{self, RETURN_DATA_SIZE},
+    storage::StorageCache,
+    tx, ArbResult,
+};
 use alloy_primitives::{Address, B256, U256};
 
 /// Mechanism for performing raw calls to other contracts.
@@ -13,8 +18,7 @@ pub struct RawCall {
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
-    clear: bool,
-    flush: bool,
+    cache_policy: CachePolicy,
 }
 
 /// What kind of call to perform.
@@ -24,6 +28,14 @@ enum CallKind {
     Basic,
     Delegate,
     Static,
+}
+
+#[derive(Clone, Default, PartialEq, PartialOrd)]
+enum CachePolicy {
+    #[default]
+    DoNothing,
+    Flush,
+    Clear,
 }
 
 #[derive(Copy, Clone)]
@@ -109,27 +121,17 @@ impl RawCall {
         self.limit_return_data(0, 0)
     }
 
-    /// Flush and clear the storage cache.
-    pub fn storage_cache_clear(self) -> Self {
-        self.clear = true;
-        self
-    }
-    pub fn storage_cache_maybe_clear(self, clear: bool) ->Self {
-        if clear {
-            self.storage_cache_clear();
+    /// Write all cached values to persistent storage before the call.
+    pub fn flush_storage_cache(mut self) -> Self {
+        if self.cache_policy < CachePolicy::Flush {
+            self.cache_policy = CachePolicy::Flush;
         }
         self
     }
 
-    /// Write all cached values to persistent storage before calling contract.j
-    pub fn storage_cache_flush(self) -> Self {
-        self.flush = true;
-        self
-    }
-    pub fn storage_cache_maybe_flush(self, flush: bool) ->Self {
-        if flush {
-            self.storage_cache_flush();
-        }
+    /// Flush and clear the storage cache before the call.
+    pub fn clear_storage_cache(mut self) -> Self {
+        self.cache_policy = CachePolicy::Clear;
         self
     }
 
@@ -146,12 +148,11 @@ impl RawCall {
         let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let value = B256::from(self.callvalue);
         let status = unsafe {
-            if self.clear {
-                storage::StorageCache::clear();
-            } else if self.flush {
-                storage::StorageCache::flush();
+            match self.cache_policy {
+                CachePolicy::Clear => StorageCache::clear(),
+                CachePolicy::Flush => StorageCache::flush(),
+                CachePolicy::DoNothing => {}
             }
-
             match self.kind {
                 CallKind::Basic => hostio::call_contract(
                     contract.as_ptr(),
