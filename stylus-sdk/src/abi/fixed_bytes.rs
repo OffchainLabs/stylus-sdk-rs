@@ -3,56 +3,12 @@
 
 use super::{AbiType, ConstString};
 use alloc::borrow::Cow;
+use alloy_primitives::FixedBytes;
 use alloy_sol_types::{
     sol_data::{ByteCount, SupportedFixedBytes},
     token::WordToken,
     Encodable, SolType, Word,
 };
-use core::ops::{Deref, DerefMut};
-
-/// Represents a [`fixed-size byte array`] in Solidity.
-///
-/// [`fixed-size byte array`]: https://docs.soliditylang.org/en/v0.8.21/types.html#fixed-size-byte-arrays
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct FixedBytes<const N: usize>(pub [u8; N]);
-
-impl<const N: usize> From<FixedBytes<N>> for [u8; N] {
-    fn from(value: FixedBytes<N>) -> Self {
-        value.0
-    }
-}
-
-impl<const N: usize> From<[u8; N]> for FixedBytes<N> {
-    fn from(b: [u8; N]) -> Self {
-        Self(b)
-    }
-}
-
-impl<const N: usize> Deref for FixedBytes<N> {
-    type Target = [u8; N];
-
-    fn deref(&self) -> &[u8; N] {
-        &self.0
-    }
-}
-
-impl<const N: usize> DerefMut for FixedBytes<N> {
-    fn deref_mut(&mut self) -> &mut [u8; N] {
-        &mut self.0
-    }
-}
-
-impl<const N: usize> AsRef<[u8]> for FixedBytes<N> {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl<const N: usize> AsMut<[u8]> for FixedBytes<N> {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
 
 pub struct FixedBytesSolType<const N: usize>;
 

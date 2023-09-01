@@ -5,6 +5,9 @@ use super::{AbiType, ConstString};
 use alloy_primitives::{Address, Signed, Uint};
 use alloy_sol_types::sol_data::{self, IntBitCount, SupportedInt};
 
+#[cfg(test)]
+use alloy_primitives::FixedBytes;
+
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
 macro_rules! test_type {
     ($name:tt, $as_arg:expr, $($ty:tt)*) => {
@@ -140,11 +143,7 @@ test_type!(
     Vec<alloy_primitives::U256>
 );
 test_type!(vec_of_bytes, "bytes[] memory", Vec<super::Bytes>);
-test_type!(
-    vec_of_fixed_bytes,
-    "bytes18[] memory",
-    Vec<super::FixedBytes<18>>
-);
+test_type!(vec_of_fixed_bytes, "bytes18[] memory", Vec<FixedBytes<18>>);
 
 impl<T: AbiType, const N: usize> AbiType for [T; N] {
     type SolType = sol_data::FixedArray<T::SolType, N>;
@@ -170,7 +169,7 @@ test_type!(array_of_nested_u32s, "uint32[2][4] calldata", [[u32; 2]; 4]);
 test_type!(
     array_of_fixed_bytes,
     "bytes32[] memory",
-    Vec<super::FixedBytes<32>>
+    Vec<FixedBytes<32>>
 );
 
 impl AbiType for () {
@@ -237,7 +236,7 @@ test_type!(
         u8,
         Vec<alloy_primitives::U256>,
         super::Bytes,
-        super::FixedBytes<2>,
+        FixedBytes<2>,
         [Vec<bool>; 8],
     )
 );
