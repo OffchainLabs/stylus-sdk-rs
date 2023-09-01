@@ -84,7 +84,7 @@ Want to write your own? [Join us in the `#stylus` channel on discord][discord]!
 
 ## Developing Stylus Programs
 
-The Stylus SDK is just one of the building blocks in creating and deploying WebAssebmly programs to Arbitrum chains. To create a new Stylus project from a hello-world example and deploy it onchain, check out some of our tools below:
+The Stylus SDK is just one of the building blocks in creating and deploying WebAssembly programs to Arbitrum chains. To create a new Stylus project from a hello-world example and deploy it onchain, check out some of our tools below:
 
 | Repo             | Use cases                   | License           |
 |:-----------------|:----------------------------|:------------------|
