@@ -7,7 +7,7 @@ use core::borrow::BorrowMut;
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
-pub use fixed_bytes::{FixedBytes, FixedBytesSolType};
+pub use fixed_bytes::FixedBytesSolType;
 
 #[cfg(feature = "export-abi")]
 pub use export::GenerateAbi;
