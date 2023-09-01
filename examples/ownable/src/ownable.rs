@@ -8,6 +8,7 @@ use stylus_sdk::{
 };
 
 #[solidity_storage]
+#[entrypoint]
 pub struct Ownable {
     owner: StorageAddress,
 }
