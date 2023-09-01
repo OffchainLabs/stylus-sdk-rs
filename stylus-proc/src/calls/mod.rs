@@ -76,7 +76,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                     quote! { stylus_sdk::call::static_call },
                 ),
                 Write => (
-                    quote! { impl stylus_sdk::call::WriteCallContext },
+                    quote! { impl stylus_sdk::call::NonPayableCallContext },
                     quote! { stylus_sdk::call::call },
                 ),
                 Payable => (
