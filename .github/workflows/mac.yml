@@ -2,7 +2,7 @@ name: mac
 on:
   push:
     branches:
-      - main
+      - stylus
   pull_request:
 
 jobs:

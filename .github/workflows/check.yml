@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [main]
+    branches: [stylus]
   pull_request:
 
 name: check
