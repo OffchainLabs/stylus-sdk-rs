@@ -4,8 +4,8 @@
 use alloy_primitives::{Address, B256, U256};
 
 use crate::{
-    contract::read_return_data,
-    hostio::{self, RETURN_DATA_SIZE},
+    contract::{read_return_data, RETURN_DATA_LEN},
+    hostio,
 };
 
 /// Mechanism for performing raw deploys of other contracts.
@@ -89,7 +89,7 @@ impl RawDeploy {
                 &mut revert_data_len as *mut _,
             );
         }
-        RETURN_DATA_SIZE.set(revert_data_len);
+        RETURN_DATA_LEN.set(revert_data_len);
 
         if contract.is_zero() {
             return Err(read_return_data(0, None));

@@ -2,8 +2,8 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::{
-    contract::read_return_data,
-    hostio::{self, RETURN_DATA_SIZE},
+    contract::{read_return_data, RETURN_DATA_LEN},
+    hostio,
     storage::StorageCache,
     tx, ArbResult,
 };
@@ -180,7 +180,7 @@ impl RawCall {
         };
 
         unsafe {
-            RETURN_DATA_SIZE.set(outs_len);
+            RETURN_DATA_LEN.set(outs_len);
         }
 
         let outs = read_return_data(self.offset, self.size);
