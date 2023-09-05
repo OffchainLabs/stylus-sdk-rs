@@ -34,7 +34,7 @@ enum CallKind {
 
 /// How to manage the storage cache, if enabled.
 #[allow(unused)]
-#[derive(Clone, Default, PartialEq, PartialOrd)]
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum CachePolicy {
     #[default]
     DoNothing,
@@ -128,9 +128,7 @@ impl RawCall {
     /// Write all cached values to persistent storage before the call.
     #[cfg(feature = "storage-cache")]
     pub fn flush_storage_cache(mut self) -> Self {
-        if self.cache_policy < CachePolicy::Flush {
-            self.cache_policy = CachePolicy::Flush;
-        }
+        self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 

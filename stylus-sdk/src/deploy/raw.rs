@@ -63,9 +63,7 @@ impl RawDeploy {
     /// Write all cached values to persistent storage before the init code.
     #[cfg(feature = "storage-cache")]
     pub fn flush_storage_cache(mut self) -> Self {
-        if self.cache_policy < CachePolicy::Flush {
-            self.cache_policy = CachePolicy::Flush;
-        }
+        self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 
