@@ -323,47 +323,29 @@ extern "C" {
 }
 
 macro_rules! wrap_hostio {
-    ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
-    };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident bool) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, bool);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
-    };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident usize) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, usize);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident u32) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u32);
-    };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident u32) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, u32);
-    };
     ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
         wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64);
     };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident u64) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache_name, $hostio, u64);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident bool) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, bool);
     };
-    ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
-        wrap_hostio!(@arg $(#[$meta])* $name, $hostio, Address);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident usize) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, usize);
     };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident Address) => {
-        wrap_hostio!(@arg $(#[$meta])* $name, $cache_name, $hostio, Address);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u32);
     };
-    ($(#[$meta:meta])* $name:ident $hostio:ident B256) => {
-        wrap_hostio!(@arg $(#[$meta])* $name, $hostio, B256);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u64) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u64);
     };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident B256) => {
-        wrap_hostio!(@arg $(#[$meta])* $name, $cache_name, $hostio, B256);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident Address) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, Address, Address);
     };
-    ($(#[$meta:meta])* $name:ident $hostio:ident U256) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $hostio, B256, U256);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident B256) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, B256, B256);
     };
-    ($(#[$meta:meta])* $name:ident $cache_name:ident $hostio:ident U256) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $cache_name, $hostio, B256, U256);
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident U256) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, B256, U256);
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
@@ -371,46 +353,19 @@ macro_rules! wrap_hostio {
             unsafe { $ty::from(hostio::$hostio()) }
         }
     };
-    (@simple $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $ty:ident) => {
+    (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            unsafe{ $cache_name.get() }
+            unsafe{ $cache.get() }
         }
-        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
+        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
     };
-    (@arg $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
+    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            let mut data = $ty::ZERO;
-            unsafe { hostio::$hostio(data.as_mut_ptr()) };
-            data
+            unsafe{ $cache.get() }
         }
-    };
-    (@arg $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            unsafe{ $cache_name.get() }
-        }
-        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
-            let mut data = $ty::ZERO;
-            unsafe { hostio::$hostio(data.as_mut_ptr()) };
-            data
-        });
-    };
-    (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            let mut data = $from::ZERO;
-            unsafe { hostio::$hostio(data.as_mut_ptr()) };
-            data.into()
-        }
-    };
-    (@convert $(#[$meta:meta])* $name:ident, $cache_name:ident, $hostio:ident, $from:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            unsafe{ $cache_name.get() }
-        }
-        pub(crate) static mut $cache_name: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data.into()
@@ -427,22 +382,19 @@ pub(crate) struct CachedOption<T: Copy> {
 }
 
 impl<T: Copy> CachedOption<T> {
-    pub(crate) const fn new(loader: fn() -> T) -> Self {
+    /// Creates a new [`CachedOption`], which will use the `loader` during `get`.
+    pub const fn new(loader: fn() -> T) -> Self {
         let value = None;
         Self { value, loader }
     }
 
-    pub(crate) fn set(&mut self, value: T) {
+    /// Sets and overwrites the cached value.
+    pub fn set(&mut self, value: T) {
         self.value = Some(value);
     }
 
-    pub(crate) fn get(&mut self) -> T {
-        if let Some(value) = &self.value {
-            return *value;
-        }
-
-        let value = (self.loader)();
-        self.value = Some(value);
-        value
+    /// Gets the value, writing it to the cache if necessary.
+    pub fn get(&mut self) -> T {
+        *self.value.get_or_insert_with(|| (self.loader)())
     }
 }
