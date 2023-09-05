@@ -1,6 +1,8 @@
 [package]
 name = "stylus-proc"
-keywords = ["arbitrum", "ethereum"]
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Procedural macros for stylus-sdk"
+readme = "../README.md"
 
 authors.workspace = true
 edition.workspace = true
@@ -10,11 +12,18 @@ version.workspace = true
 
 [dependencies]
 alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+convert_case.workspace = true
 lazy_static.workspace = true
-regex.workspace = true
-syn.workspace = true
-quote.workspace = true
 proc-macro2.workspace = true
+regex.workspace = true
+sha3.workspace = true
+syn.workspace = true
+syn-solidity.workspace = true
+quote.workspace = true
+
+[features]
+export-abi = []
 
 [lib]
 proc-macro = true

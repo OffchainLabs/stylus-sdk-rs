@@ -10,7 +10,7 @@ use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::Bracket,
-    Attribute, Error, Path, Result, Token, Visibility,
+    Attribute, Error, Generics, Path, Result, Token, Visibility,
 };
 
 macro_rules! sdk {
@@ -19,12 +19,15 @@ macro_rules! sdk {
     };
 }
 
-pub struct SolidityStructs(pub Punctuated<SolidityStruct, Token![;]>);
+pub struct SolidityStructs(pub Vec<SolidityStruct>);
 
 impl Parse for SolidityStructs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let fields = Punctuated::parse_terminated(input)?;
-        Ok(Self(fields))
+        let mut structs = Vec::new();
+        while !input.is_empty() {
+            structs.push(input.parse()?);
+        }
+        Ok(Self(structs))
     }
 }
 
@@ -32,6 +35,7 @@ pub struct SolidityStruct {
     pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     pub name: Ident,
+    pub generics: Generics,
     pub fields: SolidityFields,
 }
 
@@ -43,6 +47,7 @@ impl Parse for SolidityStruct {
         let vis: Visibility = input.parse()?;
         let _: Token![struct] = input.parse()?;
         let name: Ident = input.parse()?;
+        let generics: Generics = input.parse()?;
 
         let content;
         let _ = braced!(content in input);
@@ -51,6 +56,7 @@ impl Parse for SolidityStruct {
             attrs,
             vis,
             name,
+            generics,
             fields,
         })
     }
@@ -66,15 +72,17 @@ impl Parse for SolidityFields {
 }
 
 pub struct SolidityField {
+    pub attrs: Vec<Attribute>,
     pub name: Ident,
     pub ty: Path,
 }
 
 impl Parse for SolidityField {
     fn parse(input: ParseStream) -> Result<Self> {
+        let attrs: Vec<Attribute> = Attribute::parse_outer(input)?;
         let ty = SolidityTy::parse(input)?.0;
         let name: Ident = input.parse()?;
-        Ok(SolidityField { name, ty })
+        Ok(SolidityField { attrs, name, ty })
     }
 }
 
@@ -82,10 +90,10 @@ pub struct SolidityTy(Path);
 
 impl Parse for SolidityTy {
     fn parse(input: ParseStream) -> Result<Self> {
-        let start: Ident = input.parse()?;
+        let start: Path = input.parse()?;
         let mut path: Path;
 
-        if start == "mapping" {
+        if start.is_ident("mapping") {
             let content;
             let _ = parenthesized!(content in input);
 
@@ -102,10 +110,7 @@ impl Parse for SolidityTy {
             );
             path = syn::parse_str(&ty)?;
         } else {
-            let base: Primitive = match syn::parse_str(&start.to_string()) {
-                Ok(base) => base,
-                Err(err) => return Err(Error::new_spanned(&start, err)),
-            };
+            let base: Primitive = start.try_into()?;
             path = base.0
         };
 
@@ -142,7 +147,18 @@ lazy_static! {
 
 impl Parse for Primitive {
     fn parse(input: ParseStream) -> Result<Self> {
-        let ident: Ident = input.parse()?;
+        let path: Path = input.parse()?;
+        path.try_into()
+    }
+}
+
+impl TryFrom<Path> for Primitive {
+    type Error = Error;
+
+    fn try_from(path: Path) -> std::result::Result<Self, Self::Error> {
+        let Some(ident) = path.get_ident() else {
+            return Ok(Self(path));
+        };
         let name = &ident.to_string();
 
         macro_rules! ty {
@@ -191,7 +207,7 @@ impl Parse for Primitive {
             "string" => "StorageString",
             "uint" => "StorageU256",
             x => match LOWER_REGEX.is_match(x) {
-                true => return Err(Error::new_spanned(&ident, "Type not supported")),
+                true => return Err(Error::new_spanned(ident, "Type not supported")),
                 false => return Ok(Self(syn::parse_str(x)?)),
             },
         };
@@ -204,7 +220,18 @@ pub struct PrimitiveKey(Path);
 
 impl Parse for PrimitiveKey {
     fn parse(input: ParseStream) -> Result<Self> {
-        let ident: Ident = input.parse()?;
+        let path: Path = input.parse()?;
+        path.try_into()
+    }
+}
+
+impl TryFrom<Path> for PrimitiveKey {
+    type Error = Error;
+
+    fn try_from(path: Path) -> std::result::Result<Self, Self::Error> {
+        let Some(ident) = path.get_ident() else {
+            return Ok(Self(path));
+        };
         let name = &ident.to_string();
 
         macro_rules! ty {
@@ -254,7 +281,7 @@ impl Parse for PrimitiveKey {
             "bytes" => return Ok(Self(syn::parse_str("Vec<u8>")?)),
             "string" => return Ok(Self(syn::parse_str("String")?)),
             x => match LOWER_REGEX.is_match(x) {
-                true => return Err(Error::new_spanned(&ident, "Type not supported")),
+                true => return Err(Error::new_spanned(ident, "Type not supported")),
                 false => return Ok(Self(syn::parse_str(x)?)),
             },
         };
