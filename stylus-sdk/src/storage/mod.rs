@@ -7,17 +7,35 @@ use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use bytes::{StorageBytes, StorageString};
-pub use cache::{
-    Erase, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType,
+pub use map::StorageMap;
+pub use traits::{
+    Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
     TopLevelStorage,
 };
-pub use map::StorageMap;
 pub use vec::StorageVec;
 
+#[cfg(feature = "storage-cache")]
+pub use cache::StorageCache;
+
+#[cfg(not(feature = "storage-cache"))]
+pub use eager::EagerStorage;
+
 mod bytes;
-mod cache;
 mod map;
+mod traits;
 mod vec;
+
+#[cfg(feature = "storage-cache")]
+mod cache;
+
+#[cfg(not(feature = "storage-cache"))]
+mod eager;
+
+#[cfg(feature = "storage-cache")]
+pub(crate) type Storage = StorageCache;
+
+#[cfg(not(feature = "storage-cache"))]
+pub(crate) type Storage = EagerStorage;
 
 /// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
 ///
@@ -113,7 +131,7 @@ impl<const B: usize, const L: usize> StorageUint<B, L> {
     /// Sets the underlying [`Uint`] in persistent storage.
     pub fn set(&mut self, value: Uint<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set_uint(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set_uint(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -158,7 +176,7 @@ impl<const B: usize, const L: usize> Deref for StorageUint<B, L> {
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| unsafe { StorageCache::get_uint(self.slot, self.offset.into()) })
+            .get_or_init(|| unsafe { Storage::get_uint(self.slot, self.offset.into()) })
     }
 }
 
@@ -187,7 +205,7 @@ impl<const B: usize, const L: usize> StorageSigned<B, L> {
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn set(&mut self, value: Signed<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set_signed(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set_signed(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -231,7 +249,7 @@ impl<const B: usize, const L: usize> Deref for StorageSigned<B, L> {
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| unsafe { StorageCache::get_signed(self.slot, self.offset.into()) })
+            .get_or_init(|| unsafe { Storage::get_signed(self.slot, self.offset.into()) })
     }
 }
 
@@ -258,7 +276,7 @@ impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn set(&mut self, value: FixedBytes<N>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set(self.slot, self.offset.into(), value) }
+        unsafe { Storage::set(self.slot, self.offset.into(), value) }
     }
 }
 
@@ -311,7 +329,7 @@ impl<const N: usize> Deref for StorageFixedBytes<N> {
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| unsafe { StorageCache::get(self.slot, self.offset.into()) })
+            .get_or_init(|| unsafe { Storage::get(self.slot, self.offset.into()) })
     }
 }
 
@@ -338,7 +356,7 @@ impl StorageBool {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn set(&mut self, value: bool) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set_byte(self.slot, self.offset.into(), value as u8) }
+        unsafe { Storage::set_byte(self.slot, self.offset.into(), value as u8) }
     }
 }
 
@@ -382,7 +400,7 @@ impl Deref for StorageBool {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = StorageCache::get_byte(self.slot, self.offset.into());
+            let data = Storage::get_byte(self.slot, self.offset.into());
             data != 0
         })
     }
@@ -411,7 +429,7 @@ impl StorageAddress {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn set(&mut self, value: Address) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set::<20>(self.slot, self.offset.into(), value.into()) }
+        unsafe { Storage::set::<20>(self.slot, self.offset.into(), value.into()) }
     }
 }
 
@@ -454,9 +472,8 @@ impl Deref for StorageAddress {
     type Target = Address;
 
     fn deref(&self) -> &Self::Target {
-        self.cached.get_or_init(|| unsafe {
-            StorageCache::get::<20>(self.slot, self.offset.into()).into()
-        })
+        self.cached
+            .get_or_init(|| unsafe { Storage::get::<20>(self.slot, self.offset.into()).into() })
     }
 }
 
@@ -484,7 +501,7 @@ impl StorageBlockNumber {
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());
-        unsafe { StorageCache::set::<8>(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set::<8>(self.slot, self.offset.into(), value) };
     }
 }
 
@@ -528,7 +545,7 @@ impl Deref for StorageBlockNumber {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = StorageCache::get::<8>(self.slot, self.offset.into());
+            let data = Storage::get::<8>(self.slot, self.offset.into());
             u64::from_be_bytes(data.0)
         })
     }
@@ -556,7 +573,7 @@ impl StorageBlockHash {
     /// Sets the underlying [`BlockHash`] in persistent storage.
     pub fn set(&mut self, value: BlockHash) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { StorageCache::set_word(self.slot, value) }
+        unsafe { Storage::set_word(self.slot, value) }
     }
 }
 
@@ -594,8 +611,7 @@ impl Deref for StorageBlockHash {
     type Target = BlockHash;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| StorageCache::get_word(self.slot))
+        self.cached.get_or_init(|| Storage::get_word(self.slot))
     }
 }
 

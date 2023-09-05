@@ -1,12 +1,15 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use alloy_primitives::{Address, B256, U256};
-
 use crate::{
+    call::CachePolicy,
     contract::{read_return_data, RETURN_DATA_LEN},
     hostio,
 };
+use alloy_primitives::{Address, B256, U256};
+
+#[cfg(feature = "storage-cache")]
+use crate::storage::StorageCache;
 
 /// Mechanism for performing raw deploys of other contracts.
 #[derive(Clone, Default)]
@@ -15,6 +18,8 @@ pub struct RawDeploy {
     salt: Option<B256>,
     offset: usize,
     size: Option<usize>,
+    #[allow(unused)]
+    cache_policy: CachePolicy,
 }
 
 impl RawDeploy {
@@ -55,6 +60,20 @@ impl RawDeploy {
         self.limit_revert_data(0, 0)
     }
 
+    /// Write all cached values to persistent storage before the init code.
+    #[cfg(feature = "storage-cache")]
+    pub fn flush_storage_cache(mut self) -> Self {
+        self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
+        self
+    }
+
+    /// Flush and clear the storage cache before the init code.
+    #[cfg(feature = "storage-cache")]
+    pub fn clear_storage_cache(mut self) -> Self {
+        self.cache_policy = CachePolicy::Clear;
+        self
+    }
+
     /// Performs a raw deploy of another contract with the given `endowment` and init `code`.
     /// Returns the address of the newly deployed contract, or the error data in case of failure.
     ///
@@ -67,6 +86,13 @@ impl RawDeploy {
     /// For extra flexibility, this method does not clear the global storage cache.
     /// See [`StorageCache::flush`] and [`StorageCache::clear`] for more information.
     pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
+        #[cfg(feature = "storage-cache")]
+        match self.cache_policy {
+            CachePolicy::Clear => StorageCache::clear(),
+            CachePolicy::Flush => StorageCache::flush(),
+            CachePolicy::DoNothing => {}
+        }
+
         let mut contract = Address::default();
         let mut revert_data_len = 0;
 
