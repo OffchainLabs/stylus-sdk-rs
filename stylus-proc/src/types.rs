@@ -80,7 +80,10 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         Type::Address(_, _) => simple!(Address),
         Type::String(_) => simple!(String),
         Type::Bytes(_) => simple!(Bytes),
-        Type::FixedBytes(_, size) => (path!("FixedBytes<{size}>"), abi!("bytes[{size}]")),
+        Type::FixedBytes(_, size) => (
+            "stylus_sdk::abi::FixedBytesSolType<{size}>".into(),
+            abi!("bytes[{size}]"),
+        ),
         Type::Uint(_, size) => {
             let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
             (path!("Uint<{size}>"), abi!("uint{size}"))

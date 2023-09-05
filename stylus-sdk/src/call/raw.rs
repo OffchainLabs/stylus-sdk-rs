@@ -2,8 +2,9 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::{
-    contract::read_return_data,
-    hostio::{self, RETURN_DATA_SIZE},
+    contract::{read_return_data, RETURN_DATA_LEN},
+    hostio,
+    storage::StorageCache,
     tx, ArbResult,
 };
 use alloy_primitives::{Address, B256, U256};
@@ -17,6 +18,7 @@ pub struct RawCall {
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
+    cache_policy: CachePolicy,
 }
 
 /// What kind of call to perform.
@@ -26,6 +28,14 @@ enum CallKind {
     Basic,
     Delegate,
     Static,
+}
+
+#[derive(Clone, Default, PartialEq, PartialOrd)]
+enum CachePolicy {
+    #[default]
+    DoNothing,
+    Flush,
+    Clear,
 }
 
 #[derive(Copy, Clone)]
@@ -111,6 +121,20 @@ impl RawCall {
         self.limit_return_data(0, 0)
     }
 
+    /// Write all cached values to persistent storage before the call.
+    pub fn flush_storage_cache(mut self) -> Self {
+        if self.cache_policy < CachePolicy::Flush {
+            self.cache_policy = CachePolicy::Flush;
+        }
+        self
+    }
+
+    /// Flush and clear the storage cache before the call.
+    pub fn clear_storage_cache(mut self) -> Self {
+        self.cache_policy = CachePolicy::Clear;
+        self
+    }
+
     /// Performs a raw call to another contract at the given address with the given `calldata`.
     ///
     /// # Safety
@@ -124,6 +148,11 @@ impl RawCall {
         let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let value = B256::from(self.callvalue);
         let status = unsafe {
+            match self.cache_policy {
+                CachePolicy::Clear => StorageCache::clear(),
+                CachePolicy::Flush => StorageCache::flush(),
+                CachePolicy::DoNothing => {}
+            }
             match self.kind {
                 CallKind::Basic => hostio::call_contract(
                     contract.as_ptr(),
@@ -151,7 +180,7 @@ impl RawCall {
         };
 
         unsafe {
-            RETURN_DATA_SIZE.set(outs_len);
+            RETURN_DATA_LEN.set(outs_len);
         }
 
         let outs = read_return_data(self.offset, self.size);

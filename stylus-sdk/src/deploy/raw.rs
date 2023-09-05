@@ -1,11 +1,11 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U256};
 
 use crate::{
-    contract::read_return_data,
-    hostio::{self, RETURN_DATA_SIZE},
+    contract::{read_return_data, RETURN_DATA_LEN},
+    hostio,
 };
 
 /// Mechanism for performing raw deploys of other contracts.
@@ -66,10 +66,11 @@ impl RawDeploy {
     ///
     /// For extra flexibility, this method does not clear the global storage cache.
     /// See [`StorageCache::flush`] and [`StorageCache::clear`] for more information.
-    pub unsafe fn deploy(self, code: &[u8], endowment: B256) -> Result<Address, Vec<u8>> {
+    pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
         let mut contract = Address::default();
         let mut revert_data_len = 0;
 
+        let endowment: B256 = endowment.into();
         if let Some(salt) = self.salt {
             hostio::create2(
                 code.as_ptr(),
@@ -88,7 +89,7 @@ impl RawDeploy {
                 &mut revert_data_len as *mut _,
             );
         }
-        RETURN_DATA_SIZE.set(revert_data_len);
+        RETURN_DATA_LEN.set(revert_data_len);
 
         if contract.is_zero() {
             return Err(read_return_data(0, None));
