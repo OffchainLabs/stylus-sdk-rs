@@ -1,0 +1,33 @@
+name: linux
+on:
+  push:
+    branches:
+      - stylus
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: (${{ matrix.target }}, ${{ matrix.cfg_release_channel }})
+    env:
+      CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
+    strategy:
+      matrix:
+        target: [
+          x86_64-unknown-linux-gnu,
+        ]
+        cfg_release_channel: [nightly, stable]
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+      # Run build
+    - name: install rustup
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+        sh rustup-init.sh -y --default-toolchain none
+        rustup target add ${{ matrix.target }}
+
+    - name: Build and Test
+      run: ./ci/build_and_test.sh

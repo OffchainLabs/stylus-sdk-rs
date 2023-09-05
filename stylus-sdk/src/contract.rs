@@ -5,7 +5,7 @@ use crate::{
     hostio::{self, wrap_hostio},
     types::AddressVM,
 };
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, U256};
 
 /// Reads the invocation's calldata.
 /// The [`derive(Entrypoint)`] and [`entrypoint`] macros use this under the hood.
@@ -54,6 +54,6 @@ wrap_hostio!(
 );
 
 /// Gets the balance of the current program.
-pub fn balance() -> B256 {
+pub fn balance() -> U256 {
     address().balance()
 }

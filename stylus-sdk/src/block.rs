@@ -2,11 +2,11 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U256};
 
 wrap_hostio!(
     /// Gets the basefee of the current block.
-    basefee BASEFEE block_basefee B256
+    basefee BASEFEE block_basefee U256
 );
 
 wrap_hostio!(

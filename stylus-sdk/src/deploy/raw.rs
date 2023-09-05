@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U256};
 
 use crate::{
     contract::{self, read_return_data},
@@ -66,10 +66,11 @@ impl RawDeploy {
     ///
     /// For extra flexibility, this method does not clear the global storage cache.
     /// See [`StorageCache::flush`] and [`StorageCache::clear`] for more information.
-    pub unsafe fn deploy(self, code: &[u8], endowment: B256) -> Result<Address, Vec<u8>> {
+    pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
         let mut contract = Address::default();
         let mut revert_data_len = 0;
 
+        let endowment: B256 = endowment.into();
         if let Some(salt) = self.salt {
             hostio::create2(
                 code.as_ptr(),

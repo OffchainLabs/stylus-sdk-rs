@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::hostio::{self, wrap_hostio};
-use alloy_primitives::{Address, B256};
+use alloy_primitives::{Address, B256, U256};
 
 wrap_hostio! {
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
@@ -30,7 +30,7 @@ pub fn ink_to_gas(ink: u64) -> u64 {
 
 wrap_hostio!(
     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee.
-    gas_price GAS_PRICE tx_gas_price B256
+    gas_price GAS_PRICE tx_gas_price U256
 );
 
 wrap_hostio!(
