@@ -272,7 +272,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     is_clause.extend(inherits.iter().enumerate().map(|(i, ty)| {
         let comma = (i > 0).then_some(", ").unwrap_or_default();
         quote! {
-            write!(f, "{}{}", #comma, <#ty as GenerateAbi>::NAME)?;
+            write!(f, "{}I{}", #comma, <#ty as GenerateAbi>::NAME)?;
         }
     }));
 
@@ -285,7 +285,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 use stylus_sdk::abi::internal::write_solidity_returns;
                 use stylus_sdk::abi::export::{underscore_if_sol};
                 #(#inherited_abis)*
-                write!(f, "interface {}", #name)?;
+                write!(f, "interface I{}", #name)?;
                 #is_clause
                 write!(f, " {{")?;
                 #abi
