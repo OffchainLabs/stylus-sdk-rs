@@ -3,7 +3,7 @@
 
 use crate::crypto;
 
-use super::{cache::Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
+use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
 

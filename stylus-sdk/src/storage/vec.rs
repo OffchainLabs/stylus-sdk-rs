@@ -1,7 +1,9 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{Erase, SimpleStorageType, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{
+    Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
+};
 use crate::crypto;
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
@@ -43,7 +45,7 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = StorageCache::get_word(self.slot).into();
+        let word: U256 = Storage::get_word(self.slot).into();
         word.try_into().unwrap()
     }
 
@@ -55,7 +57,7 @@ impl<S: StorageType> StorageVec<S> {
     /// or any junk data left over from prior dirty operations.
     /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
-        StorageCache::set_word(self.slot, U256::from(len).into())
+        Storage::set_word(self.slot, U256::from(len).into())
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
@@ -199,7 +201,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { StorageCache::clear_word(slot + U256::from(i)) };
+                unsafe { Storage::clear_word(slot + U256::from(i)) };
             }
         }
         Some(value)
