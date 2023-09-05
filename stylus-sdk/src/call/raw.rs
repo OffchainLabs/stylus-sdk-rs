@@ -3,11 +3,12 @@
 
 use crate::{
     contract::{read_return_data, RETURN_DATA_LEN},
-    hostio,
-    storage::StorageCache,
-    tx, ArbResult,
+    hostio, tx, ArbResult,
 };
 use alloy_primitives::{Address, B256, U256};
+
+#[cfg(feature = "storage-cache")]
+use crate::storage::StorageCache;
 
 /// Mechanism for performing raw calls to other contracts.
 #[derive(Clone, Default)]
@@ -18,6 +19,7 @@ pub struct RawCall {
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
+    #[allow(unused)]
     cache_policy: CachePolicy,
 }
 
@@ -30,8 +32,10 @@ enum CallKind {
     Static,
 }
 
+/// How to manage the storage cache, if enabled.
+#[allow(unused)]
 #[derive(Clone, Default, PartialEq, PartialOrd)]
-enum CachePolicy {
+pub(crate) enum CachePolicy {
     #[default]
     DoNothing,
     Flush,
@@ -122,6 +126,7 @@ impl RawCall {
     }
 
     /// Write all cached values to persistent storage before the call.
+    #[cfg(feature = "storage-cache")]
     pub fn flush_storage_cache(mut self) -> Self {
         if self.cache_policy < CachePolicy::Flush {
             self.cache_policy = CachePolicy::Flush;
@@ -130,6 +135,7 @@ impl RawCall {
     }
 
     /// Flush and clear the storage cache before the call.
+    #[cfg(feature = "storage-cache")]
     pub fn clear_storage_cache(mut self) -> Self {
         self.cache_policy = CachePolicy::Clear;
         self
@@ -148,6 +154,7 @@ impl RawCall {
         let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
         let value = B256::from(self.callvalue);
         let status = unsafe {
+            #[cfg(feature = "storage-cache")]
             match self.cache_policy {
                 CachePolicy::Clear => StorageCache::clear(),
                 CachePolicy::Flush => StorageCache::flush(),

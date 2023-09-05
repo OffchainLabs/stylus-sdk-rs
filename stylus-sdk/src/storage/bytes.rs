@@ -1,7 +1,7 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{Erase, StorageB8, StorageCache, StorageGuard, StorageGuardMut, StorageType};
+use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
 use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
@@ -41,7 +41,7 @@ impl StorageBytes {
 
     /// Gets the number of bytes stored.
     pub fn len(&self) -> usize {
-        let word = StorageCache::get_word(self.root);
+        let word = Storage::get_word(self.root);
 
         // check if the data is short
         let slot: &[u8] = word.as_ref();
@@ -70,15 +70,15 @@ impl StorageBytes {
 
         // if shrinking, pull data in
         if (len < 32) && (old > 32) {
-            let word = StorageCache::get_word(*self.base());
-            StorageCache::set_word(self.root, word);
+            let word = Storage::get_word(*self.base());
+            Storage::set_word(self.root, word);
             return self.write_len(len);
         }
 
         // if growing, push data out
-        let mut word = StorageCache::get_word(self.root);
+        let mut word = Storage::get_word(self.root);
         word[31] = 0; // clear len byte
-        StorageCache::set_word(*self.base(), word);
+        Storage::set_word(*self.base(), word);
         self.write_len(len)
     }
 
@@ -86,10 +86,10 @@ impl StorageBytes {
     unsafe fn write_len(&mut self, len: usize) {
         if len < 32 {
             // place the len in the last byte of the root with the long bit low
-            StorageCache::set_uint(self.root, 31, U8::from(len * 2));
+            Storage::set_uint(self.root, 31, U8::from(len * 2));
         } else {
             // place the len in the root with the long bit high
-            StorageCache::set_word(self.root, U256::from(len * 2 + 1).into())
+            Storage::set_word(self.root, U256::from(len * 2 + 1).into())
         }
     }
 
@@ -101,7 +101,7 @@ impl StorageBytes {
         macro_rules! assign {
             ($slot:expr) => {
                 unsafe {
-                    StorageCache::set_uint($slot, index % 32, value); // pack value
+                    Storage::set_uint($slot, index % 32, value); // pack value
                     self.write_len(index + 1);
                 }
             };
@@ -114,8 +114,8 @@ impl StorageBytes {
         // convert to multi-word representation
         if index == 31 {
             // copy content over (len byte will be overwritten)
-            let word = StorageCache::get_word(self.root);
-            unsafe { StorageCache::set_word(*self.base(), word) };
+            let word = Storage::get_word(self.root);
+            unsafe { Storage::set_word(*self.base(), word) };
         }
 
         let slot = self.base() + U256::from(index / 32);
@@ -135,13 +135,13 @@ impl StorageBytes {
         let clean = index % 32 == 0;
         let byte = self.get(index)?;
 
-        let clear = |slot| unsafe { StorageCache::clear_word(slot) };
+        let clear = |slot| unsafe { Storage::clear_word(slot) };
 
         // convert to single-word representation
         if len == 32 {
             // copy content over
-            let word = StorageCache::get_word(*self.base());
-            unsafe { StorageCache::set_word(self.root, word) };
+            let word = Storage::get_word(*self.base());
+            unsafe { Storage::set_word(self.root, word) };
             clear(*self.base());
         }
 
@@ -152,7 +152,7 @@ impl StorageBytes {
 
         // clear the value
         if len < 32 {
-            unsafe { StorageCache::set_byte(self.root, index, 0) };
+            unsafe { Storage::set_byte(self.root, index, 0) };
         }
 
         // set the new length
@@ -187,7 +187,7 @@ impl StorageBytes {
     /// UB if index is out of bounds.
     pub unsafe fn get_unchecked(&self, index: usize) -> u8 {
         let (slot, offset) = self.index_slot(index);
-        unsafe { StorageCache::get_byte(slot, offset.into()) }
+        unsafe { Storage::get_byte(slot, offset.into()) }
     }
 
     /// Gets the full contents of the collection.
@@ -231,11 +231,11 @@ impl Erase for StorageBytes {
         if len > 31 {
             while len > 0 {
                 let slot = self.index_slot(len as usize - 1).0;
-                unsafe { StorageCache::clear_word(slot) };
+                unsafe { Storage::clear_word(slot) };
                 len -= 32;
             }
         }
-        unsafe { StorageCache::clear_word(self.root) };
+        unsafe { Storage::clear_word(self.root) };
     }
 }
 

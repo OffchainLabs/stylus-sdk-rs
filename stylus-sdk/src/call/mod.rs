@@ -1,11 +1,16 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::storage::{StorageCache, TopLevelStorage};
+use crate::storage::TopLevelStorage;
 use alloy_primitives::{Address, U256};
 use core::sync::atomic::{AtomicBool, Ordering};
 
 pub use self::{context::Context, error::Error, raw::RawCall, traits::*};
+
+pub(crate) use raw::CachePolicy;
+
+#[cfg(feature = "storage-cache")]
+use crate::storage::Storage;
 
 mod context;
 mod error;
@@ -45,9 +50,10 @@ pub fn static_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // flush storage to persist changes, but don't invalidate the cache
+    #[cfg(feature = "storage-cache")]
     if reentrancy_enabled() {
-        StorageCache::flush();
+        // flush storage to persist changes, but don't invalidate the cache
+        Storage::flush();
     }
     unsafe {
         RawCall::new_static()
@@ -59,9 +65,10 @@ pub fn static_call(
 
 /// Calls the contract at the given address.
 pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
-    // clear the storage to persist changes, invalidating the cache
+    #[cfg(feature = "storage-cache")]
     if reentrancy_enabled() {
-        StorageCache::clear();
+        // clear the storage to persist changes, invalidating the cache
+        Storage::clear();
     }
     unsafe {
         RawCall::new_with_value(context.value())
