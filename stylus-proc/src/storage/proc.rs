@@ -117,19 +117,20 @@ impl Parse for SolidityTy {
         while input.peek(Bracket) {
             let content;
             let _ = bracketed!(content in input);
-            if let Ok(bracket_contents) = content.parse::<Literal>() {
-                let size = bracket_contents.to_string().parse::<usize>().map_err(|_| {
-                    Error::new_spanned(&bracket_contents, "Array size must be a positive integer")
-                })?;
+
+            if content.is_empty() {
+                let outer = sdk!("StorageVec");
+                let inner = quote! { #path };
+                path = syn::parse_str(&format!("{outer}<{inner}>"))?;
+            } else {
+                let content: Literal = content.parse()?;
+                let Ok(size) = content.to_string().parse::<usize>() else {
+                    error!(@content, "Array size must be a positive integer");
+                };
                 let outer = sdk!("StorageArray");
                 let inner = quote! { #path };
                 path = syn::parse_str(&format!("{outer}<{inner}, {size}>"))?;
-                return Ok(SolidityTy(path));
-            };
-
-            let outer = sdk!("StorageVec");
-            let inner = quote! { #path };
-            path = syn::parse_str(&format!("{outer}<{inner}>"))?;
+            }
         }
 
         Ok(SolidityTy(path))
