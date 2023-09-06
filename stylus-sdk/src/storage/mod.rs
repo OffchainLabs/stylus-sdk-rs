@@ -6,6 +6,7 @@ use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint
 use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
+pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
 pub use map::StorageMap;
 pub use traits::{
@@ -20,6 +21,7 @@ pub use cache::StorageCache;
 #[cfg(not(feature = "storage-cache"))]
 pub use eager::EagerStorage;
 
+mod array;
 mod bytes;
 mod map;
 mod traits;

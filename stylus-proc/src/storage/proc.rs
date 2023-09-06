@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use lazy_static::lazy_static;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Literal};
 use quote::quote;
 use regex::Regex;
 use syn::{
@@ -115,11 +115,22 @@ impl Parse for SolidityTy {
         };
 
         while input.peek(Bracket) {
-            let _content;
-            let _ = bracketed!(_content in input); // TODO: fixed arrays
-            let outer = sdk!("StorageVec");
-            let inner = quote! { #path };
-            path = syn::parse_str(&format!("{outer}<{inner}>"))?;
+            let content;
+            let _ = bracketed!(content in input);
+
+            if content.is_empty() {
+                let outer = sdk!("StorageVec");
+                let inner = quote! { #path };
+                path = syn::parse_str(&format!("{outer}<{inner}>"))?;
+            } else {
+                let content: Literal = content.parse()?;
+                let Ok(size) = content.to_string().parse::<usize>() else {
+                    error!(@content, "Array size must be a positive integer");
+                };
+                let outer = sdk!("StorageArray");
+                let inner = quote! { #path };
+                path = syn::parse_str(&format!("{outer}<{inner}, {size}>"))?;
+            }
         }
 
         Ok(SolidityTy(path))
