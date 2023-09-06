@@ -103,17 +103,15 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
         32 / S::SLOT_BYTES
     }
 
-    /// Required slots for the storage array. A maximum of either N * S::REQUIRED_SLOTS,
-    /// or ceil(N / density), as there are items that can fit multiple times
-    /// in a single slot.
+    /// Required slots for the storage array.
     const fn required_slots() -> usize {
-        let left = N * S::REQUIRED_SLOTS;
+        let reserved = N * S::REQUIRED_SLOTS;
         let density = Self::density();
-        let right = (N + density - 1) / density; // ceil division.
-        if left > right {
-            return left;
+        let packed = (N + density - 1) / density; // ceil division for packed items.
+        if reserved > packed {
+            return reserved;
         }
-        right
+        packed
     }
 }
 
