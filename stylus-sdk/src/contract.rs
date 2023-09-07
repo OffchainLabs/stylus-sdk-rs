@@ -8,7 +8,7 @@ use crate::{
 use alloy_primitives::{Address, U256};
 
 /// Reads the invocation's calldata.
-/// The [`derive(Entrypoint)`] and [`entrypoint`] macros use this under the hood.
+/// The [`entrypoint`](macro@stylus_proc::entrypoint) macro uses this under the hood.
 pub fn args(len: usize) -> Vec<u8> {
     let mut input = Vec::with_capacity(len);
     unsafe {
@@ -19,7 +19,7 @@ pub fn args(len: usize) -> Vec<u8> {
 }
 
 /// Writes the contract's return data.
-/// The [`derive(Entrypoint)`] and [`entrypoint!`] macros use this under the hood.
+/// The [`entrypoint`](macro@stylus_proc::entrypoint) macro uses this under the hood.
 pub fn output(data: &[u8]) {
     unsafe {
         hostio::write_result(data.as_ptr(), data.len());

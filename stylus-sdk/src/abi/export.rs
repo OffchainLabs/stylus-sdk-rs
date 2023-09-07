@@ -7,11 +7,13 @@ use regex::Regex;
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
 /// This is auto-derived via the [`external`] marco when the `export-abi` feature is enabled.
+///
+/// [`external`]: stylus-proc::external
 pub trait GenerateAbi {
     /// The interface's name.
     const NAME: &'static str;
 
-    /// How to format the ABI. Analogous to [`Display`].
+    /// How to format the ABI. Analogous to [`Display`](std::fmt::Display).
     fn fmt_abi(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 

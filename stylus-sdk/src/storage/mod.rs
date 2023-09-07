@@ -8,7 +8,7 @@ use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
-pub use map::StorageMap;
+pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
     TopLevelStorage,
@@ -18,7 +18,7 @@ pub use vec::StorageVec;
 #[cfg(feature = "storage-cache")]
 pub use cache::StorageCache;
 
-#[cfg(not(feature = "storage-cache"))]
+#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
 pub use eager::EagerStorage;
 
 mod array;
@@ -30,7 +30,7 @@ mod vec;
 #[cfg(feature = "storage-cache")]
 mod cache;
 
-#[cfg(not(feature = "storage-cache"))]
+#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
 mod eager;
 
 #[cfg(feature = "storage-cache")]
@@ -69,26 +69,25 @@ fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {
 macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
-            #[doc = concat!("Accessor for a storage-backed [`U", stringify!($bits), "`].")]
+            #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::U", stringify!($bits), "`].")]
             pub type $name = StorageUint<$bits, $limbs>;
 
-            #[doc = concat!("Accessor for a storage-backed [`I", stringify!($bits), "`].")]
+            #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::I", stringify!($bits), "`].")]
             pub type $signed_name = StorageSigned<$bits, $limbs>;
         )*
     };
 }
 
 macro_rules! alias_bytes {
-    ($($name:ident, $bytes:expr;)*) => {
+    ($($name:ident, $bits:expr, $bytes:expr;)*) => {
         $(
-            #[doc = concat!("Accessor for a storage-backed [`B", stringify!($bytes), "`].")]
+            #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::B", stringify!($bits), "`].")]
             pub type $name = StorageFixedBytes<$bytes>;
         )*
     };
 }
 
 alias_ints! {
-    StorageU0, StorageI0, 0, 0;
     StorageU1, StorageI1, 1, 1;
     StorageU8, StorageI8, 8, 1;
     StorageU16, StorageI16, 16, 1;
@@ -101,20 +100,20 @@ alias_ints! {
 }
 
 alias_bytes! {
-    StorageB0, 0;
-    StorageB8, 1;
-    StorageB16, 2;
-    StorageB32, 4;
-    StorageB64, 8;
-    StorageB96, 12;
-    StorageB128, 16;
-    StorageB160, 20;
-    StorageB192, 24;
-    StorageB224, 28;
-    StorageB256, 32;
+    StorageB8, 8, 1;
+    StorageB16, 16, 2;
+    StorageB32, 32, 4;
+    StorageB64, 64, 8;
+    StorageB96, 96, 12;
+    StorageB128, 128, 16;
+    StorageB160, 160, 20;
+    StorageB192, 192, 24;
+    StorageB224, 224, 28;
+    StorageB256, 256, 32;
 }
 
-/// Accessor for a storage-backed [`Uint`].
+/// Accessor for a storage-backed [`alloy_primitives::Uint`].
+///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 #[derive(Debug)]
@@ -125,12 +124,12 @@ pub struct StorageUint<const B: usize, const L: usize> {
 }
 
 impl<const B: usize, const L: usize> StorageUint<B, L> {
-    /// Gets the underlying [`Uint`] in persistent storage.
+    /// Gets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn get(&self) -> Uint<B, L> {
         **self
     }
 
-    /// Sets the underlying [`Uint`] in persistent storage.
+    /// Sets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn set(&mut self, value: Uint<B, L>) {
         overwrite_cell(&mut self.cached, value);
         unsafe { Storage::set_uint(self.slot, self.offset.into(), value) };
@@ -189,6 +188,7 @@ impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
 }
 
 /// Accessor for a storage-backed [`Signed`].
+///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 #[derive(Debug)]

@@ -20,7 +20,9 @@ pub trait StaticCallContext: CallContext {}
 ///
 /// # Safety
 ///
-/// The type must contain a [`TopLevelStorage`] to prevent aliasing in cases of reentrancy.
+/// The type must contain a [`TopLevelStorage`][TLS] to prevent aliasing in cases of reentrancy.
+///
+/// [TLS]: crate::storage::TopLevelStorage
 pub unsafe trait MutatingCallContext: CallContext {
     /// Amount of ETH in wei to give the other contract.
     fn value(&self) -> U256;
@@ -28,7 +30,7 @@ pub unsafe trait MutatingCallContext: CallContext {
 
 /// Trait for calling the `write` methods of other contracts.
 /// Users should rarely implement this trait outside of proc macros.
-/// Note: any implementations of this must return zero for [`MutableCallContext::value`].
+/// Note: any implementations of this must return zero for [`MutatingCallContext::value`].
 pub trait NonPayableCallContext: MutatingCallContext {}
 
 impl CallContext for () {
