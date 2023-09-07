@@ -24,6 +24,10 @@ quote.workspace = true
 
 [features]
 export-abi = []
+storage-cache = []
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 proc-macro = true

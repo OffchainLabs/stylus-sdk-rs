@@ -3,7 +3,7 @@
 
 //! Debug-only items for printing to the console.
 //!
-//! ```
+//! ```no_run
 //! use stylus_sdk::console;
 //! use stylus_sdk::alloy_primitives::address;
 //!
