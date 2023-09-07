@@ -1,6 +1,17 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! VM affordances for inspecting the contract itself.
+//!
+//! See also [`block`](crate::block), [`crypto`](crate::crypto), [`evm`](crate::evm),
+//! [`msg`](crate::msg), and [`tx`](crate::tx).
+//!
+//! ```no_run
+//! use stylus_sdk::contract;
+//!
+//! let balance = contract::balance();
+//! ```
+
 use crate::{
     hostio::{self, wrap_hostio},
     types::AddressVM,

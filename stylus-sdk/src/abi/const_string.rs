@@ -1,18 +1,23 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Provides [`ConstString`], a mechanism for string operations in `const` contexts.
+
 use core::{
     fmt::{Debug, Display},
     ops::Deref,
 };
 
+/// Maximum length of a [`ConstString`] in bytes.
 pub const MAX_CONST_STRING_LENGTH: usize = 1024;
 
+/// Represents a string with a bounded length at compile time.
+/// This allows something approximating string operations in `const` contexts.
 #[derive(Clone)]
 pub struct ConstString {
     /// The signature's text encoding. Must be valid UTF-8.
-    /// Note: this representation allows something approximating string manipulation to be const.
     data: [u8; MAX_CONST_STRING_LENGTH],
+    /// The length of the string in bytes.
     len: usize,
 }
 

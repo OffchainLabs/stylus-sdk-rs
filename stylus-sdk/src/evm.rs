@@ -1,6 +1,17 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Affordances for the Ethereum Virtual Machine.
+//!
+//! See also [`block`](crate::block), [`contract`](crate::contract), [`crypto`](crate::crypto),
+//! [`msg`](crate::msg), and [`tx`](crate::msg).
+//!
+//! ```no_run
+//! use stylus_sdk::evm;
+//!
+//! let gas = evm::gas_left();
+//! ```
+
 use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::B256;
 use alloy_sol_types::{token::WordToken, SolEvent, TopicList};

@@ -1,6 +1,19 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Solidity ABIs for Rust types.
+//!
+//! Alloy provides a 1-way mapping of Solidity types to Rust ones via [`SolType`].
+//! This module provides the inverse mapping, forming a bijective, 2-way relationship between Rust and Solidity.
+//!
+//! This allows the [`prelude`][prelude] macros to generate method selectors, export
+//! Solidity interfaces, and otherwise facilitate interop between Rust and Solidity contracts.
+//!
+//! Notably, the SDK treats `Vec<u8>` as a Solidity `uint8[]`.
+//! For a Solidity `bytes`, see [`Bytes`].
+//!
+//! [prelude]: crate::prelude
+
 use crate::{storage::TopLevelStorage, ArbResult};
 use alloy_sol_types::SolType;
 use core::borrow::BorrowMut;

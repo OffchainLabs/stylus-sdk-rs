@@ -1,6 +1,8 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Call other contracts.
+
 use crate::storage::TopLevelStorage;
 use alloy_primitives::{Address, U256};
 use core::sync::atomic::{AtomicBool, Ordering};
