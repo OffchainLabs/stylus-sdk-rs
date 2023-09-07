@@ -12,7 +12,7 @@ use core::ops::{Deref, DerefMut};
 
 /// Represents a [`bytes`] in Solidity.
 ///
-/// [`bytes`]: https://docs.soliditylang.org/en/v0.8.21/types.html#bytes-and-string-as-arrays
+/// [`bytes`]: https://docs.soliditylang.org/en/latest/types.html#bytes-and-string-as-arrays
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Bytes(pub Vec<u8>);
 
@@ -54,6 +54,7 @@ impl AsMut<[u8]> for Bytes {
     }
 }
 
+/// Provides a corresponding [`SolType`] for an abi [`Bytes`].
 pub struct BytesSolType;
 
 impl SolType for BytesSolType {

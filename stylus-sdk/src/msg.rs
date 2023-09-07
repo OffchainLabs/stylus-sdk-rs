@@ -1,6 +1,17 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! VM affordances for inspecting the current call.
+//!
+//! See also [`block`](crate::block), [`contract`](crate::contract), [`evm`](crate::evm),
+//! [`msg`](crate::msg), and [`tx`](crate::tx).
+//!
+//! ```no_run
+//! use stylus_sdk::msg;
+//!
+//! let call_value = msg::value();
+//! ```
+
 use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::{Address, B256, U256};
 

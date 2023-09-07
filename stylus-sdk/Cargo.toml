@@ -38,5 +38,6 @@ all-features = true
 default = ["storage-cache"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi"]
 debug = []
-storage-cache = ["fnv"]
 docs = []
+hostio = []
+storage-cache = ["fnv", "stylus-proc/storage-cache"]

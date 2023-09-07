@@ -26,8 +26,13 @@ pub mod prelude;
 pub mod storage;
 pub mod tx;
 pub mod types;
-pub mod util;
 
+mod util;
+
+#[cfg(feature = "hostio")]
+pub mod hostio;
+
+#[cfg(not(feature = "hostio"))]
 mod hostio;
 
 /// Represents a contract invocation outcome.

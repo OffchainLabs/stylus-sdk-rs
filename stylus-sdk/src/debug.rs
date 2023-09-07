@@ -1,6 +1,16 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Debug-only items for printing to the console.
+//!
+//! ```no_run
+//! use stylus_sdk::console;
+//! use stylus_sdk::alloy_primitives::address;
+//!
+//! let arbinaut = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
+//! console!("Gm {}", arbinaut); // prints nothing in production
+//! ```
+
 /// Prints a UTF-8 encoded string to the console. Only available in debug mode.
 #[cfg(feature = "debug")]
 pub fn console_log<T: AsRef<str>>(text: T) {

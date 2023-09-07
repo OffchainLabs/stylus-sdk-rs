@@ -1,6 +1,13 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! Traits for exporting Solidity interfaces.
+//!
+//! The contents of this module are imported when the `export-abi` feature flag is enabled,
+//! which happens automatically during [`cargo stylus export-abi`][cargo].
+//!
+//! [cargo]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
+
 use core::{fmt, marker::PhantomData};
 use lazy_static::lazy_static;
 use regex::Regex;

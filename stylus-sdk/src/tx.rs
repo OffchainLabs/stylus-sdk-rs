@@ -1,6 +1,17 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+//! VM affordances for inspecting the current tx.
+//!
+//! See also [`block`](crate::block), [`contract`](crate::contract), [`crypto`](crate::crypto),
+//! [`evm`](crate::evm), and [`msg`](crate::msg).
+//!
+//! ```no_run
+//! use stylus_sdk::tx;
+//!
+//! let gas_price = tx::gas_price();
+//! ```
+
 use crate::hostio::{self, wrap_hostio};
 use alloy_primitives::{Address, B256, U256};
 

@@ -10,6 +10,11 @@ use alloy_sol_types::{
     Encodable, SolType, Word,
 };
 
+/// Provides a corresponding [`SolType`] for [`FixedBytes`].
+///
+/// This type will be removed after an upcoming [`FixedBytes refactor`][refactor] in Alloy.
+///
+/// [refactor]: https://github.com/alloy-rs/core/issues/259
 pub struct FixedBytesSolType<const N: usize>;
 
 impl<const N: usize> FixedBytesSolType<N> {

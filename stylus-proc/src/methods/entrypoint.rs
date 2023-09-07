@@ -59,6 +59,14 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
         _ => error!(input, "not a struct or fn"),
     };
 
+    #[cfg(feature = "storage-cache")]
+    let flush_cache = quote! {
+        stylus_sdk::storage::StorageCache::flush();
+    };
+
+    #[cfg(not(feature = "storage-cache"))]
+    let flush_cache = quote! {};
+
     output.extend(quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
@@ -80,7 +88,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            stylus_sdk::storage::StorageCache::flush();
+            #flush_cache
             stylus_sdk::contract::output(&data);
             status
         }
