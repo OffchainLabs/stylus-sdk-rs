@@ -31,6 +31,9 @@ stylus-proc.workspace = true
 paste.workspace = true
 sha3.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [features]
 default = ["storage-cache"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi"]
