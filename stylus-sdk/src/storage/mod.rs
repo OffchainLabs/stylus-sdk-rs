@@ -8,7 +8,7 @@ use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
-pub use map::{StorageMap, StorageKey};
+pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
     TopLevelStorage,
