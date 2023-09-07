@@ -8,8 +8,9 @@
 //!
 //! ```no_run
 //! use stylus_sdk::crypto;
+//! use stylus_sdk::alloy_primitives::address;
 //!
-//! let preimage = hex::decode("361594F5429D23ECE0A88E4fBE529E1c49D524d8").unwrap();
+//! let preimage = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
 //! let hash = crypto::keccak(&preimage);
 //! ```
 
