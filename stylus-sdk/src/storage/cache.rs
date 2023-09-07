@@ -11,8 +11,10 @@ use lazy_static::lazy_static;
 ///
 /// This is intended for most use cases. However, one may opt-out
 /// of this behavior by turning off default features and not enabling
-/// the `storage-cache` feature. Doing so will provide the [`EagerStorage`] type
-/// for managing state in the absence of caching.
+/// the `storage-cache` feature. Doing so will provide the [`EagerStorage`]
+/// type for managing state in the absence of caching.
+///
+/// [`EagerStorage`]: super::EagerStorage
 pub struct StorageCache(HashMap<U256, StorageWord>);
 
 /// Represents the EVM word at a given key.

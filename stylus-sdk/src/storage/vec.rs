@@ -61,6 +61,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
+    ///
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
     pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
@@ -69,6 +70,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Gets a mutable accessor to the element at a given index, if it exists.
+    ///
     /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
     pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
@@ -112,7 +114,7 @@ impl<S: StorageType> StorageVec<S> {
         Some(store.load_mut())
     }
 
-    /// Like [`std::Vec::push`], but returns a mutable accessor to the new slot.
+    /// Like [`std::vec::Vec::push`], but returns a mutable accessor to the new slot.
     /// This enables pushing elements without constructing them first.
     ///
     /// # Example
@@ -151,6 +153,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Shortens the vector, keeping the first `len` elements.
+    ///
     /// Note: this method does not erase any underlying storage.
     pub fn truncate(&mut self, len: usize) {
         if len < self.len() {
@@ -190,6 +193,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     }
 
     /// Removes and returns the last element of the vector, if it exists.
+    ///
     /// Note: the underlying storage slot is erased when all elements in a word are freed.
     pub fn pop(&mut self) -> Option<S::Wraps<'a>> {
         let store = unsafe { self.shrink()?.into_raw() };

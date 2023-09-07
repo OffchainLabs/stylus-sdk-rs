@@ -13,7 +13,7 @@ use derivative::Derivative;
 /// Users can implement this trait to add novel data structures to their contract definitions.
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
 ///
-/// [`the same way`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html
+/// [`the same way`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
 pub trait StorageType: Sized {
     /// For primative types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
@@ -31,10 +31,11 @@ pub trait StorageType: Sized {
     /// set this to 32 and return the full size in [`StorageType::new`].
     ///
     /// For implementing collections, see how Solidity slots are assigned for [`Arrays and Maps`] and their
-    /// Stylus equivalents [`StorageVec`] and [`StorageMap`].
-    /// For multi-word, but still-fixed-size types, see the implementations for structs and [`StorageArray`].
+    /// Stylus equivalents [`StorageVec`](super::StorageVec) and [`StorageMap`](super::StorageMap).
+    /// For multi-word, but still fixed-size types, see the implementations for structs
+    /// and [`StorageArray`](super::StorageArray).
     ///
-    /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/v0.8.15/internals/layout_in_storage.html#mappings-and-dynamic-arrays
+    /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html#mappings-and-dynamic-arrays
     const SLOT_BYTES: usize = 32;
 
     /// The number of words this type must fill. For primitives this is always 0.
@@ -66,7 +67,7 @@ pub trait StorageType: Sized {
 }
 
 /// Trait for accessors that can be used to completely erase their underlying value.
-/// Note that some collections, like [`StorageMap`], don't implement this trait.
+/// Note that some collections, like [`StorageMap`](super::StorageMap), don't implement this trait.
 pub trait Erase: StorageType {
     /// Erase the value from persistent storage.
     fn erase(&mut self);
@@ -174,7 +175,8 @@ impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
 }
 
 /// Trait for managing access to persistent storage.
-/// Notable implementations include the [`StorageCache`] and [`EagerStorage`] types.
+/// Notable implementations include the [`StorageCache`](super::StorageCache)
+/// and [`EagerStorage`](super::EagerStorage) types.
 pub trait GlobalStorage {
     /// Retrieves `N ≤ 32` bytes from persistent storage, performing [`SLOAD`]'s only as needed.
     /// The bytes are read from slot `key`, starting `offset` bytes from the left.

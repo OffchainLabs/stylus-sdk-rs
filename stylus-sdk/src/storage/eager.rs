@@ -10,6 +10,8 @@ use alloy_primitives::{B256, U256};
 /// `storage-cache` feature flag, which will provide the [`StorageCache`] type.
 ///
 /// Note that individual primitive types may still include efficient caching.
+///
+/// [`StorageCache`]: super::StorageCache
 pub struct EagerStorage;
 
 impl GlobalStorage for EagerStorage {
