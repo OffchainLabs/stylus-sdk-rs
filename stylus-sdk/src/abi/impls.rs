@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{AbiType, ConstString};
+use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, Signed, Uint};
 use alloy_sol_types::sol_data::{self, IntBitCount, SupportedInt};
 

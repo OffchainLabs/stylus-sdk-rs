@@ -7,6 +7,7 @@ use crate::{
     util::evm_padded_length,
 };
 use alloc::borrow::Cow;
+use alloc::vec::Vec;
 use alloy_sol_types::{token::PackedSeqToken, Encodable, SolType};
 use core::ops::{Deref, DerefMut};
 

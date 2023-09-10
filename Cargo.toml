@@ -3,17 +3,18 @@ members = ["stylus-sdk", "stylus-proc"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.4"
+version = "0.3.0"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
+rust-version = "1.71.0"
 
 [workspace.dependencies]
 alloy-primitives = { version = "0.3.1", default-features = false , features = ["native-keccak"] }
 alloy-sol-types = { version = "0.3.1", default-features = false }
-derivative = { version = "2.2.0", use_core = true }
+derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"
 lazy_static = "1.4.0"
@@ -33,4 +34,4 @@ convert_case = "0.6.0"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
-stylus-proc = { path = "stylus-proc", version = "0.2.0" }
+stylus-proc = { path = "stylus-proc", version = "0.3.0" }

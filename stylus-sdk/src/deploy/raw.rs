@@ -6,6 +6,7 @@ use crate::{
     contract::{read_return_data, RETURN_DATA_LEN},
     hostio,
 };
+use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
 #[cfg(feature = "storage-cache")]

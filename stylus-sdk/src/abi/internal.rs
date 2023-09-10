@@ -5,6 +5,7 @@
 //! Most users shouldn't call these.
 
 use crate::{abi::AbiType, console, msg};
+use alloc::{vec, vec::Vec};
 use alloy_primitives::U256;
 use alloy_sol_types::SolType;
 use core::fmt;

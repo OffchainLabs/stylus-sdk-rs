@@ -13,6 +13,7 @@
 //! ```
 
 use crate::hostio::{self, wrap_hostio};
+use alloc::{vec, vec::Vec};
 use alloy_primitives::B256;
 use alloy_sol_types::{token::WordToken, SolEvent, TopicList};
 

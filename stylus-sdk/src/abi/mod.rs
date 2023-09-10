@@ -43,6 +43,7 @@ pub trait Router<S>
 where
     S: TopLevelStorage + BorrowMut<Self::Storage>,
 {
+    /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;
 
     /// Tries to find and execute a method for the given selector, returning `None` if none is found.
@@ -56,6 +57,7 @@ where
 ///
 /// Additionally, `AbiType` provides a const equivalent to alloy's [`SolType::sol_type_name`].
 pub trait AbiType {
+    /// The associated Solidity type.
     type SolType: SolType<RustType = Self>;
 
     /// Equivalent to [`SolType::sol_type_name`], but `const`.

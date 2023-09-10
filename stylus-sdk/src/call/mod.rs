@@ -2,8 +2,15 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Call other contracts.
+//!
+//! There are two primary ways to make calls to other contracts via the Stylus SDK.
+//! - [`CallContext`] for richly-typed calls.
+//! - The `unsafe` [`RawCall`] for `unsafe`, bytes-in bytes-out calls.
+//!
+//! Additional helpers exist for specific use-cases like [`transfer_eth`].
 
 use crate::storage::TopLevelStorage;
+use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 use core::sync::atomic::{AtomicBool, Ordering};
 

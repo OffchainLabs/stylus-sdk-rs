@@ -4,6 +4,7 @@
 use crate::crypto;
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
+use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
 
@@ -122,8 +123,10 @@ where
 }
 
 /// Trait that allows types to be the key of a [`StorageMap`].
+///
 /// Note: the assignment of slots must be injective.
 pub trait StorageKey {
+    /// Assigns a slot based on the key and where the map is rooted.
     fn to_slot(&self, root: B256) -> U256;
 }
 

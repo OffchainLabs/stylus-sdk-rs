@@ -11,6 +11,8 @@ use alloy_primitives::{Address, B256, U256};
 use crate::storage::StorageCache;
 
 /// Mechanism for performing raw calls to other contracts.
+///
+/// For safe calls, see [`Context`](super::Context).
 #[derive(Clone, Default)]
 #[must_use]
 pub struct RawCall {
@@ -61,7 +63,23 @@ impl Default for RustVec {
 }
 
 impl RawCall {
-    /// Begin configuring the raw call.
+    /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`] works.
+    ///
+    /// ```no_run
+    /// use stylus_sdk::call::RawCall;
+    /// use stylus_sdk::{alloy_primitives::address, hex};
+    ///
+    /// let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
+    /// let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
+    ///
+    /// unsafe {
+    ///     let result = RawCall::new()       // configure a call
+    ///         .gas(2100)                    // supply 2100 gas
+    ///         .limit_return_data(0, 32)     // only read the first 32 bytes back
+    ///         .flush_storage_cache()        // flush the storage cache before the call
+    ///         .call(contract, calldata);    // do the call
+    /// }
+    /// ```
     pub fn new() -> Self {
         Default::default()
     }

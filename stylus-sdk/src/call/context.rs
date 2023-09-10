@@ -5,8 +5,7 @@ use super::{CallContext, MutatingCallContext, NonPayableCallContext, StaticCallC
 use crate::storage::TopLevelStorage;
 use alloy_primitives::U256;
 
-/// Type enabling configurable calls to other contracts.
-/// Users should rarely implement this trait outside of proc macros.
+/// Esables configurable calls to other contracts.
 #[derive(Debug, Clone)]
 pub struct Context<S, const HAS_VALUE: bool = false> {
     gas: u64,
@@ -15,6 +14,33 @@ pub struct Context<S, const HAS_VALUE: bool = false> {
 }
 
 impl Context<(), false> {
+    /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and [`std::fs::OpenOptions`] work.
+    ///
+    /// ```no_run
+    /// use stylus_sdk::call::{Context, Error};
+    /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
+    /// extern crate alloc;
+    ///
+    /// sol_interface! {
+    ///     interface IService {
+    ///         function makePayment(address user) payable returns (string);
+    ///     }
+    /// }
+    ///
+    /// pub fn do_call(
+    ///     storage: &mut impl TopLevelStorage,  // can be generic, but often just &mut self
+    ///     account: IService,
+    ///     user: Address,
+    /// ) -> Result<String, Error> {
+    ///
+    ///     let context = Context::new()
+    ///         .mutate(storage)             // make the call mutable (usually one passes self)
+    ///         .gas(evm::gas_left() / 2)    // limit to half the gas left
+    ///         .value(msg::value());        // set the callvalue
+    ///
+    ///     account.make_payment(context, user)  // note the snake case
+    /// }
+    /// ```
     pub fn new() -> Self {
         Self {
             gas: u64::MAX,
