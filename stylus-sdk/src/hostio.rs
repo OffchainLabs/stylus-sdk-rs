@@ -23,7 +23,7 @@
 #[link(wasm_import_module = "vm_hooks")]
 extern "C" {
     /// Gets the ETH balance in wei of the account at the given address.
-    /// The semantics are equivalent to that of the EVM’s [`BALANCE`] opcode.
+    /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
     ///
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);

@@ -5,7 +5,7 @@ use super::{CallContext, MutatingCallContext, NonPayableCallContext, StaticCallC
 use crate::storage::TopLevelStorage;
 use alloy_primitives::U256;
 
-/// Esables configurable calls to other contracts.
+/// Enables configurable calls to other contracts.
 #[derive(Debug, Clone)]
 pub struct Context<S, const HAS_VALUE: bool = false> {
     gas: u64,
@@ -57,7 +57,7 @@ impl Default for Context<(), false> {
 }
 
 impl<S, const HAS_VALUE: bool> Context<S, HAS_VALUE> {
-    /// Assigns a [`TopLevelStorage`] so that mutatable methods can be called.
+    /// Assigns a [`TopLevelStorage`] so that mutable methods can be called.
     /// Note: enabling mutation will prevent calls to `pure` and `view` methods.
     pub fn mutate<NewS: TopLevelStorage>(
         self,

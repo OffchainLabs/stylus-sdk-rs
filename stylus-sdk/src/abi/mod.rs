@@ -7,7 +7,7 @@
 //! This module provides the inverse mapping, forming a bijective, 2-way relationship between Rust and Solidity.
 //!
 //! This allows the [`prelude`][prelude] macros to generate method selectors, export
-//! Solidity interfaces, and otherwise facilitate interop between Rust and Solidity contracts.
+//! Solidity interfaces, and otherwise facilitate inter-op between Rust and Solidity contracts.
 //!
 //! Notably, the SDK treats `Vec<u8>` as a Solidity `uint8[]`.
 //! For a Solidity `bytes`, see [`Bytes`].
@@ -55,7 +55,7 @@ where
 /// Provides a mapping of Rust to Solidity types.
 /// When combined with alloy, which provides the reverse direction, a two-way relationship is formed.
 ///
-/// Additionally, `AbiType` provides a const equivalent to alloy's [`SolType::sol_type_name`].
+/// Additionally, `AbiType` provides a `const` equivalent to alloy's [`SolType::sol_type_name`].
 pub trait AbiType {
     /// The associated Solidity type.
     type SolType: SolType<RustType = Self>;

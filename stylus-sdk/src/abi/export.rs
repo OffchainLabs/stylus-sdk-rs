@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
-/// This is auto-derived via the [`external`] marco when the `export-abi` feature is enabled.
+/// This is auto-derived via the [`external`] macro when the `export-abi` feature is enabled.
 ///
 /// [`external`]: stylus-proc::external
 pub trait GenerateAbi {

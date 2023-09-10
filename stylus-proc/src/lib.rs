@@ -92,11 +92,11 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// The above will expand to equivalent definitions in Rust, with each structure implementing the [`StorageType`]
 /// `trait`. Many contracts, like [the ERC 20 example][erc20], do exactly this.
 ///
-/// Because the layout is identical to [Solidity’s][solidity], existing Solidity smart contracts can
+/// Because the layout is identical to [Solidity's][solidity], existing Solidity smart contracts can
 /// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type definitions.
 ///
 /// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling might use.
-/// Most developers don’t need to worry about this though and can freely order their types when working on a
+/// Most developers don't need to worry about this though and can freely order their types when working on a
 /// Rust contract from scratch.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
@@ -153,7 +153,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 
 /// Some [`StorageType`] values implement [`Erase`], which provides an [`erase()`] method for clearing state.
 /// [The Stylus SDK][sdk] implements [`Erase`] for all primitives, and for vectors of primitives, but not for maps.
-/// This is because a Solidity mapping does not provide iteration, and so it’s generally impossible to
+/// This is because a Solidity mapping does not provide iteration, and so it's generally impossible to
 /// know which slots to clear.
 ///
 /// Structs may also be [`Erase`] if all of the fields are. `#[derive(Erase)]`
@@ -175,7 +175,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// You can also implement [`Erase`] manually if desired. Note that the reason we care about [`Erase`]
-/// at all is that you get storage refunds when clearing state, lowering fees. There’s also
+/// at all is that you get storage refunds when clearing state, lowering fees. There's also
 /// minor implications for storage patterns using `unsafe` Rust.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
@@ -191,7 +191,7 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 }
 /// Defines the entrypoint, which is where Stylus execution begins.
 /// Without it the contract will fail to pass [`cargo stylus check`][check].
-/// Most commonly this macro is used to annotate the top level storage struct.
+/// Most commonly this macro is used to annotate the top level storage `struct`.
 ///
 /// ```ignore
 /// sol_storage! {
@@ -214,7 +214,7 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 ///
 /// A less common usage of [`#[entrypoint]`][entrypoint] is for low-level, bytes-in bytes-out programming.
 /// When applied to a free-standing function, a different way of writing smart contracts becomes possible,
-/// wherein the Stylus SDK’s macros and storage types are entirely optional.
+/// wherein the Stylus SDK's macros and storage types are entirely optional.
 ///
 /// ```ignore
 /// #[entrypoint]
@@ -233,7 +233,7 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 /// #[entrypoint(allow_reentrancy = true)]
 /// ```
 ///
-/// This is dangerous, and should be done only after careful review — ideally by 3rd-party auditors.
+/// This is dangerous, and should be done only after careful review -- ideally by 3rd-party auditors.
 /// Numerous exploits and hacks have in Web3 are attributable to developers misusing or not fully
 /// understanding reentrant patterns.
 ///
@@ -246,7 +246,7 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 ///
 /// The [`#[entrypoint]`][entrypoint] macro will automatically implement the [`TopLevelStorage`] `trait`
 /// for the annotated `struct`. The single type implementing [`TopLevelStorage`] is special in that
-/// mutable access to it represents mutable access to the entire program’s state.
+/// mutable access to it represents mutable access to the entire program's state.
 /// This has implications for calls via [`sol_interface`].
 ///
 /// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
@@ -264,7 +264,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// in different programming languages are fully interoperable. You can even automatically export your
 /// Rust contract as a Solidity interface so that others can add it to their Solidity projects.
 ///
-/// This macro makes methods “external” so that other contracts can call them by implementing the [`Router`] trait.
+/// This macro makes methods "external" so that other contracts can call them by implementing the [`Router`] trait.
 ///
 /// ```ignore
 /// #[external]
@@ -284,7 +284,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// Note that, currently, all external methods must return a [`Result`] with the error type [`Vec<u8>`].
-/// We intend to change this very soon. In the current model, [`Vec<u8>`] becomes the program’s revert data,
+/// We intend to change this very soon. In the current model, [`Vec<u8>`] becomes the program's revert data,
 /// which we intend to both make optional and richly typed.
 ///
 /// # [`#[payable]`][payable]
@@ -302,17 +302,17 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// In the above, [msg::value][value] is the amount of ETH passed to the contract in wei, which may be used
-/// to pay for something depending on the contract’s business logic. Note that you have to annotate the method
+/// to pay for something depending on the contract's business logic. Note that you have to annotate the method
 /// with [`#[payable]`][payable], or else calls to it will revert. This is required as a safety measure
 /// to prevent users losing funds to methods that didn't intend to accept ether.
 ///
 /// # [`#[pure]`][pure] [`#[view]`][view], and #[write]
 ///
 /// For aesthetics, these additional purity attributes exist to clarify that a method is [`pure`][pure],
-/// [`view`][view], or `write`. They aren’t necessary though, since the [`#[external]`][external] macro
+/// [`view`][view], or `write`. They aren't necessary though, since the [`#[external]`][external] macro
 /// can figure purity out for you based on the types of the arguments.
 ///
-/// For example, if a method includes an `&self`, it’s at least [`view`][view]. If you’d prefer it be write,
+/// For example, if a method includes an `&self`, it's at least [`view`][view]. If you'd prefer it be write,
 /// applying `#[write]` will make it so. Note however that the reverse is not allowed. An `&mut self`
 /// method cannot be made [`#[view]`][view], since it might mutate state.
 ///
@@ -345,7 +345,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// it will then try the `Erc20`. Only after trying everything `Token` inherits will the call revert.
 ///
 /// Note that because methods are checked in that order, if both implement the same method, the one in `Token`
-/// will override the one in `Erc20`, which won’t be callable. This allows for patterns where the developer
+/// will override the one in `Erc20`, which won't be callable. This allows for patterns where the developer
 /// imports a crate implementing a standard, like ERC 20, and then adds or overrides just the methods they
 /// want to without modifying the imported `Erc20` type.
 ///
@@ -373,7 +373,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// In the future we plan to simplify the SDK so that [`Borrow`][Borrow] isn’t needed and so that
+/// In the future we plan to simplify the SDK so that [`Borrow`][Borrow] isn't needed and so that
 /// [`Router`] composition is more configurable. The motivation for this becomes clearer in complex
 /// cases of multi-level inheritance, which we intend to improve.
 ///
@@ -392,7 +392,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// Note that because the above actually generates a `main` function that you need to run, the target
-/// can’t be `wasm32-unknown-unknown` like normal. Instead you’ll need to pass in your target triple,
+/// can't be `wasm32-unknown-unknown` like normal. Instead you'll need to pass in your target triple,
 /// which cargo stylus figures out for you. This `main` function is also why the following commonly
 /// appears in the `main.rs` file of Stylus contracts.
 ///
@@ -400,8 +400,8 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// #![cfg_attr(not(feature = "export-abi"), no_main)]
 /// ```
 ///
-/// Here’s an example output. Observe that the method names change from Rust’s `snake_case` to Solidity’s
-/// `camelCase`. For compatibility reasons, onchain method selectors are always `camelCase`. We’ll provide
+/// Here's an example output. Observe that the method names change from Rust's `snake_case` to Solidity's
+/// `camelCase`. For compatibility reasons, onchain method selectors are always `camelCase`. We'll provide
 /// the ability to customize selectors very soon. Note too that you can use argument names like "address"
 /// without fear. The SDK will prepend an `_` when necessary.
 ///

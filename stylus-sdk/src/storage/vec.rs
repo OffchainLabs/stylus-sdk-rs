@@ -178,7 +178,7 @@ impl<S: StorageType> StorageVec<S> {
         32 / S::SLOT_BYTES
     }
 
-    /// Determines where in storage indices start. Could be made const in the future.
+    /// Determines where in storage indices start. Could be made `const` in the future.
     fn base(&self) -> &U256 {
         self.base
             .get_or_init(|| crypto::keccak(self.slot.to_be_bytes::<32>()).into())

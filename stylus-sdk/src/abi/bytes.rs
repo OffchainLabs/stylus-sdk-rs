@@ -55,7 +55,7 @@ impl AsMut<[u8]> for Bytes {
     }
 }
 
-/// Provides a corresponding [`SolType`] for an abi [`Bytes`].
+/// Provides a corresponding [`SolType`] for an [`abi`] [`Bytes`].
 pub struct BytesSolType;
 
 impl SolType for BytesSolType {

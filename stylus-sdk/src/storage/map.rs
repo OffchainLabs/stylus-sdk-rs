@@ -75,7 +75,7 @@ where
     K: StorageKey,
     V: SimpleStorageType<'a>,
 {
-    /// Sets the element at a given key, overwritting what may have been there.
+    /// Sets the element at a given key, overwriting what may have been there.
     pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
         let mut store = self.setter(key);
         store.set_by_wrapped(value);
