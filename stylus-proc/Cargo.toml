@@ -29,7 +29,7 @@ storage-cache = []
 reentrant = []
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["export-abi", "storage-cache"]
 
 [lib]
 proc-macro = true

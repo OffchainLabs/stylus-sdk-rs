@@ -91,7 +91,7 @@ impl RawCall {
     ///     let result = RawCall::new()       // configure a call
     ///         .gas(2100)                    // supply 2100 gas
     ///         .limit_return_data(0, 32)     // only read the first 32 bytes back
-    ///         .flush_storage_cache()        // flush the storage cache before the call
+    ///     //  .flush_storage_cache()        // flush the storage cache before the call (available in `reentrant`)
     ///         .call(contract, calldata);    // do the call
     /// }
     /// ```

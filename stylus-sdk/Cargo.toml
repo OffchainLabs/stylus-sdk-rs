@@ -33,7 +33,7 @@ paste.workspace = true
 sha3.workspace = true
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["default", "docs", "debug", "export-abi"]
 
 [features]
 default = ["storage-cache"]
