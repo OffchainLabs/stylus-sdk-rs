@@ -6,25 +6,28 @@ use crate::{
     hostio, tx, ArbResult,
 };
 use alloy_primitives::{Address, B256, U256};
+use cfg_if::cfg_if;
 
 #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
 use crate::storage::StorageCache;
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
-        #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
-        $(#[$meta])*
-        pub unsafe fn $name $($rest)*
-
-        #[cfg(not(all(feature = "storage-cache", feature = "reentrant")))]
-        $(#[$meta])*
-        pub fn $name $($rest)*
+        cfg_if! {
+            if #[cfg(all(feature = "storage-cache", feature = "reentrant"))] {
+                $(#[$meta])*
+                pub unsafe fn $name $($rest)*
+            } else {
+                $(#[$meta])*
+                pub fn $name $($rest)*
+            }
+        }
     };
 }
 
 /// Mechanism for performing raw calls to other contracts.
 ///
-/// For safe calls, see [`Context`](super::Context).
+/// For safe calls, see [`Call`](super::Call).
 #[derive(Clone, Default)]
 #[must_use]
 pub struct RawCall {
@@ -156,14 +159,20 @@ impl RawCall {
     }
 
     /// Write all cached values to persistent storage before the call.
-    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    #[cfg(any(
+        all(feature = "storage-cache", feature = "reentrant"),
+        feature = "docs"
+    ))]
     pub fn flush_storage_cache(mut self) -> Self {
         self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 
     /// Flush and clear the storage cache before the call.
-    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    #[cfg(any(
+        all(feature = "storage-cache", feature = "reentrant"),
+        feature = "docs"
+    ))]
     pub fn clear_storage_cache(mut self) -> Self {
         self.cache_policy = CachePolicy::Clear;
         self
@@ -179,6 +188,9 @@ impl RawCall {
         ///
         /// For extra flexibility, this method does not clear the global storage cache by default.
         /// See [`flush_storage_cache`] and [`clear_storage_cache`] for more information.
+        ///
+        /// [`flush_storage_cache`]: RawCall::flush_storage_cache
+        /// [`clear_storage_cache`]: RawCall::clear_storage_cache
         pub fn call(self, contract: Address, calldata: &[u8]) -> ArbResult {
             let mut outs_len = 0;
             let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule

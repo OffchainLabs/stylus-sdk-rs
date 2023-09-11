@@ -130,22 +130,96 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// The above will define `IService` and `ITree` for calling the methods of the two contracts.
 ///
-/// For example, `IService` will have a `get_constant` method that returns a [`B256`].
+/// For example, `IService` will have a `make_payment` method that accepts an [`Address`] and returns a [`B256`].
 ///
 /// ```ignore
-/// #[external]
-/// impl Contract {
-///     pub fn do_call(&self, service: IService) -> Result<B256, Vec<u8>> {
-///         Ok(service.get_constant()?);
-///     }
+/// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
+///     let config = Call::new()
+///         .gas(evm::gas_left() / 2)       // limit to half the gas left
+///         .value(msg::value());           // set the callvalue
+///
+///     account.make_payment(config, user)  // note the snake case
 /// }
 /// ```
 ///
 /// Observe the casing change. [`sol_interface!`] computes the selector based on the exact name passed in,
 /// which should almost always be `CamelCase`. For aesthetics, the rust functions will instead use `snake_case`.
 ///
+/// # Reentrant calls
+///
+/// Contracts that opt into reentrancy via the `reentrant` feature flag require extra care.
+/// When the `storage-cache` feature is enabled, cross-contract calls must [`flush`] or [`clear`]
+/// the [`StorageCache`] to safeguard state. This happens automatically via the type system.
+///
+/// ```ignore
+/// sol_interface! {
+///     interface IMethods {
+///         function pureFoo() pure;
+///         function viewFoo() view;
+///         function writeFoo();
+///         function payableFoo() payable;
+///     }
+/// }
+///
+/// #[external]
+/// impl Contract {
+///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
+///         Ok(methods.pure_foo(self)?)    // `pure` methods might lie about not being `view`
+///     }
+///
+///     pub fn call_view(&self, methods: IMethods) -> Result<(), Vec<u8>> {
+///         Ok(methods.view_foo(self)?)
+///     }
+///
+///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
+///         methods.view_foo(self)?;       // allows `pure` and `view` methods too
+///         Ok(methods.write_foo(self)?)
+///     }
+///
+///     #[payable]
+///     pub fn call_payable(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
+///         methods.write_foo(Call::new_in(self))?;   // these are the same
+///         Ok(methods.payable_foo(self)?)            // ------------------
+///     }
+/// }
+/// ```
+///
+/// In the above, we're able to pass `&self` and `&mut self` because `Contract` implements
+/// [`TopLevelStorage`], which means that a reference to it entails access to the entirity of
+/// the contract's state. This is the reason it is sound to make a call, since it ensures all
+/// cached values are invalidated and/or persisted to state at the right time.
+///
+/// When writing Stylus libraries, a type might not be [`TopLevelStorage`] and therefore
+/// `&self` or `&mut self` won't work. Building a [`Call`] from a generic parameter is the usual solution.
+///
+/// ```ignore
+/// pub fn do_call(
+///     storage: &mut impl TopLevelStorage,  // can be generic, but often just &mut self
+///     account: IService,                   // serializes as an Address
+///     user: Address,
+/// ) -> Result<String, Error> {
+///
+///     let config = Call::new_in(storage)
+///         .gas(evm::gas_left() / 2)        // limit to half the gas left
+///         .value(msg::value());            // set the callvalue
+///
+///     account.make_payment(config, user)   // note the snake case
+/// }
+/// ```
+///
+/// Note that in the context of an [`#[external]`][external] call, the `&mut impl` argument will correctly
+/// distinguish the method as being `write` or `payable`. This means you can write library code that will
+/// work regardless of whether the `reentrant` feature flag is enabled.
+///
 /// [sol_interface]: macro@sol_interface
+/// [external]: macro@external
+/// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
+/// [`StorageCache`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/struct.StorageCache.html
+/// [`flush`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/struct.StorageCache.html#method.flush
+/// [`clear`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/struct.StorageCache.html#method.clear
+/// [`Address`]: https://docs.rs/alloy-primitives/latest/alloy_primitives/struct.Address.html
 /// [`B256`]: https://docs.rs/alloy-primitives/latest/alloy_primitives/aliases/type.B256.html
+/// [`Call`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/call/struct.Call.html
 #[proc_macro]
 pub fn sol_interface(input: TokenStream) -> TokenStream {
     calls::sol_interface(input)
@@ -189,6 +263,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 pub fn derive_erase(input: TokenStream) -> TokenStream {
     storage::derive_erase(input)
 }
+
 /// Defines the entrypoint, which is where Stylus execution begins.
 /// Without it the contract will fail to pass [`cargo stylus check`][check].
 /// Most commonly this macro is used to annotate the top level storage `struct`.
@@ -227,10 +302,10 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 ///
 /// If a contract calls another that then calls the first, it is said to be reentrant. By default,
 /// all Stylus programs revert when this happens. However, you can opt out of this behavior by
-/// customizing your entrypoint.
+/// recompiling with the `reentrant` flag.
 ///
-/// ```ignore
-/// #[entrypoint(allow_reentrancy = true)]
+/// ```toml
+/// stylus_sdk = { version = "0.3.0", features = ["reentrant"] }
 /// ```
 ///
 /// This is dangerous, and should be done only after careful review -- ideally by 3rd-party auditors.

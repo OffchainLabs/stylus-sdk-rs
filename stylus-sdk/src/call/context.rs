@@ -44,19 +44,22 @@ where
     ///     user: Address,
     /// ) -> Result<String, Error> {
     ///
-    ///     let context = Call::new_in(storage)
+    ///     let config = Call::new_in(storage)
     ///         .gas(evm::gas_left() / 2)        // limit to half the gas left
     ///         .value(msg::value());            // set the callvalue
     ///
-    ///     account.make_payment(context, user)  // note the snake case
+    ///     account.make_payment(config, user)   // note the snake case
     /// }
     /// ```
     ///
     /// Projects that opt out of the [`StorageCache`] by disabling the `storage-cache` feature
     /// may ignore this method.
     ///
-    /// [`flush`]: StorageCache::flush
-    /// [`clear`]: StorageCache::clear
+    /// [`StorageCache`]: crate::storage::StorageCache
+    /// [`flush`]: crate::storage::StorageCache::flush
+    /// [`clear`]: crate::storage::StorageCache::clear
+    /// [`new_in`]: Call::new_in
+    /// [`new`]: Call::new
     pub fn new_in(storage: &'a mut S) -> Self {
         Self {
             gas: u64::MAX,
@@ -87,11 +90,11 @@ impl Call<(), false> {
     /// }
     ///
     /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
-    ///     let context = Call::new()
-    ///         .gas(evm::gas_left() / 2)        // limit to half the gas left
-    ///         .value(msg::value());            // set the callvalue
+    ///     let config = Call::new()
+    ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
+    ///         .value(msg::value());           // set the callvalue
     ///
-    ///     account.make_payment(context, user)  // note the snake case
+    ///     account.make_payment(config, user)  // note the snake case
     /// }
     /// ```
     pub fn new() -> Self {
@@ -127,7 +130,7 @@ impl<S, const HAS_VALUE: bool> CallContext for Call<S, HAS_VALUE> {
     }
 }
 
-// allow &self to be a `pure` and `static` call context
+// allow &self as a context
 impl<'a, T> CallContext for &'a T
 where
     T: TopLevelStorage,
@@ -137,9 +140,7 @@ where
     }
 }
 
-impl<'a, T> StaticCallContext for &'a T where T: TopLevelStorage {}
-
-// allow &mut self to be a non-static call context
+// allow &mut self as a context
 impl<T> CallContext for &mut T
 where
     T: TopLevelStorage,
@@ -149,6 +150,13 @@ where
     }
 }
 
+// allow &self to be a `pure` and `static` call context
+impl<'a, T> StaticCallContext for &'a T where T: TopLevelStorage {}
+
+// allow &mut self to be a `pure` and `static` call context
+impl<'a, T> StaticCallContext for &'a mut T where T: TopLevelStorage {}
+
+// allow &mut self to be a `write` and `payable` call context
 unsafe impl<T> MutatingCallContext for &mut T
 where
     T: TopLevelStorage,
@@ -158,13 +166,16 @@ where
     }
 }
 
+// allow &mut self to be a `write`-only call context
 impl<T> NonPayableCallContext for &mut T where T: TopLevelStorage {}
 
 cfg_if! {
     if #[cfg(all(feature = "storage-cache", feature = "reentrant"))] {
         // The following impls safeguard state during reentrancy scenarios
 
-        impl<S: TopLevelStorage> StaticCallContext for Call<S, false> {}
+        impl<S: TopLevelStorage> StaticCallContext for Call<&S, false> {}
+
+        impl<S: TopLevelStorage> StaticCallContext for Call<&mut S, false> {}
 
         impl<S: TopLevelStorage> NonPayableCallContext for Call<&mut S, false> {}
 

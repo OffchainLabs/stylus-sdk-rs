@@ -16,6 +16,8 @@ use crate::storage::Storage;
 ///
 /// All gas is supplied, which the recipient may burn.
 /// If this is not desired, the [`call`] method can be used directly.
+///
+/// [`call`]: super::call
 #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
 pub fn transfer_eth(
     _storage: &mut impl TopLevelStorage,
