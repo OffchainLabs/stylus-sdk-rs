@@ -185,7 +185,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// In the above, we're able to pass `&self` and `&mut self` because `Contract` implements
-/// [`TopLevelStorage`], which means that a reference to it entails access to the entirity of
+/// [`TopLevelStorage`], which means that a reference to it entails access to the entirety of
 /// the contract's state. This is the reason it is sound to make a call, since it ensures all
 /// cached values are invalidated and/or persisted to state at the right time.
 ///
