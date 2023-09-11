@@ -25,6 +25,7 @@
 use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
+use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
@@ -36,29 +37,30 @@ pub use traits::{
 };
 pub use vec::StorageVec;
 
-#[cfg(feature = "storage-cache")]
-pub use cache::StorageCache;
-
-#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
-pub use eager::EagerStorage;
-
 mod array;
 mod bytes;
 mod map;
 mod traits;
 mod vec;
 
-#[cfg(feature = "storage-cache")]
-mod cache;
+cfg_if! {
+    if #[cfg(any(not(feature = "storage-cache"), feature = "docs"))] {
+        mod eager;
+        pub use eager::EagerStorage;
+    }
+}
 
-#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
-mod eager;
+cfg_if! {
+    if #[cfg(feature = "storage-cache")] {
+        mod cache;
 
-#[cfg(feature = "storage-cache")]
-pub(crate) type Storage = StorageCache;
+        pub use cache::StorageCache;
 
-#[cfg(not(feature = "storage-cache"))]
-pub(crate) type Storage = EagerStorage;
+        pub(crate) type Storage = StorageCache;
+    } else {
+        pub(crate) type Storage = EagerStorage;
+    }
+}
 
 /// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
 ///

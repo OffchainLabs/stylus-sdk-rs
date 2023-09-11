@@ -13,6 +13,7 @@ version.workspace = true
 [dependencies]
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
+cfg-if.workspace = true
 derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
@@ -41,3 +42,4 @@ debug = []
 docs = []
 hostio = []
 storage-cache = ["fnv", "stylus-proc/storage-cache"]
+reentrant = ["stylus-proc/reentrant"]

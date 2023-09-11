@@ -1,18 +1,18 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+use cfg_if::cfg_if;
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::{
-    parse::{Parse, ParseStream},
-    parse_macro_input, Item, LitBool, Result, Token,
-};
+use syn::{parse_macro_input, Item};
 
 pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
-    let args: EntrypointArgs = parse_macro_input!(attr);
     let input: Item = parse_macro_input!(input);
-    let allow_reentrancy = args.allow_reentrancy;
+
+    if !attr.is_empty() {
+        error!(Span::mixed_site(), "this macro is not configurable");
+    }
 
     let mut output = quote! { #input };
 
@@ -59,13 +59,27 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
         _ => error!(input, "not a struct or fn"),
     };
 
-    #[cfg(feature = "storage-cache")]
-    let flush_cache = quote! {
-        stylus_sdk::storage::StorageCache::flush();
-    };
+    // revert on reentrancy unless explicitly enabled
+    cfg_if! {
+        if #[cfg(feature = "reentrant")] {
+            let deny_reentrant = quote! {};
+        } else {
+            let deny_reentrant = quote! {
+                if stylus_sdk::msg::reentrant() {
+                    return 1; // revert
+                }
+            };
+        }
+    }
 
-    #[cfg(not(feature = "storage-cache"))]
-    let flush_cache = quote! {};
+    // flush the cache before program exit
+    cfg_if! {
+        if #[cfg(feature = "storage-cache")] {
+            let flush_cache = quote! { stylus_sdk::storage::StorageCache::flush(); };
+        } else {
+            let flush_cache = quote! {};
+        }
+    }
 
     output.extend(quote! {
         #[no_mangle]
@@ -76,12 +90,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            if !#allow_reentrancy && stylus_sdk::msg::reentrant() {
-                return 1; // revert on reentrancy
-            }
-            if #allow_reentrancy {
-                unsafe { stylus_sdk::call::opt_into_reentrancy() };
-            }
+            #deny_reentrant
 
             let input = stylus_sdk::contract::args(len);
             let (data, status) = match #user(input) {
@@ -95,28 +104,4 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     output.into()
-}
-
-struct EntrypointArgs {
-    allow_reentrancy: bool,
-}
-
-impl Parse for EntrypointArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut allow_reentrancy = false;
-
-        while !input.is_empty() {
-            let ident: Ident = input.parse()?;
-            let _: Token![=] = input.parse()?;
-
-            match ident.to_string().as_str() {
-                "allow_reentrancy" => {
-                    let lit: LitBool = input.parse()?;
-                    allow_reentrancy = lit.value;
-                }
-                _ => error!(@ident, "Unknown entrypoint attribute"),
-            }
-        }
-        Ok(Self { allow_reentrancy })
-    }
 }

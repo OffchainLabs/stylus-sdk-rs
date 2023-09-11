@@ -9,7 +9,7 @@ use crate::{
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-#[cfg(feature = "storage-cache")]
+#[cfg(all(feature = "storage-cache", feature = "reentrant"))]
 use crate::storage::StorageCache;
 
 /// Mechanism for performing raw deploys of other contracts.
@@ -87,7 +87,7 @@ impl RawDeploy {
     /// For extra flexibility, this method does not clear the global storage cache.
     /// See [`StorageCache::flush`] and [`StorageCache::clear`] for more information.
     pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
-        #[cfg(feature = "storage-cache")]
+        #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
         match self.cache_policy {
             CachePolicy::Clear => StorageCache::clear(),
             CachePolicy::Flush => StorageCache::flush(),
