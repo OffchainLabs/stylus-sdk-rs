@@ -174,17 +174,13 @@ impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
     }
 }
 
-impl<'a, const B: usize, const L: usize> core::ops::Add<Uint<B, L>>
-    for &'a mut StorageGuardMut<'a, super::StorageUint<B, L>>
+impl<'a, const B: usize, const L: usize> core::ops::AddAssign<Uint<B, L>>
+    for StorageGuardMut<'a, super::StorageUint<B, L>>
 {
-    type Output = &'a mut StorageGuardMut<'a, super::StorageUint<B, L>>;
-
-    fn add(self, rhs: Uint<B, L>) -> Self::Output {
+    fn add_assign(&mut self, rhs: Uint<B, L>) {
         let pre = self.get();
         let post = pre + rhs;
         self.set(post);
-
-        self
     }
 }
 
