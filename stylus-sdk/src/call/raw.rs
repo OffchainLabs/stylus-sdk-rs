@@ -78,7 +78,7 @@ impl Default for RustVec {
 }
 
 impl RawCall {
-    /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`] works.
+    /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
     /// use stylus_sdk::call::RawCall;
@@ -95,6 +95,8 @@ impl RawCall {
     ///         .call(contract, calldata);    // do the call
     /// }
     /// ```
+    ///
+    /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
     pub fn new() -> Self {
         Default::default()
     }

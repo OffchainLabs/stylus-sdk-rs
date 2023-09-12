@@ -69,43 +69,6 @@ where
     }
 }
 
-impl Default for Call<(), false> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Call<(), false> {
-    /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and [`std::fs::OpenOptions`] work.
-    ///
-    /// ```ignore
-    /// use stylus_sdk::call::{Call, Error};
-    /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
-    /// extern crate alloc;
-    ///
-    /// sol_interface! {
-    ///     interface IService {
-    ///         function makePayment(address user) payable returns (string);
-    ///     }
-    /// }
-    ///
-    /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
-    ///     let config = Call::new()
-    ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
-    ///         .value(msg::value());           // set the callvalue
-    ///
-    ///     account.make_payment(config, user)  // note the snake case
-    /// }
-    /// ```
-    pub fn new() -> Self {
-        Self {
-            gas: u64::MAX,
-            value: None,
-            storage: (),
-        }
-    }
-}
-
 impl<S, const HAS_VALUE: bool> Call<S, HAS_VALUE> {
     /// Amount of gas to supply the call.
     /// Values greater than the amount provided will be clipped to all gas left.
@@ -196,6 +159,50 @@ cfg_if! {
         unsafe impl<S, const HAS_VALUE: bool> MutatingCallContext for Call<S, HAS_VALUE> {
             fn value(&self) -> U256 {
                 self.value.unwrap_or_default()
+            }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(any(all(feature = "storage-cache", feature = "reentrant"), feature = "docs"))] {
+        impl Default for Call<(), false> {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
+        impl Call<(), false> {
+            /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and
+            /// [`std::fs::OpenOptions`][OpenOptions] work.
+            ///
+            /// ```ignore
+            /// use stylus_sdk::call::{Call, Error};
+            /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
+            /// extern crate alloc;
+            ///
+            /// sol_interface! {
+            ///     interface IService {
+            ///         function makePayment(address user) payable returns (string);
+            ///     }
+            /// }
+            ///
+            /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
+            ///     let config = Call::new()
+            ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
+            ///         .value(msg::value());           // set the callvalue
+            ///
+            ///     account.make_payment(config, user)  // note the snake case
+            /// }
+            /// ```
+            ///
+            /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
+            pub fn new() -> Self {
+                Self {
+                    gas: u64::MAX,
+                    value: None,
+                    storage: (),
+                }
             }
         }
     }
