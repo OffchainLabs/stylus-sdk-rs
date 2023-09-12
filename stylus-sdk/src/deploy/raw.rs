@@ -85,7 +85,10 @@ impl RawDeploy {
     /// reference's lifetime and if reentrancy is allowed.
     ///
     /// For extra flexibility, this method does not clear the global storage cache.
-    /// See [`StorageCache::flush`] and [`StorageCache::clear`] for more information.
+    /// See [`StorageCache::flush`][flush] and [`StorageCache::clear`][clear] for more information.
+    ///
+    /// [flush]: crate::storage::StorageCache::flush
+    /// [clear]: crate::storage::StorageCache::clear
     pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
         #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
         match self.cache_policy {
