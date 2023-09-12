@@ -3,6 +3,10 @@
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
 
@@ -82,7 +86,7 @@ impl StorageBytes {
         self.write_len(len)
     }
 
-    /// Updates the length while being concious of representation.
+    /// Updates the length while being conscious of representation.
     unsafe fn write_len(&mut self, len: usize) {
         if len < 32 {
             // place the len in the last byte of the root with the long bit low
@@ -218,7 +222,7 @@ impl StorageBytes {
         (slot, (index % 32) as u8)
     }
 
-    /// Determines where in storage indices start. Could be made const in the future.
+    /// Determines where in storage indices start. Could be made `const` in the future.
     fn base(&self) -> &U256 {
         self.base
             .get_or_init(|| crypto::keccak(self.root.to_be_bytes::<32>()).into())

@@ -30,13 +30,6 @@ pub unsafe trait MutatingCallContext: CallContext {
 
 /// Trait for calling the `write` methods of other contracts.
 /// Users should rarely implement this trait outside of proc macros.
+///
 /// Note: any implementations of this must return zero for [`MutatingCallContext::value`].
 pub trait NonPayableCallContext: MutatingCallContext {}
-
-impl CallContext for () {
-    fn gas(&self) -> u64 {
-        u64::MAX // use everything
-    }
-}
-
-impl StaticCallContext for () {}

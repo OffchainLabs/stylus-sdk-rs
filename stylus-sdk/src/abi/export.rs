@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
-/// This is auto-derived via the [`external`] marco when the `export-abi` feature is enabled.
+/// This is auto-derived via the [`external`] macro when the `export-abi` feature is enabled.
 ///
 /// [`external`]: stylus-proc::external
 pub trait GenerateAbi {
@@ -24,7 +24,8 @@ pub trait GenerateAbi {
     fn fmt_abi(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
-pub struct AbiPrinter<T: GenerateAbi>(PhantomData<T>);
+/// Type that makes an ABI printable.
+struct AbiPrinter<T: GenerateAbi>(PhantomData<T>);
 
 impl<T: GenerateAbi> fmt::Display for AbiPrinter<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -39,8 +40,7 @@ pub fn print_abi<T: GenerateAbi>() {
     println!(" * For more information, please see [The Stylus SDK](https://github.com/OffchainLabs/stylus-sdk-rs).");
     println!(" */");
     println!();
-    let abi = AbiPrinter::<T>(PhantomData);
-    print!("{}", abi);
+    print!("{}", AbiPrinter::<T>(PhantomData));
 }
 
 lazy_static! {

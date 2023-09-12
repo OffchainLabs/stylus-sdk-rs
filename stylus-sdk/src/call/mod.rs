@@ -2,49 +2,40 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Call other contracts.
+//!
+//! There are two primary ways to make calls to other contracts via the Stylus SDK.
+//! - [`CallContext`] for richly-typed calls.
+//! - The `unsafe` [`RawCall`] for `unsafe`, bytes-in bytes-out calls.
+//!
+//! Additional helpers exist for specific use-cases like [`transfer_eth`].
 
-use crate::storage::TopLevelStorage;
-use alloy_primitives::{Address, U256};
-use core::sync::atomic::{AtomicBool, Ordering};
+use alloc::vec::Vec;
+use alloy_primitives::Address;
 
-pub use self::{context::Context, error::Error, raw::RawCall, traits::*};
+pub use self::{context::Call, error::Error, raw::RawCall, traits::*, transfer::transfer_eth};
 
 pub(crate) use raw::CachePolicy;
 
-#[cfg(feature = "storage-cache")]
+#[cfg(all(feature = "storage-cache", feature = "reentrant"))]
 use crate::storage::Storage;
 
 mod context;
 mod error;
 mod raw;
 mod traits;
+mod transfer;
 
-/// Dangerous. Enables reentrancy.
-///
-/// # Safety
-///
-/// If a contract calls another that then calls the first, it is said to be reentrant.
-/// By default, all Stylus programs revert when this happened.
-/// This method overrides this behavior, allowing reentrant calls to proceed.
-///
-/// This is extremely dangerous, and should be done only after careful review --
-/// ideally by 3rd party auditors. Numerous exploits and hacks have in Web3 are
-/// attributable to developers misusing or not fully understanding reentrant patterns.
-///
-/// If enabled, the Stylus SDK will flush the storage cache in between reentrant calls,
-/// persisting values to state that might be used by inner calls. Note that preventing storage
-/// invalidation is only part of the battle in the fight against exploits.
-pub unsafe fn opt_into_reentrancy() {
-    ENABLE_REENTRANCY.store(true, Ordering::Relaxed)
+macro_rules! unsafe_reentrant {
+    ($block:block) => {
+        #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+        unsafe {
+            $block
+        }
+
+        #[cfg(not(all(feature = "storage-cache", feature = "reentrant")))]
+        $block
+    };
 }
-
-/// Whether the program has opted into reentrancy.
-pub fn reentrancy_enabled() -> bool {
-    ENABLE_REENTRANCY.load(Ordering::Relaxed)
-}
-
-/// Whether the program has opted in to reentrancy.
-static ENABLE_REENTRANCY: AtomicBool = AtomicBool::new(false);
 
 /// Static calls the contract at the given address.
 pub fn static_call(
@@ -52,48 +43,47 @@ pub fn static_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "storage-cache")]
-    if reentrancy_enabled() {
-        // flush storage to persist changes, but don't invalidate the cache
-        Storage::flush();
-    }
-    unsafe {
+    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
+
+    unsafe_reentrant! {{
         RawCall::new_static()
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
-    }
+    }}
+}
+
+/// Delegate calls the contract at the given address.
+///
+/// # Safety
+///
+/// A delegate call must trust the other contract to uphold safety requirements.
+/// Though this function clears any cached values, the other contract may arbitrarily change storage,
+/// spend ether, and do other things one should never blindly allow other contracts to do.
+pub unsafe fn delegate_call(
+    context: impl MutatingCallContext,
+    to: Address,
+    data: &[u8],
+) -> Result<Vec<u8>, Error> {
+    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    Storage::clear(); // clear the storage to persist changes, invalidating the cache
+
+    RawCall::new_with_value(context.value())
+        .gas(context.gas())
+        .call(to, data)
+        .map_err(Error::Revert)
 }
 
 /// Calls the contract at the given address.
 pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "storage-cache")]
-    if reentrancy_enabled() {
-        // clear the storage to persist changes, invalidating the cache
-        Storage::clear();
-    }
-    unsafe {
+    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    Storage::clear(); // clear the storage to persist changes, invalidating the cache
+
+    unsafe_reentrant! {{
         RawCall::new_with_value(context.value())
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
-    }
-}
-
-/// Transfers an amount of ETH in wei to the given account.
-/// Note that this method will call the other contract, which may in turn call others.
-///
-/// All gas is supplied, which the recipient may burn.
-/// If this is not desired, the [`call`] method can be used directly.
-pub fn transfer_eth(
-    _storage: &mut impl TopLevelStorage,
-    to: Address,
-    amount: U256,
-) -> Result<(), Vec<u8>> {
-    unsafe {
-        RawCall::new_with_value(amount)
-            .skip_return_data()
-            .call(to, &[])?;
-    }
-    Ok(())
+    }}
 }

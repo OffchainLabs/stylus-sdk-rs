@@ -1,14 +1,14 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+use crate::types::solidity_type_info;
+use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
 use sha3::{Digest, Keccak256};
 use std::borrow::Cow;
 use syn_solidity::{FunctionAttribute, Item, Mutability, SolIdent, Visibility};
-
-use crate::types::solidity_type_info;
 
 pub fn sol_interface(input: TokenStream) -> TokenStream {
     let input = match syn_solidity::parse(input) {
@@ -80,7 +80,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                     quote! { stylus_sdk::call::call },
                 ),
                 Payable => (
-                    quote! { impl stylus_sdk::call::PayableCallContext },
+                    quote! { impl stylus_sdk::call::MutatingCallContext },
                     quote! { stylus_sdk::call::call },
                 ),
             };
@@ -135,8 +135,10 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
             let selector2 = selector[2];
             let selector3 = selector[3];
 
+            let rust_name = Ident::new(&name.to_string().to_case(Case::Snake), name.span());
+
             method_impls.extend(quote! {
-                pub fn #name(&self, context: #context #(, #rust_args)*) ->
+                pub fn #rust_name(&self, context: #context #(, #rust_args)*) ->
                     Result<<#return_type as #sol_type>::RustType, stylus_sdk::call::Error>
                 {
                     use alloc::vec;

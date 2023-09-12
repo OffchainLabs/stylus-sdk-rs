@@ -3,7 +3,7 @@
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Accessor for a storage-backed array.
 pub struct StorageArray<S: StorageType, const N: usize> {

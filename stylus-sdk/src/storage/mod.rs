@@ -2,10 +2,30 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Solidity compatible storage types and persistent storage access.
+//!
+//! The Stylus node software is composed of two, fully-composable virtual machines.
+//! - The Stylus VM, which compiles WASM contracts built with SDKs like this one.
+//! - The Ethereum Virtual Machine, which interprets EVM bytecode from languages like Solidity and Vyper.
+//!
+//! Though these two VMs differ in execution, they are backed by the same EVM State Trie.
+//! This means that Stylus contracts have access to the same, key-value based persistent storage
+//! familiar to Solidity devs.
+//!
+//! Because this resource is foreign to Rust, this module provides standard types and traits for
+//! accessing state when writing programs. To protect the user, the Stylus SDK safeguards storage access
+//! by leveraging Rust's borrow checker. It should never be possible to alias Storage without `unsafe` Rust,
+//! eliminating entire classes of errors at compile time.
+//!
+//! Storage Operations are also cached by default, ensuring that efficient usage is clean and auditable.
+//!
+//! For a walkthrough of this module's features, please see [The Feature Overview][overview].
+//!
+//! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
 use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
+use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
@@ -17,29 +37,30 @@ pub use traits::{
 };
 pub use vec::StorageVec;
 
-#[cfg(feature = "storage-cache")]
-pub use cache::StorageCache;
-
-#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
-pub use eager::EagerStorage;
-
 mod array;
 mod bytes;
 mod map;
 mod traits;
 mod vec;
 
-#[cfg(feature = "storage-cache")]
-mod cache;
+cfg_if! {
+    if #[cfg(any(not(feature = "storage-cache"), feature = "docs"))] {
+        mod eager;
+        pub use eager::EagerStorage;
+    }
+}
 
-#[cfg(any(not(feature = "storage-cache"), feature = "docs"))]
-mod eager;
+cfg_if! {
+    if #[cfg(feature = "storage-cache")] {
+        mod cache;
 
-#[cfg(feature = "storage-cache")]
-pub(crate) type Storage = StorageCache;
+        pub use cache::StorageCache;
 
-#[cfg(not(feature = "storage-cache"))]
-pub(crate) type Storage = EagerStorage;
+        pub(crate) type Storage = StorageCache;
+    } else {
+        pub(crate) type Storage = EagerStorage;
+    }
+}
 
 /// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
 ///

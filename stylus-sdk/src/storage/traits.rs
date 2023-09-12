@@ -15,7 +15,7 @@ use derivative::Derivative;
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
 pub trait StorageType: Sized {
-    /// For primative types, this is the type being stored.
+    /// For primitive types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
     type Wraps<'a>: 'a
     where

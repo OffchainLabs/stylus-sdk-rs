@@ -16,6 +16,7 @@ use crate::{
     hostio::{self, wrap_hostio},
     types::AddressVM,
 };
+use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 
 /// Reads the invocation's calldata.

@@ -3,6 +3,7 @@
 
 use super::{AbiType, ConstString};
 use alloc::borrow::Cow;
+use alloc::vec::Vec;
 use alloy_primitives::FixedBytes;
 use alloy_sol_types::{
     sol_data::{ByteCount, SupportedFixedBytes},
