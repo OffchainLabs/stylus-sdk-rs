@@ -174,6 +174,20 @@ impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
     }
 }
 
+impl<'a, const B: usize, const L: usize> core::ops::Add<Uint<B, L>>
+    for &'a mut StorageGuardMut<'a, super::StorageUint<B, L>>
+{
+    type Output = &'a mut StorageGuardMut<'a, super::StorageUint<B, L>>;
+
+    fn add(self, rhs: Uint<B, L>) -> Self::Output {
+        let pre = self.get();
+        let post = pre + rhs;
+        self.set(post);
+
+        self
+    }
+}
+
 /// Trait for managing access to persistent storage.
 /// Notable implementations include the [`StorageCache`](super::StorageCache)
 /// and [`EagerStorage`](super::EagerStorage) types.
