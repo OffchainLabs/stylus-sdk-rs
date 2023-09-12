@@ -438,6 +438,7 @@ version = "0.3.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "cfg-if",
  "convert_case 0.6.0",
  "lazy_static",
  "proc-macro2",
@@ -454,6 +455,7 @@ version = "0.3.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "cfg-if",
  "derivative",
  "fnv",
  "hex",

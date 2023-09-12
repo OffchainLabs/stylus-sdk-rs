@@ -56,6 +56,8 @@ impl AsMut<[u8]> for Bytes {
 }
 
 /// Provides a corresponding [`SolType`] for an [`abi`] [`Bytes`].
+///
+/// [`abi`]: crate::abi
 pub struct BytesSolType;
 
 impl SolType for BytesSolType {

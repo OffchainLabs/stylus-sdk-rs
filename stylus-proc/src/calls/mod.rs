@@ -1,6 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
+use crate::types::solidity_type_info;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
@@ -8,8 +9,6 @@ use quote::quote;
 use sha3::{Digest, Keccak256};
 use std::borrow::Cow;
 use syn_solidity::{FunctionAttribute, Item, Mutability, SolIdent, Visibility};
-
-use crate::types::solidity_type_info;
 
 pub fn sol_interface(input: TokenStream) -> TokenStream {
     let input = match syn_solidity::parse(input) {

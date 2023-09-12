@@ -33,11 +33,3 @@ pub unsafe trait MutatingCallContext: CallContext {
 ///
 /// Note: any implementations of this must return zero for [`MutatingCallContext::value`].
 pub trait NonPayableCallContext: MutatingCallContext {}
-
-impl CallContext for () {
-    fn gas(&self) -> u64 {
-        u64::MAX // use everything
-    }
-}
-
-impl StaticCallContext for () {}
