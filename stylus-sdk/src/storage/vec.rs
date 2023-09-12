@@ -114,7 +114,7 @@ impl<S: StorageType> StorageVec<S> {
         Some(store.load_mut())
     }
 
-    /// Like [`std::vec::Vec::push`], but returns a mutable accessor to the new slot.
+    /// Like [`std::vec::Vec::push`][vec_push], but returns a mutable accessor to the new slot.
     /// This enables pushing elements without constructing them first.
     ///
     /// # Example
@@ -131,6 +131,8 @@ impl<S: StorageType> StorageVec<S> {
     /// assert_eq!(value, U256::from(8));
     /// assert_eq!(inner_vec.len(), 1);
     /// ```
+    ///
+    /// [vec_push]: https://doc.rust-lang.org/std/vec/struct.Vec.html#method.push
     pub fn grow(&mut self) -> StorageGuardMut<S> {
         let index = self.len();
         unsafe { self.set_len(index + 1) };

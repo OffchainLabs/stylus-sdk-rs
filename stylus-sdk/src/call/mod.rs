@@ -4,10 +4,12 @@
 //! Call other contracts.
 //!
 //! There are two primary ways to make calls to other contracts via the Stylus SDK.
-//! - [`CallContext`] for richly-typed calls.
-//! - The `unsafe` [`RawCall`] for `unsafe`, bytes-in bytes-out calls.
+//! - [`Call`] with [`sol_interface!`][sol_interface] for richly-typed calls.
+//! - [`RawCall`] for `unsafe`, bytes-in bytes-out calls.
 //!
 //! Additional helpers exist for specific use-cases like [`transfer_eth`].
+//!
+//! [sol_interface]: crate::prelude::sol_interface
 
 use alloc::vec::Vec;
 use alloy_primitives::Address;
