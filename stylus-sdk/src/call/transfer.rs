@@ -15,7 +15,7 @@ use crate::storage::Storage;
 /// Note that this method will call the other contract, which may in turn call others.
 ///
 /// All gas is supplied, which the recipient may burn.
-/// If this is not desired, the [`call`] method can be used directly.
+/// If this is not desired, the [`call`](super::call) function may be used directly.
 ///
 /// [`call`]: super::call
 #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
@@ -37,7 +37,12 @@ pub fn transfer_eth(
 /// Note that this method will call the other contract, which may in turn call others.
 ///
 /// All gas is supplied, which the recipient may burn.
-/// If this is not desired, the [`call`] method can be used directly.
+/// If this is not desired, the [`call`](super::call) function may be used directly.
+///
+/// ```ignore
+/// transfer_eth(recipient, value)?;                 // these two are equivalent
+/// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
+/// ```
 #[cfg(not(all(feature = "storage-cache", feature = "reentrant")))]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
     RawCall::new_with_value(amount)

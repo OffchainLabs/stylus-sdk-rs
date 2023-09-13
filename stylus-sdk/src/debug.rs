@@ -6,6 +6,7 @@
 //! ```no_run
 //! use stylus_sdk::console;
 //! use stylus_sdk::alloy_primitives::address;
+//! extern crate alloc;
 //!
 //! let arbinaut = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
 //! console!("Gm {}", arbinaut); // prints nothing in production
@@ -23,7 +24,7 @@ pub fn console_log<T: AsRef<str>>(text: T) {
 #[macro_export]
 macro_rules! console {
     ($($msg:tt)*) => {
-        $crate::debug::console_log(format!($($msg)*));
+        $crate::debug::console_log(alloc::format!($($msg)*));
     };
 }
 

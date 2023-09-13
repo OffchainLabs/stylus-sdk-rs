@@ -7,7 +7,7 @@
   <h3 align="center">The Stylus SDK</h3>
 
   <p align="center">
-    <a href="https://developer.arbitrum.io/"><strong>Rust contracts on Arbitrum »</strong></a>
+    <a href="https://docs.arbitrum.io/stylus/stylus-gentle-introduction"><strong>Rust contracts on Arbitrum »</strong></a>
     <br />
   </p>
 </p>
@@ -26,11 +26,12 @@ The SDK makes it easy to develop Ethereum ABI-equivalent Stylus contracts in Rus
 
 Some of the features available in the SDK include:
 
-- **Generic**, storage-backed Rust types for programming **Ethereum-equivalent** smart contracts
-- Simple macros for writing Solidity structs and **entrypoints** that get converted to SDK-types internally
-- Powerful **primitive types** backed by the feature-rich [alloy-rs/crate](https://github.com/alloy-rs/core)
+- **Generic**, storage-backed Rust types for programming **Solidity-equivalent** smart contracts with optimal storage caching.
+- Simple macros for writing **language-agnostic** methods and entrypoints.
+- Automatic export of Solidity interfaces for interoperability across programming languages.
+- Powerful **primitive types** backed by the feature-rich Alloy.
 
-Rust programs implemented with the Stylus SDK can **call and be called** by Solidity smart contracts through Ethereum ABIs and also share the same storage layout.
+Rust programs written with the Stylus SDK can call and be called by Solidity smart contracts due to ABI equivalence with Ethereum programming languages. In fact, existing Solidity DEXs can list Rust tokens without modification, and vice versa.
 
 ```rust
 use stylus_sdk::{alloy_primitives::U256, prelude::*};
@@ -49,6 +50,7 @@ impl Counter {
   pub fn number(&self) -> Result<U256, Vec<u8>> {
     Ok(self.number.get())
   }
+
   // Sets a number in storage to a user-specified value.
   pub fn set_number(&mut self, new_number: U256) -> Result<(), Vec<u8>> {
     self.number.set(new_number);
