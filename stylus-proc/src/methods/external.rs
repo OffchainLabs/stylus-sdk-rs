@@ -353,7 +353,7 @@ impl Parse for SelectorArgs {
         let input = content;
 
         if input.is_empty() {
-            error!(@input.span(), "mising id or text argument");
+            error!(@input.span(), "missing id or text argument");
         }
 
         while !input.is_empty() {
