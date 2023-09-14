@@ -369,10 +369,14 @@ impl Parse for SelectorArgs {
                     id = Some(match lit {
                         Lit::Int(lit) => lit.base10_parse()?,
                         Lit::Str(lit) => {
-                            let hash = types::keccak(lit.value().as_bytes());
+                            let name = lit.value();
+                            if !name.contains('(') {
+                                error!(@lit, "missing parens. Perhaps you meant name = \"{}\"?", name);
+                            }
+                            let hash = types::keccak(name.as_bytes());
                             u32::from_be_bytes(hash[..4].try_into().unwrap())
                         }
-                        _ => error!(@lit, "Expected u32 or string"),
+                        _ => error!(@lit, "expected u32 or string"),
                     });
                 }
                 "name" => {
