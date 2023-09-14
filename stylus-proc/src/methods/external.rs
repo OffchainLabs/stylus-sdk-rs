@@ -28,7 +28,8 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         // see if user chose a purity or selector (TODO: use drain_filter when stable)
         let mut purity = None;
-        let mut selector_args = None;
+        let mut override_id = None;
+        let mut override_name = None;
         for attr in mem::take(&mut method.attrs) {
             let Some(ident) = attr.path.get_ident() else {
                 continue;
@@ -43,12 +44,16 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 purity = Some(elem);
                 continue;
             }
-            if ident.to_string() == "selector" {
-                let tokens = attr.tokens;
-                selector_args = match syn::parse2::<SelectorArgs>(tokens.clone()) {
-                    Ok(args) => Some(args),
+            if *ident == "selector" {
+                if override_id.is_some() || override_name.is_some() {
+                    error!(attr.path, "more than one selector attribute");
+                }
+                let args = match syn::parse2::<SelectorArgs>(attr.tokens.clone()) {
+                    Ok(args) => args,
                     Err(error) => error!(ident, "{}", error),
                 };
+                override_id = args.id;
+                override_name = args.name;
                 continue;
             }
             method.attrs.push(attr);
@@ -99,13 +104,14 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             .collect();
 
         let name = &method.sig.ident;
-        let sol_name = name.to_string().to_case(Case::Camel);
+        let sol_name = override_name.unwrap_or(name.to_string().to_case(Case::Camel));
 
         // deny value when method isn't payable
         let mut deny_value = quote!();
         if purity != Payable {
+            let name = name.to_string();
             deny_value = quote! {
-                if let Err(err) = internal::deny_value(#sol_name) {
+                if let Err(err) = internal::deny_value(#name) {
                     return Some(Err(err));
                 }
             };
@@ -127,7 +133,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let constant = Ident::new(&format!("SELECTOR_{name}"), name.span());
         let arg_types: &Vec<_> = &args.iter().map(|a| &a.1).collect();
 
-        let selector = match selector_args.as_ref().map(|x| x.id) {
+        let selector = match override_id {
             Some(id) => quote! { #id },
             None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types)*)) },
         };
@@ -178,8 +184,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         };
 
         let mut comment = quote!();
-        if let Some(args) = selector_args {
-            let id = args.id;
+        if let Some(id) = override_id {
             comment.extend(quote! {
                 write!(f, "\n    // note: selector was overridden to be 0x{:x}.", #id)?;
             });
@@ -334,12 +339,14 @@ impl Parse for InheritsAttr {
 }
 
 struct SelectorArgs {
-    id: u32,
+    id: Option<u32>,
+    name: Option<String>,
 }
 
 impl Parse for SelectorArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut id = 0;
+        let mut id = None;
+        let mut name = None;
 
         let content;
         let _ = parenthesized!(content in input);
@@ -356,14 +363,24 @@ impl Parse for SelectorArgs {
             match ident.to_string().as_str() {
                 "id" => {
                     let lit: Lit = input.parse()?;
-                    match lit {
-                        Lit::Int(lit) => id = lit.base10_parse()?,
+                    if id.is_some() {
+                        error!(@lit, r#"only one "id" is allowed"#);
+                    }
+                    id = Some(match lit {
+                        Lit::Int(lit) => lit.base10_parse()?,
                         Lit::Str(lit) => {
                             let hash = types::keccak(lit.value().as_bytes());
-                            id = u32::from_be_bytes(hash[..4].try_into().unwrap());
+                            u32::from_be_bytes(hash[..4].try_into().unwrap())
                         }
                         _ => error!(@lit, "Expected u32 or string"),
+                    });
+                }
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    if name.is_some() {
+                        error!(@lit, r#"only one "name" is allowed"#);
                     }
+                    name = Some(lit.value());
                 }
                 _ => error!(@ident, "Unknown selector attribute"),
             }
@@ -371,6 +388,10 @@ impl Parse for SelectorArgs {
             // allow a comma
             let _: Result<Token![,]> = input.parse();
         }
-        Ok(Self { id })
+
+        if id.is_some() == name.is_some() {
+            error!(@input.span(), r#"only one of "id" or "name" expected"#);
+        }
+        Ok(Self { id, name })
     }
 }
