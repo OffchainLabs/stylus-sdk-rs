@@ -1,15 +1,18 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use crate::types::Purity;
+use crate::types::{self, Purity};
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
 use std::{mem, str::FromStr};
 use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, FnArg, ImplItem, Index, ItemImpl, Pat,
-    PatType, ReturnType, Token, Type,
+    parenthesized,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+    FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
 pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -23,24 +26,32 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             continue;
         };
 
-        // see if user chose a purity (TODO: use drain_filter when stable)
+        // see if user chose a purity or selector (TODO: use drain_filter when stable)
         let mut purity = None;
+        let mut selector_args = None;
         for attr in mem::take(&mut method.attrs) {
-            let Some(Ok(elem)) = attr
-                .path
-                .get_ident()
-                .map(|x| Purity::from_str(&x.to_string()))
-            else {
-                method.attrs.push(attr);
+            let Some(ident) = attr.path.get_ident() else {
                 continue;
             };
-            if !attr.tokens.is_empty() {
-                error!(attr.tokens, "attribute does not take parameters");
+            if let Ok(elem) = Purity::from_str(&ident.to_string()) {
+                if !attr.tokens.is_empty() {
+                    error!(attr.tokens, "attribute does not take parameters");
+                }
+                if purity.is_some() {
+                    error!(attr.path, "more than one purity attribute");
+                }
+                purity = Some(elem);
+                continue;
             }
-            if purity.is_some() {
-                error!(attr.path, "more than one purity attribute");
+            if ident.to_string() == "selector" {
+                let tokens = attr.tokens;
+                selector_args = match syn::parse2::<SelectorArgs>(tokens.clone()) {
+                    Ok(args) => Some(args),
+                    Err(error) => error!(ident, "{}", error),
+                };
+                continue;
             }
-            purity = Some(elem);
+            method.attrs.push(attr);
         }
 
         use Purity::*;
@@ -116,9 +127,13 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let constant = Ident::new(&format!("SELECTOR_{name}"), name.span());
         let arg_types: &Vec<_> = &args.iter().map(|a| &a.1).collect();
 
+        let selector = match selector_args.as_ref().map(|x| x.id) {
+            Some(id) => quote! { #id },
+            None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types)*)) },
+        };
         selectors.extend(quote! {
             #[allow(non_upper_case_globals)]
-            const #constant: u32 = u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types)*));
+            const #constant: u32 = #selector;
         });
 
         // match against the selector
@@ -162,7 +177,16 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             x => format!(" {x}"),
         };
 
+        let mut comment = quote!();
+        if let Some(args) = selector_args {
+            let id = args.id;
+            comment.extend(quote! {
+                write!(f, "\n    // note: selector was overridden to be 0x{:x}.", #id)?;
+            });
+        }
+
         abi.extend(quote! {
+            #comment
             write!(f, "\n    function {}(", #sol_name)?;
             #(#sol_args)*
             write!(f, ") external")?;
@@ -306,5 +330,47 @@ impl Parse for InheritsAttr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let types = Punctuated::parse_separated_nonempty(input)?;
         Ok(Self { types })
+    }
+}
+
+struct SelectorArgs {
+    id: u32,
+}
+
+impl Parse for SelectorArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut id = 0;
+
+        let content;
+        let _ = parenthesized!(content in input);
+        let input = content;
+
+        if input.is_empty() {
+            error!(@input.span(), "mising id or text argument");
+        }
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            let _: Token![=] = input.parse()?;
+
+            match ident.to_string().as_str() {
+                "id" => {
+                    let lit: Lit = input.parse()?;
+                    match lit {
+                        Lit::Int(lit) => id = lit.base10_parse()?,
+                        Lit::Str(lit) => {
+                            let hash = types::keccak(lit.value().as_bytes());
+                            id = u32::from_be_bytes(hash[..4].try_into().unwrap());
+                        }
+                        _ => error!(@lit, "Expected u32 or string"),
+                    }
+                }
+                _ => error!(@ident, "Unknown selector attribute"),
+            }
+
+            // allow a comma
+            let _: Result<Token![,]> = input.parse();
+        }
+        Ok(Self { id })
     }
 }
