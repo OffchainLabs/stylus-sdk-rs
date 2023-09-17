@@ -26,10 +26,12 @@ pub trait AddressVM {
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
     fn codehash(&self) -> B256;
 
-    /// Determines if an account is an [`EOA`].
+    /// Determines if an account has code. Note that this is insufficient to determine if an address is an
+    /// [`EOA`]. During contract deployment, an account only gets its code at the very end, meaning that
+    /// this method will return `false` up until that point.
     ///
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
-    fn is_eoa(&self) -> bool;
+    fn has_code(&self) -> bool;
 }
 
 impl AddressVM for Address {
@@ -45,7 +47,7 @@ impl AddressVM for Address {
         data.into()
     }
 
-    fn is_eoa(&self) -> bool {
+    fn has_code(&self) -> bool {
         let hash = self.codehash();
         hash.is_zero()
             || hash == b256!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
