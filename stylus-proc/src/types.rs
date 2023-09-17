@@ -82,7 +82,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         Type::String(_) => simple!(String),
         Type::Bytes(_) => simple!(Bytes),
         Type::FixedBytes(_, size) => (
-            "stylus_sdk::abi::FixedBytesSolType<{size}>".into(),
+            format!("stylus_sdk::abi::FixedBytesSolType<{size}>").into(),
             abi!("bytes[{size}]"),
         ),
         Type::Uint(_, size) => {
