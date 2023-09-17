@@ -28,7 +28,7 @@ pub trait AddressVM {
 
     /// Determines if an account has code. Note that this is insufficient to determine if an address is an
     /// [`EOA`]. During contract deployment, an account only gets its code at the very end, meaning that
-    /// this method will return `false` up until that point.
+    /// this method will return `false` while the constructor is executing.
     ///
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
     fn has_code(&self) -> bool;
