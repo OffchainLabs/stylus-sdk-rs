@@ -300,7 +300,7 @@ impl StorageString {
     }
 
     /// Gets the underlying [`String`], ignoring any invalid data.
-    pub fn get_string(&mut self) -> String {
+    pub fn get_string(&self) -> String {
         let bytes = self.0.get_bytes();
         String::from_utf8_lossy(&bytes).into()
     }
