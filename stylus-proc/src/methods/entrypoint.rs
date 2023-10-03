@@ -47,7 +47,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 
             if cfg!(feature = "export-abi") {
                 output.extend(quote! {
-                    fn main() {
+                    pub fn main() {
                         stylus_sdk::abi::export::print_abi::<#name>();
                     }
                 });

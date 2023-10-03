@@ -35,4 +35,4 @@ convert_case = "0.6.0"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
-stylus-proc = { path = "stylus-proc", version = "0.4.0" }
+stylus-proc = { path = "stylus-proc", version = "0.4.1" }
