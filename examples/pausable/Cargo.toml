@@ -1,0 +1,40 @@
+[package]
+name = "stylus-hello-world"
+version = "0.1.5"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/OffchainLabs/stylus-hello-world"
+repository = "https://github.com/OffchainLabs/stylus-hello-world"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Stylus hello world example"
+
+[dependencies]
+alloy-primitives = "0.3.1"
+alloy-sol-types = "0.3.1"
+stylus-sdk = "0.4.1"
+hex = "0.4.3"
+wee_alloc = "0.4.5"
+
+[dev-dependencies]
+tokio = { version = "1.12.0", features = ["full"] }
+ethers = "2.0"
+eyre = "0.6.8"
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[[bin]]
+name = "stylus-hello-world"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = "s"
+
+[workspace]
