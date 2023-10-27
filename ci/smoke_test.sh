@@ -7,9 +7,6 @@ rustc -Vv
 cargo -V
 cargo stylus --version
 
-# TODO: erc20 example not working
-# cd ./examples/erc20
-
 cargo stylus new counter
 cd counter
 echo "[workspace]" >> Cargo.toml

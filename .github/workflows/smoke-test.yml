@@ -1,4 +1,4 @@
-name: Build, Test
+name: Smoke Test 
 
 on:
   pull_request:
@@ -8,13 +8,10 @@ on:
       - stylus
       - ci-testing
 
-# env:
-#   MAINNET_RPC: ${{ secrets.MAINNET_RPC }}
-
 jobs:
-  integration-test:
+  smoke-test:
     runs-on: ubuntu-latest
-    name: 'Test (Integration)(${{ matrix.cfg_release_channel }})'
+    name: 'Test (Smoke)(${{ matrix.cfg_release_channel }})'
     env:
       CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
     strategy:
@@ -39,7 +36,6 @@ jobs:
           nitro-testnode-ref: stylus
           no-token-bridge: true
           
-      - name: Build and Test
+      - name: Smoke Test Deployment 
         run: ./ci/smoke_test.sh
       
-        
