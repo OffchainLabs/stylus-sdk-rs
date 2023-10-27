@@ -1,0 +1,41 @@
+name: Smoke Test 
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - stylus
+      - ci-testing
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    name: 'Test (Smoke)(${{ matrix.cfg_release_channel }})'
+    env:
+      CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
+    strategy:
+      matrix:
+        target: [wasm32-unknown-unknown]
+        cfg_release_channel: [nightly, stable]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: install rustup
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+          sh rustup-init.sh -y --default-toolchain none
+          rustup target add ${{ matrix.target }}
+          
+      - name: Cargo stylus
+        run: |
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
+          
+      - uses: OffchainLabs/actions/run-nitro-test-node@main
+        with:
+          nitro-testnode-ref: stylus
+          no-token-bridge: true
+          
+      - name: Smoke Test Deployment 
+        run: ./ci/smoke_test.sh
+        

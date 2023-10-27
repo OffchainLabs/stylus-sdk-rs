@@ -2,6 +2,7 @@ on:
   push:
     branches: [stylus]
   pull_request:
+  workflow_dispatch:
 
 name: check
 jobs:
