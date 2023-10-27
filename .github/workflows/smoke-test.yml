@@ -38,4 +38,3 @@ jobs:
           
       - name: Smoke Test Deployment 
         run: ./ci/smoke_test.sh
-      
