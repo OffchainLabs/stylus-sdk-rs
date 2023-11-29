@@ -1,0 +1,16 @@
+[package]
+name = "mini-alloc"
+keywords = ["wasm", "stylus", "allocator"]
+description = "Very simple global allocator for WASM"
+readme = "README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.0"
+
+[dependencies]

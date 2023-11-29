@@ -1,5 +1,5 @@
 [workspace]
-members = ["stylus-sdk", "stylus-proc"]
+members = ["stylus-sdk", "stylus-proc", "mini-alloc"]
 resolver = "2"
 
 [workspace.package]
