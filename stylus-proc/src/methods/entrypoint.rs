@@ -84,7 +84,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
     output.extend(quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
-            stylus_sdk::evm::memory_grow(0);
+            stylus_sdk::evm::pay_for_memory_grow(0);
             panic!();
         }
 

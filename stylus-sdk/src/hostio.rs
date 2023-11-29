@@ -221,7 +221,7 @@ extern "C" {
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
     #[allow(dead_code)]
-    pub fn memory_grow(pages: u16);
+    pub fn pay_for_memory_grow(pages: u16);
 
     /// Whether the current call is reentrant.
     pub fn msg_reentrant() -> bool;
