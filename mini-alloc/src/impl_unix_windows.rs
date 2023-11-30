@@ -12,10 +12,6 @@ pub fn alloc(layout: Layout) -> *mut u8 {
         return core::ptr::null_mut();
     }
     let maybe_pointer = unsafe { POINTER }.saturating_sub(layout.size());
-    if maybe_pointer == 0 {
-        return core::ptr::null_mut();
-    }
-
     // We grow the heap down, because round_down_to_alignment is a little faster
     // than round_up_to_alignment.
     let real_pointer = round_down_to_alignment(maybe_pointer, layout.align());
