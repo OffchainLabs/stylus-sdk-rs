@@ -7,10 +7,16 @@ static mut POINTER: usize = 0;
 
 pub fn alloc(layout: Layout) -> *mut u8 {
     maybe_initialize_heap();
-    let this_pointer = round_up_to_alignment(unsafe { POINTER }, layout.align());
-    let next_pointer = this_pointer + layout.size();
+    let this_pointer = match round_up_to_alignment(unsafe { POINTER }, layout.align()) {
+        Ok(x) => x,
+        Err(()) => return core::ptr::null_mut(),
+    };
+    let next_pointer = match this_pointer.checked_add(layout.size()) {
+        Some(x) => x,
+        None => return core::ptr::null_mut(),
+    };
     let needed_bytes = next_pointer.saturating_sub(memory_size(0));
-    let needed_pages = (needed_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+    let needed_pages = (PAGE_SIZE - 1 + needed_bytes) / PAGE_SIZE;
     memory_grow(0, needed_pages);
     unsafe {
         POINTER = next_pointer;
@@ -34,6 +40,9 @@ fn maybe_initialize_heap() {
 }
 
 /// `align` must be a power of two.
-const fn round_up_to_alignment(val: usize, align: usize) -> usize {
-    (val + align - 1) & (-(align as isize) as usize)
+const fn round_up_to_alignment(val: usize, align: usize) -> Result<usize, ()> {
+    match val.checked_add(align - 1) {
+        Some(x) => Ok(x & (-(align as isize) as usize)),
+        None => Err(()),
+    }
 }

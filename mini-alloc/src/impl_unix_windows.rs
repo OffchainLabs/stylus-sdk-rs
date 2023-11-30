@@ -13,7 +13,8 @@ pub fn alloc(layout: Layout) -> *mut u8 {
     }
     let maybe_pointer = unsafe { POINTER }.saturating_sub(layout.size());
     // We grow the heap down, because round_down_to_alignment is a little faster
-    // than round_up_to_alignment.
+    // than round_up_to_alignment and we don't have to do as many overflow
+    // checks.
     let real_pointer = round_down_to_alignment(maybe_pointer, layout.align());
     let needed_bytes = unsafe { HEAP_FIRST }.saturating_sub(real_pointer);
     let needed_pages = (PAGE_SIZE - 1 + needed_bytes) / PAGE_SIZE;
@@ -58,7 +59,7 @@ fn grow(pages: usize) -> Result<(), ()> {
 
 /// `align` must be a power of two.
 const fn round_down_to_alignment(val: usize, align: usize) -> usize {
-    val & !(align - 1)
+    val & (-(align as isize) as usize)
 }
 
 #[cfg(unix)]
