@@ -1,5 +1,5 @@
-use core::arch::wasm32::{memory_size, memory_grow};
 use core::alloc::Layout;
+use core::arch::wasm32::{memory_grow, memory_size};
 
 const PAGE_SIZE: usize = 0x10000;
 

@@ -70,7 +70,6 @@ mod impls {
     use super::*;
 
     pub fn mem_reserve() -> Result<usize, ()> {
-
         let len = PAGE_SIZE * MAX_PAGES;
         let ret = unsafe {
             libc::mmap(
@@ -94,7 +93,7 @@ mod impls {
             libc::mprotect(
                 address as *mut libc::c_void,
                 len,
-                libc::PROT_READ | libc::PROT_WRITE
+                libc::PROT_READ | libc::PROT_WRITE,
             )
         };
         if ret != 0 {
@@ -116,7 +115,7 @@ mod impls {
                 winapi::shared::ntdef::NULL,
                 len,
                 winapi::um::winnt::MEM_RESERVE,
-                winapi::um::winnt::PAGE_READWRITE
+                winapi::um::winnt::PAGE_READWRITE,
             )
         } as usize;
         if ret == 0 {
@@ -132,7 +131,7 @@ mod impls {
                 address as winapi::shared::minwindef::LPVOID,
                 len,
                 winapi::um::winnt::MEM_COMMIT,
-                winapi::um::winnt::PAGE_READWRITE
+                winapi::um::winnt::PAGE_READWRITE,
             )
         } as usize;
         if ret == 0 {

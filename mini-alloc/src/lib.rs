@@ -24,7 +24,6 @@ impl MiniAlloc {
 }
 
 unsafe impl GlobalAlloc for MiniAlloc {
-    #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         impl_mod::alloc(layout)
     }
