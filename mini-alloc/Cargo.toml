@@ -1,7 +1,7 @@
 [package]
 name = "mini-alloc"
-keywords = ["wasm", "stylus", "allocator"]
-description = "Very simple global allocator for WASM"
+keywords = ["stylus", "allocator"]
+description = "Very simple global allocator"
 readme = "README.md"
 
 authors.workspace = true
@@ -14,3 +14,12 @@ version.workspace = true
 wasm-bindgen-test = "0.3.0"
 
 [dependencies]
+cfg-if = "1.0.0"
+
+[target.'cfg(all(unix, not(target_arch = "wasm32")))'.dependencies.libc]
+default-features = false
+version = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies.winapi]
+version = "0.3"
+features = ["memoryapi", "minwindef", "winnt", "ntdef"]

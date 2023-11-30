@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 alloy-primitives = "0.3.1"
 alloy-sol-types = "0.3.1"
-stylus-sdk = { path = "../../../stylus-sdk-rs/stylus-sdk" }
-mini-alloc = { path = "../../../stylus-sdk-rs/mini-alloc" }
+stylus-sdk = { path = "../../../stylus-sdk-rs/stylus-sdk", version = "0.4.2" }
+mini-alloc = { path = "../../../stylus-sdk-rs/mini-alloc", version = "0.4.2"  }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
