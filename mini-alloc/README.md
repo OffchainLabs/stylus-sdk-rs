@@ -14,7 +14,7 @@ Use it like this:
 
 ```rust
 #[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc;
 ```
 
 On wasm, `core::arch::wasm32::memory_grow` must never be called by any code

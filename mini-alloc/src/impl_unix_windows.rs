@@ -3,58 +3,65 @@ use core::alloc::Layout;
 const PAGE_SIZE: usize = 0x10000;
 const MAX_PAGES: usize = 1024;
 
-static mut POINTER: usize = 0;
-static mut HEAP_FIRST: usize = 0;
-static mut PAGES_COMMITTED: usize = 0;
-
-pub fn alloc(layout: Layout) -> *mut u8 {
-    if maybe_initialize_heap().is_err() {
-        return core::ptr::null_mut();
-    }
-    let maybe_pointer = unsafe { POINTER }.saturating_sub(layout.size());
-    // We grow the heap down, because round_down_to_alignment is a little faster
-    // than round_up_to_alignment and we don't have to do as many overflow
-    // checks.
-    let real_pointer = round_down_to_alignment(maybe_pointer, layout.align());
-    let needed_bytes = unsafe { HEAP_FIRST }.saturating_sub(real_pointer);
-    let needed_pages = (PAGE_SIZE - 1 + needed_bytes) / PAGE_SIZE;
-    if grow(needed_pages).is_err() {
-        return core::ptr::null_mut();
-    }
-    unsafe {
-        POINTER = real_pointer;
-    }
-    real_pointer as *mut u8
+pub struct AllocImpl {
+    pointer: usize,
+    heap_first: usize,
+    pages_committed: usize,
 }
 
-fn maybe_initialize_heap() -> Result<(), ()> {
-    if unsafe { HEAP_FIRST } != 0 {
-        return Ok(());
-    }
-    let addr = impls::mem_reserve()?;
-    unsafe {
-        HEAP_FIRST = addr;
-        POINTER = addr;
-    }
-    Ok(())
-}
+pub static mut ALLOC_IMPL: AllocImpl = AllocImpl {
+    pointer: 0,
+    heap_first: 0,
+    pages_committed: 0,
+};
 
-fn grow(pages: usize) -> Result<(), ()> {
-    if pages == 0 {
-        return Ok(());
+/// This is not a valid implementation of `Sync`.
+unsafe impl Sync for AllocImpl {}
+
+impl AllocImpl {
+    pub fn alloc(&mut self, layout: Layout) -> *mut u8 {
+        if self.maybe_initialize_heap().is_err() {
+            return core::ptr::null_mut();
+        }
+        let maybe_pointer = self.pointer.saturating_sub(layout.size());
+        // We grow the heap down, because round_down_to_alignment is a little
+        // faster than round_up_to_alignment and we don't have to do as many
+        // overflow checks.
+        let real_pointer = round_down_to_alignment(maybe_pointer, layout.align());
+        let needed_bytes = self.heap_first.saturating_sub(real_pointer);
+        let needed_pages = (PAGE_SIZE - 1 + needed_bytes) / PAGE_SIZE;
+        if self.grow(needed_pages).is_err() {
+            return core::ptr::null_mut();
+        }
+        self.pointer = real_pointer;
+        real_pointer as *mut u8
     }
-    let new_committed = unsafe { PAGES_COMMITTED } + pages;
-    if new_committed > MAX_PAGES {
-        return Err(());
+
+    fn maybe_initialize_heap(&mut self) -> Result<(), ()> {
+        if self.heap_first != 0 {
+            return Ok(());
+        }
+        let addr = impls::mem_reserve()?;
+        self.heap_first = addr;
+        self.pointer = addr;
+        Ok(())
     }
-    let bytes = pages * PAGE_SIZE;
-    let new_heap_first = unsafe { HEAP_FIRST } - bytes;
-    impls::mem_commit(new_heap_first, bytes)?;
-    unsafe {
-        HEAP_FIRST = new_heap_first;
-        PAGES_COMMITTED = new_committed;
+
+    fn grow(&mut self, pages: usize) -> Result<(), ()> {
+        if pages == 0 {
+            return Ok(());
+        }
+        let new_committed = self.pages_committed + pages;
+        if new_committed > MAX_PAGES {
+            return Err(());
+        }
+        let bytes = pages * PAGE_SIZE;
+        let new_heap_first = self.heap_first - bytes;
+        impls::mem_commit(new_heap_first, bytes)?;
+        self.heap_first = new_heap_first;
+        self.pages_committed = new_committed;
+        Ok(())
     }
-    Ok(())
 }
 
 /// `align` must be a power of two.

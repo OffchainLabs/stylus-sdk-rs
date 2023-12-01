@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use wasm_bindgen_test::*;
 
 #[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc;
 
 #[wasm_bindgen_test]
 #[cfg(target_arch = "wasm32")]

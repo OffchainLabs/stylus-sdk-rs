@@ -7,25 +7,23 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         mod impl_wasm;
-        use impl_wasm as impl_mod;
+        use impl_wasm::ALLOC_IMPL;
     } else if #[cfg(any(unix, windows))] {
         mod impl_unix_windows;
-        use impl_unix_windows as impl_mod;
+        use impl_unix_windows::ALLOC_IMPL;
     }
 }
 
-pub struct MiniAlloc(());
+pub struct MiniAlloc;
 
 /// This is not a valid implementation of `Sync`.
 unsafe impl Sync for MiniAlloc {}
 
-impl MiniAlloc {
-    pub const INIT: Self = MiniAlloc(());
-}
-
 unsafe impl GlobalAlloc for MiniAlloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        impl_mod::alloc(layout)
+        unsafe {
+            ALLOC_IMPL.alloc(layout)
+        }
     }
 
     #[inline]
