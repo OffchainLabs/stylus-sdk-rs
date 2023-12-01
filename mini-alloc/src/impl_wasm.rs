@@ -7,9 +7,7 @@ pub struct AllocImpl {
     pointer: usize,
 }
 
-pub static mut ALLOC_IMPL: AllocImpl = AllocImpl {
-    pointer: 0,
-};
+pub static mut ALLOC_IMPL: AllocImpl = AllocImpl { pointer: 0 };
 
 /// This is not a valid implementation of `Sync`.
 unsafe impl Sync for AllocImpl {}
@@ -31,7 +29,6 @@ impl AllocImpl {
         self.pointer = next_pointer;
         this_pointer as *mut u8
     }
-
 
     fn maybe_initialize_heap(&mut self) {
         if self.pointer != 0 {

@@ -21,9 +21,7 @@ unsafe impl Sync for MiniAlloc {}
 
 unsafe impl GlobalAlloc for MiniAlloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe {
-            ALLOC_IMPL.alloc(layout)
-        }
+        unsafe { ALLOC_IMPL.alloc(layout) }
     }
 
     #[inline]
