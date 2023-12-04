@@ -12,6 +12,10 @@ pub struct MiniAlloc;
 /// This is not a valid implementation of [`Sync`] but is ok in single-threaded WASM.
 unsafe impl Sync for MiniAlloc {}
 
+impl MiniAlloc {
+    pub const INIT: Self = MiniAlloc;
+}
+
 unsafe impl GlobalAlloc for MiniAlloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         alloc_impl(layout).unwrap_or(core::ptr::null_mut())
@@ -35,12 +39,12 @@ const PAGE_SIZE: usize = 1 << 16;
 /// instructions than the positive offset.
 static mut STATE: Option<(NonZero, usize)> = None;
 
-fn alloc_impl(layout: Layout) -> Option<*mut u8> {
-    let (neg_offset, neg_bound) = unsafe { &mut STATE }.get_or_insert_with(|| {
-        let heap_base = unsafe { &__heap_base } as *const u8 as usize;
+unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
+    let (neg_offset, neg_bound) = STATE.get_or_insert_with(|| {
+        let heap_base = &__heap_base as *const u8 as usize;
         let bound = PAGE_SIZE * wasm32::memory_size(0);
         (
-            unsafe { NonZero::new_unchecked(heap_base.wrapping_neg()) },
+            NonZero::new_unchecked(heap_base.wrapping_neg()),
             bound.wrapping_neg(),
         )
     });
@@ -55,7 +59,7 @@ fn alloc_impl(layout: Layout) -> Option<*mut u8> {
         }
         *neg_bound -= PAGE_SIZE * pages_needed;
     }
-    *neg_offset = unsafe { NonZero::new_unchecked(next_neg_offset) };
+    *neg_offset = NonZero::new_unchecked(next_neg_offset);
     Some(neg_aligned.wrapping_neg() as *mut u8)
 }
 

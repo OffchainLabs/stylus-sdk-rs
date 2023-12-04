@@ -13,10 +13,12 @@ thread.
 Also, `core::arch::wasm32::memory_grow` must never be called by any code outside
 this crate.
 
+On targets other than wasm32, `MiniAlloc` simply forwards to the allocator from
+another crate, `wee_alloc::WeeAlloc`.
+
 Use it like this:
 
 ```rust
-#[cfg(target_arch = "wasm32")]
 #[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 ```

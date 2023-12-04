@@ -5,8 +5,6 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -17,6 +15,8 @@ static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc;
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen_test]
 fn vec_test() {
+    use alloc::vec::Vec;
+
     let p1 = Vec::<u8>::with_capacity(700);
     let p2 = Vec::<u8>::with_capacity(65536);
     let p3 = Vec::<u8>::with_capacity(700000);
