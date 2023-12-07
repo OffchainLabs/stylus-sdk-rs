@@ -11,4 +11,4 @@ cargo stylus new counter
 cd counter
 echo "[workspace]" >> Cargo.toml
 
-cargo stylus deploy -e http://localhost:8547 --private-key $PRIV_KEY
+cargo stylus deploy --private-key $PRIV_KEY
