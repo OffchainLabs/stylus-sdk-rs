@@ -58,6 +58,7 @@ extern "C" {
     /// previously set. The semantics, then, are equivalent to that of the EVM's [`TLOAD`] opcode.
     ///
     /// [`TLOAD`]: https://www.evm.codes/#5c
+    #[allow(dead_code)]
     pub fn storage_transient_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
@@ -66,6 +67,7 @@ extern "C" {
     /// the EVM. The semantics, then, are equivalent to that of the EVM's [`TSTORE`] opcode.
     ///
     /// [`TSTORE`]: https://www.evm.codes/#5d
+    #[allow(dead_code)]
     pub fn storage_transient_store_bytes32(key: *const u8, value: *const u8);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
