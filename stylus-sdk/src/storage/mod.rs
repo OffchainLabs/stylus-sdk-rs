@@ -82,6 +82,26 @@ pub unsafe fn store_bytes32(key: U256, data: B256) {
     unsafe { hostio::storage_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
 }
 
+/// Retrieves a 32-byte EVM word from transient storage directly, bypassing all caches.
+///
+/// # Safety
+///
+/// May alias storage.
+pub unsafe fn transient_load_bytes32(key: U256) -> B256 {
+    let mut data = B256::ZERO;
+    unsafe { hostio::storage_transient_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+    data
+}
+
+/// Stores a 32-byte EVM word to transient storage directly, bypassing all caches.
+///
+/// # Safety
+///
+/// May alias storage.
+pub unsafe fn transient_store_bytes32(key: U256, data: B256) {
+    unsafe { hostio::storage_transient_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
+}
+
 /// Overwrites the value in a cell.
 #[inline]
 fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {
