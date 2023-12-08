@@ -48,7 +48,7 @@ impl Weth {
         self.erc20.burn(msg::sender(), amount)?;
 
         // send the user their funds
-        call::transfer_eth(self, msg::sender(), amount)
+        call::transfer_eth(msg::sender(), amount)
     }
 
     // sums numbers
