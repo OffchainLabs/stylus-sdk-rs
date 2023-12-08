@@ -67,6 +67,6 @@ wrap_hostio!(
 wrap_hostio!(
     /// Gets the amount of ink remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     ink_left evm_ink_left u64
 );
