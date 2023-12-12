@@ -10,7 +10,7 @@ use wasm_bindgen_test::*;
 
 #[cfg(target_arch = "wasm32")]
 #[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen_test]
@@ -30,4 +30,29 @@ fn vec_test() {
     assert_eq!(p4.as_ptr() as usize & 3, 0);
     assert_eq!(p4.as_ptr() as usize + 4, p5.as_ptr() as usize);
     assert_eq!(p5.as_ptr() as usize + 2, p6.as_ptr() as usize);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen_test]
+fn vec_test_loop() {
+    use alloc::vec::Vec;
+
+    let mut size = 1usize;
+    let mut p = Vec::<u8>::with_capacity(size);
+    for _ in 0 .. 22 {
+        let new_size = size*2;
+        let new_p = Vec::<u8>::with_capacity(new_size);
+        assert_eq!(p.as_ptr() as usize + size, new_p.as_ptr() as usize);
+        size = new_size;
+        p = new_p;
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen_test]
+#[should_panic]
+fn vec_test_overallocate() {
+    use alloc::vec::Vec;
+
+    let _ = Vec::<u8>::with_capacity(0xFFFFFFFF);
 }
