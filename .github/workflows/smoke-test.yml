@@ -14,6 +14,7 @@ jobs:
     name: 'Test (Smoke)(${{ matrix.cfg_release_channel }})'
     env:
       CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
+      PRIV_KEY: ${{ secrets.SEPOLIA_PRIVATE_KEY }}
     strategy:
       matrix:
         target: [wasm32-unknown-unknown]
