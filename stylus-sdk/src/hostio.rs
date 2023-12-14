@@ -59,7 +59,7 @@ extern "C" {
     ///
     /// [`TLOAD`]: https://www.evm.codes/#5c
     #[allow(dead_code)]
-    pub fn storage_transient_load_bytes32(key: *const u8, dest: *mut u8);
+    pub fn transient_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Stores a 32-byte value to transient storage. Stylus's storage format is identical to that
     /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
@@ -68,7 +68,7 @@ extern "C" {
     ///
     /// [`TSTORE`]: https://www.evm.codes/#5d
     #[allow(dead_code)]
-    pub fn storage_transient_store_bytes32(key: *const u8, value: *const u8);
+    pub fn transient_store_bytes32(key: *const u8, value: *const u8);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.
