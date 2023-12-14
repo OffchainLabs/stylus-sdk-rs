@@ -86,7 +86,7 @@ pub unsafe fn store_bytes32(key: U256, data: B256) {
 ///
 /// # Safety
 ///
-/// May alias storage.
+/// May alias transient storage.
 pub unsafe fn transient_load_bytes32(key: U256) -> B256 {
     let mut data = B256::ZERO;
     unsafe { hostio::transient_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
@@ -97,7 +97,7 @@ pub unsafe fn transient_load_bytes32(key: U256) -> B256 {
 ///
 /// # Safety
 ///
-/// May alias storage.
+/// May alias transient storage.
 pub unsafe fn transient_store_bytes32(key: U256, data: B256) {
     unsafe { hostio::transient_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
 }

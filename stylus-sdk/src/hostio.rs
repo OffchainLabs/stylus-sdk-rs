@@ -57,7 +57,7 @@ extern "C" {
     /// value stored in the EVM transient storage at offset `key`, which will be `0` when not
     /// previously set. The semantics, then, are equivalent to that of the EVM's [`TLOAD`] opcode.
     ///
-    /// [`TLOAD`]: https://www.evm.codes/#5c
+    /// [`TLOAD`]: https://eips.ethereum.org/EIPS/eip-1153
     #[allow(dead_code)]
     pub fn transient_load_bytes32(key: *const u8, dest: *mut u8);
 
@@ -66,7 +66,7 @@ extern "C" {
     /// the EVM transient storage at offset `key`. Furthermore, refunds are tabulated exactly as in
     /// the EVM. The semantics, then, are equivalent to that of the EVM's [`TSTORE`] opcode.
     ///
-    /// [`TSTORE`]: https://www.evm.codes/#5d
+    /// [`TSTORE`]: https://eips.ethereum.org/EIPS/eip-1153
     #[allow(dead_code)]
     pub fn transient_store_bytes32(key: *const u8, value: *const u8);
 
