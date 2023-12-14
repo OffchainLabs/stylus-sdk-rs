@@ -52,7 +52,7 @@ extern "C" {
     /// [`SSTORE`]: https://www.evm.codes/#55
     pub fn storage_store_bytes32(key: *const u8, value: *const u8);
 
-    /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
+    /// Reads a 32-byte value from transient storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
     /// value stored in the EVM transient storage at offset `key`, which will be `0` when not
     /// previously set. The semantics, then, are equivalent to that of the EVM's [`TLOAD`] opcode.
@@ -61,7 +61,7 @@ extern "C" {
     #[allow(dead_code)]
     pub fn storage_transient_load_bytes32(key: *const u8, dest: *mut u8);
 
-    /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
+    /// Stores a 32-byte value to transient storage. Stylus's storage format is identical to that
     /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
     /// the EVM transient storage at offset `key`. Furthermore, refunds are tabulated exactly as in
     /// the EVM. The semantics, then, are equivalent to that of the EVM's [`TSTORE`] opcode.
