@@ -42,7 +42,7 @@ static mut STATE: Option<(NonZero, usize)> = None;
 unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
     let (neg_offset, neg_bound) = STATE.get_or_insert_with(|| {
         let heap_base = &__heap_base as *const u8 as usize;
-        let bound = MiniAlloc::PAGE_SIZE * wasm32::memory_size(0);
+        let bound = MiniAlloc::PAGE_SIZE * wasm32::memory_size(0) - 1;
         (
             NonZero::new_unchecked(heap_base.wrapping_neg()),
             bound.wrapping_neg(),
@@ -51,7 +51,7 @@ unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
 
     let neg_aligned = make_aligned(neg_offset.get(), layout.align());
     let next_neg_offset = neg_aligned.checked_sub(layout.size())?;
-    let bytes_needed = neg_bound.saturating_sub(next_neg_offset);
+    let bytes_needed = neg_bound.saturating_sub(next_neg_offset + 1);
     if bytes_needed != 0 {
         let pages_needed = 1 + (bytes_needed - 1) / MiniAlloc::PAGE_SIZE;
         if wasm32::memory_grow(0, pages_needed) == usize::MAX {
