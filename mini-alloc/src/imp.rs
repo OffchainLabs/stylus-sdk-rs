@@ -14,6 +14,9 @@ unsafe impl Sync for MiniAlloc {}
 
 impl MiniAlloc {
     pub const INIT: Self = MiniAlloc;
+
+    /// The WASM page size, or 2^16 bytes.
+    pub const PAGE_SIZE: usize = 1 << 16;
 }
 
 unsafe impl GlobalAlloc for MiniAlloc {
@@ -30,9 +33,6 @@ extern "C" {
     static __heap_base: u8;
 }
 
-/// The WASM page size, or 2^16 bytes.
-const PAGE_SIZE: usize = 1 << 16;
-
 /// Represents the negation of the allocator's bump offset and boundary
 ///
 /// We store the negation because we can align the negative offset in fewer
@@ -42,7 +42,7 @@ static mut STATE: Option<(NonZero, usize)> = None;
 unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
     let (neg_offset, neg_bound) = STATE.get_or_insert_with(|| {
         let heap_base = &__heap_base as *const u8 as usize;
-        let bound = PAGE_SIZE * wasm32::memory_size(0);
+        let bound = MiniAlloc::PAGE_SIZE * wasm32::memory_size(0);
         (
             NonZero::new_unchecked(heap_base.wrapping_neg()),
             bound.wrapping_neg(),
@@ -53,11 +53,11 @@ unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
     let next_neg_offset = neg_aligned.checked_sub(layout.size())?;
     let bytes_needed = neg_bound.saturating_sub(next_neg_offset);
     if bytes_needed != 0 {
-        let pages_needed = 1 + (bytes_needed - 1) / PAGE_SIZE;
+        let pages_needed = 1 + (bytes_needed - 1) / MiniAlloc::PAGE_SIZE;
         if wasm32::memory_grow(0, pages_needed) == usize::MAX {
             return None;
         }
-        *neg_bound -= PAGE_SIZE * pages_needed;
+        *neg_bound -= MiniAlloc::PAGE_SIZE * pages_needed;
     }
     *neg_offset = NonZero::new_unchecked(next_neg_offset);
     Some(neg_aligned.wrapping_neg() as *mut u8)
