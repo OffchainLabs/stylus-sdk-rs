@@ -5,8 +5,9 @@ use crate::erc20::{Erc20, Erc20Params};
 use alloc::{string::String, vec::Vec};
 use stylus_sdk::{alloy_primitives::U256, call, msg, prelude::*};
 
+#[cfg(target_arch = "wasm32")]
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 mod erc20;
 
