@@ -25,6 +25,11 @@ unsafe impl GlobalAlloc for MiniAlloc {
     }
 
     #[inline]
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        self.alloc(layout)
+    }
+
+    #[inline]
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}
 }
 

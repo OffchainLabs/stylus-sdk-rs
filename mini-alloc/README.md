@@ -16,7 +16,24 @@ this crate.
 On targets other than wasm32, `MiniAlloc` simply forwards to the allocator from
 another crate, `wee_alloc::WeeAlloc`.
 
-Use it like this:
+`mini-alloc` uses less ink on 
+[Stylus](https://github.com/OffchainLabs/stylus-sdk-rs) compared to other
+allocators. When running the `edge_cases` test in this crate on Stylus, here are
+ink costs (minus the cost of memory expansion) when using `MiniAlloc` vs
+`WeeAlloc` and Rust's default allocator.
+
+
+|               | MiniAlloc    | WeeAlloc     | Default      |
+| ------------- | ------------ | ------------ | ------------ |
+| alloc         | 3324474      | 7207816      | 5163328      |
+| alloc_zeroed  | 3288777      | 954023099920 | 484822031511 |
+
+`alloc` means `edge_cases` was run as it appears in this crate. `alloc_zeroed`
+means the calls to `alloc` were replaced with calls to `alloc_zeroed`.  We can
+achieve substantial savings in this case because newly expanded memory in WASM
+is already zeroed.
+
+Use `MiniAlloc` like this:
 
 ```rust
 #[global_allocator]
