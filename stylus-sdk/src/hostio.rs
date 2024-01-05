@@ -36,6 +36,12 @@ extern "C" {
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
     pub fn account_codehash(address: *const u8, dest: *mut u8);
 
+    /// Write the code associated with the given address into `dest`.
+    pub fn account_code(address: *const u8, dest: *mut u8, size: usize);
+
+    /// Get the size of the code associated with the given address.
+    pub fn account_code_size(address: *const u8) -> usize;
+
     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
