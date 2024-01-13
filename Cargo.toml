@@ -30,7 +30,7 @@ paste = "1.0.14"
 quote = "1.0"
 regex = "1.9.1"
 proc-macro2 = "1.0"
-syn-solidity = "=0.3.1"
+syn-solidity = "0.6.0"
 convert_case = "0.6.0"
 
 # members
