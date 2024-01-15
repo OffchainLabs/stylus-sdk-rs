@@ -5,8 +5,7 @@ use alloy_sol_types::SolType;
 use sha3::{Digest, Keccak256};
 use std::{borrow::Cow, fmt::Display, num::NonZeroU16, str::FromStr};
 use syn::Token;
-use syn_solidity::Type;
-
+use syn_solidity::{LitNumber, Type};
 /// The purity of a Solidity method
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Purity {
@@ -95,7 +94,12 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         }
         Type::Array(ty) => {
             let (path, abi) = solidity_type_info(&ty.ty);
-            match ty.size.as_ref().map(|x| x.base10_digits()) {
+
+            // match ty.size.as_ref().map(|x| x.base10_digits()) {
+            //     Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
+            //     None => (path!("Array<{path}>"), abi!("{abi}[]")),
+            // }
+            match ty.size() {
                 Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
                 None => (path!("Array<{path}>"), abi!("{abi}[]")),
             }

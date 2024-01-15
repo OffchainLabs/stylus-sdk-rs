@@ -8,7 +8,7 @@ use proc_macro2::Ident;
 use quote::quote;
 use sha3::{Digest, Keccak256};
 use std::borrow::Cow;
-use syn_solidity::{FunctionAttribute, Item, Mutability, SolIdent, Visibility};
+use syn_solidity::{FunctionAttribute, Item, Mutability, SolIdent, Spanned, Visibility};
 
 pub fn sol_interface(input: TokenStream) -> TokenStream {
     let input = match syn_solidity::parse(input) {
@@ -107,7 +107,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
             let mut sol_args = vec![];
             let mut rust_args = vec![];
             let mut rust_arg_names = vec![];
-            for (i, arg) in func.arguments.iter().enumerate() {
+            for (i, arg) in func.parameters.iter().enumerate() {
                 let (sol_path, abi) = solidity_type_info(&arg.ty);
                 if i > 0 {
                     selector.update(",");
