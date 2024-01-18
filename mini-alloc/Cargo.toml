@@ -1,0 +1,20 @@
+[package]
+name = "mini-alloc"
+keywords = ["wasm", "stylus", "allocator"]
+description = "Very simple global allocator"
+readme = "README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.0"
+
+[dependencies]
+cfg-if = "1.0.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+wee_alloc = "0.4.5"

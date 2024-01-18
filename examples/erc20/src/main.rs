@@ -5,8 +5,9 @@ use crate::erc20::{Erc20, Erc20Params};
 use alloc::{string::String, vec::Vec};
 use stylus_sdk::{alloy_primitives::U256, call, msg, prelude::*};
 
+#[cfg(target_arch = "wasm32")]
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 mod erc20;
 
@@ -48,7 +49,7 @@ impl Weth {
         self.erc20.burn(msg::sender(), amount)?;
 
         // send the user their funds
-        call::transfer_eth(self, msg::sender(), amount)
+        call::transfer_eth(msg::sender(), amount)
     }
 
     // sums numbers
