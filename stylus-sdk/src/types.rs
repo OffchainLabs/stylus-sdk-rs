@@ -13,6 +13,9 @@
 //! let balance = account.balance();
 //! ```
 
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::hostio;
 use alloy_primitives::{b256, Address, B256, U256};
 
@@ -20,6 +23,9 @@ use alloy_primitives::{b256, Address, B256, U256};
 pub trait AddressVM {
     /// The balance in wei of the account.
     fn balance(&self) -> U256;
+
+    /// The code of the contract at the given address.
+    fn code(&self) -> Vec<u8>;
 
     /// The codehash of the contract or [`EOA`] at the given address.
     ///
@@ -39,6 +45,15 @@ impl AddressVM for Address {
         let mut data = [0; 32];
         unsafe { hostio::account_balance(self.0.as_ptr(), data.as_mut_ptr()) };
         U256::from_be_bytes(data)
+    }
+
+    fn code(&self) -> Vec<u8> {
+        let size = unsafe { hostio::account_code_size(self.0.as_ptr()) };
+        let mut data = vec![0; size];
+        unsafe {
+            hostio::account_code(self.0.as_ptr(), 0, size, data.as_mut_ptr());
+        }
+        data
     }
 
     fn codehash(&self) -> B256 {

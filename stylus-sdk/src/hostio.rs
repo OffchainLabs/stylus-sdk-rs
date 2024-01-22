@@ -28,6 +28,11 @@ extern "C" {
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);
 
+    /// Write the code associated with the given address into `dest`, starting
+    /// at `offset`, writing at most `size` bytes.
+    /// Returns the number of bytes written.
+    pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
+
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
     /// code will be the empty hash
@@ -35,6 +40,9 @@ extern "C" {
     ///
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
     pub fn account_codehash(address: *const u8, dest: *mut u8);
+
+    /// Get the size of the code associated with the given address.
+    pub fn account_code_size(address: *const u8) -> usize;
 
     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
