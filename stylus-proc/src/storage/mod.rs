@@ -5,7 +5,9 @@ use crate::storage::proc::{SolidityField, SolidityFields, SolidityStruct, Solidi
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use std::mem;
-use syn::{parse_macro_input, punctuated::Punctuated, Index, ItemStruct, Token, Type};
+use syn::{
+    parse_macro_input, punctuated::Punctuated, Fields, Index, ItemEnum, ItemStruct, Token, Type,
+};
 
 mod proc;
 
@@ -218,6 +220,32 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
         impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
             fn erase(&mut self) {
                 #erase_fields
+            }
+        }
+    };
+    output.into()
+}
+
+pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemEnum);
+    let name = &input.ident;
+    let mut match_arms = quote! {};
+    for variant in input.variants.iter() {
+        let variant_name = &variant.ident;
+        match variant.fields {
+            Fields::Unnamed(_) if variant.fields.len() == 1 => {}
+            _ => panic!("SolidityError: Each variant must be a tuple struct with one field"),
+        }
+        match_arms.extend(quote! {
+            #name::#variant_name(e) => e.encode(),
+        })
+    }
+    let output = quote! {
+        impl From<#name> for ::alloc::vec::Vec<u8> {
+            fn from(err: #name) -> ::alloc::vec::Vec<u8> {
+                match err {
+                    #match_arms
+                }
             }
         }
     };
