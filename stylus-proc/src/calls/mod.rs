@@ -107,6 +107,8 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
             let mut sol_args = vec![];
             let mut rust_args = vec![];
             let mut rust_arg_names = vec![];
+
+            // TODO: review this block, 'arg' should possibly be defined as param
             for (i, arg) in func.parameters.iter().enumerate() {
                 let (sol_path, abi) = solidity_type_info(&arg.ty);
                 if i > 0 {

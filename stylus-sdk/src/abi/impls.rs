@@ -3,11 +3,11 @@
 
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
-use alloy_primitives::{Address, Signed, Uint};
-use alloy_sol_types::sol_data::{self, IntBitCount, SupportedInt};
+use alloy_primitives::{Address, Bytes, FixedBytes, Signed, Uint};
+use alloy_sol_types::sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 
-#[cfg(test)]
-use alloy_primitives::FixedBytes;
+// #[cfg(test)]
+// use alloy_primitives::FixedBytes;
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
 macro_rules! test_type {
@@ -44,7 +44,26 @@ macro_rules! append_dec {
     };
 }
 
-test_type!(bytes, "bytes calldata", super::Bytes);
+impl AbiType for Bytes {
+    type SolType = sol_data::Bytes;
+
+    const ABI: ConstString = ConstString::new("bytes");
+
+    const EXPORT_ABI_ARG: ConstString = Self::ABI.concat(ConstString::new(" calldata"));
+
+    const EXPORT_ABI_RET: ConstString = Self::ABI.concat(ConstString::new(" memory"));
+}
+
+impl<const N: usize> AbiType for FixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
+    type SolType = sol_data::FixedBytes<N>;
+
+    const ABI: ConstString = ConstString::new("bytes").concat(ConstString::from_decimal_number(N));
+}
+
+test_type!(bytes, "bytes calldata", Bytes);
 
 impl<const BITS: usize, const LIMBS: usize> AbiType for Uint<BITS, LIMBS>
 where
@@ -143,7 +162,8 @@ test_type!(
     "uint256[] memory",
     Vec<alloy_primitives::U256>
 );
-test_type!(vec_of_bytes, "bytes[] memory", Vec<super::Bytes>);
+// TODO: Will need to change this
+test_type!(vec_of_bytes, "bytes[] memory", Vec<Bytes>);
 test_type!(vec_of_fixed_bytes, "bytes18[] memory", Vec<FixedBytes<18>>);
 
 impl<T: AbiType, const N: usize> AbiType for [T; N] {
@@ -230,13 +250,14 @@ test_type!(
     (u8, alloy_primitives::U256)
 );
 
+// TODO: Will need to change this
 test_type!(
     tuple_of_five_types,
     "(uint8, uint256[] memory, bytes calldata, bytes2, bool[][8] memory)",
     (
         u8,
         Vec<alloy_primitives::U256>,
-        super::Bytes,
+        Bytes,
         FixedBytes<2>,
         [Vec<bool>; 8],
     )

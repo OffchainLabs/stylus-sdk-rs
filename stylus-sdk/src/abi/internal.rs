@@ -11,9 +11,12 @@ use alloy_sol_types::SolType;
 use core::fmt;
 
 #[inline(always)]
-pub fn encode_return_type<T: AbiType>(x: T) -> Vec<u8> {
+pub fn encode_return_type<T>(x: T) -> Vec<u8>
+where
+    T: AbiType + alloy_sol_types::private::SolTypeValue<<T as AbiType>::SolType>,
+{
     // coerce types into a tuple of at least 1 element
-    <(T,) as AbiType>::SolType::encode(&(x,))
+    <(T,) as AbiType>::SolType::abi_encode_sequence(&(x,))
 }
 
 #[inline(always)]
