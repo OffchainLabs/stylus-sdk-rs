@@ -264,6 +264,12 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
     storage::derive_erase(input)
 }
 
+/// For an error type `E`, implement `From<E>` for `Vec<u8>`.
+#[proc_macro_derive(SolidityError)]
+pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
+    storage::derive_solidity_error(input)
+}
+
 /// Defines the entrypoint, which is where Stylus execution begins.
 /// Without it the contract will fail to pass [`cargo stylus check`][check].
 /// Most commonly this macro is used to annotate the top level storage `struct`.
