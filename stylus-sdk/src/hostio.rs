@@ -28,10 +28,19 @@ extern "C" {
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);
 
-    /// Write the code associated with the given address into `dest`, starting
-    /// at `offset`, writing at most `size` bytes.
-    /// Returns the number of bytes written.
+    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
+    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
+    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    ///
+    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
     pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
+
+    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODESIZE`].
+    ///
+    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    pub fn account_code_size(address: *const u8) -> usize;
 
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
@@ -40,9 +49,6 @@ extern "C" {
     ///
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
     pub fn account_codehash(address: *const u8, dest: *mut u8);
-
-    /// Get the size of the code associated with the given address.
-    pub fn account_code_size(address: *const u8) -> usize;
 
     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
@@ -269,6 +275,8 @@ extern "C" {
     /// Copies the bytes of the last EVM call or deployment return result. Does not revert if out of
     /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
     /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
+    ///
+    /// Returns the number of bytes written.
     ///
     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
     pub fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize;
