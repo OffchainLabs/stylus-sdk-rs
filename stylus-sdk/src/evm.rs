@@ -14,7 +14,7 @@
 
 use crate::hostio::{self, wrap_hostio};
 use alloc::{vec, vec::Vec};
-use alloy_primitives::{Address, B256};
+use alloy_primitives::B256;
 use alloy_sol_types::{token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
@@ -55,22 +55,6 @@ pub fn log<T: SolEvent>(event: T) {
 /// Calling it will unproductively consume gas.
 pub fn pay_for_memory_grow(pages: u16) {
     unsafe { hostio::pay_for_memory_grow(pages) }
-}
-
-/// Get the code associated with the given `address`.
-///
-/// Start at `offset` into the code and write at most `size` bytes.
-pub fn ext_code(address: &Address, offset: usize, size: Option<usize>) -> Vec<u8> {
-    let size = if let Some(sz) = size {
-        sz
-    } else {
-        unsafe { hostio::account_code_size(address.0.as_ptr()) }
-    };
-    let mut data = vec![0; size];
-    let size_written =
-        unsafe { hostio::account_code(address.0.as_ptr(), offset, size, data.as_mut_ptr()) };
-    data.truncate(size_written);
-    data
 }
 
 wrap_hostio!(

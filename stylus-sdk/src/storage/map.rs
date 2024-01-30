@@ -186,7 +186,7 @@ impl StorageKey for String {
 
 impl StorageKey for Address {
     fn to_slot(&self, root: B256) -> U256 {
-        let int: U160 = self.0.try_into().unwrap();
+        let int: U160 = self.0.into();
         int.to_slot(root)
     }
 }
