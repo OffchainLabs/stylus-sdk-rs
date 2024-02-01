@@ -11,12 +11,13 @@ mini-alloc = { path = "../../mini-alloc" }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
+debug = ["stylus-sdk/debug"]
 
-[profile.release]
-codegen-units = 1
-strip = true
-lto = true
-panic = "abort"
-opt-level = "s"
+[[bin]]
+name = "erc20"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["lib", "cdylib"]
 
 [workspace]
