@@ -47,6 +47,17 @@ pub trait AddressVM {
     ///
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
     fn has_code(&self) -> bool;
+
+    fn expmod(&self, x: U256, y: U256, z: U256) -> U256 {
+        let mut result = U256::from(0);
+        unsafe { hostio::expmod(
+            &x as *const U256 as *const u8,
+            &y as *const U256 as *const u8,
+            &z as *const U256 as *const u8,
+            &mut result as *mut U256 as *mut u8,
+        )};
+        result
+    }
 }
 
 impl AddressVM for Address {

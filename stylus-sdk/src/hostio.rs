@@ -50,6 +50,24 @@ extern "C" {
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
     pub fn account_codehash(address: *const u8, dest: *mut u8);
 
+    pub fn div(lhs: *const u8, rhs: *const u8, dest: *mut u8);
+
+    pub fn sdiv(lhs: *const u8, rhs: *const u8, dest: *mut u8);
+
+    pub fn mod_(lhs: *const u8, rhs: *const u8, dest: *mut u8);
+
+    pub fn smod(lhs: *const u8, rhs: *const u8, dest: *mut u8);
+
+    pub fn exp(lhs: *const u8, rhs: *const u8, dest: *mut u8);
+
+    pub fn addmod(lhs: *const u8, rhs: *const u8, n: *const u8, dest: *mut u8);
+
+    pub fn mulmod(lhs: *const u8, rhs: *const u8, n: *const u8, dest: *mut u8);
+
+    pub fn expmod(lhs: *const u8, rhs: *const u8, n: *const u8, dest: *mut u8);
+
+    pub fn sign_extend(b: u32, rhs: *const u8, dest: *mut u8);
+
     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
