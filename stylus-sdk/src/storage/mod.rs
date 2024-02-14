@@ -62,6 +62,14 @@ cfg_if! {
     }
 }
 
+pub unsafe fn set_bytes<const N: usize>(slot: U256, offset: usize, value: [u8; N]) {
+    unsafe { Storage::set(slot, offset, FixedBytes(value)) }
+}
+
+pub unsafe fn get_bytes<const N: usize>(slot: U256, offset: usize) -> [u8; N] {
+    unsafe { Storage::get(slot, offset) }.0
+}
+
 /// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
 ///
 /// # Safety

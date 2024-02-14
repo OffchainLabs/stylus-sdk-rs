@@ -9,7 +9,7 @@ use syn::{
     braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token::Bracket,
+    token::{Bracket, Comma},
     Attribute, Error, Generics, Path, Result, Token, Visibility,
 };
 
@@ -28,6 +28,65 @@ impl Parse for SolidityStructs {
             structs.push(input.parse()?);
         }
         Ok(Self(structs))
+    }
+}
+
+pub struct SolidityItems(pub Vec<SolidityItem>);
+
+impl Parse for SolidityItems {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut items = Vec::new();
+        while !input.is_empty() {
+            items.push(input.parse()?);
+        }
+        Ok(Self(items))
+    }
+}
+
+pub enum SolidityItem {
+    Struct(SolidityStruct),
+    Enum(SolidityEnum),
+}
+
+impl Parse for SolidityItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let begin = input.fork();
+        let _attrs = Attribute::parse_outer(&begin)?;
+        let _vis: Visibility = begin.parse()?;
+        let lookahead = begin.lookahead1();
+        if lookahead.peek(Token![enum]) {
+            Ok(SolidityItem::Enum(input.parse()?))
+        } else {
+            Ok(SolidityItem::Struct(input.parse()?))
+        }
+    }
+}
+
+pub struct SolidityEnum {
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub name: Ident,
+    pub enum_name: Ident,
+    pub variants: Punctuated<Ident, Comma>,
+}
+
+impl Parse for SolidityEnum {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let attrs: Vec<Attribute> = Attribute::parse_outer(input)?;
+        let vis: Visibility = input.parse()?;
+        let _: Token![enum] = input.parse()?;
+        let name: Ident = input.parse()?;
+        let enum_name: Ident = input.parse()?;
+        let content;
+        let _ = braced!(content in input);
+        let variants = content.parse_terminated(Ident::parse)?;
+        Ok(Self {
+            attrs,
+            vis,
+            name,
+            enum_name,
+            variants,
+        })
     }
 }
 
