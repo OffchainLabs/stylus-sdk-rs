@@ -40,6 +40,7 @@ pub fn print_abi<T: GenerateAbi>() {
     println!(" * For more information, please see [The Stylus SDK](https://github.com/OffchainLabs/stylus-sdk-rs).");
     println!(" */");
     println!();
+    println!("pragma solidity ^0.8.23;");
     print!("{}", AbiPrinter::<T>(PhantomData));
 }
 
