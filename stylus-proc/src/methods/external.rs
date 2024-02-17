@@ -1,4 +1,4 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
+// Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::types::{self, Purity};
@@ -155,10 +155,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     }
                 };
                 let result = Self::#name(#storage #(#expand_args, )* );
-                match result {
-                    Ok(result) => Some(Ok(internal::encode_return_type(result))),
-                    Err(err) => Some(Err(err.into())),
-                }
+                Some(EncodableReturnType::encode(result))
             }
         });
 
@@ -258,7 +255,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             #[inline(always)]
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};
-                use stylus_sdk::abi::{internal, AbiType, Router};
+                use stylus_sdk::abi::{internal, internal::EncodableReturnType, AbiType, Router};
                 use alloc::vec;
 
                 #[cfg(feature = "export-abi")]
