@@ -5,8 +5,7 @@ use alloy_sol_types::SolType;
 use sha3::{Digest, Keccak256};
 use std::{borrow::Cow, fmt::Display, num::NonZeroU16, str::FromStr};
 use syn::Token;
-use syn_solidity::Type;
-
+use syn_solidity::{LitNumber, Type};
 /// The purity of a Solidity method
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Purity {
@@ -81,25 +80,35 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         Type::Address(_, _) => simple!(Address),
         Type::String(_) => simple!(String),
         Type::Bytes(_) => simple!(Bytes),
+        // TODO: Change this to simple type
         Type::FixedBytes(_, size) => (
             format!("stylus_sdk::abi::FixedBytesSolType<{size}>").into(),
             abi!("bytes[{size}]"),
         ),
+        // TODO: Review if simple type is possible now
         Type::Uint(_, size) => {
             let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
             (path!("Uint<{size}>"), abi!("uint{size}"))
         }
+        // TODO: Review if simple type is possible now
         Type::Int(_, size) => {
             let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
             (path!("Int<{size}>"), abi!("int{size}"))
         }
+        // TODO: Review if simple type is possible now
         Type::Array(ty) => {
             let (path, abi) = solidity_type_info(&ty.ty);
-            match ty.size.as_ref().map(|x| x.base10_digits()) {
+
+            // match ty.size.as_ref().map(|x| x.base10_digits()) {
+            //     Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
+            //     None => (path!("Array<{path}>"), abi!("{abi}[]")),
+            // }
+            match ty.size() {
                 Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
                 None => (path!("Array<{path}>"), abi!("{abi}[]")),
             }
         }
+        // TODO: Review if simple type is possible now
         Type::Tuple(tup) => {
             if tup.types.is_empty() {
                 ("()".into(), "()".into())

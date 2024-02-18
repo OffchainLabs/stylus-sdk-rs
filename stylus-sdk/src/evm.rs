@@ -15,7 +15,7 @@
 use crate::hostio::{self, wrap_hostio};
 use alloc::{vec, vec::Vec};
 use alloy_primitives::B256;
-use alloy_sol_types::{token::WordToken, SolEvent, TopicList};
+use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
 fn emit_log(bytes: &[u8], topics: usize) {

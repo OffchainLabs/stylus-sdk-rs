@@ -18,9 +18,7 @@ use crate::{storage::TopLevelStorage, ArbResult};
 use alloy_sol_types::SolType;
 use core::borrow::BorrowMut;
 
-pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
-pub use fixed_bytes::FixedBytesSolType;
 
 #[cfg(feature = "export-abi")]
 pub use export::GenerateAbi;
@@ -28,9 +26,7 @@ pub use export::GenerateAbi;
 #[cfg(feature = "export-abi")]
 pub mod export;
 
-mod bytes;
 mod const_string;
-mod fixed_bytes;
 mod impls;
 
 #[doc(hidden)]
@@ -58,7 +54,7 @@ where
 /// Additionally, `AbiType` provides a `const` equivalent to alloy's [`SolType::sol_type_name`].
 pub trait AbiType {
     /// The associated Solidity type.
-    type SolType: SolType<RustType = Self>;
+    type SolType: SolType;
 
     /// Equivalent to [`SolType::sol_type_name`], but `const`.
     const ABI: ConstString;

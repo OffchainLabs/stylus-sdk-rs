@@ -26,7 +26,7 @@ impl From<Error> for Vec<u8> {
             Error::Revert(data) => data,
             Error::AbiDecodingFailed(err) => {
                 console!("failed to decode return data from external call: {err}");
-                Panic::from(PanicKind::Generic).encode()
+                Panic::from(PanicKind::Generic).abi_encode()
             }
         }
     }
