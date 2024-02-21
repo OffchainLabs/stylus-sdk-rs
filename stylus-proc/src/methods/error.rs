@@ -21,31 +21,37 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
         });
         errors.push(error);
     }
-    quote! {
-        impl From<#name> for ::alloc::vec::Vec<u8> {
-            fn from(err: #name) -> ::alloc::vec::Vec<u8> {
+    let mut output = quote! {
+        impl From<#name> for alloc::vec::Vec<u8> {
+            fn from(err: #name) -> alloc::vec::Vec<u8> {
                 match err {
                     #match_arms
                 }
             }
         }
+    };
 
-        impl stylus_sdk::abi::export::internal::InnerTypes for #name {
-            fn inner_types() -> Vec<stylus_sdk::abi::export::internal::InnerType> {
-                use alloc::vec;
-                use core::any::TypeId;
-                use stylus_sdk::abi::export::internal::InnerType;
-                use stylus_sdk::alloy_sol_types::SolError;
+    if cfg!(feature = "export-abi") {
+        output.extend(quote! {
+            impl stylus_sdk::abi::export::internal::InnerTypes for #name {
+                fn inner_types() -> alloc::vec::Vec<stylus_sdk::abi::export::internal::InnerType> {
+                    use alloc::{format, vec};
+                    use core::any::TypeId;
+                    use stylus_sdk::abi::export::internal::InnerType;
+                    use stylus_sdk::alloy_sol_types::SolError;
 
-                vec![
-                    #(
-                        InnerType {
-                            name: format!("error {};", <#errors as SolError>::SIGNATURE.replace(',', ", ")),
-                            id: TypeId::of::<#errors>(),
-                        }
-                    ),*
-                ]
+                    vec![
+                        #(
+                            InnerType {
+                                name: format!("error {};", <#errors as SolError>::SIGNATURE.replace(',', ", ")),
+                                id: TypeId::of::<#errors>(),
+                            }
+                        ),*
+                    ]
+                }
             }
-        }
-    }.into()
+        });
+    }
+
+    output.into()
 }
