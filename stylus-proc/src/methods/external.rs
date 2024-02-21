@@ -20,6 +20,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut selectors = quote!();
     let mut match_selectors = quote!();
     let mut abi = quote!();
+    let mut types = vec![];
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
@@ -278,6 +279,24 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         return router.into();
     }
 
+    for item in input.items.iter_mut() {
+        let ImplItem::Method(method) = item else {
+            continue;
+        };
+        if let ReturnType::Type(_, ty) = &method.sig.output {
+            types.push(ty);
+        }
+    }
+
+    let type_decls = quote! {
+        let mut seen = HashSet::new();
+        for item in [].iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
+            if seen.insert(item.id) {
+                writeln!(f, "\n    {}", item.name)?;
+            }
+        }
+    };
+
     let name = match *self_ty.clone() {
         Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
         _ => error!(self_ty, "Can't generate ABI for unnamed type"),
@@ -309,12 +328,14 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 use stylus_sdk::abi::{AbiType, GenerateAbi};
                 use stylus_sdk::abi::internal::write_solidity_returns;
-                use stylus_sdk::abi::export::{underscore_if_sol};
+                use stylus_sdk::abi::export::{underscore_if_sol, internal::InnerTypes};
+                use std::collections::HashSet;
                 #(#inherited_abis)*
                 write!(f, "interface I{}", #name)?;
                 #is_clause
                 write!(f, " {{")?;
                 #abi
+                #type_decls
                 writeln!(f, "}}")?;
                 Ok(())
             }
