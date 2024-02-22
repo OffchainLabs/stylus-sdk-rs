@@ -80,7 +80,7 @@ impl RawDeploy {
     ///
     /// # Safety
     ///
-    /// Note that the EVM allows init code to make calls to other contracts, which provides a vector force
+    /// Note that the EVM allows init code to make calls to other contracts, which provides a vector for
     /// reentrancy. This means that this method may enable storage aliasing if used in the middle of a storage
     /// reference's lifetime and if reentrancy is allowed.
     ///

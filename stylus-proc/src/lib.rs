@@ -264,6 +264,35 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
     storage::derive_erase(input)
 }
 
+/// Allows an error `enum` to be used in method signatures.
+///
+/// ```ignore
+/// sol! {
+///     error InsufficientBalance(address from, uint256 have, uint256 want);
+///     error InsufficientAllowance(address owner, address spender, uint256 have, uint256 want);
+/// }
+///
+/// #[derive(SolidityError)]
+/// pub enum Erc20Error {
+///     InsufficientBalance(InsufficientBalance),
+///     InsufficientAllowance(InsufficientAllowance),
+/// }
+///
+/// #[external]
+/// impl Contract {
+///     pub fn fallible_method() -> Result<(), Erc20Error> {
+///         // code that might revert
+///     }
+/// }
+/// ```
+///
+/// Under the hood, the above macro works by implementing `From<Erc20Error>` for `Vec<u8>`
+/// along with printing code for abi-export.
+#[proc_macro_derive(SolidityError)]
+pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
+    methods::error::derive_solidity_error(input)
+}
+
 /// Defines the entrypoint, which is where Stylus execution begins.
 /// Without it the contract will fail to pass [`cargo stylus check`][check].
 /// Most commonly this macro is used to annotate the top level storage `struct`.

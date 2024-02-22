@@ -1,4 +1,4 @@
-// Copyright 2023, Offchain Labs, Inc.
+// Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::storage::proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
@@ -214,12 +214,12 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
             self.#ident.erase();
         });
     }
-    let output = quote! {
+    quote! {
         impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
             fn erase(&mut self) {
                 #erase_fields
             }
         }
-    };
-    output.into()
+    }
+    .into()
 }

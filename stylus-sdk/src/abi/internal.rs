@@ -76,8 +76,8 @@ where
     if abi == "()" {
         Ok(())
     } else if abi.starts_with('(') {
-        write!(f, " returns {}", abi)
+        write!(f, " returns {abi}")
     } else {
-        write!(f, " returns ({})", abi)
+        write!(f, " returns ({abi})")
     }
 }
