@@ -28,6 +28,20 @@ extern "C" {
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);
 
+    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
+    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
+    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    ///
+    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
+    pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
+
+    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODESIZE`].
+    ///
+    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    pub fn account_code_size(address: *const u8) -> usize;
+
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
     /// code will be the empty hash
@@ -261,6 +275,8 @@ extern "C" {
     /// Copies the bytes of the last EVM call or deployment return result. Does not revert if out of
     /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
     /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
+    ///
+    /// Returns the number of bytes written.
     ///
     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
     pub fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize;

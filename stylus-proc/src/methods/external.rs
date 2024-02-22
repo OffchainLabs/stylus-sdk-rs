@@ -1,4 +1,4 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
+// Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::types::{self, Purity};
@@ -20,6 +20,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut selectors = quote!();
     let mut match_selectors = quote!();
     let mut abi = quote!();
+    let mut types = vec![];
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
@@ -155,10 +156,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     }
                 };
                 let result = Self::#name(#storage #(#expand_args, )* );
-                match result {
-                    Ok(result) => Some(Ok(internal::encode_return_type(result))),
-                    Err(err) => Some(Err(err.into())),
-                }
+                Some(EncodableReturnType::encode(result))
             }
         });
 
@@ -258,7 +256,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             #[inline(always)]
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};
-                use stylus_sdk::abi::{internal, AbiType, Router};
+                use stylus_sdk::abi::{internal, internal::EncodableReturnType, AbiType, Router};
                 use alloc::vec;
 
                 #[cfg(feature = "export-abi")]
@@ -280,6 +278,24 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     if cfg!(not(feature = "export-abi")) {
         return router.into();
     }
+
+    for item in input.items.iter_mut() {
+        let ImplItem::Method(method) = item else {
+            continue;
+        };
+        if let ReturnType::Type(_, ty) = &method.sig.output {
+            types.push(ty);
+        }
+    }
+
+    let type_decls = quote! {
+        let mut seen = HashSet::new();
+        for item in [].iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
+            if seen.insert(item.id) {
+                writeln!(f, "\n    {}", item.name)?;
+            }
+        }
+    };
 
     let name = match *self_ty.clone() {
         Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
@@ -312,12 +328,14 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 use stylus_sdk::abi::{AbiType, GenerateAbi};
                 use stylus_sdk::abi::internal::write_solidity_returns;
-                use stylus_sdk::abi::export::{underscore_if_sol};
+                use stylus_sdk::abi::export::{underscore_if_sol, internal::InnerTypes};
+                use std::collections::HashSet;
                 #(#inherited_abis)*
                 write!(f, "interface I{}", #name)?;
                 #is_clause
                 write!(f, " {{")?;
                 #abi
+                #type_decls
                 writeln!(f, "}}")?;
                 Ok(())
             }
