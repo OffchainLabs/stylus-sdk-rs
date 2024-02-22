@@ -10,7 +10,7 @@ use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::{Bracket, Comma},
-    Attribute, Error, Generics, Path, Result, Token, Visibility,
+    Attribute, Error, Generics, Path, Result, Token, TypePath, Visibility,
 };
 
 macro_rules! sdk {
@@ -66,7 +66,6 @@ pub struct SolidityEnum {
     pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     pub name: Ident,
-    pub enum_name: Ident,
     pub variants: Punctuated<Ident, Comma>,
 }
 
@@ -76,7 +75,6 @@ impl Parse for SolidityEnum {
         let vis: Visibility = input.parse()?;
         let _: Token![enum] = input.parse()?;
         let name: Ident = input.parse()?;
-        let enum_name: Ident = input.parse()?;
         let content;
         let _ = braced!(content in input);
         let variants = content.parse_terminated(Ident::parse)?;
@@ -84,7 +82,6 @@ impl Parse for SolidityEnum {
             attrs,
             vis,
             name,
-            enum_name,
             variants,
         })
     }
@@ -133,7 +130,7 @@ impl Parse for SolidityFields {
 pub struct SolidityField {
     pub attrs: Vec<Attribute>,
     pub name: Ident,
-    pub ty: Path,
+    pub ty: TypePath,
 }
 
 impl Parse for SolidityField {
@@ -145,12 +142,12 @@ impl Parse for SolidityField {
     }
 }
 
-pub struct SolidityTy(Path);
+pub struct SolidityTy(TypePath);
 
 impl Parse for SolidityTy {
     fn parse(input: ParseStream) -> Result<Self> {
         let start: Path = input.parse()?;
-        let mut path: Path;
+        let mut path: TypePath;
 
         if start.is_ident("mapping") {
             let content;
@@ -196,7 +193,7 @@ impl Parse for SolidityTy {
     }
 }
 
-pub struct Primitive(Path);
+pub struct Primitive(TypePath);
 
 lazy_static! {
     static ref UINT_REGEX: Regex = Regex::new(r"^uint(\d+)$").unwrap();
@@ -217,7 +214,7 @@ impl TryFrom<Path> for Primitive {
 
     fn try_from(path: Path) -> std::result::Result<Self, Self::Error> {
         let Some(ident) = path.get_ident() else {
-            return Ok(Self(path));
+            return Ok(Self(TypePath { qself: None, path }));
         };
         let name = &ident.to_string();
 
@@ -268,7 +265,13 @@ impl TryFrom<Path> for Primitive {
             "uint" => "StorageU256",
             x => match LOWER_REGEX.is_match(x) {
                 true => return Err(Error::new_spanned(ident, "Type not supported")),
-                false => return Ok(Self(syn::parse_str(x)?)),
+                false => {
+                    let s = format!(
+                        "<{} as ::stylus_sdk::storage::HasStorage>::StorableType",
+                        quote! { #path }
+                    );
+                    return Ok(Self(syn::parse_str(&s)?));
+                }
             },
         };
 

@@ -90,6 +90,81 @@ pub unsafe fn store_bytes32(key: U256, data: B256) {
     unsafe { hostio::storage_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
 }
 
+#[derive(Debug)]
+pub struct StorageEnum<E> {
+    slot: U256,
+    offset: u8,
+    cached: OnceCell<E>,
+}
+
+impl<E: StorableEnum> Deref for StorageEnum<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        self.cached.get_or_init(|| {
+            let x = unsafe { Storage::get::<1>(self.slot, self.offset as usize)[0] };
+            E::from_u8(x)
+        })
+    }
+}
+
+impl<E: StorableEnum> StorageEnum<E> {
+    pub fn get(&self) -> E {
+        **self
+    }
+
+    pub fn set(&mut self, value: E) {
+        overwrite_cell(&mut self.cached, value);
+        let x = value.to_u8();
+        unsafe { Storage::set(self.slot, self.offset as usize, FixedBytes([x])) }
+    }
+}
+
+impl<E: StorableEnum> StorageType for StorageEnum<E> {
+    type Wraps<'a> = E;
+    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+
+    const SLOT_BYTES: usize = 1;
+
+    unsafe fn new(slot: U256, offset: u8) -> Self {
+        Self {
+            slot,
+            offset,
+            cached: OnceCell::new(),
+        }
+    }
+
+    fn load<'s>(self) -> Self::Wraps<'s> {
+        self.get()
+    }
+
+    fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
+        StorageGuardMut::new(self)
+    }
+}
+
+impl<E: StorableEnum> Erase for StorageEnum<E> {
+    fn erase(&mut self) {
+        self.set(E::from_u8(0))
+    }
+}
+
+impl<'a, E: StorableEnum + From<StorageEnum<E>>> SimpleStorageType<'a> for StorageEnum<E> {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
+        self.set(value)
+    }
+}
+
+pub trait StorableEnum: 'static + Copy {
+    fn to_u8(self) -> u8;
+
+    fn from_u8(x: u8) -> Self;
+}
+
+pub trait HasStorage {
+    type StorableType;
+}
+
 /// Overwrites the value in a cell.
 #[inline]
 fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {
