@@ -17,7 +17,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
             _ => error!(variant.fields, "Variant not a 1-tuple"),
         };
         match_arms.extend(quote! {
-            #name::#variant_name(e) => e.encode(),
+            #name::#variant_name(e) => stylus_sdk::alloy_sol_types::SolError::encode(&e),
         });
         errors.push(error);
     }
