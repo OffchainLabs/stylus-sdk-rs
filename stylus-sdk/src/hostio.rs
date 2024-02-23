@@ -262,6 +262,8 @@ extern "C" {
     /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
     /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
     ///
+    /// Returns the number of bytes written.
+    ///
     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
     pub fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize;
 
