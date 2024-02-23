@@ -54,7 +54,7 @@ pub fn log<T: SolEvent>(event: T) {
 /// This function exists to force the compiler to import this symbol.
 /// Calling it will unproductively consume gas.
 pub fn pay_for_memory_grow(pages: u16) {
-    unsafe { hostio::pay_for_memory_grow(pages) }
+    unsafe { hostio::memory_grow(pages) }
 }
 
 wrap_hostio!(

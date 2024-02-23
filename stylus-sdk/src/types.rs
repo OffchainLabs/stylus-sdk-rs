@@ -14,27 +14,12 @@
 //! ```
 
 use crate::hostio;
-use alloc::vec::Vec;
 use alloy_primitives::{b256, Address, B256, U256};
 
 /// Trait that allows the [`Address`] type to inspect the corresponding account's balance and codehash.
 pub trait AddressVM {
     /// The balance in wei of the account.
     fn balance(&self) -> U256;
-
-    /// The account's code.
-    ///
-    /// Returns an empty [`vec`] for [`EOAs`].
-    ///
-    /// [`EOAs`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
-    fn code(&self) -> Vec<u8>;
-
-    /// The length of the account's code in bytes.
-    ///
-    /// Returns `0` for [`EOAs`].
-    ///
-    /// [`EOAs`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
-    fn code_size(&self) -> usize;
 
     /// The codehash of the contract or [`EOA`] at the given address.
     ///
@@ -54,20 +39,6 @@ impl AddressVM for Address {
         let mut data = [0; 32];
         unsafe { hostio::account_balance(self.as_ptr(), data.as_mut_ptr()) };
         U256::from_be_bytes(data)
-    }
-
-    fn code(&self) -> Vec<u8> {
-        let size = self.code_size();
-        let mut data = Vec::with_capacity(size);
-        unsafe {
-            hostio::account_code(self.as_ptr(), 0, size, data.as_mut_ptr());
-            data.set_len(size);
-        }
-        data
-    }
-
-    fn code_size(&self) -> usize {
-        unsafe { hostio::account_code_size(self.as_ptr()) }
     }
 
     fn codehash(&self) -> B256 {
