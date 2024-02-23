@@ -11,4 +11,4 @@ cargo stylus new counter
 cd counter
 echo "[workspace]" >> Cargo.toml
 
-cargo stylus deploy --private-key $PRIV_KEY
+cargo stylus deploy --private-key $PRIV_KEY -e https://stylus-testnet.arbitrum.io/rpc
