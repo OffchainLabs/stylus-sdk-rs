@@ -49,10 +49,11 @@ fn solidity_storage_enum(input: TokenStream) -> TokenStream {
     }
 
     quote! {
-        #(#attrs)*
-        #[derive(Copy, Clone)]
-        #vis enum #name {
-            #variants
+        alloy_sol_types::sol! {
+            #(#attrs)*
+            enum #name {
+                #variants
+            }
         }
 
         impl ::stylus_sdk::storage::StorableEnum for #name {
