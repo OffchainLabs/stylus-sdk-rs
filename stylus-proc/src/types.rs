@@ -73,7 +73,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
     }
     macro_rules! simple {
         ($ty:ident) => {
-            (path!(stringify!($ty)), sol_data::$ty::sol_type_name())
+            (path!(stringify!($ty)), sol_data::$ty::SOL_NAME.into())
         };
     }
     match ty {
