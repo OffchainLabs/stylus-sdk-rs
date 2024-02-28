@@ -14,15 +14,23 @@ pub trait EncodableReturnType {
     fn encode(self) -> ArbResult;
 }
 
-impl<T: AbiType> EncodableReturnType for T {
+impl<T> EncodableReturnType for T
+where
+    T: AbiType + alloy_sol_types::private::SolTypeValue<<T as AbiType>::SolType>,
+{
     #[inline(always)]
     fn encode(self) -> ArbResult {
         // coerce types into a tuple of at least 1 element
-        Ok(<(T,) as AbiType>::SolType::encode(&(self,)))
+        Ok(<(<T as AbiType>::SolType,) as SolType>::abi_encode(
+            &(self,),
+        ))
     }
 }
 
-impl<T: AbiType, E: Into<Vec<u8>>> EncodableReturnType for Result<T, E> {
+impl<T, E: Into<Vec<u8>>> EncodableReturnType for Result<T, E>
+where
+    T: AbiType + alloy_sol_types::private::SolTypeValue<<T as AbiType>::SolType>,
+{
     #[inline(always)]
     fn encode(self) -> ArbResult {
         match self {
