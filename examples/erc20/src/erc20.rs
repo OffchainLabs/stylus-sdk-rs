@@ -105,20 +105,20 @@ impl<T: Erc20Params> Erc20<T> {
 // Note: modifying storage will become much prettier soon
 #[external]
 impl<T: Erc20Params> Erc20<T> {
-    pub fn name() -> Result<String, Erc20Error> {
-        Ok(T::NAME.into())
+    pub fn name() -> String {
+        T::NAME.into()
     }
 
-    pub fn symbol() -> Result<String, Erc20Error> {
-        Ok(T::SYMBOL.into())
+    pub fn symbol() -> String {
+        T::SYMBOL.into()
     }
 
-    pub fn decimals() -> Result<u8, Erc20Error> {
-        Ok(T::DECIMALS)
+    pub fn decimals() -> u8 {
+        T::DECIMALS
     }
 
-    pub fn balance_of(&self, address: Address) -> Result<U256, Erc20Error> {
-        Ok(self.balances.get(address))
+    pub fn balance_of(&self, address: Address) -> U256 {
+        self.balances.get(address)
     }
 
     pub fn transfer(&mut self, to: Address, value: U256) -> Result<bool, Erc20Error> {
@@ -126,14 +126,14 @@ impl<T: Erc20Params> Erc20<T> {
         Ok(true)
     }
 
-    pub fn approve(&mut self, spender: Address, value: U256) -> Result<bool, Erc20Error> {
+    pub fn approve(&mut self, spender: Address, value: U256) -> bool {
         self.allowances.setter(msg::sender()).insert(spender, value);
         evm::log(Approval {
             owner: msg::sender(),
             spender,
             value,
         });
-        Ok(true)
+        true
     }
 
     pub fn transfer_from(
@@ -158,7 +158,7 @@ impl<T: Erc20Params> Erc20<T> {
         Ok(true)
     }
 
-    pub fn allowance(&self, owner: Address, spender: Address) -> Result<U256, Erc20Error> {
-        Ok(self.allowances.getter(owner).get(spender))
+    pub fn allowance(&self, owner: Address, spender: Address) -> U256 {
+        self.allowances.getter(owner).get(spender)
     }
 }

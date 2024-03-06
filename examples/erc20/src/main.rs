@@ -40,9 +40,8 @@ sol_interface! {
 #[inherit(Erc20<WethParams>)]
 impl Weth {
     #[payable]
-    pub fn deposit(&mut self) -> Result<(), Vec<u8>> {
+    pub fn deposit(&mut self) {
         self.erc20.mint(msg::sender(), msg::value());
-        Ok(())
     }
 
     pub fn withdraw(&mut self, amount: U256) -> Result<(), Vec<u8>> {
@@ -53,8 +52,8 @@ impl Weth {
     }
 
     // sums numbers
-    pub fn sum(values: Vec<U256>) -> Result<(String, U256), Vec<u8>> {
-        Ok(("sum".into(), values.iter().sum()))
+    pub fn sum(values: Vec<U256>) -> (String, U256) {
+        ("sum".into(), values.iter().sum())
     }
 
     // calls the sum() method from the interface
