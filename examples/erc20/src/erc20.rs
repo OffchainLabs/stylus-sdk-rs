@@ -2,7 +2,7 @@ use alloc::string::String;
 use core::marker::PhantomData;
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
-    alloy_sol_types::{sol, SolError},
+    alloy_sol_types::sol,
     evm, msg,
     prelude::*,
 };

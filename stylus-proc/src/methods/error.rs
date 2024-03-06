@@ -10,18 +10,27 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
     let name = &input.ident;
     let mut match_arms = quote!();
     let mut errors = vec![];
+    let mut output = quote!();
     for variant in input.variants {
         let variant_name = variant.ident;
         let error = match variant.fields {
             Fields::Unnamed(e) if variant.fields.len() == 1 => e.unnamed.first().unwrap().clone(),
             _ => error!(variant.fields, "Variant not a 1-tuple"),
         };
+        let ty = error.ty.clone();
         match_arms.extend(quote! {
-            #name::#variant_name(e) => stylus_sdk::alloy_sol_types::SolError::encode(&e),
+            #name::#variant_name(e) => ::stylus_sdk::call::MethodError::encode(e),
+        });
+        output.extend(quote! {
+            impl From<#ty> for #name {
+                fn from(value: #ty) -> Self {
+                    #name::#variant_name(value)
+                }
+            }
         });
         errors.push(error);
     }
-    let mut output = quote! {
+    output.extend(quote! {
         impl From<#name> for alloc::vec::Vec<u8> {
             fn from(err: #name) -> alloc::vec::Vec<u8> {
                 match err {
@@ -29,7 +38,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
                 }
             }
         }
-    };
+    });
 
     if cfg!(feature = "export-abi") {
         output.extend(quote! {

@@ -19,6 +19,29 @@ impl From<alloy_sol_types::Error> for Error {
     }
 }
 
+/// Encode an error.
+///
+/// This is useful so that users can use `Error` as a variant in their error
+/// types. It should not be necessary to implement this.
+pub trait MethodError {
+    /// Users should not have to call this.
+    fn encode(self) -> Vec<u8>;
+}
+
+impl MethodError for Error {
+    #[inline]
+    fn encode(self) -> Vec<u8> {
+        From::from(self)
+    }
+}
+
+impl<T: SolError> MethodError for T {
+    #[inline]
+    fn encode(self) -> Vec<u8> {
+        SolError::encode(&self)
+    }
+}
+
 impl From<Error> for Vec<u8> {
     #[allow(unused)]
     fn from(err: Error) -> Vec<u8> {
