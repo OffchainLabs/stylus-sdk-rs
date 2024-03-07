@@ -36,6 +36,8 @@ jobs:
         with:
           nitro-testnode-ref: stylus
           no-token-bridge: true
+          # no-simple must be false for now as our nitro testnode branch doesn't have that option
+          no-simple: false
           
       - name: Smoke Test Deployment 
         run: ./ci/smoke_test.sh
