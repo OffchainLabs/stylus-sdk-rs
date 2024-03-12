@@ -286,6 +286,11 @@ extern "C" {
     /// naturally when `user_entrypoint` returns.
     pub fn write_result(data: *const u8, len: usize);
 
+    /// Exits program execution early with the given status code.
+    /// If `0`, the program returns successfully with any data supplied by `write_result`.
+    /// Otherwise, the program reverts and treats any `write_result` data as revert data.
+    pub fn exit_early(status: u32) -> !;
+
     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
     /// happened during the program's execution. The semantics are equivalent to that of the EVM's
     /// [`RETURN_DATA_SIZE`] opcode.
