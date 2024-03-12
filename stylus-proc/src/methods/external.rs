@@ -21,6 +21,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut match_selectors = quote!();
     let mut abi = quote!();
     let mut types = vec![];
+    let mut fallback = None;
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
@@ -57,7 +58,29 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 override_name = args.name;
                 continue;
             }
+            if *ident == "fallback" {
+                if !attr.tokens.is_empty() {
+                    error!(attr.tokens, "the fallback attribute doesn't take arguments");
+                }
+                if fallback.is_some() {
+                    error!(attr.path, "more than one fallback attribute");
+                }
+                let ident = method.sig.ident.clone();
+                // Note that we won't optionally support accepting bytes as an argument.
+                fallback = Some(quote! {
+                    let result = Self::#ident(core::borrow::BorrowMut::borrow_mut(storage));
+                    return Some(EncodableReturnType::encode(result));
+                });
+                continue;
+            }
+
             method.attrs.push(attr);
+        }
+
+        // We skip exporting the abi for the `fallback` function since it
+        // is never present in Solidity interfaces.
+        if fallback.is_some() {
+            continue;
         }
 
         use Purity::*;
@@ -267,6 +290,8 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     #match_selectors
                     _ => {
                         #(#inherit_routes)*
+
+                        #fallback
                         None
                     }
                 }
