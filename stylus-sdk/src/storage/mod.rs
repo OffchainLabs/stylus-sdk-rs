@@ -79,7 +79,12 @@ pub unsafe fn load_bytes32(key: U256) -> B256 {
 ///
 /// May alias storage.
 pub unsafe fn store_bytes32(key: U256, data: B256) {
-    unsafe { hostio::storage_store_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
+    unsafe { hostio::storage_cache_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
+}
+
+/// TODO:
+pub unsafe fn flush_cache(clear: bool) {
+    unsafe { hostio::storage_flush_cache(clear) }
 }
 
 /// Overwrites the value in a cell.

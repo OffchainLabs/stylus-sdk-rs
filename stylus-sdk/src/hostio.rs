@@ -64,7 +64,11 @@ extern "C" {
     /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    pub fn storage_store_bytes32(key: *const u8, value: *const u8);
+    pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
+
+    /// Flushes the VM storage cache.
+    /// TODO: longer explaination.
+    pub fn storage_flush_cache(clear: bool);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.

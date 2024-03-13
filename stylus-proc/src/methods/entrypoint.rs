@@ -98,6 +98,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
                 Err(data) => (data, 1),
             };
             #flush_cache
+            unsafe { stylus_sdk::storage::flush_cache(false) };
             stylus_sdk::contract::output(&data);
             status
         }
