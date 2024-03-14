@@ -55,19 +55,26 @@ extern "C" {
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
+    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
+    /// will cost less than in the EVM.
+    ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     pub fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
-    /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
-    /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
-    /// the EVM state trie at offset `key`. Furthermore, refunds are tabulated exactly as in the
-    /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
+    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
+    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
+    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
+    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
+    ///
+    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
 
-    /// Flushes the VM storage cache.
-    /// TODO: longer explaination.
+    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
+    /// Analogous to repeated invocations of [`SSTORE`].
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
     pub fn storage_flush_cache(clear: bool);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
