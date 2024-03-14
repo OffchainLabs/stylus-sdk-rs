@@ -1,4 +1,4 @@
-// Copyright 2023, Offchain Labs, Inc.
+// Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Solidity compatible storage types and persistent storage access.
@@ -25,7 +25,6 @@
 use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
-use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
@@ -43,48 +42,45 @@ mod map;
 mod traits;
 mod vec;
 
-cfg_if! {
-    if #[cfg(any(not(feature = "storage-cache"), feature = "docs"))] {
-        mod eager;
-        pub use eager::EagerStorage;
+pub(crate) type Storage = StorageCache;
+
+/// Global accessor to persistent storage that relies on VM-level caching.
+///
+/// [`LocalStorageCache`]: super::LocalStorageCache
+pub struct StorageCache;
+
+impl GlobalStorage for StorageCache {
+    /// Retrieves a 32-byte EVM word from persistent storage.
+    fn get_word(key: U256) -> B256 {
+        let mut data = B256::ZERO;
+        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+        data
+    }
+
+    /// Stores a 32-byte EVM word to persistent storage.
+    ///
+    /// # Safety
+    ///
+    /// May alias storage.
+    unsafe fn set_word(key: U256, value: B256) {
+        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr())
     }
 }
 
-cfg_if! {
-    if #[cfg(feature = "storage-cache")] {
-        mod cache;
-
-        pub use cache::StorageCache;
-
-        pub(crate) type Storage = StorageCache;
-    } else {
-        pub(crate) type Storage = EagerStorage;
+impl StorageCache {
+    /// Flushes the VM cache, persisting all values to the EVM state trie.
+    /// Note: this is used at the end of the [`entrypoint`] macro and is not typically called by user code.
+    ///
+    /// [`entrypoint`]: macro@stylus_proc::entrypoint
+    pub fn flush() {
+        unsafe { hostio::storage_flush_cache(false) }
     }
-}
 
-/// Retrieves a 32-byte EVM word from persistent storage directly, bypassing all caches.
-///
-/// # Safety
-///
-/// May alias storage.
-pub unsafe fn load_bytes32(key: U256) -> B256 {
-    let mut data = B256::ZERO;
-    unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-    data
-}
-
-/// Stores a 32-byte EVM word to persistent storage directly, bypassing all caches.
-///
-/// # Safety
-///
-/// May alias storage.
-pub unsafe fn store_bytes32(key: U256, data: B256) {
-    unsafe { hostio::storage_cache_bytes32(B256::from(key).as_ptr(), data.as_ptr()) };
-}
-
-/// TODO:
-pub unsafe fn flush_cache(clear: bool) {
-    unsafe { hostio::storage_flush_cache(clear) }
+    /// Flushes and clears the VM cache, persisting all values to the EVM state trie.
+    /// This is useful in cases of reentrancy to ensure cached values from one call context show up in another.
+    pub fn clear() {
+        unsafe { hostio::storage_flush_cache(true) }
+    }
 }
 
 /// Overwrites the value in a cell.

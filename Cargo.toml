@@ -21,9 +21,6 @@ keccak-const = "0.2.0"
 lazy_static = "1.4.0"
 sha3 = "0.10.8"
 
-# data structures
-fnv = "1.0.7"
-
 # proc macros
 syn = { version = "1.0", features = ["full"] }
 paste = "1.0.14"

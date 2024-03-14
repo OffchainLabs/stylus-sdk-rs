@@ -1,4 +1,4 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
+// Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use crate::storage::TopLevelStorage;
@@ -51,9 +51,6 @@ where
     ///     account.make_payment(config, user)   // note the snake case
     /// }
     /// ```
-    ///
-    /// Projects that opt out of the [`StorageCache`] by disabling the `storage-cache` feature
-    /// may ignore this method.
     ///
     /// [`StorageCache`]: crate::storage::StorageCache
     /// [`flush`]: crate::storage::StorageCache::flush
@@ -133,7 +130,7 @@ where
 impl<T> NonPayableCallContext for &mut T where T: TopLevelStorage {}
 
 cfg_if! {
-    if #[cfg(all(feature = "storage-cache", feature = "reentrant"))] {
+    if #[cfg(feature = "reentrant")] {
         // The following impls safeguard state during reentrancy scenarios
 
         impl<S: TopLevelStorage> StaticCallContext for Call<&S, false> {}
@@ -165,7 +162,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(all(feature = "storage-cache", feature = "reentrant"), feature = "docs"))] {
+    if #[cfg(any(feature = "reentrant", feature = "docs"))] {
         impl Default for Call<(), false> {
             fn default() -> Self {
                 Self::new()
