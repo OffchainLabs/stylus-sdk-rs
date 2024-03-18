@@ -57,16 +57,41 @@ pub fn pay_for_memory_grow(pages: u16) {
     unsafe { hostio::pay_for_memory_grow(pages) }
 }
 
+/// Print the message to the console and revert, with revert data supplied by a call to `output`.
+#[macro_export]
+macro_rules! revert {
+    ($($x:tt)*) => {
+        ::stylus_sdk::console!($($x)*);
+        unsafe { ::stylus_sdk::evm::exit_early(1) };
+    }
+}
+
+/// Print the message to the console and exit successfully, with data supplied
+/// by a call to `output`.
+#[macro_export]
+macro_rules! succeed {
+    ($($x:tt)*) => {
+        ::stylus_sdk::console!($($x)*);
+        unsafe { ::stylus_sdk::evm::exit_early(0) };
+    }
+}
+
+/// Not intended for end users.
+#[inline]
+pub fn exit_early(status: u32) {
+    unsafe { hostio::exit_early(status) }
+}
+
 wrap_hostio!(
-    /// Gets the amount of gas remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
+    /// Gets the amount of gas remaining. See [`Gas and Ink`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Gas and Ink`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     gas_left evm_gas_left u64
 );
 
 wrap_hostio!(
-    /// Gets the amount of ink remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
+    /// Gets the amount of ink remaining. See [`Gas and Ink`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Gas and Ink`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     ink_left evm_ink_left u64
 );
