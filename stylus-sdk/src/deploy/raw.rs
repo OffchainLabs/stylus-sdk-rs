@@ -9,7 +9,7 @@ use crate::{
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-#[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+#[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
 /// Mechanism for performing raw deploys of other contracts.
@@ -62,14 +62,14 @@ impl RawDeploy {
     }
 
     /// Write all cached values to persistent storage before the init code.
-    #[cfg(feature = "storage-cache")]
+    #[cfg(feature = "reentrant")]
     pub fn flush_storage_cache(mut self) -> Self {
         self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 
     /// Flush and clear the storage cache before the init code.
-    #[cfg(feature = "storage-cache")]
+    #[cfg(feature = "reentrant")]
     pub fn clear_storage_cache(mut self) -> Self {
         self.cache_policy = CachePolicy::Clear;
         self
@@ -90,7 +90,7 @@ impl RawDeploy {
     /// [flush]: crate::storage::StorageCache::flush
     /// [clear]: crate::storage::StorageCache::clear
     pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
-        #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+        #[cfg(feature = "reentrant")]
         match self.cache_policy {
             CachePolicy::Clear => StorageCache::clear(),
             CachePolicy::Flush => StorageCache::flush(),

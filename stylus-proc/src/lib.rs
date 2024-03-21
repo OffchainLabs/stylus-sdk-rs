@@ -148,8 +148,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # Reentrant calls
 ///
 /// Contracts that opt into reentrancy via the `reentrant` feature flag require extra care.
-/// When the `storage-cache` feature is enabled, cross-contract calls must [`flush`] or [`clear`]
-/// the [`StorageCache`] to safeguard state. This happens automatically via the type system.
+/// When enabled, cross-contract calls must [`flush`] or [`clear`] the [`StorageCache`] to safeguard state.
+/// This happens automatically via the type system.
 ///
 /// ```ignore
 /// sol_interface! {
