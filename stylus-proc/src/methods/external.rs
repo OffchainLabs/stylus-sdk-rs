@@ -10,7 +10,7 @@ use std::{mem, str::FromStr};
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, parse_quote,
     punctuated::Punctuated,
     FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
@@ -58,29 +58,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 override_name = args.name;
                 continue;
             }
-            if *ident == "fallback" {
-                if !attr.tokens.is_empty() {
-                    error!(attr.tokens, "the fallback attribute doesn't take arguments");
-                }
-                if fallback.is_some() {
-                    error!(attr.path, "more than one fallback attribute");
-                }
-                let ident = method.sig.ident.clone();
-                // Note that we won't optionally support accepting bytes as an argument.
-                fallback = Some(quote! {
-                    let result = Self::#ident(core::borrow::BorrowMut::borrow_mut(storage));
-                    return Some(EncodableReturnType::encode(result));
-                });
-                continue;
-            }
-
             method.attrs.push(attr);
-        }
-
-        // We skip exporting the abi for the `fallback` function since it
-        // is never present in Solidity interfaces.
-        if fallback.is_some() {
-            continue;
         }
 
         use Purity::*;
@@ -149,6 +127,57 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         } else {
             quote! { storage, }
         };
+
+        for attr in mem::take(&mut method.attrs) {
+            if !attr.path.is_ident("fallback") {
+                method.attrs.push(attr);
+                continue;
+            }
+            if fallback.is_some() {
+                error!(attr.path, "more than one fallback attribute");
+            }
+            if !attr.tokens.is_empty() {
+                error!(attr.tokens, "the fallback attribute doesn't take arguments");
+            }
+            if args.len() > 1 {
+                error!(
+                    &method.sig,
+                    "`fallback` may only accept `Vec<u8>` besides `self`"
+                );
+            }
+
+            if args.is_empty() {
+                fallback = Some(quote! {
+                    let result = Self::#name(#storage);
+                    return Some(EncodableReturnType::encode(result));
+                });
+            } else {
+                let ty = args[0].1.clone();
+                if ty != parse_quote!(Vec<u8>) {
+                    error!(
+                        &method.sig,
+                        "`fallback` may only accept `Vec<u8>` besides `self`"
+                    );
+                }
+                fallback = Some(quote! {
+                    let bytes_arg = match <#ty as AbiType>::SolType::decode(input, true) {
+                        Ok(arg) => arg,
+                        Err(err) => {
+                            internal::failed_to_decode_arguments(err);
+                            return Some(Err(vec![]));
+                        }
+                    };
+                    let result = Self::#name(#storage bytes_arg);
+                    return Some(EncodableReturnType::encode(result));
+                });
+            }
+        }
+
+        if fallback.is_some() {
+            // We skip exporting the abi for the `fallback` function since it
+            // is never present in Solidity interfaces.
+            continue;
+        }
 
         // get the solidity args
         let expand_args = (0..args.len()).map(Index::from).map(|i| quote! { args.#i });
