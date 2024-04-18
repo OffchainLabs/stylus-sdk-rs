@@ -95,7 +95,11 @@ where
 /// # Safety
 ///
 /// The type must be top-level to prevent storage aliasing.
-pub unsafe trait TopLevelStorage {}
+pub unsafe trait TopLevelStorage {
+    fn get_storage<T: 'static>(&mut self) -> &mut T {
+        panic!("arbitrary storage access is not implemented",)
+    }
+}
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
