@@ -96,9 +96,17 @@ where
 ///
 /// The type must be top-level to prevent storage aliasing.
 pub unsafe trait TopLevelStorage {
-    fn get_storage<T: 'static>(&mut self) -> &mut T {
-        panic!("arbitrary storage access is not implemented",)
+
+    /// Retrieve mutable reference to inner storage of type [`S`]
+    fn get_storage<S: 'static>(&mut self) -> &mut S {
+        panic!("arbitrary storage access is not implemented")
     }
+}
+
+pub unsafe trait InnerStorage {
+
+    /// Try etrieve mutable reference to inner storage of type [`S`]
+    unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S>;
 }
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.

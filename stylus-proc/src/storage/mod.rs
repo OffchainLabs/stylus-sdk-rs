@@ -18,6 +18,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut init = quote! {};
     let mut size = quote! {};
     let mut borrows = quote! {};
+    let mut inner_storage_accessors = vec![];
 
     for (field_index, field) in input.fields.iter_mut().enumerate() {
         // deny complex types
@@ -40,6 +41,9 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 Some(accessor) => accessor.into_token_stream(),
                 None => Index::from(field_index).into_token_stream(),
             };
+            
+            inner_storage_accessors.push(accessor.clone());
+            
             borrows.extend(quote! {
                 impl core::borrow::Borrow<#ty> for #name {
                     fn borrow(&self) -> &#ty {
@@ -115,6 +119,27 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             }
         });
     }
+    
+    let inner_storage_calls = inner_storage_accessors.into_iter().map(|accessor|{
+        quote! {
+            .or(self.#accessor.try_get_storage())
+        }
+    });
+    
+    let storage_impl = quote! {
+        #[allow(clippy::transmute_ptr_to_ptr)]
+        unsafe impl #impl_generics stylus_sdk::storage::InnerStorage for #name #ty_generics #where_clause {
+            unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
+                use core::any::TypeId;
+                use stylus_sdk::storage::InnerStorage;
+                if TypeId::of::<S>() == TypeId::of::<Self>() {
+                    Some(unsafe { core::mem::transmute::<_, _>(self) })
+                } else {
+                    None #(#inner_storage_calls)*
+                }
+            }
+        }
+    };
 
     // TODO: add mechanism for struct assignment
     let expanded = quote! {
@@ -163,6 +188,8 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         }
 
         #borrows
+        
+        #storage_impl
     };
     expanded.into()
 }

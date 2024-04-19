@@ -32,7 +32,7 @@ pub use bytes::{StorageBytes, StorageString};
 pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
-    TopLevelStorage,
+    TopLevelStorage, InnerStorage,
 };
 pub use vec::StorageVec;
 
