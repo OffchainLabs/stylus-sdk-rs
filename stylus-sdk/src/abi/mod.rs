@@ -41,11 +41,8 @@ pub mod internal;
 /// Composition with other routers is possible via `#[inherit]`.
 pub trait Router<S>
 where
-    S: TopLevelStorage + BorrowMut<Self::Storage>,
+    S: TopLevelStorage
 {
-    /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
-    type Storage;
-
     /// Tries to find and execute a method for the given selector, returning `None` if none is found.
     /// Routes add via `#[inherit]` will only execute if no match is found among `Self`.
     /// This means that it is possible to override a method by redefining it in `Self`.

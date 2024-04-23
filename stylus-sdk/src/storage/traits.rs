@@ -95,18 +95,60 @@ where
 /// # Safety
 ///
 /// The type must be top-level to prevent storage aliasing.
-pub unsafe trait TopLevelStorage {
+pub unsafe trait TopLevelStorage : StorageLevel {
 
-    /// Retrieve mutable reference to inner storage of type [`S`]
-    fn get_storage<S: 'static>(&mut self) -> &mut S {
-        panic!("arbitrary storage access is not implemented")
+    /// Retrieve immutable reference to inner storage of type [`S`] or panic.
+    fn inner<S: StorageLevel + 'static>(&self) -> &S {
+        unsafe {
+            self.try_get_inner().unwrap_or_else(|| {
+                panic!(
+                    "type does not exist inside TopLevelStorage - type is {}",
+                    core::any::type_name::<S>()
+                )})
+        }
+    }
+
+    /// Retrieve mutable reference to inner storage of type [`S`] or panic.
+    fn inner_mut<S: StorageLevel + 'static>(&mut self) -> &mut S {
+        unsafe {
+            self.try_get_inner_mut().unwrap_or_else(|| {
+                panic!(
+                    "type does not exist inside TopLevelStorage - type is {}",
+                    core::any::type_name::<S>()
+                )})
+        }
     }
 }
 
-pub unsafe trait InnerStorage {
+/// Trait for all-level storage types, usually implemented by proc macros.
+///
+/// # Safety
+///
+/// For simple types like (StorageMap, StorageBool, ..) should have default implementation.
+/// Since it is pointless to querry for a type that can exists in many contracts.
+pub unsafe trait StorageLevel {
 
-    /// Try etrieve mutable reference to inner storage of type [`S`]
-    unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S>;
+    /// Try to retrieve immutable reference to inner laying type [`S`].
+    /// [`Option::None`] result usually means we should panic.
+    ///
+    /// # Safety
+    ///
+    /// To be able to retrieve type that contain current type (parrent) you should
+    /// call [`TopLevelStorage::inner`].
+    unsafe fn try_get_inner<S: StorageLevel + 'static>(&self) -> Option<&S>{
+        None
+    }
+
+    /// Try to retrieve mutable reference to inner laying type [`S`].
+    /// [`Option::None`] result usually means we should panic.
+    ///
+    /// # Safety
+    ///
+    /// To be able to retrieve type that contain current type (parrent) you should
+    /// call [`TopLevelStorage::inner_mut`].
+    unsafe fn try_get_inner_mut<S: StorageLevel + 'static>(&mut self) -> Option<&mut S>{
+        None
+    }
 }
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.

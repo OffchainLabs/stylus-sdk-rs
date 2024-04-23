@@ -22,18 +22,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
             let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
             output.extend(quote!{
-                unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #name #ty_generics #where_clause {
-                    fn get_storage<S: 'static>(&mut self) -> &mut S {
-                        use stylus_sdk::storage::InnerStorage;
-                        unsafe { 
-                            self.try_get_storage().unwrap_or_else(|| {
-                                panic!(
-                                    "storage for type doesn't exist - type name is {}",
-                                    core::any::type_name::<S>()
-                                )}) 
-                        }
-                    }
-                }
+                unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #name #ty_generics #where_clause {}
 
                 fn entrypoint(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
                     use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};

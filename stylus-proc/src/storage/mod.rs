@@ -26,6 +26,12 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             error!(&field, "Type not supported for EVM state storage");
         };
 
+        let accessor = match field.ident.as_ref() {
+            Some(accessor) => accessor.into_token_stream(),
+            None => Index::from(field_index).into_token_stream(),
+        };
+        inner_storage_accessors.push(accessor.clone());
+
         // implement borrows (TODO: use drain_filter when stable)
         let attrs = mem::take(&mut field.attrs);
         for attr in attrs {
@@ -37,13 +43,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 error!(attr.tokens, "borrow attribute does not take parameters");
             }
             let ty = &field.ty;
-            let accessor = match field.ident.as_ref() {
-                Some(accessor) => accessor.into_token_stream(),
-                None => Index::from(field_index).into_token_stream(),
-            };
-            
-            inner_storage_accessors.push(accessor.clone());
-            
+
             borrows.extend(quote! {
                 impl core::borrow::Borrow<#ty> for #name {
                     fn borrow(&self) -> &#ty {
@@ -120,22 +120,38 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         });
     }
     
-    let inner_storage_calls = inner_storage_accessors.into_iter().map(|accessor|{
+    let inner_storage_calls = inner_storage_accessors.iter().map(|accessor|{
         quote! {
-            .or(self.#accessor.try_get_storage())
+            .or(self.#accessor.try_get_inner())
+        }
+    });    
+    
+    let inner_mut_storage_calls = inner_storage_accessors.iter().map(|accessor|{
+        quote! {
+            .or(self.#accessor.try_get_inner_mut())
         }
     });
-    
-    let storage_impl = quote! {
-        #[allow(clippy::transmute_ptr_to_ptr)]
-        unsafe impl #impl_generics stylus_sdk::storage::InnerStorage for #name #ty_generics #where_clause {
-            unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
+
+    let storage_level_impl = quote! {
+        unsafe impl #impl_generics stylus_sdk::storage::StorageLevel for #name #ty_generics #where_clause {
+            
+            unsafe fn try_get_inner<S: stylus_sdk::storage::StorageLevel + 'static>(&self) -> Option<&S> {
                 use core::any::TypeId;
-                use stylus_sdk::storage::InnerStorage;
+                use stylus_sdk::storage::StorageLevel;
                 if TypeId::of::<S>() == TypeId::of::<Self>() {
-                    Some(unsafe { core::mem::transmute::<_, _>(self) })
+                    Some(unsafe { &*(self as *const Self as *const S) })
                 } else {
                     None #(#inner_storage_calls)*
+                }
+            }
+            
+            unsafe fn try_get_inner_mut<S: stylus_sdk::storage::StorageLevel + 'static>(&mut self) -> Option<&mut S> {
+                use core::any::TypeId;
+                use stylus_sdk::storage::StorageLevel;
+                if TypeId::of::<S>() == TypeId::of::<Self>() {
+                    Some(unsafe { &mut *(self as *mut Self as *mut S) })
+                } else {
+                    None #(#inner_mut_storage_calls)*
                 }
             }
         }
@@ -189,7 +205,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         #borrows
         
-        #storage_impl
+        #storage_level_impl
     };
     expanded.into()
 }

@@ -32,7 +32,7 @@ pub use bytes::{StorageBytes, StorageString};
 pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
-    TopLevelStorage, InnerStorage,
+    TopLevelStorage, StorageLevel,
 };
 pub use vec::StorageVec;
 
@@ -160,6 +160,8 @@ impl<const B: usize, const L: usize> StorageUint<B, L> {
     }
 }
 
+unsafe impl<const B: usize, const L: usize> StorageLevel for StorageUint<B, L> {}
+
 impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     type Wraps<'a> = Uint<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
@@ -235,6 +237,8 @@ impl<const B: usize, const L: usize> StorageSigned<B, L> {
     }
 }
 
+unsafe impl<const B: usize, const L: usize> StorageLevel for StorageSigned<B, L> {}
+
 impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     type Wraps<'a> = Signed<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
@@ -305,6 +309,8 @@ impl<const N: usize> StorageFixedBytes<N> {
         unsafe { Storage::set(self.slot, self.offset.into(), value) }
     }
 }
+
+unsafe impl<const N: usize> StorageLevel for StorageFixedBytes<N> {}
 
 impl<const N: usize> StorageType for StorageFixedBytes<N>
 where
@@ -386,6 +392,8 @@ impl StorageBool {
     }
 }
 
+unsafe impl StorageLevel for StorageBool {}
+
 impl StorageType for StorageBool {
     type Wraps<'a> = bool;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
@@ -459,6 +467,8 @@ impl StorageAddress {
     }
 }
 
+unsafe impl StorageLevel for StorageAddress {}
+
 impl StorageType for StorageAddress {
     type Wraps<'a> = Address;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
@@ -530,6 +540,8 @@ impl StorageBlockNumber {
         unsafe { Storage::set::<8>(self.slot, self.offset.into(), value) };
     }
 }
+
+unsafe impl StorageLevel for StorageBlockNumber {}
 
 impl StorageType for StorageBlockNumber {
     type Wraps<'a> = BlockNumber;
@@ -603,6 +615,8 @@ impl StorageBlockHash {
     }
 }
 
+unsafe impl StorageLevel for StorageBlockHash {}
+
 impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
@@ -646,6 +660,8 @@ impl From<StorageBlockHash> for BlockHash {
         *value
     }
 }
+
+unsafe impl<T> StorageLevel for PhantomData<T> {}
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
 impl<T> StorageType for PhantomData<T> {

@@ -123,7 +123,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let storage = if needed_purity == Pure {
             quote!()
         } else if has_self {
-            quote! { core::borrow::BorrowMut::borrow_mut(storage), }
+            quote! { storage.inner_mut(), }
         } else {
             quote! { storage, }
         };
@@ -241,13 +241,6 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
-    // ensure we can actually borrow the things we inherit
-    let borrow_clauses = inherits.iter().map(|ty| {
-        quote! {
-            S: core::borrow::BorrowMut<#ty>
-        }
-    });
-
     let self_ty = &input.self_ty;
     let generic_params = &input.generics.params;
     let where_clauses = input
@@ -263,13 +256,9 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         impl<S, #generic_params> stylus_sdk::abi::Router<S> for #self_ty
         where
-            S: stylus_sdk::storage::TopLevelStorage + core::borrow::BorrowMut<Self>,
-            #(#borrow_clauses,)*
+            S: stylus_sdk::storage::TopLevelStorage,
             #where_clauses
         {
-            // TODO: this should be configurable
-            type Storage = Self;
-
             #[inline(always)]
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};

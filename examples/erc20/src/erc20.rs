@@ -14,7 +14,7 @@ use alloy_sol_types::sol;
 use core::marker::PhantomData;
 use stylus_sdk::{evm, msg, prelude::*};
 
-pub trait Erc20Params {
+pub trait Erc20Params: 'static {
     /// Immutable token name
     const NAME: &'static str;
 
@@ -27,7 +27,7 @@ pub trait Erc20Params {
 
 sol_storage! {
     /// Erc20 implements all ERC-20 methods.
-    pub struct Erc20<T> {
+    pub struct Erc20<T: Erc20Params> {
         /// Maps users to balances
         mapping(address => uint256) balances;
         /// Maps users to a mapping of each spender's allowance

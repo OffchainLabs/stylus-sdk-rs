@@ -1,7 +1,7 @@
 // Copyright 2022-2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
+use super::{Erase, GlobalStorage, Storage, StorageArray, StorageB8, StorageGuard, StorageGuardMut, StorageLevel, StorageType};
 use crate::crypto;
 use alloc::{
     string::{String, ToString},
@@ -15,6 +15,8 @@ pub struct StorageBytes {
     root: U256,
     base: OnceCell<U256>,
 }
+
+unsafe impl StorageLevel for StorageBytes {}
 
 impl StorageType for StorageBytes {
     type Wraps<'a> = StorageGuard<'a, StorageBytes> where Self: 'a;
@@ -263,6 +265,8 @@ impl<'a> Extend<&'a u8> for StorageBytes {
 
 /// Accessor for storage-backed bytes
 pub struct StorageString(pub StorageBytes);
+
+unsafe impl StorageLevel for StorageString {}
 
 impl StorageType for StorageString {
     type Wraps<'a> = StorageGuard<'a, StorageString> where Self: 'a;

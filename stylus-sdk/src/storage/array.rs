@@ -1,7 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
+use super::{Erase, StorageGuard, StorageGuardMut, StorageLevel, StorageType};
 use alloy_primitives::U256;
 use core::marker::PhantomData;
 
@@ -10,6 +10,8 @@ pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
 }
+
+unsafe impl<S: StorageType, const N: usize> StorageLevel for StorageArray<S, N> {}
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
     type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
