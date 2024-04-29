@@ -151,6 +151,8 @@ pub unsafe trait StorageLevel {
     }
 }
 
+unsafe impl<'a, T: SimpleStorageType<'a>> StorageLevel for T {}
+
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
 /// For a mutable accessor, see [`StorageGuardMut`].
