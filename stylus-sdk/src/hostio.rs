@@ -25,14 +25,13 @@ use cfg_if::cfg_if;
 macro_rules! vm_hooks {
     (
         $(#[$block_meta:meta])* // macros & docstrings to apply to all funcs
-        module($link:ident);    // configures the wasm_import_module to link
+        module($link:literal);  // configures the wasm_import_module to link
 
         // all the function declarations
         $($(#[$meta:meta])* $vis:vis fn $func:ident ($($arg:ident : $arg_type:ty),* ) $(-> $return_type:ty)?);*
     ) => {
         cfg_if! {
             if #[cfg(feature = "export-abi")] {
-
                 // Generate a stub for each function.
                 // We use a module for the block macros & docstrings.
                 $(#[$block_meta])*
@@ -47,10 +46,9 @@ macro_rules! vm_hooks {
                 }
                 pub use $link::*;
             } else {
-
                 // Generate a wasm import for each function.
                 $(#[$block_meta])*
-                #[link(wasm_import_module = "$link")]
+                #[link(wasm_import_module = $link)]
                 extern "C" {
                     $(
                         $(#[$meta])*
@@ -63,7 +61,7 @@ macro_rules! vm_hooks {
 }
 
 vm_hooks! {
-    module(vm_hooks);
+    module("vm_hooks");
 
     /// Gets the ETH balance in wei of the account at the given address.
     /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
@@ -288,8 +286,7 @@ vm_hooks! {
     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
-    #[allow(dead_code)]
-    pub fn memory_grow(pages: u16);
+    pub fn pay_for_memory_grow(pages: u16);
 
     /// Whether the current call is reentrant.
     pub fn msg_reentrant() -> bool;
@@ -390,7 +387,7 @@ vm_hooks! {
 
 vm_hooks! {
     #[allow(dead_code)]
-    module(console);
+    module("console");
 
     /// Prints a 32-bit floating point number to the console. Only available in debug mode with
     /// floating point enabled.
