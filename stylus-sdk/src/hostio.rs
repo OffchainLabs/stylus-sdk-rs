@@ -24,8 +24,8 @@ use cfg_if::cfg_if;
 
 macro_rules! vm_hooks {
     (
-        $(#[$block_meta:meta])* // macros & docstrings to apply to all funcs
-        module($link:literal);  // configures the wasm_import_module to link
+        $(#[$block_meta:meta])*             // macros & docstrings to apply to all funcs
+        module($link:literal, $stub:ident); // configures the wasm_import_module to link
 
         // all the function declarations
         $($(#[$meta:meta])* $vis:vis fn $func:ident ($($arg:ident : $arg_type:ty),* ) $(-> $return_type:ty)?);*
@@ -35,16 +35,16 @@ macro_rules! vm_hooks {
                 // Generate a stub for each function.
                 // We use a module for the block macros & docstrings.
                 $(#[$block_meta])*
-                mod $link {
+                mod $stub {
                     $(
                         $(#[$meta])*
-                        #[allow(unused_variables)]
+                        #[allow(unused_variables, clippy::missing_safety_doc)]
                         $vis unsafe fn $func($($arg : $arg_type),*) $(-> $return_type)? {
                             unimplemented!()
                         }
                     )*
                 }
-                pub use $link::*;
+                pub use $stub::*;
             } else {
                 // Generate a wasm import for each function.
                 $(#[$block_meta])*
@@ -61,7 +61,7 @@ macro_rules! vm_hooks {
 }
 
 vm_hooks! {
-    module("vm_hooks");
+    module("vm_hooks", vm_hooks);
 
     /// Gets the ETH balance in wei of the account at the given address.
     /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
@@ -387,7 +387,7 @@ vm_hooks! {
 
 vm_hooks! {
     #[allow(dead_code)]
-    module("console");
+    module("console", console);
 
     /// Prints a 32-bit floating point number to the console. Only available in debug mode with
     /// floating point enabled.
