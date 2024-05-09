@@ -34,7 +34,7 @@ features = ["default", "docs", "debug", "export-abi"]
 
 [features]
 default = []
-export-abi = ["debug", "regex", "stylus-proc/export-abi"]
+export-abi = ["debug", "regex", "stylus-proc/export-abi", "alloy-primitives/tiny-keccak"]
 debug = []
 docs = []
 hostio = []
