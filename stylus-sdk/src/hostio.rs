@@ -85,6 +85,22 @@ vm_hooks! {
     /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
     pub fn account_code_size(address: *const u8) -> usize;
 
+    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
+    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
+    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    ///
+    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
+    pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
+
+    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODESIZE`].
+    ///
+    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    pub fn account_code_size(address: *const u8) -> usize;
+
+=======
+>>>>>>> stylus/stylus
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
     /// code will be the empty hash
@@ -289,7 +305,7 @@ vm_hooks! {
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
     #[allow(dead_code)]
-    pub fn pay_for_memory_grow(pages: u16);
+    pub fn memory_grow(pages: u16);
 
     /// Whether the current call is reentrant.
     pub fn msg_reentrant() -> bool;
