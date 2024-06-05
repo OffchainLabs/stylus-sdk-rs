@@ -5,7 +5,7 @@ set -euo pipefail
 # Print version information
 rustc -Vv
 cargo -V
-cargo stylus --version
+#cargo stylus --version
 
 cargo stylus new counter
 cd counter
