@@ -95,7 +95,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         }
         Type::Array(ty) => {
             let (path, abi) = solidity_type_info(&ty.ty);
-            match ty.size.as_ref().map(|x| x.base10_digits()) {
+            match ty.size() {
                 Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
                 None => (path!("Array<{path}>"), abi!("{abi}[]")),
             }
