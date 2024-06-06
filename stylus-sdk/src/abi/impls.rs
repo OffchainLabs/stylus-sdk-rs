@@ -1,13 +1,10 @@
-// Copyright 2023, Offchain Labs, Inc.
+// Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
-use alloy_primitives::{Address, Signed, Uint};
-use alloy_sol_types::sol_data::{self, IntBitCount, SupportedInt};
-
-#[cfg(test)]
-use alloy_primitives::FixedBytes;
+use alloy_primitives::{Address, FixedBytes, Signed, Uint};
+use alloy_sol_types::sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
 macro_rules! test_type {
@@ -19,7 +16,7 @@ macro_rules! test_type {
             fn [<test_ $name>]() {
                 assert_eq!(
                     <$($ty)* as AbiType>::ABI.as_str(),
-                    <<$($ty)* as AbiType>::SolType as alloy_sol_types::SolType>::sol_type_name(),
+                    <<$($ty)* as AbiType>::SolType as alloy_sol_types::SolType>::SOL_NAME,
                     "{}'s ABI didn't match its SolType sol_type_name",
                     stringify!($($ty)*),
                 );
@@ -42,6 +39,15 @@ macro_rules! append_dec {
     ($stem:expr, $num:expr) => {
         ConstString::new($stem).concat(ConstString::from_decimal_number($num))
     };
+}
+
+impl<const N: usize> AbiType for FixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
+    type SolType = sol_data::FixedBytes<N>;
+
+    const ABI: ConstString = append_dec!("bytes", N);
 }
 
 test_type!(bytes, "bytes calldata", super::Bytes);
