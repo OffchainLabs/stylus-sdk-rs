@@ -172,12 +172,12 @@ impl<T: Erc721Params> Erc721<T> {
         if to.has_code() {
             let receiver = IERC721TokenReceiver::new(to);
             let received = receiver
-                .on_erc_721_received(&mut *storage, msg::sender(), from, token_id, data)
+                .on_erc_721_received(&mut *storage, msg::sender(), from, token_id, data.into())
                 .map_err(|_e| {
                     Erc721Error::ReceiverRefused(ReceiverRefused {
                         receiver: receiver.address,
                         token_id,
-                        returned: 0_u32.to_be_bytes(),
+                        returned: FixedBytes(0_u32.to_be_bytes()),
                     })
                 })?
                 .0;
@@ -186,7 +186,7 @@ impl<T: Erc721Params> Erc721<T> {
                 return Err(Erc721Error::ReceiverRefused(ReceiverRefused {
                     receiver: receiver.address,
                     token_id,
-                    returned: received,
+                    returned: FixedBytes(received),
                 }));
             }
         }
