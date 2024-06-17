@@ -1,4 +1,4 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
+// Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Call other contracts.
@@ -21,7 +21,7 @@ pub use self::{
 
 pub(crate) use raw::CachePolicy;
 
-#[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+#[cfg(feature = "reentrant")]
 use crate::storage::Storage;
 
 mod context;
@@ -32,12 +32,12 @@ mod transfer;
 
 macro_rules! unsafe_reentrant {
     ($block:block) => {
-        #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+        #[cfg(feature = "reentrant")]
         unsafe {
             $block
         }
 
-        #[cfg(not(all(feature = "storage-cache", feature = "reentrant")))]
+        #[cfg(not(feature = "reentrant"))]
         $block
     };
 }
@@ -48,7 +48,7 @@ pub fn static_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    #[cfg(feature = "reentrant")]
     Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
 
     unsafe_reentrant! {{
@@ -71,7 +71,7 @@ pub unsafe fn delegate_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
     RawCall::new_delegate()
@@ -82,7 +82,7 @@ pub unsafe fn delegate_call(
 
 /// Calls the contract at the given address.
 pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
-    #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+    #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
     unsafe_reentrant! {{

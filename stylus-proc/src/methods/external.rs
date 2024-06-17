@@ -5,13 +5,14 @@ use crate::types::{self, Purity};
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use std::{mem, str::FromStr};
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
+    spanned::Spanned,
     FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
@@ -128,7 +129,14 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         };
 
         // get the solidity args
-        let expand_args = (0..args.len()).map(Index::from).map(|i| quote! { args.#i });
+        let mut expand_args = vec![];
+        for (index, (_, ty)) in args.iter().enumerate() {
+            let index = Index {
+                index: index as u32,
+                span: ty.span(),
+            };
+            expand_args.push(quote! { args.#index });
+        }
 
         // calculate selector
         let constant = Ident::new(&format!("SELECTOR_{name}"), name.span());
@@ -136,19 +144,28 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         let selector = match override_id {
             Some(id) => quote! { #id },
-            None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types)*)) },
+            None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*)) },
         };
         selectors.extend(quote! {
             #[allow(non_upper_case_globals)]
             const #constant: u32 = #selector;
         });
 
+        let in_span = method.sig.inputs.span();
+        let decode_inputs = quote_spanned! { in_span => <(#( #arg_types, )*) as AbiType>::SolType };
+
+        let ret_span = match &method.sig.output {
+            x @ ReturnType::Default => x.span(),
+            ReturnType::Type(_, ty) => ty.span(), // right of arrow
+        };
+        let encode_result = quote_spanned! { ret_span => EncodableReturnType::encode(result) };
+
         // match against the selector
         match_selectors.extend(quote! {
             #[allow(non_upper_case_globals)]
             #constant => {
                 #deny_value
-                let args = match <<( #( #arg_types, )* ) as AbiType>::SolType as SolType>::decode(input, true) {
+                let args = match <#decode_inputs as SolType>::decode(input, true) {
                     Ok(args) => args,
                     Err(err) => {
                         internal::failed_to_decode_arguments(err);
@@ -156,7 +173,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     }
                 };
                 let result = Self::#name(#storage #(#expand_args, )* );
-                Some(EncodableReturnType::encode(result))
+                Some(#encode_result)
             }
         });
 

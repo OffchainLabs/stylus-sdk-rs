@@ -3,7 +3,7 @@ members = ["stylus-sdk", "stylus-proc", "mini-alloc"]
 resolver = "2"
 
 [workspace.package]
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
@@ -21,9 +21,6 @@ keccak-const = "0.2.0"
 lazy_static = "1.4.0"
 sha3 = "0.10.8"
 
-# data structures
-fnv = "1.0.7"
-
 # proc macros
 syn = { version = "1.0", features = ["full"] }
 paste = "1.0.14"
@@ -35,4 +32,4 @@ convert_case = "0.6.0"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
-stylus-proc = { path = "stylus-proc", version = "0.4.1" }
+stylus-proc = { path = "stylus-proc", version = "0.5.0" }

@@ -25,11 +25,10 @@ quote.workspace = true
 
 [features]
 export-abi = []
-storage-cache = []
 reentrant = []
 
 [package.metadata.docs.rs]
-features = ["export-abi", "storage-cache"]
+features = ["export-abi"]
 
 [lib]
 proc-macro = true

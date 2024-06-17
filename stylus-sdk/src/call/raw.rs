@@ -8,13 +8,13 @@ use crate::{
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 
-#[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+#[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
         cfg_if! {
-            if #[cfg(all(feature = "storage-cache", feature = "reentrant"))] {
+            if #[cfg(feature = "reentrant")] {
                 $(#[$meta])*
                 pub unsafe fn $name $($rest)*
             } else {
@@ -161,20 +161,14 @@ impl RawCall {
     }
 
     /// Write all cached values to persistent storage before the call.
-    #[cfg(any(
-        all(feature = "storage-cache", feature = "reentrant"),
-        feature = "docs"
-    ))]
+    #[cfg(any(feature = "reentrant", feature = "docs"))]
     pub fn flush_storage_cache(mut self) -> Self {
         self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 
     /// Flush and clear the storage cache before the call.
-    #[cfg(any(
-        all(feature = "storage-cache", feature = "reentrant"),
-        feature = "docs"
-    ))]
+    #[cfg(any(feature = "reentrant", feature = "docs"))]
     pub fn clear_storage_cache(mut self) -> Self {
         self.cache_policy = CachePolicy::Clear;
         self
@@ -185,7 +179,7 @@ impl RawCall {
         ///
         /// # Safety
         ///
-        /// This function becomes `unsafe` when the `reentrant` and `storage-cache` features are enabled.
+        /// This function becomes `unsafe` when the `reentrant` feature is enabled.
         /// That's because raw calls might alias storage if used in the middle of a storage ref's lifetime.
         ///
         /// For extra flexibility, this method does not clear the global storage cache by default.
@@ -198,7 +192,7 @@ impl RawCall {
             let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
             let value = B256::from(self.callvalue);
             let status = unsafe {
-                #[cfg(all(feature = "storage-cache", feature = "reentrant"))]
+                #[cfg(feature = "reentrant")]
                 match self.cache_policy {
                     CachePolicy::Clear => StorageCache::clear(),
                     CachePolicy::Flush => StorageCache::flush(),

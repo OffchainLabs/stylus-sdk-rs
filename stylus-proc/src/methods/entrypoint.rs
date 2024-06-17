@@ -47,8 +47,8 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 
             if cfg!(feature = "export-abi") {
                 output.extend(quote! {
-                    pub fn main() {
-                        stylus_sdk::abi::export::print_abi::<#name>();
+                    pub fn print_abi(license: &str, pragma: &str) {
+                        stylus_sdk::abi::export::print_abi::<#name>(license, pragma);
                     }
                 });
             }
@@ -72,15 +72,6 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    // flush the cache before program exit
-    cfg_if! {
-        if #[cfg(feature = "storage-cache")] {
-            let flush_cache = quote! { stylus_sdk::storage::StorageCache::flush(); };
-        } else {
-            let flush_cache = quote! {};
-        }
-    }
-
     output.extend(quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
@@ -97,7 +88,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            #flush_cache
+            unsafe { stylus_sdk::storage::StorageCache::flush() };
             stylus_sdk::contract::output(&data);
             status
         }

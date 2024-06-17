@@ -22,9 +22,6 @@ lazy_static.workspace = true
 # export-abi
 regex = { workspace = true, optional = true }
 
-# storage-cache
-fnv = { workspace = true, optional = true }
-
 # local deps
 stylus-proc.workspace = true
 
@@ -36,10 +33,9 @@ sha3.workspace = true
 features = ["default", "docs", "debug", "export-abi"]
 
 [features]
-default = ["storage-cache"]
-export-abi = ["debug", "regex", "stylus-proc/export-abi"]
+default = []
+export-abi = ["debug", "regex", "stylus-proc/export-abi", "alloy-primitives/tiny-keccak"]
 debug = []
 docs = []
 hostio = []
-storage-cache = ["fnv", "stylus-proc/storage-cache"]
 reentrant = ["stylus-proc/reentrant"]

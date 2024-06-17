@@ -1,4 +1,4 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
+// Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Raw host I/Os for low-level access to the Stylus runtime.
@@ -20,13 +20,68 @@
 //! assert_eq!(sender, msg::sender());
 //! ```
 
-#[link(wasm_import_module = "vm_hooks")]
-extern "C" {
+use cfg_if::cfg_if;
+
+macro_rules! vm_hooks {
+    (
+        $(#[$block_meta:meta])*             // macros & docstrings to apply to all funcs
+        module($link:literal, $stub:ident); // configures the wasm_import_module to link
+
+        // all the function declarations
+        $($(#[$meta:meta])* $vis:vis fn $func:ident ($($arg:ident : $arg_type:ty),* ) $(-> $return_type:ty)?);*
+    ) => {
+        cfg_if! {
+            if #[cfg(feature = "export-abi")] {
+                // Generate a stub for each function.
+                // We use a module for the block macros & docstrings.
+                $(#[$block_meta])*
+                mod $stub {
+                    $(
+                        $(#[$meta])*
+                        #[allow(unused_variables, clippy::missing_safety_doc)]
+                        $vis unsafe fn $func($($arg : $arg_type),*) $(-> $return_type)? {
+                            unimplemented!()
+                        }
+                    )*
+                }
+                pub use $stub::*;
+            } else {
+                // Generate a wasm import for each function.
+                $(#[$block_meta])*
+                #[link(wasm_import_module = $link)]
+                extern "C" {
+                    $(
+                        $(#[$meta])*
+                        $vis fn $func($($arg : $arg_type),*) $(-> $return_type)?;
+                    )*
+                }
+            }
+        }
+    };
+}
+
+vm_hooks! {
+    module("vm_hooks", vm_hooks);
+
     /// Gets the ETH balance in wei of the account at the given address.
     /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
     ///
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);
+
+    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
+    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
+    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    ///
+    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
+    pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
+
+    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODESIZE`].
+    ///
+    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    pub fn account_code_size(address: *const u8) -> usize;
 
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
@@ -41,16 +96,27 @@ extern "C" {
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
+    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
+    /// will cost less than in the EVM.
+    ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     pub fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
-    /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
-    /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
-    /// the EVM state trie at offset `key`. Furthermore, refunds are tabulated exactly as in the
-    /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
+    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
+    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
+    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
+    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
+    ///
+    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    pub fn storage_store_bytes32(key: *const u8, value: *const u8);
+    pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
+
+    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
+    /// Analogous to repeated invocations of [`SSTORE`].
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
+    pub fn storage_flush_cache(clear: bool);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.
@@ -112,7 +178,7 @@ extern "C" {
         calldata_len: usize,
         value: *const u8,
         gas: u64,
-        return_data_len: *mut usize,
+        return_data_len: *mut usize
     ) -> u8;
 
     /// Gets the address of the current program. The semantics are equivalent to that of the EVM's
@@ -141,7 +207,7 @@ extern "C" {
         code_len: usize,
         endowment: *const u8,
         contract: *mut u8,
-        revert_data_len: *mut usize,
+        revert_data_len: *mut usize
     );
 
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
@@ -165,7 +231,7 @@ extern "C" {
         endowment: *const u8,
         salt: *const u8,
         contract: *mut u8,
-        revert_data_len: *mut usize,
+        revert_data_len: *mut usize
     );
 
     /// Delegate calls the contract at the given address, with the option to limit the amount of
@@ -187,7 +253,7 @@ extern "C" {
         calldata: *const u8,
         calldata_len: usize,
         gas: u64,
-        return_data_len: *mut usize,
+        return_data_len: *mut usize
     ) -> u8;
 
     /// Emits an EVM log with the given number of topics and data, the first bytes of which should
@@ -220,8 +286,7 @@ extern "C" {
     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
-    #[allow(dead_code)]
-    pub fn memory_grow(pages: u16);
+    pub fn pay_for_memory_grow(pages: u16);
 
     /// Whether the current call is reentrant.
     pub fn msg_reentrant() -> bool;
@@ -298,7 +363,7 @@ extern "C" {
         calldata: *const u8,
         calldata_len: usize,
         gas: u64,
-        return_data_len: *mut usize,
+        return_data_len: *mut usize
     ) -> u8;
 
     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee. The
@@ -317,12 +382,13 @@ extern "C" {
     /// EVM's [`ORIGIN`] opcode.
     ///
     /// [`ORIGIN`]: https://www.evm.codes/#32
-    pub fn tx_origin(origin: *mut u8);
+    pub fn tx_origin(origin: *mut u8)
 }
 
-#[allow(dead_code)]
-#[link(wasm_import_module = "console")]
-extern "C" {
+vm_hooks! {
+    #[allow(dead_code)]
+    module("console", console);
+
     /// Prints a 32-bit floating point number to the console. Only available in debug mode with
     /// floating point enabled.
     pub fn log_f32(value: f32);
@@ -340,7 +406,7 @@ extern "C" {
     pub fn log_i64(value: i64);
 
     /// Prints a UTF-8 encoded string to the console. Only available in debug mode.
-    pub fn log_txt(text: *const u8, len: usize);
+    pub fn log_txt(text: *const u8, len: usize)
 }
 
 macro_rules! wrap_hostio {
