@@ -1,4 +1,4 @@
-const { Contract, Wallet, JsonRpcProvider, parseEther, formatEther } = require('ethers');
+const { Contract, Wallet, JsonRpcProvider } = require('ethers');
 require('dotenv').config();
 
 // Initial checks
@@ -13,8 +13,8 @@ if (
 
 // ABI of the token (used functions)
 const abi = [
-    "function mint(uint256 value) external",
-    "function mintTo(address to, uint256 value) external",
+    "function mint() external",
+    "function mintTo(address to) external",
 
     // Read-Only Functions
     "function balanceOf(address owner) external view returns (uint256)",
@@ -28,28 +28,25 @@ const walletPrivateKey = process.env.PRIVATE_KEY;
 const stylusRpcProvider = new JsonRpcProvider(process.env.RPC_URL);
 const signer = new Wallet(walletPrivateKey, stylusRpcProvider);
 
-// Amount of tokens to mint
-const amountToMint = process.env.AMOUNT_TO_MINT || "1000";
-
 // Main function
 const main = async () => {
     // Presentation message
-    console.log(`Minting ${amountToMint} tokens of the contract ${address} to account ${signer.address}`);
+    console.log(`Minting an NFT of the contract ${address} to account ${signer.address}`);
 
-    // Connecting to the ERC-20 contract
-    const erc20 = new Contract(address, abi, signer);
+    // Connecting to the ERC-721 contract
+    const erc721 = new Contract(address, abi, signer);
 
     // Current balance of user
-    const currentBalance = await erc20.balanceOf(signer.address);
-    console.log(`Current balance: ${formatEther(currentBalance)}`);
+    const currentBalance = await erc721.balanceOf(signer.address);
+    console.log(`Current balance: ${currentBalance}`);
 
     // Minting tokens
-    const mintTransaction = await erc20.mint(parseEther(amountToMint));
+    const mintTransaction = await erc721.mint();
     await mintTransaction.wait();
 
     // Final balance of user
-    const finalBalance = await erc20.balanceOf(signer.address);
-    console.log(`Final balance: ${formatEther(finalBalance)}`);
+    const finalBalance = await erc721.balanceOf(signer.address);
+    console.log(`Final balance: ${finalBalance}`);
 }
 
 main()
