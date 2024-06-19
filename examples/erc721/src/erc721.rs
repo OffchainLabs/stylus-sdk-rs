@@ -8,16 +8,11 @@
 //!
 //! Note that this code is unaudited and not fit for production use.
 
-use alloc::{string::String, vec, vec::Vec};
-use alloy_primitives::{Address, U256, FixedBytes};
+use alloc::vec;
+use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
-use stylus_sdk::{
-    abi::Bytes,
-    evm,
-    msg,
-    prelude::*
-};
+use stylus_sdk::{abi::Bytes, evm, msg, prelude::*};
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -91,7 +86,11 @@ const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 // Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
 impl<T: Erc721Params> Erc721<T> {
     /// Requires that msg::sender() is authorized to spend a given token
-    fn require_authorized_to_spend(&self, from: Address, token_id: U256) -> Result<(), Erc721Error> {
+    fn require_authorized_to_spend(
+        &self,
+        from: Address,
+        token_id: U256,
+    ) -> Result<(), Erc721Error> {
         // `from` must be the owner of the token_id
         let owner = self.owner_of(token_id)?;
         if from != owner {
@@ -128,7 +127,12 @@ impl<T: Erc721Params> Erc721<T> {
     /// Transfers `token_id` from `from` to `to`.
     /// This function does check that `from` is the owner of the token, but it does not check
     /// that `to` is not the zero address, as this function is usable for burning.
-    pub fn transfer(&mut self, token_id: U256, from: Address, to: Address) -> Result<(), Erc721Error> {
+    pub fn transfer(
+        &mut self,
+        token_id: U256,
+        from: Address,
+        to: Address,
+    ) -> Result<(), Erc721Error> {
         let mut owner = self.owners.setter(token_id);
         let previous_owner = owner.get();
         if previous_owner != from {
@@ -151,7 +155,7 @@ impl<T: Erc721Params> Erc721<T> {
 
         // cleaning app the approved mapping for this token
         self.token_approvals.delete(token_id);
-        
+
         evm::log(Transfer { from, to, token_id });
         Ok(())
     }
@@ -169,11 +173,13 @@ impl<T: Erc721Params> Erc721<T> {
             let receiver = IERC721TokenReceiver::new(to);
             let received = receiver
                 .on_erc_721_received(&mut *storage, msg::sender(), from, token_id, data)
-                .map_err(|_e| Erc721Error::ReceiverRefused(ReceiverRefused {
-                    receiver: receiver.address,
-                    token_id,
-                    returned: 0_u32.to_be_bytes(),
-                }))?
+                .map_err(|_e| {
+                    Erc721Error::ReceiverRefused(ReceiverRefused {
+                        receiver: receiver.address,
+                        token_id,
+                        returned: 0_u32.to_be_bytes(),
+                    })
+                })?
                 .0;
 
             if u32::from_be_bytes(received) != ERC721_TOKEN_RECEIVER_ID {
@@ -284,7 +290,12 @@ impl<T: Erc721Params> Erc721<T> {
     }
 
     /// Transfers the NFT.
-    pub fn transfer_from(&mut self, from: Address, to: Address, token_id: U256) -> Result<(), Erc721Error> {
+    pub fn transfer_from(
+        &mut self,
+        from: Address,
+        to: Address,
+        token_id: U256,
+    ) -> Result<(), Erc721Error> {
         if to.is_zero() {
             return Err(Erc721Error::TransferToZero(TransferToZero { token_id }));
         }
@@ -316,7 +327,11 @@ impl<T: Erc721Params> Erc721<T> {
     }
 
     /// Grants an account the ability to manage all of the sender's NFTs.
-    pub fn set_approval_for_all(&mut self, operator: Address, approved: bool) -> Result<(), Erc721Error> {
+    pub fn set_approval_for_all(
+        &mut self,
+        operator: Address,
+        approved: bool,
+    ) -> Result<(), Erc721Error> {
         let owner = msg::sender();
         self.operator_approvals
             .setter(owner)
@@ -336,7 +351,11 @@ impl<T: Erc721Params> Erc721<T> {
     }
 
     /// Determines if an account has been authorized to managing all of a user's NFTs.
-    pub fn is_approved_for_all(&mut self, owner: Address, operator: Address) -> Result<bool, Erc721Error> {
+    pub fn is_approved_for_all(
+        &mut self,
+        owner: Address,
+        operator: Address,
+    ) -> Result<bool, Erc721Error> {
         Ok(self.operator_approvals.getter(owner).get(operator))
     }
 
@@ -353,6 +372,9 @@ impl<T: Erc721Params> Erc721<T> {
         const IERC721: u32 = 0x80ac58cd;
         const IERC721_METADATA: u32 = 0x5b5e139f;
 
-        Ok(matches!(u32::from_be_bytes(interface_slice_array), IERC165 | IERC721 | IERC721_METADATA))
+        Ok(matches!(
+            u32::from_be_bytes(interface_slice_array),
+            IERC165 | IERC721 | IERC721_METADATA
+        ))
     }
 }
