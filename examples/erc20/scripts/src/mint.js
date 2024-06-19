@@ -1,27 +1,40 @@
-const { Contract, Wallet, JsonRpcProvider, parseEther, formatEther } = require('ethers');
-require('dotenv').config();
+const {
+  Contract,
+  Wallet,
+  JsonRpcProvider,
+  parseEther,
+  formatEther,
+} = require("ethers");
+require("dotenv").config();
 
 // Initial checks
 if (
-    (!process.env.RPC_URL || process.env.RPC_URL == "") ||
-    (!process.env.CONTRACT_ADDRESS || process.env.CONTRACT_ADDRESS == "") ||
-    (!process.env.PRIVATE_KEY || process.env.PRIVATE_KEY == "") 
+  !process.env.RPC_URL ||
+  process.env.RPC_URL == "" ||
+  !process.env.CONTRACT_ADDRESS ||
+  process.env.CONTRACT_ADDRESS == "" ||
+  !process.env.PRIVATE_KEY ||
+  process.env.PRIVATE_KEY == ""
 ) {
-    console.error('The following environment variables are needed (set them in .env): RPC_URL, CONTRACT_ADDRESS, PRIVATE_KEY');
-    return;
+  console.error(
+    "The following environment variables are needed (set them in .env): RPC_URL, CONTRACT_ADDRESS, PRIVATE_KEY"
+  );
+  return;
 }
 
 // ABI of the token (used functions)
 const abi = [
-    "function mint(uint256 value) external",
-    "function mintTo(address to, uint256 value) external",
+  "function mint(uint256 value) external",
+  "function mintTo(address to, uint256 value) external",
 
-    // Read-Only Functions
-    "function balanceOf(address owner) external view returns (uint256)",
+  // Read-Only Functions
+  "function balanceOf(address owner) external view returns (uint256)",
 ];
 
 // Address of the token
 const address = process.env.CONTRACT_ADDRESS;
+// Transaction Explorer URL
+const tx_explorer_url = process.env.TX_EXPLORER_URL;
 
 // Private key and ethers provider
 const walletPrivateKey = process.env.PRIVATE_KEY;
@@ -33,28 +46,32 @@ const amountToMint = process.env.AMOUNT_TO_MINT || "1000";
 
 // Main function
 const main = async () => {
-    // Presentation message
-    console.log(`Minting ${amountToMint} tokens of the contract ${address} to account ${signer.address}`);
+  // Presentation message
+  console.log(
+    `Minting ${amountToMint} tokens of the contract ${address} to account ${signer.address}`
+  );
 
-    // Connecting to the ERC-20 contract
-    const erc20 = new Contract(address, abi, signer);
+  // Connecting to the ERC-20 contract
+  const erc20 = new Contract(address, abi, signer);
 
-    // Current balance of user
-    const currentBalance = await erc20.balanceOf(signer.address);
-    console.log(`Current balance: ${formatEther(currentBalance)}`);
+  // Current balance of user
+  const currentBalance = await erc20.balanceOf(signer.address);
+  console.log(`Current balance: ${formatEther(currentBalance)}`);
 
-    // Minting tokens
-    const mintTransaction = await erc20.mint(parseEther(amountToMint));
-    await mintTransaction.wait();
+  // Minting tokens
+  const mintTransaction = await erc20.mint(parseEther(amountToMint));
+  await mintTransaction.wait();
+  console.log(`Transaction hash: ${mintTransaction.hash}`);
+  console.log(`View tx on explorer: ${tx_explorer_url}${mintTransaction.hash}`);
 
-    // Final balance of user
-    const finalBalance = await erc20.balanceOf(signer.address);
-    console.log(`Final balance: ${formatEther(finalBalance)}`);
-}
+  // Final balance of user
+  const finalBalance = await erc20.balanceOf(signer.address);
+  console.log(`Final balance: ${formatEther(finalBalance)}`);
+};
 
 main()
   .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
   });
