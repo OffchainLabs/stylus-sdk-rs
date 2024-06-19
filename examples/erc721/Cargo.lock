@@ -193,15 +193,15 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.18"
+version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
 dependencies = [
  "convert_case 0.4.0",
  "proc-macro2",
  "quote",
  "rustc_version",
- "syn 2.0.58",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -221,7 +221,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
 
 [[package]]
-name = "erc20"
+name = "erc721"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
