@@ -1,0 +1,18 @@
+{
+  "name": "single_call_scripts",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "increment": "node src/main.js"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
+    "@nomicfoundation/hardhat-ignition": "^0.15.5",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.5",
+    "@nomicfoundation/hardhat-verify": "^2.0.8",
+    "@nomicfoundation/ignition-core": "^0.15.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.1",
+    "hardhat": "^2.22.5"
+  }
+}

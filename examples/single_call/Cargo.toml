@@ -1,0 +1,29 @@
+[package]
+name = "stylus-single-call"
+version = "0.1.5"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Stylus single call router contract"
+
+[dependencies]
+alloy-primitives = "0.3.1"
+alloy-sol-types = "0.3.1"
+hex = "0.4.3"
+stylus-sdk = { path = "../../stylus-sdk" }
+mini-alloc = { path = "../../mini-alloc" }
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = "s"
+
+[workspace]
