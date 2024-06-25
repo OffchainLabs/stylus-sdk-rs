@@ -82,3 +82,21 @@ deploy_counter#Counter - 0xfDa82C11DF0Eb7490fFACC0652cbcC36D49327Bd
 Take note of the `Deployed Addresses` value and go ahead and copy and paste that as your `COUNTER_CONTRACT_ADDRESS` variable in your `.env` file.
 
 ## Incrementing `Counter` via `SingleCall`
+
+Now you're all set to increment the `Counter` via `SingleCall`. There is a script that shows how to do this in `/src/main.js`. To run the script, simply call:
+
+```
+yarn run increment
+```
+
+You should see console output similar to below:
+
+```
+Incrementing the Counter contract at 0xaAf6112301a19c90feFb251D0567610eA649752D via the SingleCall router at 0xb27fc74caf34c5c26d27a7654358017331330cee
+Current count: 42
+0xd09de08a
+Transaction hash: 0x35c6d2ea3de188ed6bd5283c49d58cf89fc12e65cece9ad19a62e158e0bc944e
+View tx on explorer: https://sepolia.arbiscan.io/tx/0x35c6d2ea3de188ed6bd5283c49d58cf89fc12e65cece9ad19a62e158e0bc944e
+Updated count: 43
+✨  Done in 5.48s.
+```
