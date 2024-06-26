@@ -57,7 +57,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let path = &ty.path.segments.last().unwrap().ident;
         let not_supported = format!("Type `{path}` not supported for EVM state storage");
 
-        // TODO: use short-hand substition from the `storage-macro-shorthand` branch
+        // TODO: use short-hand substitution from the `storage-macro-shorthand` branch
         match path.to_string().as_str() {
             x @ ("u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
             | "U8" | "U16" | "U32" | "U64" | "U128" | "I8" | "I16" | "I32" | "I64"

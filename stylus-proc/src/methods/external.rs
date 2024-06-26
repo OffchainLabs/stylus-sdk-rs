@@ -257,7 +257,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         .map(|c| c.predicates)
         .unwrap_or_default();
 
-    // implement Router with inheritence
+    // implement Router with inheritance
     let mut router = quote! {
         #input
 

@@ -72,7 +72,7 @@ vm_hooks! {
     /// Gets a subset of the code from the account at the given address. The semantics are identical to that
     /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
     /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
     ///
     /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
     pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
