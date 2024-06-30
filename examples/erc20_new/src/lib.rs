@@ -3,9 +3,11 @@
 extern crate alloc;
 
 // Modules and imports
-mod erc20;
+pub mod erc20;
+pub mod ownable;
 
 use crate::erc20::*;
+use crate::ownable::*;
 use alloy_primitives::{Address, U256};
 use stylus_sdk::{msg, prelude::*};
 
@@ -22,6 +24,7 @@ const DECIMALS: u8 = 18;
 #[entrypoint]
 struct MyToken {
     erc20: ERC20,
+    ownable: Ownable,
 }
 
 #[external]
@@ -46,21 +49,31 @@ impl IERC20 for MyToken {
     }
 }
 
-/**
- * Core problem with current SDK for Rust-style composition pattern
- * is the inability to define multiple #[external] impl blocks. If so,
- * then I could seamlessly compose IERC20 or any number of traits to
- * define my contract's public API.
- *
- * Part of the reason this is difficult is that macros only have visibility
- * into a single block. We cannot combine multiple #[external] impls into 1.
- * There are patterns around this, but will require refactoring the SDK's
- * router.
- */
+// #[external]
+impl IOwnable for MyToken {
+    fn owner(&self) -> Address {
+        self.ownable.owner()
+    }
+    fn renounce_ownership(&mut self) -> bool {
+        self.ownable.renounce_ownership()
+    }
+    fn transfer_ownership(&mut self, new_owner: Address) -> bool {
+        self.ownable.transfer_ownership(new_owner)
+    }
+}
 
 // #[external]
+// Developer-defined external methods
 impl MyToken {
-    fn _mint(&mut self, recipient: Address, amount: U256) {
-        self.erc20.mint(recipient, amount)
+    // here the developer-defined mint method (which is not part of the
+    // IERC20 API spec), uses internal methods from Ownable and ERC20 to
+    // validate ownership before minting new supply
+    fn mint(&mut self, recipient: Address, amount: U256) -> bool {
+        if !self.ownable.is_owner() {
+            return false;
+        }
+
+        self.erc20.mint(recipient, amount);
+        true
     }
 }

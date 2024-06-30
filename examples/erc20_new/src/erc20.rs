@@ -1,7 +1,7 @@
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
     prelude::*,
-    storage::{StorageAddress, StorageMap, StorageString, StorageU256, StorageU8},
+    storage::{StorageMap, StorageU256},
 };
 
 #[solidity_storage]
