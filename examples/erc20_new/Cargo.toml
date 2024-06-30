@@ -1,0 +1,25 @@
+[package]
+name = "erc20"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-primitives = "0.3.1"
+alloy-sol-types = "0.3.1"
+stylus-sdk = { path = "../../stylus-sdk" }
+mini-alloc = { path = "../../mini-alloc" }
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = "s"
+
+[workspace]
