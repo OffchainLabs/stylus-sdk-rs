@@ -73,7 +73,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
     }
     macro_rules! simple {
         ($ty:ident) => {
-            (path!(stringify!($ty)), sol_data::$ty::sol_type_name())
+            (path!(stringify!($ty)), sol_data::$ty::SOL_NAME.into())
         };
     }
     match ty {
@@ -82,7 +82,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         Type::String(_) => simple!(String),
         Type::Bytes(_) => simple!(Bytes),
         Type::FixedBytes(_, size) => (
-            format!("stylus_sdk::abi::FixedBytesSolType<{size}>").into(),
+            format!("stylus_sdk::alloy_sol_types::sol_data::FixedBytes<{size}>").into(),
             abi!("bytes[{size}]"),
         ),
         Type::Uint(_, size) => {
@@ -95,7 +95,7 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         }
         Type::Array(ty) => {
             let (path, abi) = solidity_type_info(&ty.ty);
-            match ty.size.as_ref().map(|x| x.base10_digits()) {
+            match ty.size() {
                 Some(size) => (path!("FixedArray<{path}, {size}>"), abi!("{abi}[{size}]")),
                 None => (path!("Array<{path}>"), abi!("{abi}[]")),
             }

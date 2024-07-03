@@ -1,4 +1,4 @@
-// Copyright 2023, Offchain Labs, Inc.
+// Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Solidity ABIs for Rust types.
@@ -20,7 +20,6 @@ use core::borrow::BorrowMut;
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
-pub use fixed_bytes::FixedBytesSolType;
 
 #[cfg(feature = "export-abi")]
 pub use export::GenerateAbi;
@@ -30,7 +29,6 @@ pub mod export;
 
 mod bytes;
 mod const_string;
-mod fixed_bytes;
 mod impls;
 
 #[doc(hidden)]

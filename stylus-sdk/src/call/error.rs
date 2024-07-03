@@ -38,7 +38,7 @@ impl MethodError for Error {
 impl<T: SolError> MethodError for T {
     #[inline]
     fn encode(self) -> Vec<u8> {
-        SolError::encode(&self)
+        SolError::abi_encode(&self)
     }
 }
 
@@ -49,7 +49,7 @@ impl From<Error> for Vec<u8> {
             Error::Revert(data) => data,
             Error::AbiDecodingFailed(err) => {
                 console!("failed to decode return data from external call: {err}");
-                Panic::from(PanicKind::Generic).encode()
+                Panic::from(PanicKind::Generic).abi_encode()
             }
         }
     }

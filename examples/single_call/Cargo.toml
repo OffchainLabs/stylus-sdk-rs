@@ -7,8 +7,8 @@ keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Stylus single call router contract"
 
 [dependencies]
-alloy-primitives = "0.3.1"
-alloy-sol-types = "0.3.1"
+alloy-primitives = "0.7.6"
+alloy-sol-types = "0.7.6"
 hex = "0.4.3"
 stylus-sdk = { path = "../../stylus-sdk" }
 mini-alloc = { path = "../../mini-alloc" }
