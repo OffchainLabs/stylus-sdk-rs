@@ -71,7 +71,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.58",
- "syn-solidity 0.7.6",
+ "syn-solidity",
  "tiny-keccak",
 ]
 
@@ -87,7 +87,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.58",
- "syn-solidity 0.7.6",
+ "syn-solidity",
 ]
 
 [[package]]
@@ -1264,7 +1264,7 @@ dependencies = [
  "regex",
  "sha3",
  "syn 1.0.109",
- "syn-solidity 0.3.1",
+ "syn-solidity",
 ]
 
 [[package]]
@@ -1308,17 +1308,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "syn-solidity"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f995d2140b0f751dbe94365be2591edbf3d1b75dcfaeac14183abbd2ff07bd"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.58",
 ]
 
 [[package]]
