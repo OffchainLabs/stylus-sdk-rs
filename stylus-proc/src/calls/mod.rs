@@ -146,7 +146,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                     let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                     calldata.extend(args);
                     let returned = #call(context, self.address, &calldata)?;
-                    Ok(<(#return_type,) as #sol_type>::abi_decode(&returned, true)?.0)
+                    Ok(<(#return_type,) as #sol_type>::abi_decode_params(&returned, true)?.0)
                 }
             });
         }
