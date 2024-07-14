@@ -3,7 +3,7 @@
 
 use crate::crypto;
 
-use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
+use super::{Erase, SimpleStorageType, StorageBytes, StorageGuard, StorageGuardMut, StorageLevel, StorageType};
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
@@ -13,6 +13,8 @@ pub struct StorageMap<K: StorageKey, V: StorageType> {
     slot: U256,
     marker: PhantomData<(K, V)>,
 }
+
+unsafe impl<K: StorageKey, S: StorageType> StorageLevel for StorageMap<K, S> {}
 
 impl<K, V> StorageType for StorageMap<K, V>
 where

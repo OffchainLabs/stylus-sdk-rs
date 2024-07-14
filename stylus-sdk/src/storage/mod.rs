@@ -32,7 +32,7 @@ pub use bytes::{StorageBytes, StorageString};
 pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
-    TopLevelStorage,
+    TopLevelStorage, StorageLevel,
 };
 pub use vec::StorageVec;
 
@@ -646,6 +646,8 @@ impl From<StorageBlockHash> for BlockHash {
         *value
     }
 }
+
+unsafe impl<T> StorageLevel for PhantomData<T> {}
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
 impl<T> StorageType for PhantomData<T> {

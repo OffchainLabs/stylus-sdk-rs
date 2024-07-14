@@ -1,9 +1,7 @@
 // Copyright 2023, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-use super::{
-    Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
-};
+use super::{Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageKey, StorageLevel, StorageMap, StorageType};
 use crate::crypto;
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
@@ -14,6 +12,8 @@ pub struct StorageVec<S: StorageType> {
     base: OnceCell<U256>,
     marker: PhantomData<S>,
 }
+
+unsafe impl<S: StorageType> StorageLevel for StorageVec<S> {}
 
 impl<S: StorageType> StorageType for StorageVec<S> {
     type Wraps<'a> = StorageGuard<'a, StorageVec<S>> where Self: 'a;
