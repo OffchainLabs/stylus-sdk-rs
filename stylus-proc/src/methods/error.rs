@@ -39,6 +39,14 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
             }
         }
     });
+    
+    output.extend(quote! {
+        impl stylus_sdk::call::MethodError for #name {
+            fn encode(self) -> alloc::vec::Vec<u8> {
+                self.into()
+            }
+        }
+    });
 
     if cfg!(feature = "export-abi") {
         output.extend(quote! {
