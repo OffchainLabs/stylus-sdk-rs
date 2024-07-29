@@ -185,14 +185,14 @@ impl Builtin for u128 {}
 // Int or Uint that has been converted to the appropriate SupportedInt type
 struct Converted<T>(T);
 
-impl<F: Builtin, T, const BITS: usize, const LIMBS: usize> From<Signed<BITS, LIMBS>>
-    for Converted<F>
+impl<T: Builtin, const BITS: usize, const LIMBS: usize> From<Signed<BITS, LIMBS>> for Converted<T>
 where
     IntBitCount<BITS>: SupportedInt<Int = T>,
     T: TryFrom<Signed<BITS, LIMBS>>,
+    <T as TryFrom<Signed<BITS, LIMBS>>>::Error: core::fmt::Debug,
 {
     fn from(int: Signed<BITS, LIMBS>) -> Self {
-        int.try_into().unwrap()
+        Converted(int.try_into().unwrap())
     }
 }
 
@@ -221,13 +221,14 @@ impl<const FB: usize, const FL: usize, const TB: usize, const TL: usize> From<Si
     }
 }
 
-impl<F: Builtin, T, const BITS: usize, const LIMBS: usize> From<Uint<BITS, LIMBS>> for Converted<F>
+impl<T: Builtin, const BITS: usize, const LIMBS: usize> From<Uint<BITS, LIMBS>> for Converted<T>
 where
     IntBitCount<BITS>: SupportedInt<Uint = T>,
     T: TryFrom<Uint<BITS, LIMBS>>,
+    <T as TryFrom<Uint<BITS, LIMBS>>>::Error: core::fmt::Debug,
 {
     fn from(uint: Uint<BITS, LIMBS>) -> Self {
-        uint.try_into().unwrap()
+        Converted(uint.try_into().unwrap())
     }
 }
 
