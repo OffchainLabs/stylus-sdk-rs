@@ -32,7 +32,9 @@ pub struct SolInt<const BITS: usize, const LIMBS: usize>;
 impl<const BITS: usize, const LIMBS: usize> AbiType for Signed<BITS, LIMBS>
 where
     for<'a> sol_data::Int<BITS>: SolType<Token<'a> = WordToken>,
-    Converted<Signed<BITS, LIMBS>>: From<<sol_data::Int<BITS> as SolType>::RustType>,
+    Signed<BITS, LIMBS>: TryFrom<<sol_data::Int<BITS> as SolType>::RustType>,
+    <Signed<BITS, LIMBS> as TryFrom<<sol_data::Int<BITS> as SolType>::RustType>>::Error:
+        core::fmt::Debug,
     IntBitCount<BITS>: SupportedInt,
     Converted<<IntBitCount<BITS> as SupportedInt>::Int>: From<Signed<BITS, LIMBS>>,
 {
@@ -44,7 +46,9 @@ where
 impl<const BITS: usize, const LIMBS: usize> SolType for SolInt<BITS, LIMBS>
 where
     for<'a> sol_data::Int<BITS>: SolType<Token<'a> = WordToken>,
-    Converted<Signed<BITS, LIMBS>>: From<<sol_data::Int<BITS> as SolType>::RustType>,
+    Signed<BITS, LIMBS>: TryFrom<<sol_data::Int<BITS> as SolType>::RustType>,
+    <Signed<BITS, LIMBS> as TryFrom<<sol_data::Int<BITS> as SolType>::RustType>>::Error:
+        core::fmt::Debug,
     IntBitCount<BITS>: SupportedInt,
     Converted<<IntBitCount<BITS> as SupportedInt>::Int>: From<Signed<BITS, LIMBS>>,
 {
@@ -61,7 +65,7 @@ where
 
     #[inline]
     fn detokenize(token: Self::Token<'_>) -> Self::RustType {
-        Converted::from(sol_data::Int::<BITS>::detokenize(token)).0
+        sol_data::Int::<BITS>::detokenize(token).try_into().unwrap()
     }
 }
 
@@ -69,7 +73,9 @@ impl<const BITS: usize, const LIMBS: usize> SolTypeValue<SolInt<BITS, LIMBS>>
     for Signed<BITS, LIMBS>
 where
     for<'a> sol_data::Int<BITS>: SolType<Token<'a> = WordToken>,
-    Converted<Signed<BITS, LIMBS>>: From<<sol_data::Int<BITS> as SolType>::RustType>,
+    Signed<BITS, LIMBS>: TryFrom<<sol_data::Int<BITS> as SolType>::RustType>,
+    <Signed<BITS, LIMBS> as TryFrom<<sol_data::Int<BITS> as SolType>::RustType>>::Error:
+        core::fmt::Debug,
     IntBitCount<BITS>: SupportedInt,
     Converted<<IntBitCount<BITS> as SupportedInt>::Int>: From<Signed<BITS, LIMBS>>,
 {
@@ -184,6 +190,15 @@ impl Builtin for u128 {}
 
 // Int or Uint that has been converted to the appropriate SupportedInt type
 struct Converted<T>(T);
+
+/*
+    for<'a> sol_data::Int<BITS>: SolType<Token<'a> = WordToken>,
+    Converted<Signed<BITS, LIMBS>>: From<<sol_data::Int<BITS> as SolType>::RustType>,
+    IntBitCount<BITS>: SupportedInt,
+    Converted<<IntBitCount<BITS> as SupportedInt>::Int>: From<Signed<BITS, LIMBS>>,
+
+impl<T: Builtin, const BITS: usize, const LIMBS: usize> From<T
+*/
 
 impl<T: Builtin, const BITS: usize, const LIMBS: usize> From<Signed<BITS, LIMBS>> for Converted<T>
 where
