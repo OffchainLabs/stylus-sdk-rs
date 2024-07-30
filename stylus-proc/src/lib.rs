@@ -30,6 +30,7 @@ macro_rules! error {
     }};
 }
 
+mod abi;
 mod calls;
 mod methods;
 mod storage;
@@ -540,4 +541,21 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn external(attr: TokenStream, input: TokenStream) -> TokenStream {
     methods::external::external(attr, input)
+}
+
+/// Implements the AbiType for arbitrary structs, allowing them to be used in external method
+/// return types and parameters. This derive is intended to be used within the
+/// [alloy_sol_types::sol] macro.
+///
+/// ```ignore
+/// sol! {
+///     #[derive(AbiType)]
+///     pub struct Foo {
+///         u256 bar;
+///     }
+/// }
+/// ```
+#[proc_macro_derive(AbiType)]
+pub fn derive_abi_type(input: TokenStream) -> TokenStream {
+    abi::derive_abi_type(input)
 }
