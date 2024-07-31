@@ -135,6 +135,10 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
                 (path.into(), abi.into())
             }
         }
+        Type::Custom(path) => {
+            let path: Cow<'static, str> = path.to_string().into();
+            (path.clone(), path)
+        }
         _ => todo!("Solidity type {ty} is not yet implemented in sol_interface!"),
     }
 }
