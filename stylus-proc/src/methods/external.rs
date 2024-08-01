@@ -271,6 +271,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             type Storage = Self;
 
             #[inline(always)]
+            #[deny(unreachable_patterns)]
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};
                 use stylus_sdk::abi::{internal, internal::EncodableReturnType, AbiType, Router};
