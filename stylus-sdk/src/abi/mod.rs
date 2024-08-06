@@ -30,6 +30,7 @@ pub mod export;
 mod bytes;
 mod const_string;
 mod impls;
+mod ints;
 
 #[doc(hidden)]
 pub mod internal;
