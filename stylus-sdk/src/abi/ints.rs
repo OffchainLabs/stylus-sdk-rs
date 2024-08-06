@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
-//! Support for generic integer types, found in [alloy_primitives].
+//! Support for generic integer types found in [alloy_primitives].
 
 use alloy_primitives::{ruint::UintTryFrom, Signed, Uint};
 use alloy_sol_types::{
@@ -205,18 +205,32 @@ impl<const FB: usize, const FL: usize, const TB: usize, const TL: usize> From<Si
             limbs[..slice.len()].copy_from_slice(slice);
             Converted(Signed::from_limbs(limbs))
         } else {
-            let (head, _tail) = slice.split_at(TL);
+            let (head, tail) = slice.split_at(TL);
             let mut limbs = [0; TL];
             limbs.copy_from_slice(head);
-            /* TODO overflow check needed?
             let mut overflow = tail.iter().any(|&limb| limb != 0);
             if TL > 0 {
-                overflow |= limbs[TL - 1] > Signed::<TB, TL>::MASK;
-                limbs[TL - 1] &= Signed::<TB, TL>::MASK;
+                overflow |= limbs[TL - 1] > mask(TB);
+                limbs[TL - 1] &= mask(TB);
             }
-            */
+            if overflow {
+                // This should not happen.
+                panic!("overflow in int conversion");
+            }
             Converted(Signed::from_limbs(limbs))
         }
+    }
+}
+
+const fn mask(bits: usize) -> u64 {
+    if bits == 0 {
+        return 0;
+    }
+    let bits = bits % 64;
+    if bits == 0 {
+        u64::MAX
+    } else {
+        (1 << bits) - 1
     }
 }
 
