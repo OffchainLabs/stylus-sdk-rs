@@ -163,6 +163,10 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// Observe the casing change. [`sol_interface!`] computes the selector based on the exact name passed in,
 /// which should almost always be `CamelCase`. For aesthetics, the rust functions will instead use `snake_case`.
 ///
+/// Note that structs may be used, as return types for example. Trying to reference structs using
+/// the Solidity path separator (`module.MyStruct`) is not currently supported and will fail at
+/// build-time.
+///
 /// # Reentrant calls
 ///
 /// Contracts that opt into reentrancy via the `reentrant` feature flag require extra care.
