@@ -76,6 +76,11 @@ impl SolTypeValue<Self> for Bytes {
     }
 
     #[inline]
+    fn stv_abi_packed_encoded_size(&self) -> usize {
+        32 + evm_padded_length(self.len())
+    }
+
+    #[inline]
     fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
         self.0.eip712_data_word()
     }
@@ -92,6 +97,7 @@ impl SolType for Bytes {
     type Token<'a> = PackedSeqToken<'a>;
 
     const ENCODED_SIZE: Option<usize> = None;
+    const PACKED_ENCODED_SIZE: Option<usize> = None;
 
     const SOL_NAME: &'static str = "bytes";
 

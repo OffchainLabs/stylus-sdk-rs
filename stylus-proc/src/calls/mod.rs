@@ -208,6 +208,11 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                 }
 
                 #[inline]
+                fn stv_abi_packed_encoded_size(&self) -> usize {
+                    <#sol_address as #sol_type>::abi_packed_encoded_size(&self.address)
+                }
+
+                #[inline]
                 fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
                     <#sol_address as #sol_type>::eip712_data_word(&self.address)
                 }
@@ -226,6 +231,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                 const SOL_NAME: &'static str = <#sol_address as #sol_type>::SOL_NAME;
 
                 const ENCODED_SIZE: Option<usize> = <#sol_address as #sol_type>::ENCODED_SIZE;
+                const PACKED_ENCODED_SIZE: Option<usize> = <#sol_address as #sol_type>::PACKED_ENCODED_SIZE;
 
                 fn valid_token(token: &Self::Token<'_>) -> bool {
                     <#sol_address as #sol_type>::valid_token(token)
