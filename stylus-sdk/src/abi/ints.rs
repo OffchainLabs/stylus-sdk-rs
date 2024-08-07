@@ -47,6 +47,7 @@ where
         .concat(ConstString::from_decimal_number(BITS))
         .as_str();
     const ENCODED_SIZE: Option<usize> = Some(32);
+    const PACKED_ENCODED_SIZE: Option<usize> = Some(BITS / 8);
 
     #[inline]
     fn valid_token(token: &Self::Token<'_>) -> bool {
@@ -120,6 +121,7 @@ where
         .concat(ConstString::from_decimal_number(BITS))
         .as_str();
     const ENCODED_SIZE: Option<usize> = Some(32);
+    const PACKED_ENCODED_SIZE: Option<usize> = Some(BITS / 8);
 
     #[inline]
     fn valid_token(token: &Self::Token<'_>) -> bool {
