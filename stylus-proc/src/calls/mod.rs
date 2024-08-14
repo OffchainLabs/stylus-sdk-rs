@@ -51,20 +51,23 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
             // determine the purity
             let mut purity = None;
             for attr in &func.attributes.0 {
-                if let FunctionAttribute::Mutability(mutability) = attr {
-                    if purity.is_some() {
-                        error!(attr.span(), "more than one purity attribute specified");
+                match attr {
+                    FunctionAttribute::Mutability(mutability) => {
+                        if purity.is_some() {
+                            error!(attr.span(), "more than one purity attribute specified");
+                        }
+                        purity = Some(match mutability {
+                            Mutability::Constant(_) | Mutability::Pure(_) => Pure,
+                            Mutability::View(_) => View,
+                            Mutability::Payable(_) => Payable,
+                        });
                     }
-                    purity = Some(match mutability {
-                        Mutability::Constant(_) | Mutability::Pure(_) => Pure,
-                        Mutability::View(_) => View,
-                        Mutability::Payable(_) => Payable,
-                    });
-                }
-                if let FunctionAttribute::Visibility(vis) = attr {
-                    if let Visibility::Internal(_) | Visibility::Private(_) = vis {
-                        error!(vis.span(), "internal method in interface");
+                    FunctionAttribute::Visibility(vis) => {
+                        if let Visibility::Internal(_) | Visibility::Private(_) = vis {
+                            error!(vis.span(), "internal method in interface");
+                        }
                     }
+                    _ => error!(attr.span(), "unsupported function attribute"),
                 }
             }
             let purity = purity.unwrap_or(Write);
