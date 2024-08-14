@@ -24,9 +24,10 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
     let sol_type_value = quote!(stylus_sdk::alloy_sol_types::private::SolTypeValue);
 
     let mut output = quote!();
-    let mut method_impls = quote!();
 
     for item in input.items {
+        let mut method_impls = quote!();
+
         let Item::Contract(contract) = item else {
             error!(item.span(), "not an interface")
         };
