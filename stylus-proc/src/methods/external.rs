@@ -308,7 +308,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let type_decls = quote! {
         let mut seen = HashSet::new();
-        for item in [].iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
+        for item in ([] as [InnerType; 0]).iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
             if seen.insert(item.id) {
                 writeln!(f, "\n    {}", item.name)?;
             }
@@ -346,7 +346,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 use stylus_sdk::abi::{AbiType, GenerateAbi};
                 use stylus_sdk::abi::internal::write_solidity_returns;
-                use stylus_sdk::abi::export::{underscore_if_sol, internal::InnerTypes};
+                use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                 use std::collections::HashSet;
                 #(#inherited_abis)*
                 write!(f, "interface I{}", #name)?;
