@@ -403,7 +403,6 @@ impl Parse for SelectorArgs {
                         error!(@lit, r#"only one "id" is allowed"#);
                     }
                     id = Some(match lit {
-                        Lit::Int(lit) => lit.base10_parse()?,
                         Lit::Str(lit) => {
                             let name = lit.value();
                             if !name.contains('(') {
@@ -412,7 +411,7 @@ impl Parse for SelectorArgs {
                             let hash = types::keccak(name.as_bytes());
                             u32::from_be_bytes(hash[..4].try_into().unwrap())
                         }
-                        _ => error!(@lit, "expected u32 or string"),
+                        _ => error!(@lit, "expected string"),
                     });
                 }
                 "name" => {
