@@ -112,7 +112,6 @@ macro_rules! alias_bytes {
 }
 
 alias_ints! {
-    StorageU1, StorageI1, 1, 1;
     StorageU8, StorageI8, 8, 1;
     StorageU16, StorageI16, 16, 1;
     StorageU32, StorageI32, 32, 1;
@@ -510,6 +509,9 @@ impl From<StorageAddress> for Address {
 }
 
 /// Accessor for a storage-backed [`BlockNumber`].
+///
+/// This storage type allows convenient and type-safe storage of a
+/// [`BlockNumber`].
 #[derive(Debug)]
 pub struct StorageBlockNumber {
     slot: U256,
@@ -584,6 +586,9 @@ impl From<StorageBlockNumber> for BlockNumber {
 }
 
 /// Accessor for a storage-backed [`BlockHash`].
+///
+/// This storage type allows convenient and type-safe storage of a
+/// [`BlockHash`].
 #[derive(Clone, Debug)]
 pub struct StorageBlockHash {
     slot: U256,
