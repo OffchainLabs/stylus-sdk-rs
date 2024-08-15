@@ -395,9 +395,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Note that, currently, all external methods must return a [`Result`] with the error type [`Vec<u8>`].
-/// We intend to change this very soon. In the current model, [`Vec<u8>`] becomes the program's revert data,
-/// which we intend to both make optional and richly typed.
+/// In is example, [`Vec<u8>`] becomes the program's revert data.
 ///
 /// # [`#[payable]`][payable]
 ///
@@ -418,15 +416,13 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// with [`#[payable]`][payable], or else calls to it will revert. This is required as a safety measure
 /// to prevent users losing funds to methods that didn't intend to accept ether.
 ///
-/// # [`#[pure]`][pure] [`#[view]`][view], and #[write]
+/// # [`pure`][pure] [`view`][view], and `write`
 ///
-/// For aesthetics, these additional purity attributes exist to clarify that a method is [`pure`][pure],
-/// [`view`][view], or `write`. They aren't necessary though, since the [`#[external]`][external] macro
-/// can figure purity out for you based on the types of the arguments.
-///
-/// For example, if a method includes an `&self`, it's at least [`view`][view]. If you'd prefer it be write,
-/// applying `#[write]` will make it so. Note however that the reverse is not allowed. An `&mut self`
-/// method cannot be made [`#[view]`][view], since it might mutate state.
+/// For non-payable methods the [`#[external]`][external] macro can figure state mutability out for you based
+/// on the types of the arguments. Functions with `&self` will be considered `view`, those with
+/// `&mut self` will be considered `write`, and those with neither will be considered `pure`. Please note that
+/// `pure` and `view` functions may change the state of other contracts by calling into them, or
+/// even this one if the `reentrant` feature is enabled.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
 ///

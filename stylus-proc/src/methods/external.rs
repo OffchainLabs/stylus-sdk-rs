@@ -6,7 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{quote, quote_spanned};
-use std::{mem, str::FromStr};
+use std::mem;
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
@@ -34,16 +34,17 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let mut override_name = None;
         for attr in mem::take(&mut method.attrs) {
             let Some(ident) = attr.path.get_ident() else {
+                method.attrs.push(attr);
                 continue;
             };
-            if let Ok(elem) = Purity::from_str(&ident.to_string()) {
+            if *ident == "payable" {
                 if !attr.tokens.is_empty() {
                     error!(attr.tokens, "attribute does not take parameters");
                 }
                 if purity.is_some() {
-                    error!(attr.path, "more than one purity attribute");
+                    error!(attr.path, "more than one payable attribute");
                 }
-                purity = Some(elem);
+                purity = Some(Purity::Payable);
                 continue;
             }
             if *ident == "selector" {
