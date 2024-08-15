@@ -133,6 +133,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// For example, `IService` will have a `make_payment` method that accepts an [`Address`] and returns a [`B256`].
 ///
+/// Currently only functions are supported, and any other items in the interface will cause an
+/// error.
+///
 /// ```ignore
 /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
 ///     let config = Call::new()

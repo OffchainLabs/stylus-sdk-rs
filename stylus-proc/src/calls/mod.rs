@@ -39,7 +39,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 
         for item in contract.body {
             let Item::Function(func) = item else {
-                continue; // ignore non-functions
+                error!(item.span(), "unsupported interface item");
             };
             // uncomment when Alloy exposes this enum
             //     if let FunctionKind::Function(_) = func.kind {
