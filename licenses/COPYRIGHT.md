@@ -1,6 +1,6 @@
 # Licensing Information
 
-Copyright 2022-2023 Offchain Labs, Inc.
+Copyright 2022-2024 Offchain Labs, Inc.
 
 Copyright assignment and [DCO sign-off](DCO.txt) is required to contribute to this project.
 
