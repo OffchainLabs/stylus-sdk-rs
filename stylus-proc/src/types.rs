@@ -2,6 +2,8 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy_sol_types::SolType;
+use proc_macro2::TokenStream;
+use quote::quote;
 use sha3::{Digest, Keccak256};
 use std::{borrow::Cow, fmt::Display, num::NonZeroU16, str::FromStr};
 use syn::Token;
@@ -14,6 +16,18 @@ pub enum Purity {
     View,
     Write,
     Payable,
+}
+
+impl Purity {
+    /// How to reference this purity from inside a contract.
+    pub fn as_tokens(&self) -> TokenStream {
+        match self {
+            Purity::Pure => quote! { stylus_sdk::methods::Purity::Pure },
+            Purity::View => quote! { stylus_sdk::methods::Purity::View },
+            Purity::Write => quote! { stylus_sdk::methods::Purity::Write },
+            Purity::Payable => quote! { stylus_sdk::methods::Purity::Payable },
+        }
+    }
 }
 
 impl Default for Purity {

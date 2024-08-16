@@ -22,6 +22,8 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut match_selectors = quote!();
     let mut abi = quote!();
     let mut types = vec![];
+    let mut override_selectors = quote!();
+    let mut selector_consts = vec![];
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
@@ -152,6 +154,17 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             const #constant: u32 = #selector;
         });
 
+        let sdk_purity = purity.as_tokens();
+        override_selectors.extend(quote! {
+            #[allow(non_upper_case_globals)]
+            #constant => #sdk_purity.allow_override(purity),
+        });
+        let error_msg = format!(
+            "function {} cannot be overriden with function marked {:?}",
+            name, purity
+        );
+        selector_consts.push((constant.clone(), sdk_purity, error_msg));
+
         let in_span = method.sig.inputs.span();
         let decode_inputs = quote_spanned! { in_span => <(#( #arg_types, )*) as AbiType>::SolType };
 
@@ -258,6 +271,26 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         .map(|c| c.predicates)
         .unwrap_or_default();
 
+    let check_overrides = selector_consts
+        .iter()
+        .map(|(selector, purity, msg)| {
+            quote! {
+                assert!(<#self_ty>::__stylus_allow_override(#selector, #purity), "{}", #msg);
+            }
+        })
+        .chain(inherits.iter().map(|ty| {
+            quote! {
+                <#ty>::__stylus_assert_overrides();
+            }
+        }));
+    let inherit_overrides = inherits.iter().map(|ty| {
+        quote! {
+            if !<#ty>::__stylus_allow_override(selector, purity) {
+                return false;
+            }
+        }
+    });
+
     // implement Router with inheritance
     let mut router = quote! {
         #input
@@ -289,6 +322,33 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                         None
                     }
                 }
+            }
+        }
+
+        // implement checks for method overriding.
+        impl<#generic_params> #self_ty where #where_clauses {
+            #[doc(hidden)]
+            /// Whether or not to allow overriding a selector by a child contract and method with
+            /// the given purity. This is currently implemented as a hidden function to allow it to
+            /// be `const`. A trait would be better, but `const` is not currently supported for
+            /// trait fns.
+            pub const fn __stylus_allow_override(selector: u32, purity: stylus_sdk::methods::Purity) -> bool {
+                use stylus_sdk::function_selector;
+                #selectors
+                if !match selector {
+                    #override_selectors
+                    _ => true
+                } { return false; }
+                #(#inherit_overrides)*
+                true
+            }
+
+            #[doc(hidden)]
+            /// Check the functions defined in an entrypoint for valid overrides.
+            pub const fn __stylus_assert_overrides() {
+                use stylus_sdk::function_selector;
+                #selectors
+                #(#check_overrides)*
             }
         }
     };
