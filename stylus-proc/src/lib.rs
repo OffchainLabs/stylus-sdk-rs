@@ -1,5 +1,5 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Procedural macros for [The Stylus SDK][sdk].
 //!
@@ -105,7 +105,7 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// [`StorageType`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.StorageType.html
 /// [solidity]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
 /// [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#erase-and-deriveerase
-/// [erc20]: https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/examples/erc20/src/main.rs
+/// [erc20]: https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/examples/erc20/src/main.rs
 #[proc_macro]
 pub fn sol_storage(input: TokenStream) -> TokenStream {
     storage::sol_storage(input)
