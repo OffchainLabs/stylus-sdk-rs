@@ -525,7 +525,7 @@ impl StorageBlockNumber {
         **self
     }
 
-    /// Gets the underlying [`BlockNumber`] in persistent storage.
+    /// Sets the underlying [`BlockNumber`] in persistent storage.
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());

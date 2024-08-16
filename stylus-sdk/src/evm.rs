@@ -23,7 +23,7 @@ fn emit_log(bytes: &[u8], topics: usize) {
 }
 
 /// Emits an EVM log from its raw topics and data.
-/// Most users should prefer the alloy-typed [`raw_log`].
+/// Most users should prefer the alloy-typed [`log`].
 pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     if topics.len() > 4 {
         return Err("too many topics");
