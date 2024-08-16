@@ -43,6 +43,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
                         },
                     }
                 }
+
+                const _: () = {
+                    <#name>::__stylus_assert_overrides();
+                };
             });
 
             if cfg!(feature = "export-abi") {
