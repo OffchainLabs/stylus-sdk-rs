@@ -31,7 +31,7 @@ On targets other than wasm32, `MiniAlloc` simply forwards to the allocator from 
 
 ## License
 
-&copy; 2023 Offchain Labs, Inc.
+&copy; 2023-2024 Offchain Labs, Inc.
 
 This project is licensed under either of
 

@@ -98,7 +98,7 @@ The Stylus SDK is just one of the building blocks in creating and deploying WebA
 
 ## License
 
-&copy; 2022-2023 Offchain Labs, Inc.
+&copy; 2022-2024 Offchain Labs, Inc.
 
 This project is licensed under either of
 
