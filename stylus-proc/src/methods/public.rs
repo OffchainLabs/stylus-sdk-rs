@@ -16,7 +16,7 @@ use syn::{
     FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
-pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ItemImpl);
     let mut selectors = quote!();
     let mut match_selectors = quote!();

@@ -9,7 +9,7 @@ use syn::{parse_macro_input, punctuated::Punctuated, Index, ItemStruct, Token, T
 
 mod proc;
 
-pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ItemStruct);
 
     let name = &input.ident;
@@ -192,7 +192,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 
         out.extend(quote! {
             #(#attrs)*
-            #[stylus_sdk::stylus_proc::solidity_storage]
+            #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #generics {
                 #fields
             }

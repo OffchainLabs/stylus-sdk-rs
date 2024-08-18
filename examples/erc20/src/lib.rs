@@ -29,7 +29,7 @@ sol_storage! {
     }
 }
 
-#[external]
+#[public]
 #[inherit(Erc20<StylusTestTokenParams>)]
 impl StylusTestToken {
     /// Mints tokens

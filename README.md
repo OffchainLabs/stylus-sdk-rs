@@ -44,7 +44,7 @@ sol_storage! {
   }
 }
 
-#[external]
+#[public]
 impl Counter {
   // Gets the number value from storage.
   pub fn number(&self) -> Result<U256, Vec<u8>> {
