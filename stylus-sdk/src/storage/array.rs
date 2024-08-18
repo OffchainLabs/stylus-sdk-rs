@@ -35,6 +35,14 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 }
 
 impl<S: StorageType, const N: usize> StorageArray<S, N> {
+    /// Gets the number of elements stored.
+    ///
+    /// Although this type will always have the same length, this method is still provided for
+    /// consistency with [`StorageVec`].
+    pub const fn len(&self) -> usize {
+        N
+    }
+
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
