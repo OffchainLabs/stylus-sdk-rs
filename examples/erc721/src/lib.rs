@@ -32,7 +32,7 @@ sol_storage! {
     }
 }
 
-#[external]
+#[public]
 #[inherit(Erc721<StylusTestNFTParams>)]
 impl StylusTestNFT {
     /// Mints an NFT

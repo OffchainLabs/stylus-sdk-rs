@@ -3,4 +3,4 @@
 
 pub mod entrypoint;
 pub mod error;
-pub mod external;
+pub mod public;

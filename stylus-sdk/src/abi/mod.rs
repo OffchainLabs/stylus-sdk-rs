@@ -35,7 +35,7 @@ mod impls;
 pub mod internal;
 
 /// Executes a method given a selector and calldata.
-/// This trait can be automatically implemented via `#[external]`.
+/// This trait can be automatically implemented via `#[public]`.
 /// Composition with other routers is possible via `#[inherit]`.
 pub trait Router<S>
 where

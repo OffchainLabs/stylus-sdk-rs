@@ -18,8 +18,8 @@ use alloy_primitives::B256;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
-fn emit_log(bytes: &[u8], topics: usize) {
-    unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), topics) }
+fn emit_log(bytes: &[u8], num_topics: usize) {
+    unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), num_topics) }
 }
 
 /// Emits an EVM log from its raw topics and data.
