@@ -604,6 +604,7 @@ dependencies = [
  "hex",
  "keccak-const",
  "lazy_static",
+ "mini-alloc",
  "paste",
  "regex",
  "sha3",

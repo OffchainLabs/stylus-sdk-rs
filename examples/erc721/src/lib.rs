@@ -5,16 +5,10 @@ extern crate alloc;
 // Modules and imports
 mod erc721;
 
-use alloy_primitives::{U256, Address};
+use crate::erc721::{Erc721, Erc721Error, Erc721Params};
+use alloy_primitives::{Address, U256};
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
-use stylus_sdk::{
-    msg, prelude::*
-};
-use crate::erc721::{Erc721, Erc721Params, Erc721Error};
-
-/// Initializes a custom, global allocator for Rust programs compiled to WASM.
-#[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
+use stylus_sdk::{msg, prelude::*};
 
 /// Immutable definitions
 struct StylusTestNFTParams;
@@ -66,3 +60,4 @@ impl StylusTestNFT {
         Ok(self.erc721.total_supply.get())
     }
 }
+
