@@ -31,5 +31,6 @@ syn-solidity = "0.7.6"
 convert_case = "0.6.0"
 
 # members
+mini-alloc = { path = "mini-alloc" }
 stylus-sdk = { path = "stylus-sdk" }
 stylus-proc = { path = "stylus-proc", version = "0.5.2" }
