@@ -31,7 +31,7 @@
 /// Use an efficient WASM allocator.
 ///
 /// If a different custom allocator is desired, disable the `mini-alloc` feature.
-#[cfg(feature = "mini-alloc")]
+#[cfg(all(target_arch = "wasm32", feature = "mini-alloc"))]
 #[global_allocator]
 static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
