@@ -9,7 +9,5 @@ cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         mod imp;
         pub use imp::MiniAlloc;
-    } else {
-        pub use wee_alloc::WeeAlloc as MiniAlloc;
     }
 }

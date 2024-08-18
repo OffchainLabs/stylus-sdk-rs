@@ -27,8 +27,6 @@ In the above tests we disable memory expansion costs, which unfairly penelize `W
 
 Also, `core::arch::wasm32::memory_grow` must never be called by any code outside this crate.
 
-On targets other than wasm32, `MiniAlloc` simply forwards to the allocator from another crate, `wee_alloc::WeeAlloc`.
-
 ## License
 
 &copy; 2023-2024 Offchain Labs, Inc.
