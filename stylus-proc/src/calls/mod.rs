@@ -51,6 +51,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 
             // determine the purity
             let mut purity = None;
+            let mut external = false;
             for attr in &func.attributes.0 {
                 match attr {
                     FunctionAttribute::Mutability(mutability) => {
@@ -69,13 +70,19 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                             }
                         });
                     }
-                    FunctionAttribute::Visibility(vis) => {
-                        if let Visibility::Internal(_) | Visibility::Private(_) = vis {
-                            error!(vis.span(), "internal method in interface");
+                    FunctionAttribute::Visibility(vis) => match vis {
+                        Visibility::External(_) => {
+                            external = true;
                         }
-                    }
+                        _ => {
+                            error!(vis.span(), "visibility must be `external`");
+                        }
+                    },
                     _ => error!(attr.span(), "unsupported function attribute"),
                 }
+            }
+            if !external {
+                error!(func.span(), "visibility must be explicty set to `external`");
             }
             let purity = purity.unwrap_or(Write);
 

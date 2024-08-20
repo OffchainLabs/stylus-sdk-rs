@@ -176,10 +176,10 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// ```ignore
 /// sol_interface! {
 ///     interface IMethods {
-///         function pureFoo() pure;
-///         function viewFoo() view;
-///         function writeFoo();
-///         function payableFoo() payable;
+///         function pureFoo() external pure;
+///         function viewFoo() external view;
+///         function writeFoo() external;
+///         function payableFoo() external payable;
 ///     }
 /// }
 ///

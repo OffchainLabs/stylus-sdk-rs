@@ -36,7 +36,7 @@ where
     ///
     /// sol_interface! {
     ///     interface IService {
-    ///         function makePayment(address user) payable returns (string);
+    ///         function makePayment(address user) external payable returns (string);
     ///     }
     /// }
     ///
@@ -185,7 +185,7 @@ cfg_if! {
             ///
             /// sol_interface! {
             ///     interface IService {
-            ///         function makePayment(address user) payable returns (string);
+            ///         function makePayment(address user) external payable returns (string);
             ///     }
             /// }
             ///
