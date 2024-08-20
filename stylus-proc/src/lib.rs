@@ -103,9 +103,16 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Because the layout is identical to [Solidity's][solidity], existing Solidity smart contracts can
 /// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type definitions.
 ///
+/// Note that one exception to this storage layout guarantee is contracts which utilize
+/// inheritance. The current solution in Stylus using `#[borrow]` and `#[inherits(...)]` packs
+/// nested (inherited) structs into their own slots. This is consistent with regular struct nesting
+/// in solidity, but not inherited structs. We plan to revisit this behavior in an upcoming
+/// release.
+///
 /// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling might use.
 /// Most developers don't need to worry about this though and can freely order their types when working on a
 /// Rust contract from scratch.
+///
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
 ///
