@@ -26,6 +26,8 @@ where
     /// Recall that [`TopLevelStorage`] is special in that a reference to it represents access to the entire
     /// contract's state. So that it's sound to [`flush`] or [`clear`] the [`StorageCache`] when calling out
     /// to other contracts, calls that may induce reentrancy require an `&` or `&mut` to one.
+    /// Although this reference to [`TopLevelStorage`] is not used, the lifetime is still required
+    /// to ensure safety of the storage cache.
     ///
     /// ```no_run
     /// use stylus_sdk::call::{Call, Error};
@@ -162,7 +164,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(feature = "reentrant", feature = "docs"))] {
+    if #[cfg(any(not(feature = "reentrant"), feature = "docs"))] {
         impl Default for Call<(), false> {
             fn default() -> Self {
                 Self::new()
@@ -172,6 +174,9 @@ cfg_if! {
         impl Call<(), false> {
             /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and
             /// [`std::fs::OpenOptions`][OpenOptions] work.
+            ///
+            /// This is not available if `reentrant` feature is enabled, as it may lead to
+            /// vulnerability to reentrancy attacks. See [`Call::new_in`].
             ///
             /// ```ignore
             /// use stylus_sdk::call::{Call, Error};
