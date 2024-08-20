@@ -58,9 +58,15 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                             error!(attr.span(), "more than one purity attribute specified");
                         }
                         purity = Some(match mutability {
-                            Mutability::Constant(_) | Mutability::Pure(_) => Pure,
+                            Mutability::Pure(_) => Pure,
                             Mutability::View(_) => View,
                             Mutability::Payable(_) => Payable,
+                            Mutability::Constant(_) => {
+                                error!(
+                                    mutability.span(),
+                                    "constant mutability no longer supported"
+                                );
+                            }
                         });
                     }
                     FunctionAttribute::Visibility(vis) => {
