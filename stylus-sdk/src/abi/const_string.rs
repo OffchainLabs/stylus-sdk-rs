@@ -54,6 +54,7 @@ impl ConstString {
         let digits = number.checked_ilog10();
         let digits = match digits {
             // TODO: simplify when `const_precise_live_drops` is stabilized
+            // https://github.com/rust-lang/rust/issues/73255
             Some(digits) => digits as usize + 1,
             None => 1,
         };

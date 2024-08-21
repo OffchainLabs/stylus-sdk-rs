@@ -134,6 +134,4 @@ fn edge_cases() {
             assert!(offset < size_bytes());
         }
     }
-
-    // TODO: test allocating all 4GB
 }

@@ -276,7 +276,7 @@ impl TryFrom<Path> for PrimitiveKey {
 
         let ty = match name.as_str() {
             "address" => "Address",
-            "bool" => "U8", // TODO: ask alloy to add a Bool type
+            "bool" => "U8",
             "int" => "I256",
             "uint" => "U256",
             "bytes" => return Ok(Self(syn::parse_str("Vec<u8>")?)),

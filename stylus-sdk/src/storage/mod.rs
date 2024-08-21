@@ -139,6 +139,7 @@ alias_bytes! {
 ///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
+// https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
 pub struct StorageUint<const B: usize, const L: usize> {
     slot: U256,
@@ -214,6 +215,7 @@ impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
 ///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
+// https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
 pub struct StorageSigned<const B: usize, const L: usize> {
     slot: U256,
