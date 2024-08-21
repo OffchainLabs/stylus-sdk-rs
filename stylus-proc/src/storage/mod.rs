@@ -25,7 +25,7 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             error!(&field, "Type not supported for EVM state storage");
         };
 
-        // implement borrows (TODO: use drain_filter when stable)
+        // implement borrows
         let attrs = mem::take(&mut field.attrs);
         for attr in attrs {
             if !attr.path.is_ident("borrow") {
@@ -57,7 +57,6 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let path = &ty.path.segments.last().unwrap().ident;
         let not_supported = format!("Type `{path}` not supported for EVM state storage");
 
-        // TODO: use short-hand substition from the `storage-macro-shorthand` branch
         match path.to_string().as_str() {
             x @ ("u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
             | "U8" | "U16" | "U32" | "U64" | "U128" | "I8" | "I16" | "I32" | "I64"
@@ -68,8 +67,8 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     x.to_uppercase()
                 );
             }
-            "usize" => error!(&field, "{not_supported}."), // TODO: add usize
-            "isize" => error!(&field, "{not_supported}."), // TODO: add isize
+            "usize" => error!(&field, "{not_supported}."),
+            "isize" => error!(&field, "{not_supported}."),
             "bool" => error!(&field, "{not_supported}. Instead try `StorageBool`."),
             "f32" | "f64" => error!(&field, "{not_supported}. Consider fixed-point arithmetic."),
             _ => {}
@@ -116,7 +115,6 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         });
     }
 
-    // TODO: add mechanism for struct assignment
     let expanded = quote! {
         #input
 

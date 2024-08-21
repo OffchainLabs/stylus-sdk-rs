@@ -60,7 +60,7 @@ pub fn pay_for_memory_grow(pages: u16) {
 wrap_hostio!(
     /// Gets the amount of gas remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     gas_left evm_gas_left u64
 );
 

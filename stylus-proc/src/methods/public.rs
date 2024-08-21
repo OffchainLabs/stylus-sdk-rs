@@ -30,7 +30,7 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
             continue;
         };
 
-        // see if user chose a purity or selector (TODO: use drain_filter when stable)
+        // see if user chose a purity or selector
         let mut purity = None;
         let mut override_id = None;
         let mut override_name = None;
@@ -301,7 +301,6 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
             #(#borrow_clauses,)*
             #where_clauses
         {
-            // TODO: this should be configurable
             type Storage = Self;
 
             #[inline(always)]
