@@ -21,9 +21,7 @@ where
     #[inline(always)]
     fn encode(self) -> ArbResult {
         // coerce types into a tuple of at least 1 element
-        Ok(<(<T as AbiType>::SolType,) as SolType>::abi_encode(
-            &(self,),
-        ))
+        Ok(<<T as AbiType>::SolType>::abi_encode(&self))
     }
 }
 
