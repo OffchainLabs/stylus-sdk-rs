@@ -216,7 +216,7 @@ impl StorageBytes {
     /// Determines the slot and offset for the element at an index.
     fn index_slot(&self, index: usize) -> (U256, u8) {
         let slot = match self.len() {
-            33.. => self.base() + U256::from(index / 32),
+            32.. => self.base() + U256::from(index / 32),
             _ => self.root,
         };
         (slot, (index % 32) as u8)
