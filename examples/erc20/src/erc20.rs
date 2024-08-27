@@ -134,7 +134,7 @@ impl<T: Erc20Params> Erc20<T> {
 
 // These methods are external to other contracts
 // Note: modifying storage will become much prettier soon
-#[external]
+#[public]
 impl<T: Erc20Params> Erc20<T> {
     /// Immutable token name
     pub fn name() -> String {
