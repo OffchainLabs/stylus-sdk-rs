@@ -4,7 +4,6 @@
 use alloy_sol_types::SolType;
 use proc_macro2::TokenStream;
 use quote::quote;
-use sha3::{Digest, Keccak256};
 use std::{borrow::Cow, fmt::Display, num::NonZeroU16, str::FromStr};
 use syn::Token;
 use syn_solidity::Type;
@@ -138,10 +137,4 @@ pub fn solidity_type_info(ty: &Type) -> (Cow<'static, str>, Cow<'static, str>) {
         }
         _ => todo!("Solidity type {ty} is not yet implemented in sol_interface!"),
     }
-}
-
-pub fn keccak<T: AsRef<[u8]>>(preimage: T) -> [u8; 32] {
-    let mut hasher = Keccak256::new();
-    hasher.update(preimage);
-    hasher.finalize().into()
 }
