@@ -34,6 +34,9 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
         if !contract.is_interface() {
             error!(contract.kind.span(), "not an interface");
         }
+        if let Some(inherits) = contract.inheritance {
+            error!(inherits.span(), "inheritance is not currently supported");
+        }
 
         let name = &contract.name;
 
