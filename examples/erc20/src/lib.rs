@@ -12,9 +12,6 @@ use stylus_sdk::{
 };
 use crate::erc20::{Erc20, Erc20Params, Erc20Error};
 
-/// Initializes a custom, global allocator for Rust programs compiled to WASM.
-#[global_allocator]
-static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 /// Immutable definitions
 struct StylusTestTokenParams;
@@ -36,7 +33,7 @@ sol_storage! {
     }
 }
 
-#[external]
+#[public]
 #[inherit(Erc20<StylusTestTokenParams>)]
 impl StylusTestToken {
     /// Mints tokens
