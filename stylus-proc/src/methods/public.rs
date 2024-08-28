@@ -4,7 +4,7 @@
 use crate::types::Purity;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span};
 use quote::{quote, quote_spanned};
 use std::mem;
 use syn::{
@@ -16,7 +16,11 @@ use syn::{
     FnArg, ImplItem, Index, ItemImpl, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
-pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
+    if !attr.is_empty() {
+        error!(Span::mixed_site(), "this macro is not configurable");
+    }
+
     let mut input = parse_macro_input!(input as ItemImpl);
     let mut selectors = quote!();
     let mut match_selectors = quote!();
