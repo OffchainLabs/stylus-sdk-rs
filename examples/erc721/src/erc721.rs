@@ -222,7 +222,7 @@ impl<T: Erc721Params> Erc721<T> {
 }
 
 // these methods are external to other contracts
-#[external]
+#[public]
 impl<T: Erc721Params> Erc721<T> {
     /// Immutable NFT name.
     pub fn name() -> Result<String, Erc721Error> {

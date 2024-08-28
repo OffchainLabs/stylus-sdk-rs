@@ -522,7 +522,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
- "mini-alloc",
+ "mini-alloc 0.5.2",
  "stylus-sdk",
 ]
 
@@ -774,10 +774,18 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "mini-alloc"
-version = "0.5.0"
+version = "0.5.2"
 dependencies = [
  "cfg-if 1.0.0",
  "wee_alloc",
+]
+
+[[package]]
+name = "mini-alloc"
+version = "0.5.2"
+source = "git+https://github.com/OffchainLabs/stylus-sdk-rs.git?branch=audit#a1267bfe56bbe7953728047082491fb4582d41c8"
+dependencies = [
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -1252,7 +1260,8 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stylus-proc"
-version = "0.5.0"
+version = "0.5.2"
+source = "git+https://github.com/OffchainLabs/stylus-sdk-rs.git?branch=audit#a1267bfe56bbe7953728047082491fb4582d41c8"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -1269,7 +1278,8 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.5.0"
+version = "0.5.2"
+source = "git+https://github.com/OffchainLabs/stylus-sdk-rs.git?branch=audit#a1267bfe56bbe7953728047082491fb4582d41c8"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -1278,6 +1288,7 @@ dependencies = [
  "hex",
  "keccak-const",
  "lazy_static",
+ "mini-alloc 0.5.2 (git+https://github.com/OffchainLabs/stylus-sdk-rs.git?branch=audit)",
  "regex",
  "stylus-proc",
 ]
