@@ -471,6 +471,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// imports a crate implementing a standard, like ERC 20, and then adds or overrides just the methods they
 /// want to without modifying the imported `Erc20` type.
 ///
+/// Stylus does not currently contain explicit `override` or `virtual` keywords for explicitly
+/// marking override functions. It is important, therefore, to carefully ensure that contracts are
+/// only overriding the functions.
+///
 /// Inheritance can also be chained. `#[inherit(Erc20, Erc721)]` will inherit both `Erc20` and `Erc721`, checking
 /// for methods in that order. `Erc20` and `Erc721` may also inherit other types themselves. Method resolution
 /// finds the first matching method by [`Depth First Search`][dfs].
