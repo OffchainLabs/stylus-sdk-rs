@@ -12,7 +12,6 @@ use stylus_sdk::{
 };
 use crate::erc20::{Erc20, Erc20Params, Erc20Error};
 
-
 /// Immutable definitions
 struct StylusTestTokenParams;
 impl Erc20Params for StylusTestTokenParams {
