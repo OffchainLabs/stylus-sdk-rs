@@ -252,3 +252,24 @@ impl<const BITS: usize, const LIMBS: usize> From<Uint<BITS, LIMBS>> for Converte
         Converted(Uint::from_limbs_slice(uint.as_limbs()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use alloy_primitives::{hex, Uint};
+
+    use crate::abi::test_encode_decode_params;
+
+    #[test]
+    fn encode_decode_u24() {
+        let value = (Uint::<24, 1>::from(10),);
+        let encoded = hex!("000000000000000000000000000000000000000000000000000000000000000A");
+        test_encode_decode_params(value, encoded);
+    }
+
+    #[test]
+    fn encode_decode_u160() {
+        let value = (Uint::<160, 3>::from(999),);
+        let encoded = hex!("00000000000000000000000000000000000000000000000000000000000003E7");
+        test_encode_decode_params(value, encoded);
+    }
+}
