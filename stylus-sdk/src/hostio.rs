@@ -1,5 +1,5 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Raw host I/Os for low-level access to the Stylus runtime.
 //!
@@ -72,7 +72,7 @@ vm_hooks! {
     /// Gets a subset of the code from the account at the given address. The semantics are identical to that
     /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
     /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-    /// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
     ///
     /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
     pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
@@ -200,7 +200,7 @@ vm_hooks! {
     /// `read_return_data` hostio. The semantics are equivalent to that of the EVM's [`CREATE`]
     /// opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://developer.arbitrum.io/TODO
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/stylus-quickstart
     /// [`CREATE`]: https://www.evm.codes/#f0
     pub fn create1(
         code: *const u8,
@@ -223,7 +223,7 @@ vm_hooks! {
     /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
     /// `[CREATE2`] opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://developer.arbitrum.io/TODO
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/stylus-quickstart
     /// [`CREATE2`]: https://www.evm.codes/#f5
     pub fn create2(
         code: *const u8,
@@ -279,7 +279,7 @@ vm_hooks! {
     /// [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
     /// [`GAS`]: https://www.evm.codes/#5a
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     pub fn evm_ink_left() -> u64;
 
     /// The `entrypoint!` macro handles importing this hostio, which is required if the
@@ -375,7 +375,7 @@ vm_hooks! {
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
     /// Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     pub fn tx_ink_price() -> u32;
 
     /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the

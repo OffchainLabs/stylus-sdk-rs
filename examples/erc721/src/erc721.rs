@@ -82,7 +82,7 @@ sol_interface! {
 /// Selector for `onERC721Received`, which is returned by contracts implementing `IERC721TokenReceiver`.
 const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 
-// These methods aren't external, but are helpers used by external methods.
+// These methods aren't public, but are helpers used by public methods.
 // Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
 impl<T: Erc721Params> Erc721<T> {
     /// Requires that msg::sender() is authorized to spend a given token
@@ -221,7 +221,7 @@ impl<T: Erc721Params> Erc721<T> {
     }
 }
 
-// these methods are external to other contracts
+// these methods are public to other contracts
 #[public]
 impl<T: Erc721Params> Erc721<T> {
     /// Immutable NFT name.

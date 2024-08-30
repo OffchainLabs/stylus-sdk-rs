@@ -1,61 +1,66 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::types::{self, Purity};
+use crate::types::Purity;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span};
 use quote::{quote, quote_spanned};
-use std::{mem, str::FromStr};
+use std::mem;
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     spanned::Spanned,
-    FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
+    FnArg, ImplItem, Index, ItemImpl, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
-pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
+    if !attr.is_empty() {
+        error!(Span::mixed_site(), "this macro is not configurable");
+    }
+
     let mut input = parse_macro_input!(input as ItemImpl);
     let mut selectors = quote!();
     let mut match_selectors = quote!();
     let mut abi = quote!();
     let mut types = vec![];
+    let mut override_selectors = quote!();
+    let mut selector_consts = vec![];
 
     for item in input.items.iter_mut() {
         let ImplItem::Method(method) = item else {
             continue;
         };
 
-        // see if user chose a purity or selector (TODO: use drain_filter when stable)
+        // see if user chose a purity or selector
         let mut purity = None;
-        let mut override_id = None;
         let mut override_name = None;
         for attr in mem::take(&mut method.attrs) {
             let Some(ident) = attr.path.get_ident() else {
+                method.attrs.push(attr);
                 continue;
             };
-            if let Ok(elem) = Purity::from_str(&ident.to_string()) {
+            if *ident == "payable" {
                 if !attr.tokens.is_empty() {
                     error!(attr.tokens, "attribute does not take parameters");
                 }
                 if purity.is_some() {
-                    error!(attr.path, "more than one purity attribute");
+                    error!(attr.path, "more than one payable attribute");
                 }
-                purity = Some(elem);
+                purity = Some(Purity::Payable);
                 continue;
             }
             if *ident == "selector" {
-                if override_id.is_some() || override_name.is_some() {
+                if override_name.is_some() {
                     error!(attr.path, "more than one selector attribute");
                 }
                 let args = match syn::parse2::<SelectorArgs>(attr.tokens.clone()) {
                     Ok(args) => args,
                     Err(error) => error!(ident, "{}", error),
                 };
-                override_id = args.id;
-                override_name = args.name;
+                override_name = Some(args.name);
                 continue;
             }
             method.attrs.push(attr);
@@ -142,14 +147,23 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let constant = Ident::new(&format!("SELECTOR_{name}"), name.span());
         let arg_types: &Vec<_> = &args.iter().map(|a| &a.1).collect();
 
-        let selector = match override_id {
-            Some(id) => quote! { #id },
-            None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*)) },
-        };
+        let selector =
+            quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*)) };
         selectors.extend(quote! {
             #[allow(non_upper_case_globals)]
             const #constant: u32 = #selector;
         });
+
+        let sdk_purity = purity.as_tokens();
+        override_selectors.extend(quote! {
+            #[allow(non_upper_case_globals)]
+            #constant => #sdk_purity.allow_override(purity),
+        });
+        let error_msg = format!(
+            "function {} cannot be overriden with function marked {:?}",
+            name, purity
+        );
+        selector_consts.push((constant.clone(), sdk_purity, error_msg));
 
         let in_span = method.sig.inputs.span();
         let decode_inputs = quote_spanned! { in_span => <(#( #arg_types, )*) as AbiType>::SolType };
@@ -198,15 +212,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             x => format!(" {x}"),
         };
 
-        let mut comment = quote!();
-        if let Some(id) = override_id {
-            comment.extend(quote! {
-                write!(f, "\n    // note: selector was overridden to be 0x{:x}.", #id)?;
-            });
-        }
-
         abi.extend(quote! {
-            #comment
             write!(f, "\n    function {}(", #sol_name)?;
             #(#sol_args)*
             write!(f, ") external")?;
@@ -257,7 +263,27 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
         .map(|c| c.predicates)
         .unwrap_or_default();
 
-    // implement Router with inheritence
+    let check_overrides = selector_consts
+        .iter()
+        .map(|(selector, purity, msg)| {
+            quote! {
+                assert!(<#self_ty>::__stylus_allow_override(#selector, #purity), "{}", #msg);
+            }
+        })
+        .chain(inherits.iter().map(|ty| {
+            quote! {
+                <#ty>::__stylus_assert_overrides();
+            }
+        }));
+    let inherit_overrides = inherits.iter().map(|ty| {
+        quote! {
+            if !<#ty>::__stylus_allow_override(selector, purity) {
+                return false;
+            }
+        }
+    });
+
+    // implement Router with inheritance
     let mut router = quote! {
         #input
 
@@ -267,10 +293,10 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             #(#borrow_clauses,)*
             #where_clauses
         {
-            // TODO: this should be configurable
             type Storage = Self;
 
             #[inline(always)]
+            #[deny(unreachable_patterns)]
             fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
                 use stylus_sdk::{function_selector, alloy_sol_types::SolType};
                 use stylus_sdk::abi::{internal, internal::EncodableReturnType, AbiType, Router};
@@ -287,6 +313,33 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
                         None
                     }
                 }
+            }
+        }
+
+        // implement checks for method overriding.
+        impl<#generic_params> #self_ty where #where_clauses {
+            #[doc(hidden)]
+            /// Whether or not to allow overriding a selector by a child contract and method with
+            /// the given purity. This is currently implemented as a hidden function to allow it to
+            /// be `const`. A trait would be better, but `const` is not currently supported for
+            /// trait fns.
+            pub const fn __stylus_allow_override(selector: u32, purity: stylus_sdk::methods::Purity) -> bool {
+                use stylus_sdk::function_selector;
+                #selectors
+                if !match selector {
+                    #override_selectors
+                    _ => true
+                } { return false; }
+                #(#inherit_overrides)*
+                true
+            }
+
+            #[doc(hidden)]
+            /// Check the functions defined in an entrypoint for valid overrides.
+            pub const fn __stylus_assert_overrides() {
+                use stylus_sdk::function_selector;
+                #selectors
+                #(#check_overrides)*
             }
         }
     };
@@ -307,7 +360,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let type_decls = quote! {
         let mut seen = HashSet::new();
-        for item in [].iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
+        for item in ([] as [InnerType; 0]).iter() #(.chain(&<#types as InnerTypes>::inner_types()))* {
             if seen.insert(item.id) {
                 writeln!(f, "\n    {}", item.name)?;
             }
@@ -345,7 +398,7 @@ pub fn external(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 use stylus_sdk::abi::{AbiType, GenerateAbi};
                 use stylus_sdk::abi::internal::write_solidity_returns;
-                use stylus_sdk::abi::export::{underscore_if_sol, internal::InnerTypes};
+                use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                 use std::collections::HashSet;
                 #(#inherited_abis)*
                 write!(f, "interface I{}", #name)?;
@@ -374,13 +427,11 @@ impl Parse for InheritsAttr {
 }
 
 struct SelectorArgs {
-    id: Option<u32>,
-    name: Option<String>,
+    name: String,
 }
 
 impl Parse for SelectorArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut id = None;
         let mut name = None;
 
         let content;
@@ -396,24 +447,6 @@ impl Parse for SelectorArgs {
             let _: Token![=] = input.parse()?;
 
             match ident.to_string().as_str() {
-                "id" => {
-                    let lit: Lit = input.parse()?;
-                    if id.is_some() {
-                        error!(@lit, r#"only one "id" is allowed"#);
-                    }
-                    id = Some(match lit {
-                        Lit::Int(lit) => lit.base10_parse()?,
-                        Lit::Str(lit) => {
-                            let name = lit.value();
-                            if !name.contains('(') {
-                                error!(@lit, "missing parens. Perhaps you meant name = \"{}\"?", name);
-                            }
-                            let hash = types::keccak(name.as_bytes());
-                            u32::from_be_bytes(hash[..4].try_into().unwrap())
-                        }
-                        _ => error!(@lit, "expected u32 or string"),
-                    });
-                }
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     if name.is_some() {
@@ -428,9 +461,10 @@ impl Parse for SelectorArgs {
             let _: Result<Token![,]> = input.parse();
         }
 
-        if id.is_some() == name.is_some() {
-            error!(@input.span(), r#"only one of "id" or "name" expected"#);
+        if let Some(name) = name {
+            Ok(Self { name })
+        } else {
+            error!(@input.span(), r#""name" is required"#);
         }
-        Ok(Self { id, name })
     }
 }

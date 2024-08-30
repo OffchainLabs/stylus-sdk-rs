@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::{
     contract::{read_return_data, RETURN_DATA_LEN},
@@ -140,7 +140,7 @@ impl RawCall {
     /// Note: values are clipped to the amount of ink remaining.
     /// See [`Ink and Gas`] for more information on Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     pub fn ink(mut self, ink: u64) -> Self {
         self.gas = Some(tx::ink_to_gas(ink));
         self

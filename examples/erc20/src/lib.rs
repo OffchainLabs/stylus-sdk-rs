@@ -5,12 +5,9 @@ extern crate alloc;
 // Modules and imports
 mod erc20;
 
+use crate::erc20::{Erc20, Erc20Error, Erc20Params};
 use alloy_primitives::{Address, U256};
-use stylus_sdk::{
-    msg,
-    prelude::*
-};
-use crate::erc20::{Erc20, Erc20Params, Erc20Error};
+use stylus_sdk::{msg, prelude::*};
 
 /// Immutable definitions
 struct StylusTestTokenParams;
@@ -53,3 +50,4 @@ impl StylusTestToken {
         Ok(())
     }
 }
+

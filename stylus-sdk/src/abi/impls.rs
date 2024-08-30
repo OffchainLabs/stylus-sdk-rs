@@ -1,5 +1,5 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
@@ -61,7 +61,6 @@ where
     const ABI: ConstString = append_dec!("uint", BITS);
 }
 
-// test_type!(uint160, "uint160", Uint<160, 3>); TODO: audit alloy
 test_type!(uint256, "uint256", Uint<256, 4>);
 
 impl<const BITS: usize, const LIMBS: usize> AbiType for Signed<BITS, LIMBS>
@@ -73,7 +72,6 @@ where
     const ABI: ConstString = append_dec!("int", BITS);
 }
 
-// test_type!(int160, "int160", Signed<160, 3>); TODO: audit alloy
 test_type!(int256, "int256", Signed<256, 4>);
 
 macro_rules! impl_int {

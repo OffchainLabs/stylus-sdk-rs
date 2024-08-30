@@ -23,6 +23,7 @@ lazy_static.workspace = true
 regex = { workspace = true, optional = true }
 
 # local deps
+mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
 
 [dev-dependencies]
@@ -33,9 +34,10 @@ sha3.workspace = true
 features = ["default", "docs", "debug", "export-abi"]
 
 [features]
-default = []
+default = ["mini-alloc"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi", "alloy-primitives/tiny-keccak"]
 debug = []
 docs = []
 hostio = []
+mini-alloc = ["dep:mini-alloc"]
 reentrant = ["stylus-proc/reentrant"]

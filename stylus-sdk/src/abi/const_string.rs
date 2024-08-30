@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Provides [`ConstString`], a mechanism for string operations in `const` contexts.
 
@@ -54,6 +54,7 @@ impl ConstString {
         let digits = number.checked_ilog10();
         let digits = match digits {
             // TODO: simplify when `const_precise_live_drops` is stabilized
+            // https://github.com/rust-lang/rust/issues/73255
             Some(digits) => digits as usize + 1,
             None => 1,
         };

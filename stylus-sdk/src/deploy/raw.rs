@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::{
     call::CachePolicy,
@@ -17,8 +17,6 @@ use crate::storage::StorageCache;
 #[must_use]
 pub struct RawDeploy {
     salt: Option<B256>,
-    offset: usize,
-    size: Option<usize>,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
@@ -45,20 +43,6 @@ impl RawDeploy {
     pub fn salt_option(mut self, salt: Option<B256>) -> Self {
         self.salt = salt;
         self
-    }
-
-    /// Configures what portion of the revert data to copy in case of failure.
-    /// Does not fail if out of bounds, but rather copies the overlapping portion.
-    pub fn limit_revert_data(mut self, offset: usize, size: usize) -> Self {
-        self.offset = offset;
-        self.size = Some(size);
-        self
-    }
-
-    /// Configures the call to avoid copying any revert data.
-    /// Equivalent to `limit_revert_data(0, 0)`.
-    pub fn skip_revert_data(self) -> Self {
-        self.limit_revert_data(0, 0)
     }
 
     /// Write all cached values to persistent storage before the init code.

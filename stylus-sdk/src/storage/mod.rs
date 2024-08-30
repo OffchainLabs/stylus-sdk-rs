@@ -1,5 +1,5 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Solidity compatible storage types and persistent storage access.
 //!
@@ -112,7 +112,6 @@ macro_rules! alias_bytes {
 }
 
 alias_ints! {
-    StorageU1, StorageI1, 1, 1;
     StorageU8, StorageI8, 8, 1;
     StorageU16, StorageI16, 16, 1;
     StorageU32, StorageI32, 32, 1;
@@ -140,6 +139,7 @@ alias_bytes! {
 ///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
+// https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
 pub struct StorageUint<const B: usize, const L: usize> {
     slot: U256,
@@ -215,6 +215,7 @@ impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
 ///
 /// Note: in the future `L` won't be needed.
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
+// https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
 pub struct StorageSigned<const B: usize, const L: usize> {
     slot: U256,
@@ -510,6 +511,9 @@ impl From<StorageAddress> for Address {
 }
 
 /// Accessor for a storage-backed [`BlockNumber`].
+///
+/// This storage type allows convenient and type-safe storage of a
+/// [`BlockNumber`].
 #[derive(Debug)]
 pub struct StorageBlockNumber {
     slot: U256,
@@ -523,7 +527,7 @@ impl StorageBlockNumber {
         **self
     }
 
-    /// Gets the underlying [`BlockNumber`] in persistent storage.
+    /// Sets the underlying [`BlockNumber`] in persistent storage.
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());
@@ -584,6 +588,9 @@ impl From<StorageBlockNumber> for BlockNumber {
 }
 
 /// Accessor for a storage-backed [`BlockHash`].
+///
+/// This storage type allows convenient and type-safe storage of a
+/// [`BlockHash`].
 #[derive(Clone, Debug)]
 pub struct StorageBlockHash {
     slot: U256,

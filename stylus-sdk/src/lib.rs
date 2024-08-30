@@ -1,5 +1,5 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2022-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! The Stylus SDK.
 //!
@@ -28,6 +28,13 @@
 // Only allow the standard library in tests and for exports
 #![cfg_attr(not(any(test, feature = "export-abi")), no_std)]
 
+/// Use an efficient WASM allocator.
+///
+/// If a different custom allocator is desired, disable the `mini-alloc` feature.
+#[cfg(all(target_arch = "wasm32", feature = "mini-alloc"))]
+#[global_allocator]
+static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
+
 extern crate alloc;
 
 pub use alloy_primitives;
@@ -48,6 +55,7 @@ pub mod contract;
 pub mod crypto;
 pub mod deploy;
 pub mod evm;
+pub mod methods;
 pub mod msg;
 pub mod prelude;
 pub mod storage;
