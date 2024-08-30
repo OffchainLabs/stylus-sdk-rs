@@ -13,10 +13,14 @@
 //! For a Solidity `bytes`, see [`Bytes`].
 //!
 //! [prelude]: crate::prelude
+//!
+
+use alloc::vec::Vec;
+use core::borrow::BorrowMut;
+
+use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
 use crate::{storage::TopLevelStorage, ArbResult};
-use alloy_sol_types::SolType;
-use core::borrow::BorrowMut;
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
@@ -98,12 +102,68 @@ macro_rules! function_selector {
     }};
 }
 
-#[test]
-fn test_function_selector() {
-    use alloy_primitives::{Address, U256};
-    assert_eq!(u32::from_be_bytes(function_selector!("foo")), 0xc2985578);
-    assert_eq!(function_selector!("foo", Address), [0xfd, 0xf8, 0x0b, 0xda]);
+/// ABI decode a tuple of parameters
+pub fn decode_params<T>(data: &[u8]) -> alloy_sol_types::Result<T>
+where
+    T: AbiType + SolTypeValue<<T as AbiType>::SolType>,
+    for<'a> <<T as AbiType>::SolType as SolType>::Token<'a>: TokenSeq<'a>,
+{
+    T::SolType::abi_decode_params(data, true)
+}
 
-    const TEST_SELECTOR: [u8; 4] = function_selector!("foo", Address, U256);
-    assert_eq!(TEST_SELECTOR, 0xbd0d639f_u32.to_be_bytes());
+/// ABI encode a value
+pub fn encode<T>(value: &T) -> Vec<u8>
+where
+    T: AbiType + SolTypeValue<<T as AbiType>::SolType>,
+{
+    T::SolType::abi_encode(value)
+}
+
+/// ABI encode a tuple of parameters
+pub fn encode_params<T>(value: &T) -> Vec<u8>
+where
+    T: AbiType + SolTypeValue<<T as AbiType>::SolType>,
+    for<'a> <<T as AbiType>::SolType as SolType>::Token<'a>: TokenSeq<'a>,
+{
+    T::SolType::abi_encode_params(value)
+}
+
+/// Encoded size of some sol type
+pub fn encoded_size<T>(value: &T) -> usize
+where
+    T: AbiType + SolTypeValue<<T as AbiType>::SolType>,
+{
+    T::SolType::abi_encoded_size(value)
+}
+
+/// Parform a test of both the encode and decode functions for a given type
+///
+/// This is intended for use within unit tests.
+#[cfg(test)]
+fn test_encode_decode_params<T, B>(value: T, buffer: B)
+where
+    T: core::fmt::Debug + PartialEq + AbiType + SolTypeValue<<T as AbiType>::SolType>,
+    for<'a> <<T as AbiType>::SolType as SolType>::Token<'a>: TokenSeq<'a>,
+    B: core::fmt::Debug + AsRef<[u8]>,
+{
+    let encoded = encode_params(&value);
+    assert_eq!(encoded, buffer.as_ref());
+    // TODO: debug this assertion for test encode_decode_bytes_tuple()
+    // assert_eq!(abi::encoded_size(&value), encoded.len());
+
+    let decoded = decode_params::<T>(buffer.as_ref()).unwrap();
+    assert_eq!(decoded, value);
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_function_selector() {
+        use alloy_primitives::{Address, U256};
+        assert_eq!(u32::from_be_bytes(function_selector!("foo")), 0xc2985578);
+        assert_eq!(function_selector!("foo", Address), [0xfd, 0xf8, 0x0b, 0xda]);
+
+        const TEST_SELECTOR: [u8; 4] = function_selector!("foo", Address, U256);
+        assert_eq!(TEST_SELECTOR, 0xbd0d639f_u32.to_be_bytes());
+    }
 }
