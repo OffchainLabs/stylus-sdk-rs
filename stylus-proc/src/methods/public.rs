@@ -1,10 +1,10 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::types::{self, Purity};
+use crate::types::Purity;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span};
 use quote::{quote, quote_spanned};
 use std::mem;
 use syn::{
@@ -13,10 +13,14 @@ use syn::{
     parse_macro_input,
     punctuated::Punctuated,
     spanned::Spanned,
-    FnArg, ImplItem, Index, ItemImpl, Lit, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
+    FnArg, ImplItem, Index, ItemImpl, LitStr, Pat, PatType, Result, ReturnType, Token, Type,
 };
 
-pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
+    if !attr.is_empty() {
+        error!(Span::mixed_site(), "this macro is not configurable");
+    }
+
     let mut input = parse_macro_input!(input as ItemImpl);
     let mut selectors = quote!();
     let mut match_selectors = quote!();
@@ -32,7 +36,6 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         // see if user chose a purity or selector
         let mut purity = None;
-        let mut override_id = None;
         let mut override_name = None;
         for attr in mem::take(&mut method.attrs) {
             let Some(ident) = attr.path.get_ident() else {
@@ -50,15 +53,14 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
                 continue;
             }
             if *ident == "selector" {
-                if override_id.is_some() || override_name.is_some() {
+                if override_name.is_some() {
                     error!(attr.path, "more than one selector attribute");
                 }
                 let args = match syn::parse2::<SelectorArgs>(attr.tokens.clone()) {
                     Ok(args) => args,
                     Err(error) => error!(ident, "{}", error),
                 };
-                override_id = args.id;
-                override_name = args.name;
+                override_name = Some(args.name);
                 continue;
             }
             method.attrs.push(attr);
@@ -145,10 +147,8 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let constant = Ident::new(&format!("SELECTOR_{name}"), name.span());
         let arg_types: &Vec<_> = &args.iter().map(|a| &a.1).collect();
 
-        let selector = match override_id {
-            Some(id) => quote! { #id },
-            None => quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*)) },
-        };
+        let selector =
+            quote! { u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*)) };
         selectors.extend(quote! {
             #[allow(non_upper_case_globals)]
             const #constant: u32 = #selector;
@@ -212,15 +212,7 @@ pub fn public(_attr: TokenStream, input: TokenStream) -> TokenStream {
             x => format!(" {x}"),
         };
 
-        let mut comment = quote!();
-        if let Some(id) = override_id {
-            comment.extend(quote! {
-                write!(f, "\n    // note: selector was overridden to be 0x{:x}.", #id)?;
-            });
-        }
-
         abi.extend(quote! {
-            #comment
             write!(f, "\n    function {}(", #sol_name)?;
             #(#sol_args)*
             write!(f, ") external")?;
@@ -435,13 +427,11 @@ impl Parse for InheritsAttr {
 }
 
 struct SelectorArgs {
-    id: Option<u32>,
-    name: Option<String>,
+    name: String,
 }
 
 impl Parse for SelectorArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut id = None;
         let mut name = None;
 
         let content;
@@ -457,23 +447,6 @@ impl Parse for SelectorArgs {
             let _: Token![=] = input.parse()?;
 
             match ident.to_string().as_str() {
-                "id" => {
-                    let lit: Lit = input.parse()?;
-                    if id.is_some() {
-                        error!(@lit, r#"only one "id" is allowed"#);
-                    }
-                    id = Some(match lit {
-                        Lit::Str(lit) => {
-                            let name = lit.value();
-                            if !name.contains('(') {
-                                error!(@lit, "missing parens. Perhaps you meant name = \"{}\"?", name);
-                            }
-                            let hash = types::keccak(name.as_bytes());
-                            u32::from_be_bytes(hash[..4].try_into().unwrap())
-                        }
-                        _ => error!(@lit, "expected string"),
-                    });
-                }
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     if name.is_some() {
@@ -488,9 +461,10 @@ impl Parse for SelectorArgs {
             let _: Result<Token![,]> = input.parse();
         }
 
-        if id.is_some() == name.is_some() {
-            error!(@input.span(), r#"only one of "id" or "name" expected"#);
+        if let Some(name) = name {
+            Ok(Self { name })
+        } else {
+            error!(@input.span(), r#""name" is required"#);
         }
-        Ok(Self { id, name })
     }
 }
