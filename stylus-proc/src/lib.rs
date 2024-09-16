@@ -1,5 +1,5 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2022-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Procedural macros for [The Stylus SDK][sdk].
 //!
@@ -39,37 +39,44 @@ mod types;
 /// Allows a Rust `struct` to be used in persistent storage.
 ///
 /// ```ignore
-/// #[solidity_storage]
+/// #[storage]
 /// pub struct Contract {
 ///    owner: StorageAddress,
 ///    active: StorageBool,
 ///    sub_struct: SubStruct,
 ///}
 ///
-///#[solidity_storage]
+///#[storage]
 ///pub struct SubStruct {
 ///    // types implementing the `StorageType` trait.
 ///}
 /// ```
 ///
 /// Each field must implement [`StorageType`]. This includes other structs, which will
-/// implement the `trait` automatically when [`#[solidity_storage]`][solidity_storage] is applied.
+/// implement the `trait` automatically when [`#[storage]`][storage] is applied.
 ///
 /// One may even implement [`StorageType`] to define custom storage entries, though this is rarely necessary
 /// since the [Stylus SDK][sdk] intends to include all standard Solidity types out-of-the-box.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
 ///
-/// [solidity_storage]: macro@solidity_storage
+/// [storage]: macro@storage
 /// [`StorageType`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.StorageType.html
 /// [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 /// [sdk]: https://docs.rs/stylus-sdk/latest/stylus_sdk/index.html
 #[proc_macro_attribute]
-pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
-    storage::solidity_storage(attr, input)
+pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
+    storage::storage(attr, input)
 }
 
-/// The types in [`#[solidity_storage]`][solidity_storage] are laid out in the EVM state trie exactly
+#[doc(hidden)]
+#[deprecated = "please use `#[storage]` instead"]
+#[proc_macro_attribute]
+pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
+    storage::storage(attr, input)
+}
+
+/// The types in [`#[storage]`][storage] are laid out in the EVM state trie exactly
 /// as they are in [Solidity][solidity]. This means that the fields of a `struct` definition will map
 /// to the same storage slots as they would in EVM programming languages. Hence, it is often nice to
 /// define types using Solidity syntax, which makes this guarantee easier to see.
@@ -96,17 +103,24 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Because the layout is identical to [Solidity's][solidity], existing Solidity smart contracts can
 /// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type definitions.
 ///
+/// Note that one exception to this storage layout guarantee is contracts which utilize
+/// inheritance. The current solution in Stylus using `#[borrow]` and `#[inherits(...)]` packs
+/// nested (inherited) structs into their own slots. This is consistent with regular struct nesting
+/// in solidity, but not inherited structs. We plan to revisit this behavior in an upcoming
+/// release.
+///
 /// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling might use.
 /// Most developers don't need to worry about this though and can freely order their types when working on a
 /// Rust contract from scratch.
 ///
+///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
 ///
-/// [solidity_storage]: macro@solidity_storage
+/// [storage]: macro@storage
 /// [`StorageType`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.StorageType.html
 /// [solidity]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
 /// [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#erase-and-deriveerase
-/// [erc20]: https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/examples/erc20/src/main.rs
+/// [erc20]: https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/examples/erc20/src/main.rs
 #[proc_macro]
 pub fn sol_storage(input: TokenStream) -> TokenStream {
     storage::sol_storage(input)
@@ -132,6 +146,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// The above will define `IService` and `ITree` for calling the methods of the two contracts.
 ///
 /// For example, `IService` will have a `make_payment` method that accepts an [`Address`] and returns a [`B256`].
+///
+/// Currently only functions are supported, and any other items in the interface will cause an
+/// error.
 ///
 /// ```ignore
 /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
@@ -159,14 +176,14 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// ```ignore
 /// sol_interface! {
 ///     interface IMethods {
-///         function pureFoo() pure;
-///         function viewFoo() view;
-///         function writeFoo();
-///         function payableFoo() payable;
+///         function pureFoo() external pure;
+///         function viewFoo() external view;
+///         function writeFoo() external;
+///         function payableFoo() external payable;
 ///     }
 /// }
 ///
-/// #[external]
+/// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
 ///         Ok(methods.pure_foo(self)?)    // `pure` methods might lie about not being `view`
@@ -212,12 +229,12 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Note that in the context of an [`#[external]`][external] call, the `&mut impl` argument will correctly
+/// Note that in the context of an [`#[public]`][public] call, the `&mut impl` argument will correctly
 /// distinguish the method as being `write` or `payable`. This means you can write library code that will
 /// work regardless of whether the `reentrant` feature flag is enabled.
 ///
 /// [sol_interface]: macro@sol_interface
-/// [external]: macro@external
+/// [public]: macro@public
 /// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
 /// [`StorageCache`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/struct.StorageCache.html
 /// [`flush`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/struct.StorageCache.html#method.flush
@@ -283,7 +300,7 @@ pub fn derive_erase(input: TokenStream) -> TokenStream {
 ///     InsufficientAllowance(InsufficientAllowance),
 /// }
 ///
-/// #[external]
+/// #[public]
 /// impl Contract {
 ///     pub fn fallible_method() -> Result<(), Erc20Error> {
 ///         // code that might revert
@@ -316,8 +333,8 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// The above will make the external methods of Contract the first to consider during invocation.
-/// See [`#[external]`][external] for more information on method selection.
+/// The above will make the public methods of Contract the first to consider during invocation.
+/// See [`#[public]`][public] for more information on method selection.
 ///
 /// # Bytes-in, bytes-out programming
 ///
@@ -362,7 +379,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// [`sol_interface`]: macro@sol_interface
 /// [entrypoint]: macro@entrypoint
 /// [reentrant]: https://docs.rs/stylus-sdk/latest/stylus_sdk/msg/fn.reentrant.html
-/// [external]: macro@external
+/// [public]: macro@public
 /// [check]: https://github.com/OffchainLabs/cargo-stylus#developing-with-stylus
 #[proc_macro_attribute]
 pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -373,10 +390,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// in different programming languages are fully interoperable. You can even automatically export your
 /// Rust contract as a Solidity interface so that others can add it to their Solidity projects.
 ///
-/// This macro makes methods "external" so that other contracts can call them by implementing the [`Router`] trait.
+/// This macro makes methods "public" so that other contracts can call them by implementing the [`Router`] trait.
 ///
 /// ```ignore
-/// #[external]
+/// #[public]
 /// impl Contract {
 ///     // our owner method is now callable by other contracts
 ///     pub fn owner(&self) -> Result<Address, Vec<u8>> {
@@ -392,16 +409,14 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Note that, currently, all external methods must return a [`Result`] with the error type [`Vec<u8>`].
-/// We intend to change this very soon. In the current model, [`Vec<u8>`] becomes the program's revert data,
-/// which we intend to both make optional and richly typed.
+/// In is example, [`Vec<u8>`] becomes the program's revert data.
 ///
 /// # [`#[payable]`][payable]
 ///
 /// As in Solidity, methods may accept ETH as call value.
 ///
 /// ```ignore
-/// #[external]
+/// #[public]
 /// impl Contract {
 ///     #[payable]
 ///     pub fn credit(&mut self) -> Result<(), Vec<u8> {
@@ -415,25 +430,23 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// with [`#[payable]`][payable], or else calls to it will revert. This is required as a safety measure
 /// to prevent users losing funds to methods that didn't intend to accept ether.
 ///
-/// # [`#[pure]`][pure] [`#[view]`][view], and #[write]
+/// # [`pure`][pure] [`view`][view], and `write`
 ///
-/// For aesthetics, these additional purity attributes exist to clarify that a method is [`pure`][pure],
-/// [`view`][view], or `write`. They aren't necessary though, since the [`#[external]`][external] macro
-/// can figure purity out for you based on the types of the arguments.
-///
-/// For example, if a method includes an `&self`, it's at least [`view`][view]. If you'd prefer it be write,
-/// applying `#[write]` will make it so. Note however that the reverse is not allowed. An `&mut self`
-/// method cannot be made [`#[view]`][view], since it might mutate state.
+/// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you based
+/// on the types of the arguments. Functions with `&self` will be considered `view`, those with
+/// `&mut self` will be considered `write`, and those with neither will be considered `pure`. Please note that
+/// `pure` and `view` functions may change the state of other contracts by calling into them, or
+/// even this one if the `reentrant` feature is enabled.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
 ///
 /// # Inheritance, `#[inherit]`, and `#[borrow]`
 ///
 /// Composition in Rust follows that of Solidity. Types that implement [`Router`], the trait that
-/// [`#[external]`][external] provides, can be connected via inheritance.
+/// [`#[public]`][public] provides, can be connected via inheritance.
 ///
 /// ```ignore
-/// #[external]
+/// #[public]
 /// #[inherit(Erc20)]
 /// impl Token {
 ///     pub fn mint(&mut self, amount: U256) -> Result<(), Vec<u8>> {
@@ -441,7 +454,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// #[external]
+/// #[public]
 /// impl Erc20 {
 ///     pub fn balance_of() -> Result<U256> {
 ///         ...
@@ -458,13 +471,17 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// imports a crate implementing a standard, like ERC 20, and then adds or overrides just the methods they
 /// want to without modifying the imported `Erc20` type.
 ///
+/// Stylus does not currently contain explicit `override` or `virtual` keywords for explicitly
+/// marking override functions. It is important, therefore, to carefully ensure that contracts are
+/// only overriding the functions.
+///
 /// Inheritance can also be chained. `#[inherit(Erc20, Erc721)]` will inherit both `Erc20` and `Erc721`, checking
 /// for methods in that order. `Erc20` and `Erc721` may also inherit other types themselves. Method resolution
 /// finds the first matching method by [`Depth First Search`][dfs].
 ///
 /// Note that for the above to work, Token must implement [`Borrow<Erc20>`][Borrow] and
 /// [`BorrowMut<Erc20>`][BorrowMut]. You can implement this yourself, but for simplicity,
-/// [`#[solidity_storage]`][solidity_storage] and [`sol_storage!`][sol_storage] provide a
+/// [`#[storage]`][storage] and [`sol_storage!`][sol_storage] provide a
 /// `#[borrow]` annotation.
 ///
 /// ```ignore
@@ -493,7 +510,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// can call it. This is usually done with the cargo stylus [CLI tool][cli].
 ///
 /// The SDK does this automatically via a feature flag called `export-abi` that causes the
-/// [`#[external]`][external] and [`#[entrypoint]`][entrypoint] macros to generate a `main` function
+/// [`#[public]`][public] and [`#[entrypoint]`][entrypoint] macros to generate a `main` function
 /// that prints the Solidity ABI to the console.
 ///
 /// ```sh
@@ -528,10 +545,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// [solidity_storage]: macro@solidity_storage
+/// [storage]: macro@storage
 /// [sol_storage]: macro@sol_storage
 /// [entrypoint]: macro@entrypoint
-/// [external]: macro@external
+/// [public]: macro@public
 /// [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#methods
 /// [`Router`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/abi/trait.Router.html
 /// [Borrow]: https://doc.rust-lang.org/std/borrow/trait.Borrow.html
@@ -543,8 +560,15 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// [cli]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
 /// [dfs]: https://en.wikipedia.org/wiki/Depth-first_search
 #[proc_macro_attribute]
+pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
+    methods::public::public(attr, input)
+}
+
+#[doc(hidden)]
+#[deprecated = "please use `#[public]` instead"]
+#[proc_macro_attribute]
 pub fn external(attr: TokenStream, input: TokenStream) -> TokenStream {
-    methods::external::external(attr, input)
+    public(attr, input)
 }
 
 /// Implements the AbiType for arbitrary structs, allowing them to be used in external method

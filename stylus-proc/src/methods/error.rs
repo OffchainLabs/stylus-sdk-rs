@@ -1,5 +1,5 @@
 // Copyright 2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use proc_macro::TokenStream;
 use quote::quote;

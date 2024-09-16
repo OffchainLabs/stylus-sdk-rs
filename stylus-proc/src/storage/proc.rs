@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use lazy_static::lazy_static;
 use proc_macro2::{Ident, Literal};
@@ -276,7 +276,7 @@ impl TryFrom<Path> for PrimitiveKey {
 
         let ty = match name.as_str() {
             "address" => "Address",
-            "bool" => "U8", // TODO: ask alloy to add a Bool type
+            "bool" => "U8",
             "int" => "I256",
             "uint" => "U256",
             "bytes" => return Ok(Self(syn::parse_str("Vec<u8>")?)),

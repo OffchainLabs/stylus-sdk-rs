@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Affordances for the Ethereum Virtual Machine.
 //!
@@ -18,12 +18,12 @@ use alloy_primitives::B256;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
-fn emit_log(bytes: &[u8], topics: usize) {
-    unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), topics) }
+fn emit_log(bytes: &[u8], num_topics: usize) {
+    unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), num_topics) }
 }
 
 /// Emits an EVM log from its raw topics and data.
-/// Most users should prefer the alloy-typed [`raw_log`].
+/// Most users should prefer the alloy-typed [`log`].
 pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     if topics.len() > 4 {
         return Err("too many topics");
@@ -60,7 +60,7 @@ pub fn pay_for_memory_grow(pages: u16) {
 wrap_hostio!(
     /// Gets the amount of gas remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
     gas_left evm_gas_left u64
 );
 

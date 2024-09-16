@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use cfg_if::cfg_if;
 use proc_macro::TokenStream;
@@ -43,6 +43,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
                         },
                     }
                 }
+
+                const _: () = {
+                    <#name>::__stylus_assert_overrides();
+                };
             });
 
             if cfg!(feature = "export-abi") {

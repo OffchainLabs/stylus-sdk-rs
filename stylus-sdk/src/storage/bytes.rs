@@ -1,5 +1,5 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2022-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
@@ -199,7 +199,6 @@ impl StorageBytes {
         let len = self.len();
         let mut bytes = Vec::with_capacity(len);
 
-        // TODO: efficient extraction
         for i in 0..len {
             let byte = unsafe { self.get_unchecked(i) };
             bytes.push(byte);
@@ -243,7 +242,6 @@ impl Erase for StorageBytes {
     }
 }
 
-// TODO: efficient bulk insertion
 impl Extend<u8> for StorageBytes {
     fn extend<T: IntoIterator<Item = u8>>(&mut self, iter: T) {
         for elem in iter {
@@ -252,7 +250,6 @@ impl Extend<u8> for StorageBytes {
     }
 }
 
-// TODO: efficient bulk insertion
 impl<'a> Extend<&'a u8> for StorageBytes {
     fn extend<T: IntoIterator<Item = &'a u8>>(&mut self, iter: T) {
         for elem in iter {

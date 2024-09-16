@@ -44,7 +44,7 @@ sol_storage! {
   }
 }
 
-#[external]
+#[public]
 impl Counter {
   // Gets the number value from storage.
   pub fn number(&self) -> Result<U256, Vec<u8>> {
@@ -98,7 +98,7 @@ The Stylus SDK is just one of the building blocks in creating and deploying WebA
 
 ## License
 
-&copy; 2022-2023 Offchain Labs, Inc.
+&copy; 2022-2024 Offchain Labs, Inc.
 
 This project is licensed under either of
 

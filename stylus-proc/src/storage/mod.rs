@@ -1,5 +1,5 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::storage::proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use proc_macro::TokenStream;
@@ -9,7 +9,7 @@ use syn::{parse_macro_input, punctuated::Punctuated, Index, ItemStruct, Token, T
 
 mod proc;
 
-pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as ItemStruct);
 
     let name = &input.ident;
@@ -25,7 +25,7 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
             error!(&field, "Type not supported for EVM state storage");
         };
 
-        // implement borrows (TODO: use drain_filter when stable)
+        // implement borrows
         let attrs = mem::take(&mut field.attrs);
         for attr in attrs {
             if !attr.path.is_ident("borrow") {
@@ -57,7 +57,6 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         let path = &ty.path.segments.last().unwrap().ident;
         let not_supported = format!("Type `{path}` not supported for EVM state storage");
 
-        // TODO: use short-hand substition from the `storage-macro-shorthand` branch
         match path.to_string().as_str() {
             x @ ("u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
             | "U8" | "U16" | "U32" | "U64" | "U128" | "I8" | "I16" | "I32" | "I64"
@@ -68,8 +67,8 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
                     x.to_uppercase()
                 );
             }
-            "usize" => error!(&field, "{not_supported}."), // TODO: add usize
-            "isize" => error!(&field, "{not_supported}."), // TODO: add isize
+            "usize" => error!(&field, "{not_supported}."),
+            "isize" => error!(&field, "{not_supported}."),
             "bool" => error!(&field, "{not_supported}. Instead try `StorageBool`."),
             "f32" | "f64" => error!(&field, "{not_supported}. Consider fixed-point arithmetic."),
             _ => {}
@@ -116,7 +115,6 @@ pub fn solidity_storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         });
     }
 
-    // TODO: add mechanism for struct assignment
     let expanded = quote! {
         #input
 
@@ -192,7 +190,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 
         out.extend(quote! {
             #(#attrs)*
-            #[stylus_sdk::stylus_proc::solidity_storage]
+            #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #generics {
                 #fields
             }

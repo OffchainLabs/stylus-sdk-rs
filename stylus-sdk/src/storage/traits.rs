@@ -1,5 +1,5 @@
-// Copyright 2022-2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2022-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use core::{
@@ -175,8 +175,7 @@ impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
 }
 
 /// Trait for managing access to persistent storage.
-/// Notable implementations include the [`StorageCache`](super::StorageCache)
-/// and [`EagerStorage`](super::EagerStorage) types.
+/// Implemented by the [`StorageCache`](super::StorageCache) type.
 pub trait GlobalStorage {
     /// Retrieves `N ≤ 32` bytes from persistent storage, performing [`SLOAD`]'s only as needed.
     /// The bytes are read from slot `key`, starting `offset` bytes from the left.

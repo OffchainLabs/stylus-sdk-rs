@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
@@ -35,6 +35,14 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 }
 
 impl<S: StorageType, const N: usize> StorageArray<S, N> {
+    /// Gets the number of elements stored.
+    ///
+    /// Although this type will always have the same length, this method is still provided for
+    /// consistency with [`StorageVec`].
+    pub const fn len(&self) -> usize {
+        N
+    }
+
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.

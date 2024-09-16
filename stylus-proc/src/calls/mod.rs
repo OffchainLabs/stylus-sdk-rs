@@ -1,5 +1,5 @@
-// Copyright 2023, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
+// Copyright 2023-2024, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::types::solidity_type_info;
 use convert_case::{Case, Casing};
@@ -24,21 +24,25 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
     let sol_type_value = quote!(stylus_sdk::alloy_sol_types::private::SolTypeValue);
 
     let mut output = quote!();
-    let mut method_impls = quote!();
 
     for item in input.items {
+        let mut method_impls = quote!();
+
         let Item::Contract(contract) = item else {
             error!(item.span(), "not an interface")
         };
         if !contract.is_interface() {
             error!(contract.kind.span(), "not an interface");
         }
+        if let Some(inherits) = contract.inheritance {
+            error!(inherits.span(), "inheritance is not currently supported");
+        }
 
         let name = &contract.name;
 
         for item in contract.body {
             let Item::Function(func) = item else {
-                continue; // ignore non-functions
+                error!(item.span(), "unsupported interface item");
             };
             // uncomment when Alloy exposes this enum
             //     if let FunctionKind::Function(_) = func.kind {
@@ -50,22 +54,38 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 
             // determine the purity
             let mut purity = None;
+            let mut external = false;
             for attr in &func.attributes.0 {
-                if let FunctionAttribute::Mutability(mutability) = attr {
-                    if purity.is_some() {
-                        error!(attr.span(), "more than one purity attribute specified");
+                match attr {
+                    FunctionAttribute::Mutability(mutability) => {
+                        if purity.is_some() {
+                            error!(attr.span(), "more than one purity attribute specified");
+                        }
+                        purity = Some(match mutability {
+                            Mutability::Pure(_) => Pure,
+                            Mutability::View(_) => View,
+                            Mutability::Payable(_) => Payable,
+                            Mutability::Constant(_) => {
+                                error!(
+                                    mutability.span(),
+                                    "constant mutability no longer supported"
+                                );
+                            }
+                        });
                     }
-                    purity = Some(match mutability {
-                        Mutability::Constant(_) | Mutability::Pure(_) => Pure,
-                        Mutability::View(_) => View,
-                        Mutability::Payable(_) => Payable,
-                    });
+                    FunctionAttribute::Visibility(vis) => match vis {
+                        Visibility::External(_) => {
+                            external = true;
+                        }
+                        _ => {
+                            error!(vis.span(), "visibility must be `external`");
+                        }
+                    },
+                    _ => error!(attr.span(), "unsupported function attribute"),
                 }
-                if let FunctionAttribute::Visibility(vis) = attr {
-                    if let Visibility::Internal(_) | Visibility::Private(_) = vis {
-                        error!(vis.span(), "internal method in interface");
-                    }
-                }
+            }
+            if !external {
+                error!(func.span(), "visibility must be explicty set to `external`");
             }
             let purity = purity.unwrap_or(Write);
 
