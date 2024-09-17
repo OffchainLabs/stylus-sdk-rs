@@ -12,8 +12,8 @@ repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 rust-version = "1.71.0"
 
 [workspace.dependencies]
-alloy-primitives = { version = "=0.7.7", default-features = false , features = ["native-keccak"] }
-alloy-sol-types = { version = "=0.7.7", default-features = false }
+alloy-primitives = { version = "=0.8.3", default-features = false , features = ["native-keccak"] }
+alloy-sol-types = { version = "=0.8.3", default-features = false }
 cfg-if = "1.0.0"
 derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
