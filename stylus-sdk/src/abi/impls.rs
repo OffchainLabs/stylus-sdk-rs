@@ -269,7 +269,13 @@ mod tests {
 
     #[test]
     fn encode_tuple_of_five_types() {
-        let value = (100u8, vec![U256::from(1), U256::from(2)], Bytes(vec![1, 2, 3, 4]), FixedBytes::new([5, 6]), [vec![true, false, true], vec![false, true, false]]);
+        let value = (
+            100u8,
+            vec![U256::from(1), U256::from(2)],
+            Bytes(vec![1, 2, 3, 4]),
+            FixedBytes::new([5, 6]),
+            [vec![true, false, true], vec![false, true, false]],
+        );
         let encoded = hex!(
             "0000000000000000000000000000000000000000000000000000000000000064"
             "00000000000000000000000000000000000000000000000000000000000000A0"
