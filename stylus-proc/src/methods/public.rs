@@ -30,7 +30,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut selector_consts = vec![];
 
     for item in input.items.iter_mut() {
-        let ImplItem::Method(method) = item else {
+        let ImplItem::Fn(method) = item else {
             continue;
         };
 
@@ -38,29 +38,34 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
         let mut purity = None;
         let mut override_name = None;
         for attr in mem::take(&mut method.attrs) {
-            let Some(ident) = attr.path.get_ident() else {
+            let a = attr.clone();
+            let Some(ident) = a.path().get_ident() else {
                 method.attrs.push(attr);
                 continue;
             };
             if *ident == "payable" {
-                if !attr.tokens.is_empty() {
-                    error!(attr.tokens, "attribute does not take parameters");
+                if !matches!(attr.meta, syn::Meta::Path(_)) {
+                    error!(attr, "attribute does not take parameters");
                 }
                 if purity.is_some() {
-                    error!(attr.path, "more than one payable attribute");
+                    error!(attr, "more than one payable attribute");
                 }
                 purity = Some(Purity::Payable);
                 continue;
             }
             if *ident == "selector" {
                 if override_name.is_some() {
-                    error!(attr.path, "more than one selector attribute");
+                    error!(attr, "more than one selector attribute");
                 }
-                let args = match syn::parse2::<SelectorArgs>(attr.tokens.clone()) {
-                    Ok(args) => args,
-                    Err(error) => error!(ident, "{}", error),
-                };
-                override_name = Some(args.name);
+                if let syn::Meta::List(syn::MetaList { tokens, .. }) = attr.meta {
+                    let args = match syn::parse2::<SelectorArgs>(tokens) {
+                        Ok(args) => args,
+                        Err(error) => error!(ident, "{}", error),
+                    };
+                    override_name = Some(args.name);
+                } else {
+                    error!(attr, "invalid selector attribute");
+                }
                 continue;
             }
             method.attrs.push(attr);
@@ -225,7 +230,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     // collect inherits
     let mut inherits = vec![];
     for attr in mem::take(&mut input.attrs) {
-        if !attr.path.is_ident("inherit") {
+        if !attr.path().is_ident("inherit") {
             input.attrs.push(attr);
             continue;
         }
@@ -350,7 +355,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     for item in input.items.iter_mut() {
-        let ImplItem::Method(method) = item else {
+        let ImplItem::Fn(method) = item else {
             continue;
         };
         if let ReturnType::Type(_, ty) = &method.sig.output {

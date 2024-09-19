@@ -23,6 +23,9 @@ syn.workspace = true
 syn-solidity.workspace = true
 quote.workspace = true
 
+[dev-dependencies]
+stylus-sdk.workspace = true
+
 [features]
 export-abi = []
 reentrant = []

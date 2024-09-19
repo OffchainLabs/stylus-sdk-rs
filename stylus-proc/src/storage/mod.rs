@@ -28,12 +28,12 @@ pub fn storage(_attr: TokenStream, input: TokenStream) -> TokenStream {
         // implement borrows
         let attrs = mem::take(&mut field.attrs);
         for attr in attrs {
-            if !attr.path.is_ident("borrow") {
+            if !attr.path().is_ident("borrow") {
                 field.attrs.push(attr);
                 continue;
             }
-            if !attr.tokens.is_empty() {
-                error!(attr.tokens, "borrow attribute does not take parameters");
+            if !matches!(attr.meta, syn::Meta::Path(_)) {
+                error!(attr, "borrow attribute does not take parameters");
             }
             let ty = &field.ty;
             let accessor = match field.ident.as_ref() {
