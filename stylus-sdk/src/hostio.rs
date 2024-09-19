@@ -8,17 +8,22 @@
 //! high-level equivalents of [`block`](crate::block), [`contract`](crate::contract),
 //! [`crypto`](crate::crypto), [`evm`](crate::evm), [`msg`](crate::msg), and [`tx`](crate::tx).
 //!
-//! ```ignore
-//! use stylus_sdk::hostio;
-//! use stylus_sdk::{alloy_primitives::Address, msg};
-//!
-//! let mut sender = Address::ZERO;
-//! unsafe {
-//!     hostio::msg_sender(sender.as_mut_ptr());
-//! }
-//!
-//! assert_eq!(sender, msg::sender());
-//! ```
+#![cfg_attr(
+    feature = "hostio",
+    doc = r##"
+```no_run
+use stylus_sdk::hostio;
+use stylus_sdk::{alloy_primitives::Address, msg};
+
+let mut sender = Address::ZERO;
+unsafe {
+    hostio::msg_sender(sender.as_mut_ptr());
+}
+
+assert_eq!(sender, msg::sender());
+```
+"##
+)]
 
 use cfg_if::cfg_if;
 
