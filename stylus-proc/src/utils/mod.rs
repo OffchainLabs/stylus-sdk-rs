@@ -3,8 +3,6 @@
 
 //! Macro generation utilities.
 
-use std::borrow::Cow;
-
 use sha3::{Digest, Keccak256};
 use syn::{punctuated::Punctuated, Token};
 use syn_solidity::SolIdent;
@@ -37,7 +35,10 @@ pub fn split_item_impl_for_impl(
 }
 
 /// Build [function selector](https://solidity-by-example.org/function-selector/) byte array.
-pub fn build_selector(name: &SolIdent, params: impl Iterator<Item = Cow<'static, str>>) -> [u8; 4] {
+pub fn build_selector<'a>(
+    name: &SolIdent,
+    params: impl Iterator<Item = &'a syn_solidity::Type>,
+) -> [u8; 4] {
     let mut selector = Keccak256::new();
     selector.update(name.to_string());
     selector.update("(");

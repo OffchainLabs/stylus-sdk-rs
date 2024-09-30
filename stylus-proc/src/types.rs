@@ -1,9 +1,8 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::{borrow::Cow, fmt::Display, num::NonZeroU16, str::FromStr};
+use std::{fmt::Display, num::NonZeroU16, str::FromStr};
 
-use alloy_sol_types::SolType;
 use syn::{parse_quote, Token};
 
 /// The purity of a Solidity method
@@ -71,21 +70,21 @@ impl From<Option<Token![mut]>> for Purity {
 #[derive(Debug)]
 pub struct SolidityTypeInfo {
     pub alloy_type: syn::Type,
-    pub sol_name: Cow<'static, str>,
+    pub sol_type: syn_solidity::Type,
 }
 
 impl SolidityTypeInfo {
-    fn new(alloy_type: syn::Type, sol_name: Cow<'static, str>) -> Self {
+    fn new(alloy_type: syn::Type, sol_type: syn_solidity::Type) -> Self {
         Self {
             alloy_type,
-            sol_name,
+            sol_type,
         }
     }
 }
 
 /// Get type info from given Solidity type
 impl From<&syn_solidity::Type> for SolidityTypeInfo {
-    fn from(ty: &syn_solidity::Type) -> Self {
+    fn from(sol_type: &syn_solidity::Type) -> Self {
         use syn_solidity::Type;
 
         macro_rules! parse {
@@ -103,75 +102,56 @@ impl From<&syn_solidity::Type> for SolidityTypeInfo {
 
         macro_rules! simple {
             ($ty:ident) => {
-                Self::new(
-                    sol_data!(stringify!($ty)),
-                    alloy_sol_types::sol_data::$ty::SOL_NAME.into(),
-                )
+                sol_data!(stringify!($ty))
             };
         }
 
-        match ty {
+        let alloy_type = match sol_type {
             Type::Bool(_) => simple!(Bool),
             Type::Address(_, _) => simple!(Address),
             Type::String(_) => simple!(String),
             Type::Bytes(_) => simple!(Bytes),
-            Type::FixedBytes(_, size) => Self {
-                alloy_type: sol_data!("FixedBytes<{size}>"),
-                sol_name: format!("bytes{size}").into(),
-            },
+            Type::FixedBytes(_, size) => sol_data!("FixedBytes<{size}>"),
             Type::Uint(_, size) => {
                 let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
-                Self::new(sol_data!("Uint<{size}>"), format!("uint{size}").into())
+                sol_data!("Uint<{size}>")
             }
             Type::Int(_, size) => {
                 let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
-                Self::new(sol_data!("Int<{size}>"), format!("int{size}").into())
+                sol_data!("Int<{size}>")
             }
             Type::Array(ty) => {
-                let Self {
-                    alloy_type,
-                    sol_name,
-                } = Self::from(&*ty.ty);
+                let Self { alloy_type, .. } = Self::from(&*ty.ty);
                 match ty.size() {
-                    Some(size) => Self::new(
-                        parse_quote!(stylus_sdk::alloy_sol_types::sol_data::FixedArray<#alloy_type, #size>),
-                        format!("{sol_name}[{size}]").into(),
-                    ),
-                    None => Self::new(
-                        parse_quote!(stylus_sdk::alloy_sol_types::sol_data::Array<#alloy_type>),
-                        format!("{sol_name}[]").into(),
-                    ),
+                    Some(size) => {
+                        parse_quote!(stylus_sdk::alloy_sol_types::sol_data::FixedArray<#alloy_type, #size>)
+                    }
+                    None => parse_quote!(stylus_sdk::alloy_sol_types::sol_data::Array<#alloy_type>),
                 }
             }
             Type::Tuple(tup) => {
                 if tup.types.is_empty() {
-                    Self::new(parse!("()"), "()".into())
+                    parse!("()")
                 } else if tup.types.len() == 1 {
-                    Self::from(&tup.types[0])
+                    return Self::from(&tup.types[0]);
                 } else {
                     let type_info = tup.types.iter().map(Self::from);
                     let alloy_types = type_info.clone().map(|info| info.alloy_type);
-                    let alloy_type = parse_quote! {
+                    parse_quote! {
                         (#(#alloy_types,)*)
-                    };
-                    let sol_names = type_info
-                        .map(|info| info.sol_name.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",");
-                    Self::new(alloy_type, format!("({sol_names})").into())
+                    }
                 }
             }
             Type::Custom(path) => {
-                let sol_path = path.to_string().into();
                 let path = syn::Path {
                     leading_colon: None,
                     segments: path.iter().cloned().map(syn::PathSegment::from).collect(),
                 };
-                let ty = syn::TypePath { qself: None, path }.into();
-                Self::new(ty, sol_path)
+                syn::TypePath { qself: None, path }.into()
             }
-            _ => todo!("Solidity type {ty} is not yet implemented in sol_interface!"),
-        }
+            _ => todo!("Solidity type {sol_type} is not yet implemented in sol_interface!"),
+        };
+        Self::new(alloy_type, sol_type.clone())
     }
 }
 
@@ -183,7 +163,7 @@ mod tests {
 
     macro_rules! sol_type_test {
         ($sol:ident, $alloy:ty) => {
-            sol_type_test!($sol, stringify!($sol), $alloy);
+            sol_type_test!($sol, stringify!($sol), @parse_quote!($alloy));
         };
         ($name:ident, $sol:expr, $alloy:ty) => {
             sol_type_test!($name, $sol, @parse_quote!($alloy));
@@ -192,8 +172,10 @@ mod tests {
             paste::paste! {
                 #[test]
                 fn [<test_sol_ $name>]() {
-                    let info = SolidityTypeInfo::from(&syn::parse_str($sol).unwrap());
-                    assert_eq!(info.sol_name, $sol);
+                    let sol_type = syn::parse_str($sol).unwrap();
+                    let info = SolidityTypeInfo::from(&sol_type);
+                    assert_eq!(info.sol_type, sol_type);
+                    assert_eq!(info.sol_type.to_string(), $sol);
                     assert_eq!(
                         info.alloy_type,
                         $alloy,
