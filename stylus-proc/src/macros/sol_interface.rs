@@ -109,7 +109,7 @@ impl Interface {
             params
                 .params
                 .iter()
-                .map(|p| p.type_info.sol_name.clone().into()),
+                .map(|p| &p.type_info.sol_type),
         );
         let [selector0, selector1, selector2, selector3] = selector;
 
