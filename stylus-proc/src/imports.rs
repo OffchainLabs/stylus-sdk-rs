@@ -40,9 +40,18 @@ pub mod alloy_sol_types {
     }
 
     pub mod sol_data {
+        use syn::parse::Parse;
+
         use crate::imports::ConstPath;
 
         pub const Address: ConstPath = ConstPath("stylus_sdk::alloy_sol_types::sol_data::Address");
+
+        /// Build path or type to member of the `alloy_sol_types::sol_data` module.
+        ///
+        /// This should not be used on user input, as parsing should be expected to succeed.
+        pub fn join<T: Parse>(name: &str) -> T {
+            syn::parse_str(&format!("stylus_sdk::alloy_sol_types::sol_data::{name}")).unwrap()
+        }
     }
 }
 

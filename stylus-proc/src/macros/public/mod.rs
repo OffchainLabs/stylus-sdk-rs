@@ -47,15 +47,15 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     output.into()
 }
 
-impl<E: InterfaceExtension> ToTokens for PublicImpl<E> {
+impl ToTokens for PublicImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.impl_router().to_tokens(tokens);
         self.impl_override_checks().to_tokens(tokens);
-        E::codegen(self).to_tokens(tokens);
+        Extension::codegen(self).to_tokens(tokens);
     }
 }
 
-impl<E: InterfaceExtension> From<&mut syn::ItemImpl> for PublicImpl<E> {
+impl From<&mut syn::ItemImpl> for PublicImpl {
     fn from(node: &mut syn::ItemImpl) -> Self {
         // parse inheritance from #[inherits(...)] attribute
         let mut inheritance = Vec::new();
@@ -77,7 +77,7 @@ impl<E: InterfaceExtension> From<&mut syn::ItemImpl> for PublicImpl<E> {
             .collect();
 
         let (generic_params, self_ty, where_clause) = split_item_impl_for_impl(node);
-        let extension = E::build(node);
+        let extension = <Extension as InterfaceExtension>::build(node);
         Self {
             self_ty,
             generic_params,
@@ -103,7 +103,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         );
 
         // determine state mutability
-        let (inferred_purity, has_self) = infer_purity(node);
+        let (inferred_purity, has_self) = Purity::infer(node);
         let purity = if payable {
             Purity::Payable
         } else {
@@ -159,15 +159,38 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
     }
 }
 
-/// Infer the purity of the function by inspecting the first argument. Also returns whether the
-/// function has a self parameter.
-fn infer_purity(func: &syn::ImplItemFn) -> (Purity, bool) {
-    match func.sig.inputs.first() {
-        Some(syn::FnArg::Receiver(recv)) => (recv.mutability.into(), true),
-        Some(syn::FnArg::Typed(syn::PatType { ty, .. })) => match &**ty {
-            syn::Type::Reference(ty) => (ty.mutability.into(), false),
-            _ => (Purity::Pure, false),
-        },
-        _ => (Purity::Pure, false),
+#[cfg(test)]
+mod tests {
+    use syn::parse_quote;
+
+    use super::types::PublicImpl;
+
+    #[test]
+    fn test_public_consumes_inherit() {
+        let mut impl_item = parse_quote! {
+            #[derive(Debug)]
+            #[inherit(Parent)]
+            impl Contract {
+            }
+        };
+        let _public = PublicImpl::from(&mut impl_item);
+        assert_eq!(impl_item.attrs, vec![parse_quote! { #[derive(Debug)] }]);
+    }
+
+    #[test]
+    fn test_public_consumes_payable() {
+        let mut impl_item = parse_quote! {
+            #[derive(Debug)]
+            impl Contract {
+                #[payable]
+                #[other]
+                fn func() {}
+            }
+        };
+        let _public = PublicImpl::from(&mut impl_item);
+        let syn::ImplItem::Fn(syn::ImplItemFn { attrs, .. }) = &impl_item.items[0] else {
+            unreachable!();
+        };
+        assert_eq!(attrs, &vec![parse_quote! { #[other] }]);
     }
 }

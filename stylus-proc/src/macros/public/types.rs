@@ -10,7 +10,9 @@ use syn::{
 
 use crate::types::Purity;
 
-pub struct PublicImpl<E: InterfaceExtension> {
+use super::Extension;
+
+pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub self_ty: syn::Type,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
@@ -20,7 +22,7 @@ pub struct PublicImpl<E: InterfaceExtension> {
     pub extension: E,
 }
 
-impl<E: InterfaceExtension> PublicImpl<E> {
+impl PublicImpl {
     pub fn impl_router(&self) -> syn::ItemImpl {
         let Self {
             self_ty,

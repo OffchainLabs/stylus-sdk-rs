@@ -1,0 +1,17 @@
+error: variant not a 1-tuple
+  --> tests/fail/derive_solidity_error/invalid_variants.rs:15:5
+   |
+15 |     Unit,
+   |     ^^^^
+
+error: variant not a 1-tuple
+  --> tests/fail/derive_solidity_error/invalid_variants.rs:16:8
+   |
+16 |     Two(InsufficientBalance, InsufficientAllowance),
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: variant not a 1-tuple
+  --> tests/fail/derive_solidity_error/invalid_variants.rs:17:11
+   |
+17 |     Named { balance: InsufficientBalance },
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
