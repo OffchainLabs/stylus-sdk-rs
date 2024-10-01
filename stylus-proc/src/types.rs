@@ -1,9 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
-
 use std::{fmt::Display, num::NonZeroU16, str::FromStr};
 
 use syn::{parse_quote, Token};
+
+use crate::imports::alloy_sol_types::sol_data;
 
 /// The purity of a Solidity method
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -22,6 +23,19 @@ impl Purity {
             Purity::View => parse_quote!(stylus_sdk::methods::Purity::View),
             Purity::Write => parse_quote!(stylus_sdk::methods::Purity::Write),
             Purity::Payable => parse_quote!(stylus_sdk::methods::Purity::Payable),
+        }
+    }
+
+    /// Infer the purity of the function by inspecting the first argument. Also returns whether the
+    /// function has a self parameter.
+    pub fn infer(func: &syn::ImplItemFn) -> (Self, bool) {
+        match func.sig.inputs.first() {
+            Some(syn::FnArg::Receiver(recv)) => (recv.mutability.into(), true),
+            Some(syn::FnArg::Typed(syn::PatType { ty, .. })) => match &**ty {
+                syn::Type::Reference(ty) => (ty.mutability.into(), false),
+                _ => (Self::Pure, false),
+            },
+            _ => (Self::Pure, false),
         }
     }
 }
@@ -87,42 +101,23 @@ impl From<&syn_solidity::Type> for SolidityTypeInfo {
     fn from(sol_type: &syn_solidity::Type) -> Self {
         use syn_solidity::Type;
 
-        macro_rules! parse {
-            ($format:expr $(,$msg:expr)*) => {
-                syn::parse_str(&format!($format $(,$msg)*)).unwrap()
-            };
-        }
-
-        macro_rules! sol_data {
-            ($format:expr $(,$msg:expr)*) => {{
-                let text = format!($format $(,$msg)*);
-                parse!("stylus_sdk::alloy_sol_types::sol_data::{text}")
-            }};
-        }
-
-        macro_rules! simple {
-            ($ty:ident) => {
-                sol_data!(stringify!($ty))
-            };
-        }
-
         let alloy_type = match sol_type {
-            Type::Bool(_) => simple!(Bool),
-            Type::Address(_, _) => simple!(Address),
-            Type::String(_) => simple!(String),
-            Type::Bytes(_) => simple!(Bytes),
-            Type::FixedBytes(_, size) => sol_data!("FixedBytes<{size}>"),
+            Type::Bool(_) => sol_data::join("Bool"),
+            Type::Address(_, _) => sol_data::join("Address"),
+            Type::String(_) => sol_data::join("String"),
+            Type::Bytes(_) => sol_data::join("Bytes"),
+            Type::FixedBytes(_, size) => sol_data::join(&format!("FixedBytes<{size}>")),
             Type::Uint(_, size) => {
                 let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
-                sol_data!("Uint<{size}>")
+                sol_data::join(&format!("Uint<{size}>"))
             }
             Type::Int(_, size) => {
                 let size = size.unwrap_or(NonZeroU16::new(256).unwrap());
-                sol_data!("Int<{size}>")
+                sol_data::join(&format!("Int<{size}>"))
             }
-            Type::Array(ty) => {
-                let Self { alloy_type, .. } = Self::from(&*ty.ty);
-                match ty.size() {
+            Type::Array(array) => {
+                let Self { alloy_type, .. } = Self::from(&*array.ty);
+                match array.size() {
                     Some(size) => {
                         parse_quote!(stylus_sdk::alloy_sol_types::sol_data::FixedArray<#alloy_type, #size>)
                     }
@@ -131,7 +126,7 @@ impl From<&syn_solidity::Type> for SolidityTypeInfo {
             }
             Type::Tuple(tup) => {
                 if tup.types.is_empty() {
-                    parse!("()")
+                    parse_quote! { () }
                 } else if tup.types.len() == 1 {
                     return Self::from(&tup.types[0]);
                 } else {

@@ -54,15 +54,8 @@ fn attr_ident_matches(attr: &syn::Attribute, value: &'static str) -> bool {
 }
 
 /// Get tokens for parsing from a [`syn::Attribute`].
-///
-/// We currently only need support for parenthesis as delimeters.
 fn get_attr_tokens(attr: &syn::Attribute) -> Option<TokenStream> {
-    if let syn::Meta::List(syn::MetaList {
-        delimiter: syn::MacroDelimiter::Paren(_),
-        tokens,
-        ..
-    }) = &attr.meta
-    {
+    if let syn::Meta::List(syn::MetaList { tokens, .. }) = &attr.meta {
         Some(tokens.clone())
     } else {
         None

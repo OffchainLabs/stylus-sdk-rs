@@ -76,16 +76,18 @@ impl From<&syn::ItemEnum> for DeriveSolidityError {
         let mut output = DeriveSolidityError::new(item.ident.clone());
 
         for variant in &item.variants {
-            let error = match &variant.fields {
+            match &variant.fields {
                 Fields::Unnamed(e) if variant.fields.len() == 1 => {
-                    e.unnamed.first().unwrap().clone()
+                    let field = e.unnamed.first().unwrap().clone();
+                    output.add_variant(&variant.ident, field);
+                }
+                Fields::Unit => {
+                    emit_error!(variant, "variant not a 1-tuple");
                 }
                 _ => {
                     emit_error!(variant.fields, "variant not a 1-tuple");
-                    continue;
                 }
             };
-            output.add_variant(&variant.ident, error);
         }
 
         output
@@ -120,4 +122,42 @@ impl SolidityErrorExtension for () {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use syn::parse_quote;
+
+    use super::DeriveSolidityError;
+    use crate::utils::testing::assert_ast_eq;
+
+    #[test]
+    fn test_derive_solidity_error() {
+        let derived = DeriveSolidityError::from(&parse_quote! {
+            enum MyError {
+                Foo(FooError),
+                Bar(BarError),
+            }
+        });
+        assert_ast_eq(
+            &derived.from_impls[0],
+            &parse_quote! {
+                impl From<FooError> for MyError {
+                    fn from(value: FooError) -> Self {
+                        MyError::Foo(value)
+                    }
+                }
+            },
+        );
+        assert_ast_eq(
+            derived.vec_u8_from_impl(),
+            parse_quote! {
+                impl From<MyError> for alloc::vec::Vec<u8> {
+                    fn from(err: MyError) -> Self {
+                        match err {
+                            MyError::Foo(e) => stylus_sdk::call::MethodError::encode(e),
+                            MyError::Bar(e) => stylus_sdk::call::MethodError::encode(e),
+                        }
+                    }
+                }
+            },
+        );
+    }
+}

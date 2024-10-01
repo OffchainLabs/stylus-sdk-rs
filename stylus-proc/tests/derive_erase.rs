@@ -2,7 +2,10 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use stylus_proc::{storage, Erase};
+use stylus_sdk::storage::{StorageU256, StorageVec};
 
 #[storage]
 #[derive(Erase)]
-pub struct Erasable {}
+pub struct Erasable {
+    arr: StorageVec<StorageU256>,
+}

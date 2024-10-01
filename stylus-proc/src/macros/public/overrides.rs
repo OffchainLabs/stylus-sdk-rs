@@ -7,10 +7,10 @@
 use proc_macro2::Span;
 use syn::parse_quote;
 
-use super::types::{FnExtension, InterfaceExtension, PublicFn, PublicImpl};
+use super::types::{FnExtension, PublicFn, PublicImpl};
 use crate::consts::{ALLOW_OVERRIDE_FN, ASSERT_OVERRIDES_FN};
 
-impl<E: InterfaceExtension> PublicImpl<E> {
+impl PublicImpl {
     pub fn impl_override_checks(&self) -> syn::ItemImpl {
         let Self {
             self_ty,

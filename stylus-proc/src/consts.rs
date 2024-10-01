@@ -24,7 +24,7 @@ pub struct ConstIdent(&'static str);
 
 impl ConstIdent {
     pub fn as_ident(&self) -> syn::Ident {
-        syn::Ident::new(self.0, Span::mixed_site())
+        syn::Ident::new(self.0, Span::call_site())
     }
 }
 
