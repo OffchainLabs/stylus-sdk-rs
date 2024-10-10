@@ -1,0 +1,11 @@
+error: cannot find attribute `function_attr` in this scope
+  --> tests/fail/sol_interface/generated.rs:12:11
+   |
+12 |         #[function_attr]
+   |           ^^^^^^^^^^^^^
+
+error: cannot find attribute `interface_attr` in this scope
+  --> tests/fail/sol_interface/generated.rs:17:7
+   |
+17 |     #[interface_attr]
+   |       ^^^^^^^^^^^^^^

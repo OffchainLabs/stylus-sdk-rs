@@ -39,6 +39,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     ///
     /// Although this type will always have the same length, this method is still provided for
     /// consistency with [`StorageVec`].
+    #[allow(clippy::len_without_is_empty)]
     pub const fn len(&self) -> usize {
         N
     }

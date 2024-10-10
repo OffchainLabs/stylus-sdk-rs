@@ -1,0 +1,23 @@
+error: attribute not supported
+ --> tests/fail/sol_interface/macro_errors.rs:9:5
+  |
+9 |     #![file_attribute]
+  |     ^^^^^^^^^^^^^^^^^^
+
+error: inheritance not supported
+  --> tests/fail/sol_interface/macro_errors.rs:16:22
+   |
+16 |     interface IChild is IParent {
+   |                      ^^
+
+error: not an interface
+  --> tests/fail/sol_interface/macro_errors.rs:19:14
+   |
+19 |     contract TestContract {
+   |              ^^^^^^^^^^^^
+
+error: not an interface
+  --> tests/fail/sol_interface/macro_errors.rs:22:14
+   |
+22 |     function sum(uint[] memory arr) pure returns (uint s) {
+   |              ^^^

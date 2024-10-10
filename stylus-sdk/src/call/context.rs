@@ -29,7 +29,7 @@ where
     /// Although this reference to [`TopLevelStorage`] is not used, the lifetime is still required
     /// to ensure safety of the storage cache.
     ///
-    /// ```no_run
+    /// ```
     /// use stylus_sdk::call::{Call, Error};
     /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
     /// extern crate alloc;
@@ -178,7 +178,7 @@ cfg_if! {
             /// This is not available if `reentrant` feature is enabled, as it may lead to
             /// vulnerability to reentrancy attacks. See [`Call::new_in`].
             ///
-            /// ```ignore
+            /// ```no_compile
             /// use stylus_sdk::call::{Call, Error};
             /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
             /// extern crate alloc;
