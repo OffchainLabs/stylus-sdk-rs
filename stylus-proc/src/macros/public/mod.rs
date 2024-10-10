@@ -77,6 +77,7 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             .collect();
 
         let (generic_params, self_ty, where_clause) = split_item_impl_for_impl(node);
+        #[allow(clippy::let_unit_value)]
         let extension = <Extension as InterfaceExtension>::build(node);
         Self {
             self_ty,

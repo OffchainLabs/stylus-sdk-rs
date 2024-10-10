@@ -39,7 +39,7 @@ struct SolInterfaceVisitor {
 impl From<&syn_solidity::File> for SolInterfaceVisitor {
     fn from(file: &syn_solidity::File) -> Self {
         let mut visitor = Self::default();
-        visitor.visit_file(&file);
+        visitor.visit_file(file);
         visitor
     }
 }
