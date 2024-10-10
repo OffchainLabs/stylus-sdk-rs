@@ -53,6 +53,7 @@ impl DeriveSolidityError {
         self.match_arms.push(parse_quote! {
             #self_name::#name(e) => stylus_sdk::call::MethodError::encode(e),
         });
+        #[allow(clippy::unit_arg)]
         self._ext.add_variant(field);
     }
 

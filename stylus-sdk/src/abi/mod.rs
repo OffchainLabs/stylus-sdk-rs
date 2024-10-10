@@ -148,8 +148,6 @@ where
 {
     let encoded = encode_params(&value);
     assert_eq!(encoded, buffer.as_ref());
-    // TODO: debug this assertion for test encode_decode_bytes_tuple()
-    // assert_eq!(abi::encoded_size(&value), encoded.len());
 
     let decoded = decode_params::<T>(buffer.as_ref()).unwrap();
     assert_eq!(decoded, value);

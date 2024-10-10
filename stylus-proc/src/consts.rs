@@ -9,7 +9,7 @@
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 
-/// Name of the entrypoint funciton that is generated for struct-based contracts.
+/// Name of the entrypoint function that is generated for struct-based contracts.
 pub const STRUCT_ENTRYPOINT_FN: ConstIdent = ConstIdent("__stylus_struct_entrypoint");
 
 /// Name of the associated function that can be called to assert safe overrides at compile-time.
