@@ -15,7 +15,9 @@ use crate::{
         split_item_impl_for_impl,
     },
 };
-use types::{FnArgExtension, FnExtension, InterfaceExtension, PublicFn, PublicFnArg, PublicImpl};
+use types::{
+    FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicFn, PublicFnArg, PublicImpl,
+};
 
 mod attrs;
 mod overrides;
@@ -96,6 +98,18 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         let payable = consume_flag(&mut node.attrs, "payable");
         let selector_override =
             consume_attr::<attrs::Selector>(&mut node.attrs, "selector").map(|s| s.value.value());
+        let fallback = consume_flag(&mut node.attrs, "fallback");
+        let receive = consume_flag(&mut node.attrs, "receive");
+
+        let kind = match (fallback, receive) {
+            (true, false) => FnKind::Fallback,
+            (false, true) => FnKind::Receive,
+            (false, false) => FnKind::Function,
+            (true, true) => {
+                emit_error!(node.span(), "function cannot be both fallback and receive");
+                FnKind::Function
+            }
+        };
 
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
@@ -105,7 +119,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // determine state mutability
         let (inferred_purity, has_self) = Purity::infer(node);
-        let purity = if payable {
+        let purity = if payable || matches!(kind, FnKind::Receive) {
             Purity::Payable
         } else {
             inferred_purity
@@ -134,6 +148,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
             sol_name,
             purity,
             inferred_purity,
+            kind,
 
             has_self,
             inputs,

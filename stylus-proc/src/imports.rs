@@ -60,6 +60,7 @@ pub mod stylus_sdk {
         use crate::imports::ConstPath;
 
         pub const AbiType: ConstPath = ConstPath("stylus_sdk::abi::AbiType");
+        pub const Router: ConstPath = ConstPath("stylus_sdk::abi::Router");
     }
 }
 
