@@ -7,7 +7,7 @@ use syn::parse_quote;
 
 use crate::types::Purity;
 
-use super::types::{FnArgExtension, FnExtension, InterfaceExtension, PublicImpl};
+use super::types::{FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicImpl};
 
 #[derive(Debug)]
 pub struct InterfaceAbi;
@@ -64,6 +64,10 @@ impl InterfaceExtension for InterfaceAbi {
 
         let mut abi = TokenStream::new();
         for func in funcs {
+            if !matches!(func.kind, FnKind::Function) {
+                continue;
+            }
+
             let sol_name = func.sol_name.to_string();
             let sol_args = func.inputs.iter().enumerate().map(|(i, arg)| {
                 let comma = (i > 0).then_some(", ").unwrap_or_default();

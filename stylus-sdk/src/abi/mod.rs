@@ -91,7 +91,7 @@ where
     }
 
     if input.len() < 4 {
-        console!("calldata too short: {}", stylus_sdk::hex::encode(input));
+        console!("calldata too short: {}", crate::hex::encode(input));
         return Err(Vec::new());
     }
 
