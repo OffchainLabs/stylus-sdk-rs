@@ -38,12 +38,31 @@ impl PublicImpl {
             ..
         } = self;
         let selector_consts = self.funcs.iter().map(PublicFn::selector_const);
-        let selector_arms = self.funcs.iter().map(PublicFn::selector_arm);
+        let selector_arms = self
+            .funcs
+            .iter()
+            .map(PublicFn::selector_arm)
+            .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
+
         let call_fallback = self.call_fallback();
         let inheritance_fallback = self.inheritance_fallback();
+        let fallback = call_fallback.unwrap_or_else(|| {
+            parse_quote!({
+                #(#inheritance_fallback)*
+                None
+            })
+        });
+
         let call_receive = self.call_receive();
         let inheritance_receive = self.inheritance_receive();
+        let receive = call_receive.unwrap_or_else(|| {
+            parse_quote!({
+                #(#inheritance_receive)*
+                None
+            })
+        });
+
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
@@ -77,16 +96,12 @@ impl PublicImpl {
 
                 #[inline(always)]
                 fn fallback(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
-                    #call_fallback
-                    #(#inheritance_fallback)*
-                    None
+                    #fallback
                 }
 
                 #[inline(always)]
                 fn receive(storage: &mut S) -> Option<stylus_sdk::ArbResult> {
-                    #call_receive
-                    #(#inheritance_receive)*
-                    None
+                    #receive
                 }
             }
         }
@@ -102,7 +117,7 @@ impl PublicImpl {
         })
     }
 
-    fn call_fallback(&self) -> Option<syn::ExprIf> {
+    fn call_fallback(&self) -> Option<syn::Stmt> {
         self.funcs
             .iter()
             .find(|&func| matches!(func.kind, FnKind::Fallback))
@@ -119,7 +134,7 @@ impl PublicImpl {
         })
     }
 
-    fn call_receive(&self) -> Option<syn::ExprIf> {
+    fn call_receive(&self) -> Option<syn::Stmt> {
         self.funcs
             .iter()
             .find(|&func| matches!(func.kind, FnKind::Receive))
@@ -137,6 +152,7 @@ impl PublicImpl {
     }
 }
 
+#[derive(Debug)]
 pub enum FnKind {
     Function,
     Fallback,
@@ -173,10 +189,6 @@ impl<E: FnExtension> PublicFn<E> {
     }
 
     pub fn selector_const(&self) -> Option<syn::ItemConst> {
-        if !matches!(self.kind, FnKind::Function) {
-            return None;
-        }
-
         let name = self.selector_name();
         let value = self.selector_value();
         Some(parse_quote! {
@@ -264,23 +276,19 @@ impl<E: FnExtension> PublicFn<E> {
         }
     }
 
-    fn call_fallback(&self) -> syn::ExprIf {
+    fn call_fallback(&self) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
         parse_quote! {
-            if let Some(res) = Self::#name(#storage_arg, input) {
-                return res;
-            }
+            return Some(Self::#name(#storage_arg input));
         }
     }
 
-    fn call_receive(&self) -> syn::ExprIf {
+    fn call_receive(&self) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
         parse_quote! {
-            if let Some(res) = Self::#name(#storage_arg) {
-                return res;
-            }
+            return Some(Self::#name(#storage_arg));
         }
     }
 }
