@@ -125,23 +125,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
         fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
-            use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};
-            use core::convert::TryInto;
-            use alloc::vec;
-
-            if input.len() < 4 {
-                console!("calldata too short: {}", hex::encode(input));
-                return Err(vec![]);
-            }
-            let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-            let mut storage = unsafe { <#name as StorageType>::new(U256::ZERO, 0) };
-            match <#name as Router<_>>::route(&mut storage, selector, &input[4..]) {
-                Some(res) => res,
-                None => {
-                    console!("unknown method selector: {selector:08x}");
-                    Err(vec![])
-                },
-            }
+            stylus_sdk::abi::router_entrypoint::<#name, #name>(input)
         }
     }
 }
