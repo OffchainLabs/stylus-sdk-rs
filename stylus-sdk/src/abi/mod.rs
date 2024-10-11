@@ -16,11 +16,16 @@
 //!
 
 use alloc::vec::Vec;
+use alloy_primitives::U256;
 use core::borrow::BorrowMut;
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
-use crate::{storage::TopLevelStorage, ArbResult};
+use crate::{
+    console,
+    storage::{StorageType, TopLevelStorage},
+    ArbResult,
+};
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
@@ -53,6 +58,56 @@ where
     /// Routes add via `#[inherit]` will only execute if no match is found among `Self`.
     /// This means that it is possible to override a method by redefining it in `Self`.
     fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<ArbResult>;
+
+    /// Fallback function for this contract. Called when no route is matched or no calldata is
+    /// provided and there is no receive function.
+    fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
+
+    /// Receive function for this contract. Called when no calldata is provided.
+    fn receive(storage: &mut S) -> Option<ArbResult>;
+}
+
+/// Entrypoint used when `#[entrypoint]` is used on a contract struct.
+pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>) -> ArbResult
+where
+    R: Router<S>,
+    S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
+{
+    let mut storage = unsafe { S::new(U256::ZERO, 0) };
+
+    if input.is_empty() {
+        // Try receive function.
+        if let Some(res) = R::receive(&mut storage) {
+            return res;
+        }
+
+        // Try fallback function.
+        if let Some(res) = R::fallback(&mut storage, &[]) {
+            return res;
+        }
+
+        console!("no calldata provided");
+        return Err(Vec::new());
+    }
+
+    if input.len() < 4 {
+        console!("calldata too short: {}", crate::hex::encode(input));
+        return Err(Vec::new());
+    }
+
+    // Try selector routes.
+    let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
+    if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+        return res;
+    }
+
+    // Try fallback function.
+    if let Some(res) = R::fallback(&mut storage, &input) {
+        return res;
+    }
+
+    console!("unknown method selector: {selector:08x}");
+    Err(Vec::new())
 }
 
 /// Provides a mapping of Rust to Solidity types.

@@ -30,7 +30,6 @@ struct Entrypoint {
     mark_used_fn: syn::ItemFn,
     user_entrypoint_fn: syn::ItemFn,
 }
-
 impl Parse for Entrypoint {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let item: syn::Item = input.parse()?;
@@ -40,6 +39,7 @@ impl Parse for Entrypoint {
                 top_level_storage_impl: top_level_storage_impl(&item),
                 struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
                 assert_overrides_const: assert_overrides_const(&item.ident),
+                print_abi_fn: print_abi_fn(&item.ident),
                 item,
             }),
             _ => abort!(item, "not a struct or fn"),
@@ -103,6 +103,7 @@ struct EntrypointStruct {
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
     assert_overrides_const: syn::ItemConst,
+    print_abi_fn: Option<syn::ItemFn>,
 }
 
 impl ToTokens for EntrypointStruct {
@@ -111,6 +112,7 @@ impl ToTokens for EntrypointStruct {
         self.top_level_storage_impl.to_tokens(tokens);
         self.struct_entrypoint_fn.to_tokens(tokens);
         self.assert_overrides_const.to_tokens(tokens);
+        self.print_abi_fn.to_tokens(tokens);
     }
 }
 
@@ -125,23 +127,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
         fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
-            use stylus_sdk::{abi::Router, alloy_primitives::U256, console, hex, storage::StorageType};
-            use core::convert::TryInto;
-            use alloc::vec;
-
-            if input.len() < 4 {
-                console!("calldata too short: {}", hex::encode(input));
-                return Err(vec![]);
-            }
-            let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-            let mut storage = unsafe { <#name as StorageType>::new(U256::ZERO, 0) };
-            match <#name as Router<_>>::route(&mut storage, selector, &input[4..]) {
-                Some(res) => res,
-                None => {
-                    console!("unknown method selector: {selector:08x}");
-                    Err(vec![])
-                },
-            }
+            stylus_sdk::abi::router_entrypoint::<#name, #name>(input)
         }
     }
 }
@@ -194,6 +180,21 @@ fn deny_reentrant() -> Option<syn::ExprIf> {
                     return 1; // revert
                 }
             })
+        }
+    }
+}
+
+fn print_abi_fn(ident: &syn::Ident) -> Option<syn::ItemFn> {
+    let _ = ident;
+    cfg_if! {
+        if #[cfg(feature = "export-abi")] {
+            Some(parse_quote! {
+                pub fn print_abi(license: &str, pragma: &str) {
+                    stylus_sdk::abi::export::print_abi::<#ident>(license, pragma);
+                }
+            })
+        } else {
+            None
         }
     }
 }

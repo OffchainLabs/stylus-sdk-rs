@@ -8,7 +8,13 @@ use syn::{
     Token,
 };
 
-use crate::types::Purity;
+use crate::{
+    imports::{
+        alloy_sol_types::SolType,
+        stylus_sdk::abi::{AbiType, Router},
+    },
+    types::Purity,
+};
 
 use super::Extension;
 
@@ -32,10 +38,33 @@ impl PublicImpl {
             ..
         } = self;
         let selector_consts = self.funcs.iter().map(PublicFn::selector_const);
-        let selector_arms = self.funcs.iter().map(PublicFn::selector_arm);
+        let selector_arms = self
+            .funcs
+            .iter()
+            .map(PublicFn::selector_arm)
+            .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
+
+        let call_fallback = self.call_fallback();
+        let inheritance_fallback = self.inheritance_fallback();
+        let fallback = call_fallback.unwrap_or_else(|| {
+            parse_quote!({
+                #(#inheritance_fallback)*
+                None
+            })
+        });
+
+        let call_receive = self.call_receive();
+        let inheritance_receive = self.inheritance_receive();
+        let receive = call_receive.unwrap_or_else(|| {
+            parse_quote!({
+                #(#inheritance_receive)*
+                None
+            })
+        });
+
         parse_quote! {
-            impl<S, #generic_params> stylus_sdk::abi::Router<S> for #self_ty
+            impl<S, #generic_params> #Router<S> for #self_ty
             where
                 S: stylus_sdk::storage::TopLevelStorage + core::borrow::BorrowMut<Self>,
                 #(
@@ -48,8 +77,8 @@ impl PublicImpl {
                 #[inline(always)]
                 #[deny(unreachable_patterns)]
                 fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
-                    use stylus_sdk::{function_selector, alloy_sol_types::SolType};
-                    use stylus_sdk::abi::{internal, internal::EncodableReturnType, AbiType, Router};
+                    use stylus_sdk::function_selector;
+                    use stylus_sdk::abi::{internal, internal::EncodableReturnType};
                     use alloc::vec;
 
                     #[cfg(feature = "export-abi")]
@@ -64,6 +93,16 @@ impl PublicImpl {
                         }
                     }
                 }
+
+                #[inline(always)]
+                fn fallback(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
+                    #fallback
+                }
+
+                #[inline(always)]
+                fn receive(storage: &mut S) -> Option<stylus_sdk::ArbResult> {
+                    #receive
+                }
             }
         }
     }
@@ -71,12 +110,53 @@ impl PublicImpl {
     fn inheritance_routes(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
         self.inheritance.iter().map(|ty| {
             parse_quote! {
-                if let Some(result) = <#ty as Router<S>>::route(storage, selector, input) {
+                if let Some(result) = <#ty as #Router<S>>::route(storage, selector, input) {
                     return Some(result);
                 }
             }
         })
     }
+
+    fn call_fallback(&self) -> Option<syn::Stmt> {
+        self.funcs
+            .iter()
+            .find(|&func| matches!(func.kind, FnKind::Fallback))
+            .map(PublicFn::call_fallback)
+    }
+
+    fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
+        self.inheritance.iter().map(|ty| {
+            parse_quote! {
+                if let Some(res) = <#ty as #Router<S>>::fallback(storage, input) {
+                    return Some(res);
+                }
+            }
+        })
+    }
+
+    fn call_receive(&self) -> Option<syn::Stmt> {
+        self.funcs
+            .iter()
+            .find(|&func| matches!(func.kind, FnKind::Receive))
+            .map(PublicFn::call_receive)
+    }
+
+    fn inheritance_receive(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
+        self.inheritance.iter().map(|ty| {
+            parse_quote! {
+                if let Some(res) = <#ty as #Router<S>>::receive(storage) {
+                    return Some(res);
+                }
+            }
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum FnKind {
+    Function,
+    Fallback,
+    Receive,
 }
 
 pub struct PublicFn<E: FnExtension> {
@@ -84,6 +164,7 @@ pub struct PublicFn<E: FnExtension> {
     pub sol_name: syn_solidity::SolIdent,
     pub purity: Purity,
     pub inferred_purity: Purity,
+    pub kind: FnKind,
 
     pub has_self: bool,
     pub inputs: Vec<PublicFnArg<E::FnArgExt>>,
@@ -107,16 +188,20 @@ impl<E: FnExtension> PublicFn<E> {
         }
     }
 
-    pub fn selector_const(&self) -> syn::ItemConst {
+    pub fn selector_const(&self) -> Option<syn::ItemConst> {
         let name = self.selector_name();
         let value = self.selector_value();
-        parse_quote! {
+        Some(parse_quote! {
             #[allow(non_upper_case_globals)]
             const #name: u32 = #value;
-        }
+        })
     }
 
-    fn selector_arm(&self) -> syn::Arm {
+    fn selector_arm(&self) -> Option<syn::Arm> {
+        if !matches!(self.kind, FnKind::Function) {
+            return None;
+        }
+
         let name = &self.name;
         let constant = self.selector_name();
         let deny_value = self.deny_value();
@@ -124,11 +209,11 @@ impl<E: FnExtension> PublicFn<E> {
         let storage_arg = self.storage_arg();
         let expand_args = self.expand_args();
         let encode_output = self.encode_output();
-        parse_quote! {
+        Some(parse_quote! {
             #[allow(non_upper_case_globals)]
             #constant => {
                 #deny_value
-                let args = match <#decode_inputs as SolType>::abi_decode_params(input, true) {
+                let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
                     Ok(args) => args,
                     Err(err) => {
                         internal::failed_to_decode_arguments(err);
@@ -138,13 +223,13 @@ impl<E: FnExtension> PublicFn<E> {
                 let result = Self::#name(#storage_arg #(#expand_args, )* );
                 Some(#encode_output)
             }
-        }
+        })
     }
 
     fn decode_inputs(&self) -> syn::Type {
         let arg_types = self.arg_types();
         parse_quote_spanned! {
-            self.input_span => <(#( #arg_types, )*) as AbiType>::SolType
+            self.input_span => <(#( #arg_types, )*) as #AbiType>::SolType
         }
     }
 
@@ -188,6 +273,22 @@ impl<E: FnExtension> PublicFn<E> {
                     return Some(Err(err));
                 }
             })
+        }
+    }
+
+    fn call_fallback(&self) -> syn::Stmt {
+        let name = &self.name;
+        let storage_arg = self.storage_arg();
+        parse_quote! {
+            return Some(Self::#name(#storage_arg input));
+        }
+    }
+
+    fn call_receive(&self) -> syn::Stmt {
+        let name = &self.name;
+        let storage_arg = self.storage_arg();
+        parse_quote! {
+            return Some(Self::#name(#storage_arg));
         }
     }
 }
