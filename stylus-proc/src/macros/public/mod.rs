@@ -130,7 +130,10 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
             // skip self or storage argument
             args.next();
         }
-        let inputs = args.map(PublicFnArg::from).collect();
+        let inputs = match kind {
+            FnKind::Function => args.map(PublicFnArg::from).collect(),
+            _ => Vec::new(),
+        };
         let input_span = node.sig.inputs.span();
 
         let output = match &node.sig.output {
