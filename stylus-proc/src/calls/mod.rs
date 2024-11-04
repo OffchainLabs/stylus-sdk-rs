@@ -226,6 +226,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
                 const SOL_NAME: &'static str = <#sol_address as #sol_type>::SOL_NAME;
 
                 const ENCODED_SIZE: Option<usize> = <#sol_address as #sol_type>::ENCODED_SIZE;
+                const PACKED_ENCODED_SIZE: Option<usize> = <#sol_address as #sol_type>::PACKED_ENCODED_SIZE;
 
                 fn valid_token(token: &Self::Token<'_>) -> bool {
                     <#sol_address as #sol_type>::valid_token(token)

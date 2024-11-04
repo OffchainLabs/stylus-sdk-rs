@@ -86,6 +86,7 @@ impl SolType for Bytes {
     type Token<'a> = PackedSeqToken<'a>;
 
     const ENCODED_SIZE: Option<usize> = None;
+    const PACKED_ENCODED_SIZE: Option<usize> = None;
 
     const SOL_NAME: &'static str = "bytes";
 
