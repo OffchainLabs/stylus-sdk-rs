@@ -39,7 +39,16 @@ error[E0277]: the trait bound `UnsupportedType: EncodableReturnType` is not sati
 18 |     fn unsupported_output() -> UnsupportedType {
    |                                ^^^^^^^^^^^^^^^ the trait `AbiType` is not implemented for `UnsupportedType`, which is required by `UnsupportedType: EncodableReturnType`
    |
-   = help: the trait `EncodableReturnType` is implemented for `Result<T, E>`
+   = help: the following other types implement trait `AbiType`:
+             ()
+             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+           and $N others
    = note: required for `UnsupportedType` to implement `EncodableReturnType`
 
 error: could not evaluate constant pattern

@@ -191,19 +191,21 @@ mod tests {
     );
     sol_type_test!(uint160, stylus_sdk::alloy_sol_types::sol_data::Uint<160>);
     sol_type_test!(int32, stylus_sdk::alloy_sol_types::sol_data::Int<32>);
+    #[rustfmt::skip]
     sol_type_test!(
         array,
         "int256[]",
         stylus_sdk::alloy_sol_types::sol_data::Array<
-            stylus_sdk::alloy_sol_types::sol_data::Int<256>,
+            stylus_sdk::alloy_sol_types::sol_data::Int<256>
         >
     );
+    #[rustfmt::skip]
     sol_type_test!(
         fixed_array,
         "int256[100]",
         stylus_sdk::alloy_sol_types::sol_data::FixedArray<
             stylus_sdk::alloy_sol_types::sol_data::Int<256>,
-            100usize,
+            100usize
         >
     );
     sol_type_test!(
