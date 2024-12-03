@@ -3,7 +3,7 @@ members = ["stylus-sdk", "stylus-proc", "mini-alloc"]
 resolver = "2"
 
 [workspace.package]
-version = "0.7.0-beta.0"
+version = "0.7.0-beta.1"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
@@ -38,6 +38,6 @@ prettyplease = "0.2.22"
 trybuild = "1.0"
 
 # members
-mini-alloc = { path = "mini-alloc", version = "0.7.0-beta.0" }
+mini-alloc = { path = "mini-alloc", version = "0.7.0-beta.1" }
 stylus-sdk = { path = "stylus-sdk" }
-stylus-proc = { path = "stylus-proc", version = "0.7.0-beta.0" }
+stylus-proc = { path = "stylus-proc", version = "0.7.0-beta.1" }
