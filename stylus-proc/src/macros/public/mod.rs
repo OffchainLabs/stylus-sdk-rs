@@ -36,7 +36,6 @@ cfg_if! {
 ///
 /// This implementation performs the following steps:
 /// - Parse the input as [`syn::ItemImpl`]
-/// - Use [`PublicImplVisitor`] to collect the public functions and handle attribtes
 /// - Generate AST items within a [`PublicImpl`]
 /// - Expand those AST items into tokens for output
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
