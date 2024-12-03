@@ -297,6 +297,7 @@ pub trait GlobalStorage {
         offset: usize,
         value: Uint<B, L>,
     ) {
+        debug_assert!(B % 8 == 0);
         debug_assert!(B / 8 + offset <= 32);
 
         if B == 256 {
