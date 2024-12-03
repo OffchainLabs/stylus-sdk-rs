@@ -360,7 +360,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "mini-alloc"
-version = "0.6.0"
+version = "0.7.0-beta.1"
 dependencies = [
  "cfg-if",
  "wasm-bindgen-test",
@@ -668,7 +668,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "stylus-proc"
-version = "0.6.0"
+version = "0.7.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -691,7 +691,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.6.0"
+version = "0.7.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
