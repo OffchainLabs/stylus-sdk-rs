@@ -36,7 +36,6 @@ cfg_if! {
 ///
 /// This implementation performs the following steps:
 /// - Parse the input as [`syn::ItemImpl`]
-/// - Use [`PublicImplVisitor`] to collect the public functions and handle attribtes
 /// - Generate AST items within a [`PublicImpl`]
 /// - Expand those AST items into tokens for output
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -71,8 +70,12 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             .iter_mut()
             .filter_map(|item| match item {
                 syn::ImplItem::Fn(func) => Some(PublicFn::from(func)),
-                _ => {
+                syn::ImplItem::Const(_) => {
                     emit_error!(item, "unsupported impl item");
+                    None
+                }
+                _ => {
+                    // allow other item types
                     None
                 }
             })
