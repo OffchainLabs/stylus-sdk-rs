@@ -1,7 +1,10 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::fmt::write;
+
 use proc_macro2::{Span, TokenStream};
+use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
     parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
@@ -118,10 +121,22 @@ impl PublicImpl {
     }
 
     fn call_fallback(&self) -> Option<syn::Stmt> {
-        self.funcs
+        let fallbacks: Vec<syn::Stmt> = self
+            .funcs
             .iter()
-            .find(|&func| matches!(func.kind, FnKind::Fallback))
+            .filter(|&func| matches!(func.kind, FnKind::Fallback))
             .map(PublicFn::call_fallback)
+            .collect();
+        if fallbacks.is_empty() {
+            return None;
+        }
+        if fallbacks.len() > 1 {
+            emit_error!(
+                "multiple fallbacks",
+                "contract can only have one #[fallback] method defined"
+            );
+        }
+        fallbacks.first().cloned()
     }
 
     fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
@@ -135,10 +150,22 @@ impl PublicImpl {
     }
 
     fn call_receive(&self) -> Option<syn::Stmt> {
-        self.funcs
+        let receives: Vec<syn::Stmt> = self
+            .funcs
             .iter()
-            .find(|&func| matches!(func.kind, FnKind::Receive))
+            .filter(|&func| matches!(func.kind, FnKind::Receive))
             .map(PublicFn::call_receive)
+            .collect();
+        if receives.is_empty() {
+            return None;
+        }
+        if receives.len() > 1 {
+            emit_error!(
+                "multiple receives",
+                "contract can only have one #[receive] method defined"
+            );
+        }
+        receives.first().cloned()
     }
 
     fn inheritance_receive(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
