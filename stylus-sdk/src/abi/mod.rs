@@ -96,7 +96,8 @@ where
         if let Some(res) = R::fallback(&mut storage, &input) {
             return res;
         }
-        console!("unknown method selector: {selector:08x}");
+        console!("no fallback method found when calldata of length < 4 received");
+        return Err(Vec::new());
     }
 
     // Try selector routes.
