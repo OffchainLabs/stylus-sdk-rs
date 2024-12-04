@@ -91,8 +91,12 @@ where
     }
 
     if input.len() < 4 {
-        console!("calldata too short: {}", crate::hex::encode(input));
-        return Err(Vec::new());
+        // Try fallback function if the input calldata is of size in range [1, 3] to mimic solidity.
+        // If no fallback method is found, an unknown function selector error is returned.
+        if let Some(res) = R::fallback(&mut storage, &input) {
+            return res;
+        }
+        console!("unknown method selector: {selector:08x}");
     }
 
     // Try selector routes.
