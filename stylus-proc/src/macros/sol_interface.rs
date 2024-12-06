@@ -142,7 +142,7 @@ impl Interface {
             pub fn #rust_name(&self, context: impl #context #(, #rust_args)*) ->
                 Result<<#return_type as #SolType>::RustType, stylus_sdk::call::Error>
             {
-                let args = <(#(#sol_args,)*) as #SolType>::abi_encode(&(#(#rust_arg_names,)*));
+                let args = <(#(#sol_args,)*) as #SolType>::abi_encode_params(&(#(#rust_arg_names,)*));
                 let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                 calldata.extend(args);
                 let returned = #call(context, self.address, &calldata)?;
