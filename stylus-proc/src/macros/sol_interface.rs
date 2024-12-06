@@ -104,13 +104,7 @@ impl Interface {
         let rust_name = syn::Ident::new(&name.to_string().to_case(Case::Snake), name.span());
 
         // build selector
-        let selector = build_selector(
-            name,
-            params
-                .params
-                .iter()
-                .map(|p| &p.type_info.sol_type),
-        );
+        let selector = build_selector(name, params.params.iter().map(|p| &p.type_info.sol_type));
         let [selector0, selector1, selector2, selector3] = selector;
 
         // determine which context and kind of call to use
