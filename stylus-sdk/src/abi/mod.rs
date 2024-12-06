@@ -22,6 +22,7 @@ use core::borrow::BorrowMut;
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
 use crate::{
+    abi::Bytes as ReturnBytes,
     console,
     storage::{StorageType, TopLevelStorage},
     ArbResult,
@@ -59,15 +60,42 @@ where
     /// This means that it is possible to override a method by redefining it in `Self`.
     fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<ArbResult>;
 
-    /// Fallback function for this contract. Called when no route is matched or no calldata is
-    /// provided and there is no receive function.
-    fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
-
     /// Receive function for this contract. Called when no calldata is provided.
-    fn receive(storage: &mut S) -> Option<ArbResult>;
+    /// A receive function may not be defined, in which case this method will return None.
+    /// Receive functions are always payable, take in no inputs, and return no outputs.
+    /// If defined, they will always be called when a transaction does not send any
+    /// calldata, regardless of the transaction having a value attached.
+    fn receive(storage: &mut S) -> Option<()>;
+
+    /// A fallback function may have two different implementations.
+    /// Called when no receive function is defined and no calldata is provided.
+    /// If no #[fallback] function is defined in the contract, this method should return None.
+    fn fallback_with_args(storage: &mut S, calldata: &[u8])
+        -> Option<Result<ReturnBytes, Vec<u8>>>;
+
+    /// Called when no function selector matches.
+    /// If no #[fallback] function is defined in the contract, this method should return None.
+    fn fallback_no_args(storage: &mut S) -> Option<Result<(), Vec<u8>>>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
+/// Solidity requires specific routing logic for situations in which no function selector
+/// matches the input calldata in the form of two different functions named "receive" and "fallback".
+/// The purity and type definitions are as follows:
+///
+/// - receive takes no input data, returns no data, and is always payable.
+/// - fallback offers two possible implementations. It can be either declared without input or return
+//    parameters, or with input bytes calldata and return bytes memory.
+//
+//  The fallback function MAY be payable. If not payable, then any transactions not matching any
+//  other function which send value will revert.
+//
+//  The order of routing semantics for receive and fallback work as follows:
+//
+//  - If a receive function exists, it is always called whenever calldata is empty, even
+//    if no value is received in the transaction. It is implicitly payable.
+//  - Fallback is called when no other function matches a selector. If a receive function is not
+//    defined, then calls with no input calldata will be routed to the fallback function.
 pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>) -> ArbResult
 where
     R: Router<S>,
@@ -76,25 +104,29 @@ where
     let mut storage = unsafe { S::new(U256::ZERO, 0) };
 
     if input.is_empty() {
-        // Try receive function.
-        if let Some(res) = R::receive(&mut storage) {
-            return res;
-        }
-
-        // Try fallback function.
-        if let Some(res) = R::fallback(&mut storage, &[]) {
-            return res;
-        }
-
         console!("no calldata provided");
+        if R::receive(&mut storage).is_some() {
+            return Ok(Vec::new());
+        }
+        // Try fallback function with no inputs if defined.
+        if let Some(res) = R::fallback_no_args(&mut storage) {
+            return match res {
+                Ok(_) => Ok(Vec::new()),
+                Err(e) => Err(e),
+            };
+        }
+        // Revert as no receive or fallback were defined.
         return Err(Vec::new());
     }
 
     if input.len() < 4 {
         // Try fallback function if the input calldata is of size in range [1, 3] to mimic solidity.
         // If no fallback method is found, an unknown function selector error is returned.
-        if let Some(res) = R::fallback(&mut storage, &input) {
-            return res;
+        if let Some(res) = R::fallback_with_args(&mut storage, &input) {
+            return match res {
+                Ok(data) => Ok(data.into()),
+                Err(e) => Err(e),
+            };
         }
         console!("no fallback method found when calldata of length < 4 received");
         return Err(Vec::new());
@@ -107,8 +139,11 @@ where
     }
 
     // Try fallback function.
-    if let Some(res) = R::fallback(&mut storage, &input) {
-        return res;
+    if let Some(res) = R::fallback_with_args(&mut storage, &input) {
+        return match res {
+            Ok(data) => Ok(data.into()),
+            Err(e) => Err(e),
+        };
     }
 
     console!("unknown method selector: {selector:08x}");
