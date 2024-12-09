@@ -34,10 +34,11 @@ sha3.workspace = true
 features = ["default", "docs", "debug", "export-abi"]
 
 [features]
-default = ["mini-alloc"]
+default = ["mini-alloc", "hostio-caching"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi", "alloy-primitives/tiny-keccak"]
 debug = []
 docs = []
 hostio = []
 mini-alloc = ["dep:mini-alloc"]
 reentrant = ["stylus-proc/reentrant"]
+hostio-caching = []

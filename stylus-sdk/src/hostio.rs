@@ -443,22 +443,42 @@ macro_rules! wrap_hostio {
         }
     };
     (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            $cache.get()
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "hostio-caching")] {
+                $(#[$meta])*
+                pub fn $name() -> $ty {
+                    $cache.get()
+                }
+                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
+            } else {
+                wrap_hostio!(@simple $(#[$meta])* $name, $hostio, $ty); // uncached
+            }
         }
-        pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
     };
-    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
+    (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            $cache.get()
-        }
-        pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data.into()
-        });
+        }
+    };
+    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "hostio-caching")] {
+                $(#[$meta])*
+                pub fn $name() -> $ty {
+                    $cache.get()
+                }
+                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+                    let mut data = $from::ZERO;
+                    unsafe { hostio::$hostio(data.as_mut_ptr()) };
+                    data.into()
+                });
+            } else {
+                wrap_hostio!(@convert $(#[$meta])* $name, $hostio, $from, $ty); // uncached
+            }
+        }
     };
 }
 
