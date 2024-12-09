@@ -97,9 +97,6 @@ impl PublicImpl {
                     use stylus_sdk::abi::{internal, internal::EncodableReturnType};
                     use alloc::vec;
 
-                    #[cfg(feature = "export-abi")]
-                    use stylus_sdk::abi::export;
-
                     #(#selector_consts)*
                     match selector {
                         #(#selector_arms)*
