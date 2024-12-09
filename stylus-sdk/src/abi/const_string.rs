@@ -141,6 +141,11 @@ mod tests {
 
     #[test]
     fn test_concat() {
-        assert_eq!(ConstString::new("foo").concat(ConstString::new("bar")).as_str(), "foobar");
+        assert_eq!(
+            ConstString::new("foo")
+                .concat(ConstString::new("bar"))
+                .as_str(),
+            "foobar"
+        );
     }
 }

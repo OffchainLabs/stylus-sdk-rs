@@ -137,10 +137,8 @@ pub struct OverloadUint<const BITS: usize, const LIMBS: usize>;
 impl<const BITS: usize, const LIMBS: usize> SolType for OverloadUint<BITS, LIMBS>
 where
     IntBitCount<BITS>: SupportedInt,
-    Self: ConvertInt<
-        Int = <sol_data::Uint<BITS> as SolType>::RustType,
-        AlloyInt = Uint<BITS, LIMBS>,
-    >,
+    Self:
+        ConvertInt<Int = <sol_data::Uint<BITS> as SolType>::RustType, AlloyInt = Uint<BITS, LIMBS>>,
 {
     type RustType = Uint<BITS, LIMBS>;
     type Token<'a> = <sol_data::Uint<BITS> as SolType>::Token<'a>;
@@ -166,10 +164,8 @@ impl<const BITS: usize, const LIMBS: usize> SolTypeValue<OverloadUint<BITS, LIMB
     for Uint<BITS, LIMBS>
 where
     IntBitCount<BITS>: SupportedInt,
-    OverloadUint<BITS, LIMBS>: ConvertInt<
-        Int = <sol_data::Uint<BITS> as SolType>::RustType,
-        AlloyInt = Uint<BITS, LIMBS>,
-    >,
+    OverloadUint<BITS, LIMBS>:
+        ConvertInt<Int = <sol_data::Uint<BITS> as SolType>::RustType, AlloyInt = Uint<BITS, LIMBS>>,
 {
     #[inline]
     fn stv_abi_encoded_size(&self) -> usize {
@@ -201,10 +197,16 @@ trait ConvertInt {
     type Int: TryInto<Self::AlloyInt>;
     type AlloyInt: TryInto<Self::Int>;
     fn to_int(value: Self::AlloyInt) -> Self::Int {
-        value.try_into().map_err(|_| "int conversion error").unwrap()
+        value
+            .try_into()
+            .map_err(|_| "int conversion error")
+            .unwrap()
     }
     fn to_alloy(value: Self::Int) -> Self::AlloyInt {
-        value.try_into().map_err(|_| "int conversion error").unwrap()
+        value
+            .try_into()
+            .map_err(|_| "int conversion error")
+            .unwrap()
     }
 }
 
