@@ -34,7 +34,7 @@ jobs:
           
       - uses: OffchainLabs/actions/run-nitro-test-node@main
         with:
-          nitro-testnode-ref: stylus
+          nitro-testnode-ref: release
           no-token-bridge: true
           # no-simple must be false for now as our nitro testnode branch doesn't have that option
           no-simple: false
