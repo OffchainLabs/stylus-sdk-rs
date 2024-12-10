@@ -445,16 +445,16 @@ macro_rules! wrap_hostio {
     (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            unsafe{ $cache.get() }
+            $cache.get()
         }
-        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
+        pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
     };
     (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            unsafe{ $cache.get() }
+            $cache.get()
         }
-        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+        pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data.into()
@@ -464,26 +464,50 @@ macro_rules! wrap_hostio {
 
 pub(crate) use wrap_hostio;
 
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+
 /// Caches a value to avoid paying for hostio invocations.
 pub(crate) struct CachedOption<T: Copy> {
-    value: Option<T>,
+    value: UnsafeCell<MaybeUninit<T>>,
+    initialized: UnsafeCell<bool>,
     loader: fn() -> T,
 }
 
 impl<T: Copy> CachedOption<T> {
     /// Creates a new [`CachedOption`], which will use the `loader` during `get`.
     pub const fn new(loader: fn() -> T) -> Self {
-        let value = None;
-        Self { value, loader }
+        Self {
+            value: UnsafeCell::new(MaybeUninit::uninit()),
+            initialized: UnsafeCell::new(false),
+            loader,
+        }
     }
 
-    /// Sets and overwrites the cached value.
-    pub fn set(&mut self, value: T) {
-        self.value = Some(value);
+    /// # Safety
+    /// Must only be called from a single-threaded context.
+    pub fn get(&self) -> T {
+        unsafe {
+            if !*self.initialized.get() {
+                let value = (self.loader)();
+                (*self.value.get()).write(value);
+                *self.initialized.get() = true;
+                value
+            } else {
+                (*self.value.get()).assume_init()
+            }
+        }
     }
 
-    /// Gets the value, writing it to the cache if necessary.
-    pub fn get(&mut self) -> T {
-        *self.value.get_or_insert_with(|| (self.loader)())
+    /// # Safety
+    /// Must only be called from a single-threaded context.
+    pub fn set(&self, value: T) {
+        unsafe {
+            (*self.value.get()).write(value);
+            *self.initialized.get() = true;
+        }
     }
 }
+
+// Required to use in statics even in single-threaded context.
+unsafe impl<T: Copy> Sync for CachedOption<T> {}
