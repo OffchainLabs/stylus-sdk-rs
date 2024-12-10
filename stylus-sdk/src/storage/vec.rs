@@ -16,8 +16,14 @@ pub struct StorageVec<S: StorageType> {
 }
 
 impl<S: StorageType> StorageType for StorageVec<S> {
-    type Wraps<'a> = StorageGuard<'a, StorageVec<S>> where Self: 'a;
-    type WrapsMut<'a> = StorageGuardMut<'a, StorageVec<S>> where Self: 'a;
+    type Wraps<'a>
+        = StorageGuard<'a, StorageVec<S>>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, StorageVec<S>>
+    where
+        Self: 'a;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);
