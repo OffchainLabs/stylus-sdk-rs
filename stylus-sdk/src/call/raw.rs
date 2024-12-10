@@ -224,9 +224,7 @@ impl RawCall {
                 }
             };
 
-            unsafe {
-                RETURN_DATA_LEN.set(outs_len);
-            }
+            RETURN_DATA_LEN.set(outs_len);
 
             let outs = read_return_data(self.offset, self.size);
             match status {
