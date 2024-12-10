@@ -698,8 +698,14 @@ impl From<StorageBlockHash> for BlockHash {
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
 impl<T> StorageType for PhantomData<T> {
-    type Wraps<'a> = Self where Self: 'a;
-    type WrapsMut<'a> = Self where Self: 'a;
+    type Wraps<'a>
+        = Self
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = Self
+    where
+        Self: 'a;
 
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
