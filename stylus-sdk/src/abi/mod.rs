@@ -120,6 +120,8 @@ where
         let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
         if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
             return res;
+        } else {
+            console!("unknown method selector: {selector:08x}");
         }
     }
 
@@ -128,7 +130,6 @@ where
         return res;
     }
 
-    console!("unknown method selector: {selector:08x}");
     Err(Vec::new())
 }
 
