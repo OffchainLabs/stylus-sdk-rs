@@ -22,7 +22,6 @@ use core::borrow::BorrowMut;
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
 use crate::{
-    abi::Bytes as ReturnBytes,
     console,
     storage::{StorageType, TopLevelStorage},
     ArbResult,
@@ -67,15 +66,16 @@ where
     /// calldata, regardless of the transaction having a value attached.
     fn receive(storage: &mut S) -> Option<()>;
 
-    /// A fallback function may have two different implementations.
-    /// Called when no receive function is defined and no calldata is provided.
-    /// If no #[fallback] function is defined in the contract, this method should return None.
-    fn fallback_with_args(storage: &mut S, calldata: &[u8])
-        -> Option<Result<ReturnBytes, Vec<u8>>>;
-
-    /// Called when no function selector matches.
-    /// If no #[fallback] function is defined in the contract, this method should return None.
-    fn fallback_no_args(storage: &mut S) -> Option<Result<(), Vec<u8>>>;
+    /// Called when no receive function is defined.
+    /// If no #[fallback] function is defined in the contract, then any transactions that do not
+    /// match a selector will revert.
+    /// A fallback function may have two different implementations. It can be either declared
+    /// without any input or output, or with bytes input calldata and bytes output. If a user
+    /// defines a fallback function with no input or output, then this method will be called
+    /// and the underlying user-defined function will simply be invoked with no input.
+    /// A fallback function can be declared as payable. If not payable, then any transactions
+    /// that trigger a fallback with value attached will revert.
+    fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
@@ -109,41 +109,23 @@ where
             return Ok(Vec::new());
         }
         // Try fallback function with no inputs if defined.
-        if let Some(res) = R::fallback_no_args(&mut storage) {
-            return match res {
-                Ok(_) => Ok(Vec::new()),
-                Err(e) => Err(e),
-            };
+        if let Some(res) = R::fallback(&mut storage, &[]) {
+            return res;
         }
         // Revert as no receive or fallback were defined.
         return Err(Vec::new());
     }
 
-    if input.len() < 4 {
-        // Try fallback function if the input calldata is of size in range [1, 3] to mimic solidity.
-        // If no fallback method is found, an unknown function selector error is returned.
-        if let Some(res) = R::fallback_with_args(&mut storage, &input) {
-            return match res {
-                Ok(data) => Ok(data.into()),
-                Err(e) => Err(e),
-            };
+    if input.len() >= 4 {
+        let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
+        if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+            return res;
         }
-        console!("no fallback method found when calldata of length < 4 received");
-        return Err(Vec::new());
-    }
-
-    // Try selector routes.
-    let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-    if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
-        return res;
     }
 
     // Try fallback function.
-    if let Some(res) = R::fallback_with_args(&mut storage, &input) {
-        return match res {
-            Ok(data) => Ok(data.into()),
-            Err(e) => Err(e),
-        };
+    if let Some(res) = R::fallback(&mut storage, &input) {
+        return res;
     }
 
     console!("unknown method selector: {selector:08x}");
