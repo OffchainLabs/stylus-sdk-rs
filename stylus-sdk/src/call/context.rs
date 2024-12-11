@@ -93,7 +93,7 @@ impl<S, const HAS_VALUE: bool> CallContext for Call<S, HAS_VALUE> {
 }
 
 // allow &self as a context
-impl<'a, T> CallContext for &'a T
+impl<T> CallContext for &T
 where
     T: TopLevelStorage,
 {
@@ -113,10 +113,10 @@ where
 }
 
 // allow &self to be a `pure` and `static` call context
-impl<'a, T> StaticCallContext for &'a T where T: TopLevelStorage {}
+impl<T> StaticCallContext for &T where T: TopLevelStorage {}
 
 // allow &mut self to be a `pure` and `static` call context
-impl<'a, T> StaticCallContext for &'a mut T where T: TopLevelStorage {}
+impl<T> StaticCallContext for &mut T where T: TopLevelStorage {}
 
 // allow &mut self to be a `write` and `payable` call context
 unsafe impl<T> MutatingCallContext for &mut T

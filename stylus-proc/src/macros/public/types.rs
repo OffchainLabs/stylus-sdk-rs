@@ -1,7 +1,7 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
-
 use proc_macro2::{Span, TokenStream};
+use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
     parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
@@ -37,22 +37,38 @@ impl PublicImpl {
             inheritance,
             ..
         } = self;
-        let selector_consts = self.funcs.iter().map(PublicFn::selector_const);
-        let selector_arms = self
+        let function_iter = self
             .funcs
             .iter()
+            .filter(|&func| matches!(func.kind, FnKind::Function));
+        let selector_consts = function_iter.clone().map(PublicFn::selector_const);
+        let selector_arms = function_iter
             .map(PublicFn::selector_arm)
             .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
 
         let call_fallback = self.call_fallback();
         let inheritance_fallback = self.inheritance_fallback();
-        let fallback = call_fallback.unwrap_or_else(|| {
-            parse_quote!({
-                #(#inheritance_fallback)*
-                None
-            })
+
+        let (fallback, fallback_purity) = call_fallback.unwrap_or_else(|| {
+            // If there is no fallback function specified, we rely on any inherited fallback.
+            (
+                parse_quote!({
+                    #(#inheritance_fallback)*
+                    None
+                }),
+                Purity::Payable, // Let the inherited fallback deal with purity.
+            )
         });
+
+        let fallback_deny: Option<syn::ExprIf> = match fallback_purity {
+            Purity::Payable => None,
+            _ => Some(parse_quote! {
+                if let Err(err) = stylus_sdk::abi::internal::deny_value("fallback") {
+                    return Some(Err(err));
+                }
+            }),
+        };
 
         let call_receive = self.call_receive();
         let inheritance_receive = self.inheritance_receive();
@@ -96,11 +112,12 @@ impl PublicImpl {
 
                 #[inline(always)]
                 fn fallback(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
+                    #fallback_deny
                     #fallback
                 }
 
                 #[inline(always)]
-                fn receive(storage: &mut S) -> Option<stylus_sdk::ArbResult> {
+                fn receive(storage: &mut S) -> Option<()> {
                     #receive
                 }
             }
@@ -117,11 +134,35 @@ impl PublicImpl {
         })
     }
 
-    fn call_fallback(&self) -> Option<syn::Stmt> {
-        self.funcs
+    fn call_fallback(&self) -> Option<(syn::Stmt, Purity)> {
+        let mut fallback_purity = Purity::View;
+        let fallbacks: Vec<syn::Stmt> = self
+            .funcs
             .iter()
-            .find(|&func| matches!(func.kind, FnKind::Fallback))
+            .filter(|&func| {
+                if matches!(func.kind, FnKind::FallbackWithArgs)
+                    || matches!(func.kind, FnKind::FallbackNoArgs)
+                {
+                    fallback_purity = func.purity;
+                    return true;
+                }
+                false
+            })
             .map(PublicFn::call_fallback)
+            .collect();
+        if fallbacks.is_empty() {
+            return None;
+        }
+        if fallbacks.len() > 1 {
+            emit_error!(
+                "multiple fallbacks",
+                "contract can only have one #[fallback] method defined"
+            );
+        }
+        fallbacks
+            .first()
+            .cloned()
+            .map(|func| (func, fallback_purity))
     }
 
     fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
@@ -135,10 +176,22 @@ impl PublicImpl {
     }
 
     fn call_receive(&self) -> Option<syn::Stmt> {
-        self.funcs
+        let receives: Vec<syn::Stmt> = self
+            .funcs
             .iter()
-            .find(|&func| matches!(func.kind, FnKind::Receive))
+            .filter(|&func| matches!(func.kind, FnKind::Receive))
             .map(PublicFn::call_receive)
+            .collect();
+        if receives.is_empty() {
+            return None;
+        }
+        if receives.len() > 1 {
+            emit_error!(
+                "multiple receives",
+                "contract can only have one #[receive] method defined"
+            );
+        }
+        receives.first().cloned()
     }
 
     fn inheritance_receive(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
@@ -155,7 +208,8 @@ impl PublicImpl {
 #[derive(Debug)]
 pub enum FnKind {
     Function,
-    Fallback,
+    FallbackWithArgs,
+    FallbackNoArgs,
     Receive,
 }
 
@@ -279,6 +333,11 @@ impl<E: FnExtension> PublicFn<E> {
     fn call_fallback(&self) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
+        if matches!(self.kind, FnKind::FallbackNoArgs) {
+            return parse_quote! {
+                return Some(Self::#name(#storage_arg));
+            };
+        }
         parse_quote! {
             return Some(Self::#name(#storage_arg input));
         }

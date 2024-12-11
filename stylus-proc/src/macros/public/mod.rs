@@ -105,7 +105,17 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         let receive = consume_flag(&mut node.attrs, "receive");
 
         let kind = match (fallback, receive) {
-            (true, false) => FnKind::Fallback,
+            (true, false) => {
+                // Fallback functions may have two signatures, either
+                // with input calldata and output bytes, or no input and output.
+                // node.sig.
+                let has_inputs = node.sig.inputs.len() > 1;
+                if has_inputs {
+                    FnKind::FallbackWithArgs
+                } else {
+                    FnKind::FallbackNoArgs
+                }
+            }
             (false, true) => FnKind::Receive,
             (false, false) => FnKind::Function,
             (true, true) => {
@@ -116,6 +126,16 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
+
+        if matches!(kind, FnKind::Function) && (name == "receive" || name == "fallback") {
+            emit_error!(
+                node.span(),
+                "receive and/or fallback functions can only be defined using the #[receive] or "
+                    .to_string()
+                    + "#[fallback] attribute instead of names",
+            );
+        }
+
         let sol_name = syn_solidity::SolIdent::new(
             &selector_override.unwrap_or(name.to_string().to_case(Case::Camel)),
         );

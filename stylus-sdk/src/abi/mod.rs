@@ -59,15 +59,43 @@ where
     /// This means that it is possible to override a method by redefining it in `Self`.
     fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<ArbResult>;
 
-    /// Fallback function for this contract. Called when no route is matched or no calldata is
-    /// provided and there is no receive function.
-    fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
-
     /// Receive function for this contract. Called when no calldata is provided.
-    fn receive(storage: &mut S) -> Option<ArbResult>;
+    /// A receive function may not be defined, in which case this method will return None.
+    /// Receive functions are always payable, take in no inputs, and return no outputs.
+    /// If defined, they will always be called when a transaction does not send any
+    /// calldata, regardless of the transaction having a value attached.
+    fn receive(storage: &mut S) -> Option<()>;
+
+    /// Called when no receive function is defined.
+    /// If no #[fallback] function is defined in the contract, then any transactions that do not
+    /// match a selector will revert.
+    /// A fallback function may have two different implementations. It can be either declared
+    /// without any input or output, or with bytes input calldata and bytes output. If a user
+    /// defines a fallback function with no input or output, then this method will be called
+    /// and the underlying user-defined function will simply be invoked with no input.
+    /// A fallback function can be declared as payable. If not payable, then any transactions
+    /// that trigger a fallback with value attached will revert.
+    fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
+/// Solidity requires specific routing logic for situations in which no function selector
+/// matches the input calldata in the form of two different functions named "receive" and "fallback".
+/// The purity and type definitions are as follows:
+///
+/// - receive takes no input data, returns no data, and is always payable.
+/// - fallback offers two possible implementations. It can be either declared without input or return
+//    parameters, or with input bytes calldata and return bytes memory.
+//
+//  The fallback function MAY be payable. If not payable, then any transactions not matching any
+//  other function which send value will revert.
+//
+//  The order of routing semantics for receive and fallback work as follows:
+//
+//  - If a receive function exists, it is always called whenever calldata is empty, even
+//    if no value is received in the transaction. It is implicitly payable.
+//  - Fallback is called when no other function matches a selector. If a receive function is not
+//    defined, then calls with no input calldata will be routed to the fallback function.
 pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>) -> ArbResult
 where
     R: Router<S>,
@@ -76,29 +104,25 @@ where
     let mut storage = unsafe { S::new(U256::ZERO, 0) };
 
     if input.is_empty() {
-        // Try receive function.
-        if let Some(res) = R::receive(&mut storage) {
-            return res;
+        console!("no calldata provided");
+        if R::receive(&mut storage).is_some() {
+            return Ok(Vec::new());
         }
-
-        // Try fallback function.
+        // Try fallback function with no inputs if defined.
         if let Some(res) = R::fallback(&mut storage, &[]) {
             return res;
         }
-
-        console!("no calldata provided");
+        // Revert as no receive or fallback were defined.
         return Err(Vec::new());
     }
 
-    if input.len() < 4 {
-        console!("calldata too short: {}", crate::hex::encode(input));
-        return Err(Vec::new());
-    }
-
-    // Try selector routes.
-    let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-    if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
-        return res;
+    if input.len() >= 4 {
+        let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
+        if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+            return res;
+        } else {
+            console!("unknown method selector: {selector:08x}");
+        }
     }
 
     // Try fallback function.
@@ -106,7 +130,6 @@ where
         return res;
     }
 
-    console!("unknown method selector: {selector:08x}");
     Err(Vec::new())
 }
 
