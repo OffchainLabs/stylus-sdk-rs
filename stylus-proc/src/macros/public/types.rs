@@ -37,66 +37,31 @@ impl PublicImpl {
             inheritance,
             ..
         } = self;
-        let selector_consts = self
+        let function_iter = self
             .funcs
             .iter()
-            .filter(|&func| matches!(func.kind, FnKind::Function))
-            .map(PublicFn::selector_const);
-        let selector_arms = self
-            .funcs
-            .iter()
-            .filter(|&func| matches!(func.kind, FnKind::Function))
+            .filter(|&func| matches!(func.kind, FnKind::Function));
+        let selector_consts = function_iter.clone().map(PublicFn::selector_const);
+        let selector_arms = function_iter
             .map(PublicFn::selector_arm)
             .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
 
-        let call_fallback_no_args = self.call_fallback_no_args();
-        let call_fallback_with_args = self.call_fallback_with_args();
+        let call_fallback = self.call_fallback();
+        let inheritance_fallback = self.inheritance_fallback();
 
-        if let (Some(_), Some(_)) = (
-            call_fallback_no_args.as_ref(),
-            call_fallback_with_args.as_ref(),
-        ) {
-            emit_error!(
-                "multiple fallbacks",
-                "cannot have two fallback methods defined. ".to_string()
-                    + "One was defined with input arguments and another without"
-            )
-        }
-
-        let inheritance_fallback_no_args = self.inheritance_fallback_no_args();
-        let inheritance_fallback_with_args = self.inheritance_fallback_with_args();
-
-        let (fallback_no_args, no_args_purity) = call_fallback_no_args.unwrap_or_else(|| {
+        let (fallback, fallback_purity) = call_fallback.unwrap_or_else(|| {
             // If there is no fallback function specified, we rely on any inherited fallback.
             (
                 parse_quote!({
-                    #(#inheritance_fallback_no_args)*
+                    #(#inheritance_fallback)*
                     None
                 }),
-                Purity::Payable,
-            )
-        });
-        let (fallback_with_args, with_args_purity) = call_fallback_with_args.unwrap_or_else(|| {
-            // If there is no fallback function specified, we rely on any inherited fallback.
-            (
-                parse_quote!({
-                    #(#inheritance_fallback_with_args)*
-                    None
-                }),
-                Purity::Payable,
+                Purity::Payable, // Let the inherited fallback deal with purity.
             )
         });
 
-        let with_args_deny: Option<syn::ExprIf> = match with_args_purity {
-            Purity::Payable => None,
-            _ => Some(parse_quote! {
-                if let Err(err) = stylus_sdk::abi::internal::deny_value("fallback") {
-                    return Some(Err(err));
-                }
-            }),
-        };
-        let no_args_deny: Option<syn::ExprIf> = match no_args_purity {
+        let fallback_deny: Option<syn::ExprIf> = match fallback_purity {
             Purity::Payable => None,
             _ => Some(parse_quote! {
                 if let Err(err) = stylus_sdk::abi::internal::deny_value("fallback") {
@@ -146,15 +111,9 @@ impl PublicImpl {
                 }
 
                 #[inline(always)]
-                fn fallback_with_args(storage: &mut S, input: &[u8]) -> Option<Result<stylus_sdk::abi::Bytes, Vec<u8>>> {
-                    #with_args_deny
-                    #fallback_with_args
-                }
-
-                #[inline(always)]
-                fn fallback_no_args(storage: &mut S) -> Option<Result<(), Vec<u8>>> {
-                    #no_args_deny
-                    #fallback_no_args
+                fn fallback(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
+                    #fallback_deny
+                    #fallback
                 }
 
                 #[inline(always)]
@@ -175,19 +134,21 @@ impl PublicImpl {
         })
     }
 
-    fn call_fallback_with_args(&self) -> Option<(syn::Stmt, Purity)> {
+    fn call_fallback(&self) -> Option<(syn::Stmt, Purity)> {
         let mut fallback_purity = Purity::View;
         let fallbacks: Vec<syn::Stmt> = self
             .funcs
             .iter()
             .filter(|&func| {
-                if matches!(func.kind, FnKind::FallbackWithArgs) {
+                if matches!(func.kind, FnKind::FallbackWithArgs)
+                    || matches!(func.kind, FnKind::FallbackNoArgs)
+                {
                     fallback_purity = func.purity;
                     return true;
                 }
                 false
             })
-            .map(PublicFn::call_fallback_with_args)
+            .map(PublicFn::call_fallback)
             .collect();
         if fallbacks.is_empty() {
             return None;
@@ -204,49 +165,10 @@ impl PublicImpl {
             .map(|func| (func, fallback_purity))
     }
 
-    fn call_fallback_no_args(&self) -> Option<(syn::Stmt, Purity)> {
-        let mut fallback_purity = Purity::View;
-        let fallbacks: Vec<syn::Stmt> = self
-            .funcs
-            .iter()
-            .filter(|&func| {
-                if matches!(func.kind, FnKind::FallbackNoArgs) {
-                    fallback_purity = func.purity;
-                    return true;
-                }
-                false
-            })
-            .map(PublicFn::call_fallback_no_args)
-            .collect();
-        if fallbacks.is_empty() {
-            return None;
-        }
-        if fallbacks.len() > 1 {
-            emit_error!(
-                "multiple fallbacks",
-                "contract can only have one #[fallback] method defined"
-            );
-        }
-        fallbacks
-            .first()
-            .cloned()
-            .map(|func| (func, fallback_purity))
-    }
-
-    fn inheritance_fallback_with_args(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
+    fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
         self.inheritance.iter().map(|ty| {
             parse_quote! {
-                if let Some(res) = <#ty as #Router<S>>::fallback_with_args(storage, input) {
-                    return Some(res);
-                }
-            }
-        })
-    }
-
-    fn inheritance_fallback_no_args(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
-        self.inheritance.iter().map(|ty| {
-            parse_quote! {
-                if let Some(res) = <#ty as #Router<S>>::fallback_no_args(storage) {
+                if let Some(res) = <#ty as #Router<S>>::fallback(storage, input) {
                     return Some(res);
                 }
             }
@@ -408,19 +330,16 @@ impl<E: FnExtension> PublicFn<E> {
         }
     }
 
-    fn call_fallback_with_args(&self) -> syn::Stmt {
+    fn call_fallback(&self) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
-        parse_quote! {
-            return Some(Ok(Self::#name(#storage_arg input)));
+        if matches!(self.kind, FnKind::FallbackNoArgs) {
+            return parse_quote! {
+                return Some(Self::#name(#storage_arg));
+            };
         }
-    }
-
-    fn call_fallback_no_args(&self) -> syn::Stmt {
-        let name = &self.name;
-        let storage_arg = self.storage_arg();
         parse_quote! {
-            return Some(Ok(Self::#name(#storage_arg)));
+            return Some(Self::#name(#storage_arg input));
         }
     }
 
