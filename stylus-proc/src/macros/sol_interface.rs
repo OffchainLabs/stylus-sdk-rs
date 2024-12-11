@@ -356,7 +356,7 @@ mod tests {
                     {
                         let args = <(
                             stylus_sdk::alloy_sol_types::sol_data::Address,
-                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_encode(&(user,));
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&(user,));
                         let mut calldata = vec![48u8, 11u8, 228u8, 252u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::call(context, self.address, &calldata)?;
@@ -371,7 +371,7 @@ mod tests {
                     ) ->
                         Result<<stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32> as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::call::Error>
                     {
-                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode(&());
+                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
                         let mut calldata = vec![241u8, 58u8, 56u8, 166u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
@@ -384,7 +384,7 @@ mod tests {
                     ) ->
                         Result<<inner::Foo as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::call::Error>
                     {
-                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode(&());
+                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
                         let mut calldata = vec![36u8, 61u8, 200u8, 218u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
