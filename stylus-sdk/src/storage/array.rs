@@ -122,7 +122,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     const fn required_slots() -> usize {
         let reserved = N * S::REQUIRED_SLOTS;
         let density = Self::density();
-        let packed = (N + density - 1) / density; // ceil division for packed items.
+        let packed = N.div_ceil(density);
         if reserved > packed {
             return reserved;
         }

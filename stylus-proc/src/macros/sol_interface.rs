@@ -288,7 +288,7 @@ impl FunctionParameters {
     }
 }
 
-impl<'ast> Visit<'ast> for FunctionParameters {
+impl Visit<'_> for FunctionParameters {
     fn visit_variable_declaration(&mut self, var: &syn_solidity::VariableDeclaration) {
         let type_info = SolidityTypeInfo::from(&var.ty);
         let name = match &var.name {
