@@ -1,10 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{
-    contract::{read_return_data, RETURN_DATA_LEN},
-    hostio, tx, ArbResult,
-};
+use crate::{contract::read_return_data, hostio, tx, ArbResult};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 
@@ -188,7 +185,7 @@ impl RawCall {
         /// [`flush_storage_cache`]: RawCall::flush_storage_cache
         /// [`clear_storage_cache`]: RawCall::clear_storage_cache
         pub fn call(self, contract: Address, calldata: &[u8]) -> ArbResult {
-            let mut outs_len = 0;
+            let mut outs_len: usize = 0;
             let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
             let value = B256::from(self.callvalue);
             let status = unsafe {
@@ -224,7 +221,11 @@ impl RawCall {
                 }
             };
 
-            RETURN_DATA_LEN.set(outs_len);
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "hostio-caching")] {
+                    crate::contract::RETURN_DATA_LEN.set(outs_len);
+                }
+            }
 
             let outs = read_return_data(self.offset, self.size);
             match status {

@@ -1,11 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{
-    call::CachePolicy,
-    contract::{read_return_data, RETURN_DATA_LEN},
-    hostio,
-};
+use crate::{call::CachePolicy, contract::read_return_data, hostio};
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
@@ -82,7 +78,7 @@ impl RawDeploy {
         }
 
         let mut contract = Address::default();
-        let mut revert_data_len = 0;
+        let mut revert_data_len: usize = 0;
 
         let endowment: B256 = endowment.into();
         if let Some(salt) = self.salt {
@@ -103,7 +99,11 @@ impl RawDeploy {
                 &mut revert_data_len as *mut _,
             );
         }
-        RETURN_DATA_LEN.set(revert_data_len);
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "hostio-caching")] {
+                crate::contract::RETURN_DATA_LEN.set(revert_data_len);
+            }
+        }
 
         if contract.is_zero() {
             return Err(read_return_data(0, None));
