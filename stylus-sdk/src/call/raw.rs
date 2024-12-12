@@ -137,7 +137,7 @@ impl RawCall {
     /// Note: values are clipped to the amount of ink remaining.
     /// See [`Ink and Gas`] for more information on Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn ink(mut self, ink: u64) -> Self {
         self.gas = Some(tx::ink_to_gas(ink));
         self
