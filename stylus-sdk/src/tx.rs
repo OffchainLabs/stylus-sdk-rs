@@ -19,14 +19,14 @@ wrap_hostio! {
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
     /// Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     ink_price INK_PRICE tx_ink_price u32
 }
 
 /// Converts evm gas to ink. See [`Ink and Gas`] for more information on
 /// Stylus's compute-pricing model.
 ///
-/// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+/// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
 pub fn gas_to_ink(gas: u64) -> u64 {
     gas.saturating_mul(ink_price().into())
 }
@@ -34,7 +34,7 @@ pub fn gas_to_ink(gas: u64) -> u64 {
 /// Converts ink to evm gas. See [`Ink and Gas`] for more information on
 /// Stylus's compute-pricing model.
 ///
-/// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+/// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
 pub fn ink_to_gas(ink: u64) -> u64 {
     ink / ink_price() as u64
 }
