@@ -60,13 +60,13 @@ pub fn pay_for_memory_grow(pages: u16) {
 wrap_hostio!(
     /// Gets the amount of gas remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     gas_left evm_gas_left u64
 );
 
 wrap_hostio!(
     /// Gets the amount of ink remaining. See [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     ink_left evm_ink_left u64
 );
