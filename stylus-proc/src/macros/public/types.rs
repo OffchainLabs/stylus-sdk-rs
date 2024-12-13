@@ -211,6 +211,7 @@ pub enum FnKind {
     FallbackWithArgs,
     FallbackNoArgs,
     Receive,
+    Constructor,
 }
 
 pub struct PublicFn<E: FnExtension> {
