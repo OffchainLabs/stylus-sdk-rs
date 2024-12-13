@@ -79,6 +79,10 @@ impl PublicImpl {
             })
         });
 
+        // TODO constructor inheritance?
+        let call_constructor = self.call_constructor();
+        let constructor = call_constructor.unwrap_or_else(|| parse_quote!({ None }));
+
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
@@ -116,6 +120,11 @@ impl PublicImpl {
                 #[inline(always)]
                 fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>> {
                     #receive
+                }
+
+                #[inline(always)]
+                fn constructor(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
+                    #constructor
                 }
             }
         }
@@ -199,6 +208,25 @@ impl PublicImpl {
                 }
             }
         })
+    }
+
+    fn call_constructor(&self) -> Option<syn::Stmt> {
+        let constructors: Vec<syn::Stmt> = self
+            .funcs
+            .iter()
+            .filter(|&func| matches!(func.kind, FnKind::Constructor))
+            .map(PublicFn::call_constructor)
+            .collect();
+        if constructors.is_empty() {
+            return None;
+        }
+        if constructors.len() > 1 {
+            emit_error!(
+                "multiple constructors",
+                "contract can only have one #[constructor] method defined"
+            );
+        }
+        constructors.first().cloned()
     }
 }
 
@@ -353,6 +381,26 @@ impl<E: FnExtension> PublicFn<E> {
         parse_quote! {
             return Some(Self::#name(#storage_arg));
         }
+    }
+
+    fn call_constructor(&self) -> syn::Stmt {
+        let name = &self.name;
+        let decode_inputs = self.decode_inputs();
+        let storage_arg = self.storage_arg();
+        let expand_args = self.expand_args();
+        let encode_output = self.encode_output();
+        parse_quote!({
+            use stylus_sdk::abi::{internal, internal::EncodableReturnType};
+            let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
+                Ok(args) => args,
+                Err(err) => {
+                    internal::failed_to_decode_arguments(err);
+                    return Some(Err(Vec::new()));
+                }
+            };
+            let result = Self::#name(#storage_arg #(#expand_args, )* );
+            Some(#encode_output)
+        })
     }
 }
 

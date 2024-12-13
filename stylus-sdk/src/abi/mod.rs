@@ -76,6 +76,9 @@ where
     /// A fallback function can be declared as payable. If not payable, then any transactions
     /// that trigger a fallback with value attached will revert.
     fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
+
+    /// TODO doc
+    fn constructor(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
@@ -118,6 +121,11 @@ where
 
     if input.len() >= 4 {
         let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
+        if selector == CONSTRUCTOR_SELECTOR {
+            if let Some(res) = R::constructor(&mut storage, &input) {
+                return res;
+            }
+        }
         if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
             return res;
         } else {
@@ -179,6 +187,9 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 }
+
+/// TODO doc
+pub const CONSTRUCTOR_SELECTOR: u32 = u32::from_be_bytes(function_selector!("stylus_constructor"));
 
 /// ABI decode a tuple of parameters
 pub fn decode_params<T>(data: &[u8]) -> alloy_sol_types::Result<T>
