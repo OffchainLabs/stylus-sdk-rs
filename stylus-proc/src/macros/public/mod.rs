@@ -103,37 +103,48 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
             consume_attr::<attrs::Selector>(&mut node.attrs, "selector").map(|s| s.value.value());
         let fallback = consume_flag(&mut node.attrs, "fallback");
         let receive = consume_flag(&mut node.attrs, "receive");
+        let constructor = consume_flag(&mut node.attrs, "constructor");
 
-        let kind = match (fallback, receive) {
-            (true, false) => {
-                // Fallback functions may have two signatures, either
-                // with input calldata and output bytes, or no input and output.
-                // node.sig.
-                let has_inputs = node.sig.inputs.len() > 1;
-                if has_inputs {
-                    FnKind::FallbackWithArgs
-                } else {
-                    FnKind::FallbackNoArgs
-                }
+        let kind = if fallback {
+            // Fallback functions may have two signatures, either
+            // with input calldata and output bytes, or no input and output.
+            let has_inputs = node.sig.inputs.len() > 1;
+            if has_inputs {
+                FnKind::FallbackWithArgs
+            } else {
+                FnKind::FallbackNoArgs
             }
-            (false, true) => FnKind::Receive,
-            (false, false) => FnKind::Function,
-            (true, true) => {
-                emit_error!(node.span(), "function cannot be both fallback and receive");
-                FnKind::Function
-            }
+        } else if receive {
+            FnKind::Receive
+        } else if constructor {
+            FnKind::Constructor
+        } else {
+            FnKind::Function
         };
+
+        let num_specials = (fallback as i8) + (constructor as i8) + (receive as i8);
+        if num_specials > 1 {
+            emit_error!(
+                node.span(),
+                "function can be only one of fallback, receive or constructor"
+            );
+        }
+        if num_specials > 0 && selector_override.is_some() {
+            emit_error!(
+                node.span(),
+                "fallback, receive, and constructor can't have custom selector"
+            );
+        }
 
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
-
-        if matches!(kind, FnKind::Function) && (name == "receive" || name == "fallback") {
-            emit_error!(
-                node.span(),
-                "receive and/or fallback functions can only be defined using the #[receive] or "
-                    .to_string()
-                    + "#[fallback] attribute instead of names",
-            );
+        for special_name in ["receive", "fallback", "constructor"] {
+            if matches!(kind, FnKind::Function) && name == special_name {
+                emit_error!(
+                    node.span(),
+                    format!("{special_name} function can only be defined using the #[{special_name}] attribute")
+                );
+            }
         }
 
         let sol_name = syn_solidity::SolIdent::new(
@@ -142,7 +153,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // determine state mutability
         let (inferred_purity, has_self) = Purity::infer(node);
-        let purity = if payable || matches!(kind, FnKind::Receive) {
+        let purity = if payable || matches!(kind, FnKind::Receive | FnKind::Constructor) {
             Purity::Payable
         } else {
             inferred_purity
