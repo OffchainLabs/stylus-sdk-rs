@@ -77,7 +77,13 @@ where
     /// that trigger a fallback with value attached will revert.
     fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 
-    /// TODO doc
+    /// The router_entrypoint calls the constructor  when the selector is CONSTRUCTOR_SELECTOR.
+    /// The implementation should: decode the calldata and pass the parameters to the user-defined
+    /// constructor; and call internal::constructor_guard to ensure it is only executed once.
+    /// The constructor is assumed to be payable and doesn't need a #[paylable] annotation.
+    /// Since each constructor has its own set of parameters, this function won't call the
+    /// constructors for inherited structs automatically. Instead, the user-defined function should
+    /// call the base classes constructors.
     fn constructor(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
@@ -125,8 +131,7 @@ where
             if let Some(res) = R::constructor(&mut storage, &input) {
                 return res;
             }
-        }
-        if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+        } else if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
             return res;
         } else {
             console!("unknown method selector: {selector:08x}");
@@ -188,7 +193,7 @@ macro_rules! function_selector {
     }};
 }
 
-/// TODO doc
+/// The function selector for Stylus constructors.
 pub const CONSTRUCTOR_SELECTOR: u32 = u32::from_be_bytes(function_selector!("stylus_constructor"));
 
 /// ABI decode a tuple of parameters

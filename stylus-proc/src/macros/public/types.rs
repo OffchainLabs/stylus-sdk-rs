@@ -79,7 +79,6 @@ impl PublicImpl {
             })
         });
 
-        // TODO constructor inheritance?
         let call_constructor = self.call_constructor();
         let constructor = call_constructor.unwrap_or_else(|| parse_quote!({ None }));
 
@@ -388,6 +387,9 @@ impl<E: FnExtension> PublicFn<E> {
         let encode_output = self.encode_output();
         parse_quote!({
             use stylus_sdk::abi::{internal, internal::EncodableReturnType};
+            if let Err(e) = internal::constructor_guard() {
+                return Some(Err(e));
+            }
             let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
                 Ok(args) => args,
                 Err(err) => {
