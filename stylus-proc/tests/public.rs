@@ -20,7 +20,7 @@ impl Contract {
 }
 
 struct ContractWithConstructor {
-    value: StorageU256
+    value: StorageU256,
 }
 
 #[public]
