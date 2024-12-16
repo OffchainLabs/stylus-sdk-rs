@@ -216,7 +216,7 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
 mod tests {
     use syn::parse_quote;
 
-    use super::types::PublicImpl;
+    use super::types::{FnKind, PublicImpl};
 
     #[test]
     fn test_public_consumes_inherit() {
@@ -245,5 +245,22 @@ mod tests {
             unreachable!();
         };
         assert_eq!(attrs, &vec![parse_quote! { #[other] }]);
+    }
+
+    #[test]
+    fn test_public_consumes_constructor() {
+        let mut impl_item = parse_quote! {
+            #[derive(Debug)]
+            impl Contract {
+                #[constructor]
+                fn func(&mut self, val: U256) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        assert!(matches!(public.funcs[0].kind, FnKind::Constructor));
+        let syn::ImplItem::Fn(syn::ImplItemFn { attrs, .. }) = &impl_item.items[0] else {
+            unreachable!();
+        };
+        assert!(attrs.is_empty());
     }
 }
