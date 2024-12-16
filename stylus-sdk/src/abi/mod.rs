@@ -128,7 +128,7 @@ where
     if input.len() >= 4 {
         let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
         if selector == CONSTRUCTOR_SELECTOR {
-            if let Some(res) = R::constructor(&mut storage, &input) {
+            if let Some(res) = R::constructor(&mut storage, &input[4..]) {
                 return res;
             }
         } else if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
