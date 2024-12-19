@@ -150,7 +150,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // determine state mutability
         let (inferred_purity, has_self) = Purity::infer(node);
-        let purity = if payable || matches!(kind, FnKind::Receive | FnKind::Constructor) {
+        let purity = if payable || matches!(kind, FnKind::Receive) {
             Purity::Payable
         } else {
             inferred_purity
