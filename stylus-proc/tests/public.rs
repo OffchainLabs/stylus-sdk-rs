@@ -9,22 +9,25 @@ extern crate alloc;
 
 use alloy_primitives::U256;
 use stylus_proc::public;
-use stylus_sdk::storage::StorageU256;
+use stylus_sdk::{storage::StorageU256, ArbResult};
 
-struct Contract {}
+struct Contract {
+    value: StorageU256,
+}
 
 #[public]
 impl Contract {
     #[payable]
     fn method() {}
-}
 
-struct ContractWithConstructor {
-    value: StorageU256,
-}
+    #[fallback]
+    fn fallback(&mut self, _args: &[u8]) -> ArbResult {
+        Ok(vec![])
+    }
 
-#[public]
-impl ContractWithConstructor {
+    #[receive]
+    fn receive(&mut self) {}
+
     #[constructor]
     fn constructor(&mut self, value: U256) {
         self.value.set(value);
