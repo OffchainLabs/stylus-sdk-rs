@@ -15,10 +15,13 @@ use alloy_primitives::U256;
 use alloy_sol_types::SolType;
 use core::fmt;
 
+/// Name used in the constructor storage slot and function selector.
+pub const CONSTRUCTOR_BASE_NAME: &str = "stylus_constructor";
+
 /// The storage slot that specify whether the constructor was executed.
 pub const CONSTRUCTOR_EXECUTED_SLOT: U256 = alloy_primitives::U256::from_be_bytes(
     keccak_const::Keccak256::new()
-        .update("stylus_constructor".as_bytes())
+        .update(CONSTRUCTOR_BASE_NAME.as_bytes())
         .finalize(),
 );
 

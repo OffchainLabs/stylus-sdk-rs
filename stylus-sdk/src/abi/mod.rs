@@ -171,7 +171,7 @@ pub trait AbiType {
 /// Generates a function selector for the given method and its args.
 #[macro_export]
 macro_rules! function_selector {
-    ($name:literal $(,)?) => {{
+    ($name:expr $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"()")
@@ -179,7 +179,7 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 
-    ($name:literal, $first:ty $(, $ty:ty)* $(,)?) => {{
+    ($name:expr, $first:ty $(, $ty:ty)* $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"(")
@@ -195,7 +195,8 @@ macro_rules! function_selector {
 }
 
 /// The function selector for Stylus constructors.
-pub const CONSTRUCTOR_SELECTOR: u32 = u32::from_be_bytes(function_selector!("stylus_constructor"));
+pub const CONSTRUCTOR_SELECTOR: u32 =
+    u32::from_be_bytes(function_selector!(internal::CONSTRUCTOR_BASE_NAME));
 
 /// ABI decode a tuple of parameters
 pub fn decode_params<T>(data: &[u8]) -> alloy_sol_types::Result<T>
