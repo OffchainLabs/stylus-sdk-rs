@@ -302,7 +302,7 @@ impl<E: FnExtension> PublicFn<E> {
         } else {
             let name = self.name.to_string();
             Some(parse_quote! {
-                if let Err(err) = internal::deny_value(#name) {
+                if let Err(err) = stylus_sdk::abi::internal::deny_value(#name) {
                     return Some(Err(err));
                 }
             })
@@ -310,14 +310,7 @@ impl<E: FnExtension> PublicFn<E> {
     }
 
     fn call_fallback(&self) -> syn::Stmt {
-        let deny_value: Option<syn::ExprIf> = match self.purity {
-            Purity::Payable => None,
-            _ => Some(parse_quote! {
-                if let Err(err) = stylus_sdk::abi::internal::deny_value("fallback") {
-                    return Some(Err(err));
-                }
-            }),
-        };
+        let deny_value = self.deny_value();
         let name = &self.name;
         let storage_arg = self.storage_arg();
         let call: syn::Stmt = if matches!(self.kind, FnKind::Fallback { with_args: false }) {
