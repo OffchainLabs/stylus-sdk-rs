@@ -80,7 +80,7 @@ where
     /// The router_entrypoint calls the constructor when the selector is CONSTRUCTOR_SELECTOR.
     /// The implementation should: decode the calldata and pass the parameters to the user-defined
     /// constructor; and call internal::constructor_guard to ensure it is only executed once.
-    /// The constructor is assumed to be payable and doesn't need a #[paylable] annotation.
+    /// The constructor is assumed to be payable and doesn't need a #[payable] annotation.
     /// Since each constructor has its own set of parameters, this function won't call the
     /// constructors for inherited structs automatically. Instead, the user-defined function should
     /// call the base classes constructors.
