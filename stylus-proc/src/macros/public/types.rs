@@ -145,9 +145,7 @@ impl PublicImpl {
             .funcs
             .iter()
             .filter(|&func| {
-                if matches!(func.kind, FnKind::FallbackWithArgs)
-                    || matches!(func.kind, FnKind::FallbackNoArgs)
-                {
+                if matches!(func.kind, FnKind::Fallback { .. }) {
                     fallback_purity = func.purity;
                     return true;
                 }
@@ -232,8 +230,7 @@ impl PublicImpl {
 #[derive(Debug)]
 pub enum FnKind {
     Function,
-    FallbackWithArgs,
-    FallbackNoArgs,
+    Fallback { with_args: bool },
     Receive,
     Constructor,
 }
@@ -358,7 +355,7 @@ impl<E: FnExtension> PublicFn<E> {
     fn call_fallback(&self) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
-        if matches!(self.kind, FnKind::FallbackNoArgs) {
+        if matches!(self.kind, FnKind::Fallback { with_args: false }) {
             return parse_quote! {
                 return Some({
                     if let Err(err) = Self::#name(#storage_arg) {
