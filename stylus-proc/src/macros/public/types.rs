@@ -348,6 +348,7 @@ impl<E: FnExtension> PublicFn<E> {
     }
 
     fn call_constructor(&self) -> syn::Stmt {
+        let deny_value = self.deny_value();
         let name = &self.name;
         let decode_inputs = self.decode_inputs();
         let storage_arg = self.storage_arg();
@@ -355,6 +356,7 @@ impl<E: FnExtension> PublicFn<E> {
         let encode_output = self.encode_output();
         parse_quote!({
             use stylus_sdk::abi::{internal, internal::EncodableReturnType};
+            #deny_value
             if let Err(e) = internal::constructor_guard() {
                 return Some(Err(e));
             }
