@@ -77,7 +77,7 @@ where
     /// that trigger a fallback with value attached will revert.
     fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 
-    /// The router_entrypoint calls the constructor  when the selector is CONSTRUCTOR_SELECTOR.
+    /// The router_entrypoint calls the constructor when the selector is CONSTRUCTOR_SELECTOR.
     /// The implementation should: decode the calldata and pass the parameters to the user-defined
     /// constructor; and call internal::constructor_guard to ensure it is only executed once.
     /// The constructor is assumed to be payable and doesn't need a #[paylable] annotation.
