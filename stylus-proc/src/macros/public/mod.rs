@@ -108,11 +108,8 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         let kind = if fallback {
             // Fallback functions may have two signatures, either
             // with input calldata and output bytes, or no input and output.
-            let has_inputs = node.sig.inputs.len() > 1;
-            if has_inputs {
-                FnKind::FallbackWithArgs
-            } else {
-                FnKind::FallbackNoArgs
+            FnKind::Fallback {
+                with_args: node.sig.inputs.len() > 1,
             }
         } else if receive {
             FnKind::Receive
