@@ -106,10 +106,7 @@ where
     if input.is_empty() {
         console!("no calldata provided");
         if let Some(res) = R::receive(&mut storage) {
-            if let Err(e) = res {
-                return Err(e);
-            }
-            return Ok(Vec::new());
+            return res.map(|_| Vec::new());
         }
         // Try fallback function with no inputs if defined.
         if let Some(res) = R::fallback(&mut storage, &[]) {
