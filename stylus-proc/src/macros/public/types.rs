@@ -117,7 +117,7 @@ impl PublicImpl {
                 }
 
                 #[inline(always)]
-                fn receive(storage: &mut S) -> Option<()> {
+                fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>> {
                     #receive
                 }
             }
