@@ -64,7 +64,7 @@ where
     /// Receive functions are always payable, take in no inputs, and return no outputs.
     /// If defined, they will always be called when a transaction does not send any
     /// calldata, regardless of the transaction having a value attached.
-    fn receive(storage: &mut S) -> Option<()>;
+    fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>>;
 
     /// Called when no receive function is defined.
     /// If no #[fallback] function is defined in the contract, then any transactions that do not
@@ -105,7 +105,10 @@ where
 
     if input.is_empty() {
         console!("no calldata provided");
-        if R::receive(&mut storage).is_some() {
+        if let Some(res) = R::receive(&mut storage) {
+            if let Err(e) = res {
+                return Err(e);
+            }
             return Ok(Vec::new());
         }
         // Try fallback function with no inputs if defined.
