@@ -15,6 +15,7 @@ rust-version = "1.71.0"
 alloy-primitives = { version = "=0.8.14", default-features = false , features = ["native-keccak"] }
 alloy-sol-types = { version = "=0.8.14", default-features = false }
 cfg-if = "1.0.0"
+clap = { version = "4.5.4", features = [ "derive", "color" ] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"

@@ -2,5 +2,5 @@
 
 #[cfg(feature = "export-abi")]
 fn main() {
-    stylus_single_call::print_abi("MIT-OR-APACHE-2.0", "pragma solidity ^0.8.23;");
+    stylus_single_call::print_from_args();
 }
