@@ -55,10 +55,12 @@ pub mod contract;
 pub mod crypto;
 pub mod deploy;
 pub mod evm;
+pub mod host;
 pub mod methods;
 pub mod msg;
 pub mod prelude;
 pub mod storage;
+pub mod testing;
 pub mod tx;
 pub mod types;
 

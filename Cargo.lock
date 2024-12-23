@@ -701,6 +701,7 @@ dependencies = [
  "keccak-const",
  "lazy_static",
  "mini-alloc",
+ "once_cell",
  "paste",
  "regex",
  "sha3",
