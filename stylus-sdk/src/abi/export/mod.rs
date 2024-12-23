@@ -16,9 +16,9 @@ use regex::Regex;
 pub mod internal;
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
-/// This is auto-derived via the [`external`] macro when the `export-abi` feature is enabled.
+/// This is auto-derived via the [`public`] macro when the `export-abi` feature is enabled.
 ///
-/// [`external`]: stylus-proc::external
+/// [`public`]: stylus-proc::public
 pub trait GenerateAbi {
     /// The interface's name.
     const NAME: &'static str;
