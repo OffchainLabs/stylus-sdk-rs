@@ -8,12 +8,39 @@
 //!
 //! [cargo]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
 
-use core::{fmt, marker::PhantomData};
+use clap::Parser;
+use core::fmt;
 use lazy_static::lazy_static;
 use regex::Regex;
 
 #[doc(hidden)]
 pub mod internal;
+
+/// Export the Stylus contract ABI as a Solidity interface.
+#[derive(Parser)]
+struct ExportAbiArgs {
+    /// Lisense of the generated ABI file.
+    #[arg(long, default_value = "MIT-OR-APACHE-2.0")]
+    license: String,
+
+    /// Solidity pragma line on the generated ABI file.
+    #[arg(long, default_value = "pragma solidity ^0.8.23;")]
+    pragma: String,
+
+    /// If true, export the constructor signature instead of the Solidity interface.
+    #[arg(long)]
+    constructor_signature: bool,
+}
+
+/// Prints the ABI given the CLI options.
+pub fn print_from_args<T: GenerateAbi>() {
+    let args = ExportAbiArgs::parse();
+    if args.constructor_signature {
+        print_constructor_signature::<T>();
+    } else {
+        print_abi::<T>(&args.license, &args.pragma);
+    }
+}
 
 /// Trait for storage types so that users can print a Solidity interface to the console.
 /// This is auto-derived via the [`public`] macro when the `export-abi` feature is enabled.
@@ -25,14 +52,17 @@ pub trait GenerateAbi {
 
     /// How to format the ABI. Analogous to [`Display`](std::fmt::Display).
     fn fmt_abi(f: &mut fmt::Formatter<'_>) -> fmt::Result;
+
+    /// How to format the constructor signature. Analogous to [`Display`](std::fmt::Display).
+    fn fmt_constructor_signature(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
 /// Type that makes an ABI printable.
-struct AbiPrinter<T: GenerateAbi>(PhantomData<T>);
+struct AbiPrinter(fn(&mut fmt::Formatter<'_>) -> fmt::Result);
 
-impl<T: GenerateAbi> fmt::Display for AbiPrinter<T> {
+impl fmt::Display for AbiPrinter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        T::fmt_abi(f)
+        self.0(f)
     }
 }
 
@@ -46,7 +76,11 @@ pub fn print_abi<T: GenerateAbi>(license: &str, pragma: &str) {
     println!("// SPDX-License-Identifier: {license}");
     println!("{pragma}");
     println!();
-    print!("{}", AbiPrinter::<T>(PhantomData));
+    print!("{}", AbiPrinter(T::fmt_abi));
+}
+
+fn print_constructor_signature<T: GenerateAbi>() {
+    print!("{}", AbiPrinter(T::fmt_constructor_signature));
 }
 
 lazy_static! {
