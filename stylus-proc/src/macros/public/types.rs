@@ -332,7 +332,13 @@ impl<E: FnExtension> PublicFn<E> {
         let storage_arg = self.storage_arg();
         if matches!(self.kind, FnKind::FallbackNoArgs) {
             return parse_quote! {
-                return Some(Self::#name(#storage_arg));
+                return Some({
+                    if let Err(err) = Self::#name(#storage_arg) {
+                       Err(err)
+                    } else {
+                        Ok(Vec::new())
+                    }
+                });
             };
         }
         parse_quote! {
