@@ -8,7 +8,7 @@
 //!
 //! [cargo]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use core::fmt;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -16,29 +16,44 @@ use regex::Regex;
 #[doc(hidden)]
 pub mod internal;
 
-/// Export the Stylus contract ABI as a Solidity interface.
+const DEFAULT_LICENSE: &str = "MIT-OR-APACHE-2.0";
+const DEFAULT_PRAGMA: &str = "pragma solidity ^0.8.23;";
+
+/// Export information about the Stylus contract.
 #[derive(Parser)]
-struct ExportAbiArgs {
-    /// Lisense of the generated ABI file.
-    #[arg(long, default_value = "MIT-OR-APACHE-2.0")]
-    license: String,
+struct ExportCLI {
+    #[command(subcommand)]
+    commands: Option<ExportCommands>,
+}
 
-    /// Solidity pragma line on the generated ABI file.
-    #[arg(long, default_value = "pragma solidity ^0.8.23;")]
-    pragma: String,
-
-    /// If true, export the constructor signature instead of the Solidity interface.
-    #[arg(long)]
-    constructor_signature: bool,
+#[derive(Subcommand)]
+enum ExportCommands {
+    /// Export the Stylus contract ABI as a Solidity interface.
+    Abi {
+        /// Lisense of the generated ABI file.
+        #[arg(long, default_value = DEFAULT_LICENSE)]
+        license: String,
+        /// Solidity pragma line on the generated ABI file.
+        #[arg(long, default_value = DEFAULT_PRAGMA)]
+        pragma: String,
+    },
+    /// Export the constructor signature.
+    Constructor,
 }
 
 /// Prints the ABI given the CLI options.
 pub fn print_from_args<T: GenerateAbi>() {
-    let args = ExportAbiArgs::parse();
-    if args.constructor_signature {
-        print_constructor_signature::<T>();
-    } else {
-        print_abi::<T>(&args.license, &args.pragma);
+    let args = ExportCLI::parse();
+    match args.commands {
+        None => {
+            print_abi::<T>(DEFAULT_LICENSE, DEFAULT_PRAGMA);
+        }
+        Some(ExportCommands::Abi { license, pragma }) => {
+            print_abi::<T>(&license, &pragma);
+        }
+        Some(ExportCommands::Constructor) => {
+            print_constructor_signature::<T>();
+        }
     }
 }
 
