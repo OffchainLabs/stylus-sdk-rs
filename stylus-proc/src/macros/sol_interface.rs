@@ -160,7 +160,7 @@ impl From<&syn_solidity::ItemContract> for Interface {
         let mut iface = Self {
             item_struct: parse_quote! {
                 #(#attrs)*
-                struct #name {
+                pub struct #name {
                     pub address: #AlloyAddress,
                 }
             },
@@ -333,7 +333,7 @@ mod tests {
             &visitor.interfaces[0].item_struct,
             &parse_quote! {
                 #[interface_attr]
-                struct IService {
+                pub struct IService {
                     pub address: stylus_sdk::alloy_primitives::Address,
                 }
             },
