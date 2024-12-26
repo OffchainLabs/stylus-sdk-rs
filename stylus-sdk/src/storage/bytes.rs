@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
-use crate::crypto;
+use crate::{crypto, host::Host};
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -11,26 +11,28 @@ use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
 
 /// Accessor for storage-backed bytes.
-pub struct StorageBytes {
+pub struct StorageBytes<'a, H: Host> {
     root: U256,
     base: OnceCell<U256>,
+    host: &'a H,
 }
 
-impl StorageType for StorageBytes {
+impl<'b, H: Host> StorageType<H> for StorageBytes<'b, H> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageBytes>
+        = StorageGuard<'a, StorageBytes<'b, H>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageBytes>
+        = StorageGuardMut<'a, StorageBytes<'b, H>>
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8) -> Self {
+    unsafe fn new(root: U256, offset: u8, host: &'b H) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
             base: OnceCell::new(),
+            host,
         }
     }
 
@@ -43,7 +45,7 @@ impl StorageType for StorageBytes {
     }
 }
 
-impl StorageBytes {
+impl<'a, H: Host> StorageBytes<'a, H> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -186,7 +188,7 @@ impl StorageBytes {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        let value = unsafe { StorageB8::new(slot, offset) };
+        let value = unsafe { StorageB8::new(slot, offset, self.host) };
         Some(StorageGuardMut::new(value))
     }
 
@@ -234,7 +236,7 @@ impl StorageBytes {
     }
 }
 
-impl Erase for StorageBytes {
+impl<'a, H: Host> Erase<H> for StorageBytes<'a, H> {
     fn erase(&mut self) {
         let mut len = self.len() as isize;
         if len > 31 {
@@ -248,7 +250,7 @@ impl Erase for StorageBytes {
     }
 }
 
-impl Extend<u8> for StorageBytes {
+impl<'a, H: Host> Extend<u8> for StorageBytes<'a, H> {
     fn extend<T: IntoIterator<Item = u8>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);
@@ -256,7 +258,7 @@ impl Extend<u8> for StorageBytes {
     }
 }
 
-impl<'a> Extend<&'a u8> for StorageBytes {
+impl<'a, 'b, H: Host> Extend<&'a u8> for StorageBytes<'b, H> {
     fn extend<T: IntoIterator<Item = &'a u8>>(&mut self, iter: T) {
         for elem in iter {
             self.push(*elem);
@@ -265,20 +267,20 @@ impl<'a> Extend<&'a u8> for StorageBytes {
 }
 
 /// Accessor for storage-backed bytes
-pub struct StorageString(pub StorageBytes);
+pub struct StorageString<'a, H: Host>(pub StorageBytes<'a, H>);
 
-impl StorageType for StorageString {
+impl<'b, H: Host> StorageType<H> for StorageString<'b, H> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageString>
+        = StorageGuard<'a, StorageString<'b, H>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageString>
+        = StorageGuardMut<'a, StorageString<'b, H>>
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
-        Self(StorageBytes::new(slot, offset))
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
+        Self(StorageBytes::new(slot, offset, host))
     }
 
     fn load<'s>(self) -> Self::Wraps<'s> {
@@ -290,7 +292,7 @@ impl StorageType for StorageString {
     }
 }
 
-impl StorageString {
+impl<'a, H: Host> StorageString<'a, H> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -323,13 +325,13 @@ impl StorageString {
     }
 }
 
-impl Erase for StorageString {
+impl<'a, H: Host> Erase<H> for StorageString<'a, H> {
     fn erase(&mut self) {
         self.0.erase()
     }
 }
 
-impl Extend<char> for StorageString {
+impl<'a, H: Host> Extend<char> for StorageString<'a, H> {
     fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
         for c in iter {
             self.push(c);
