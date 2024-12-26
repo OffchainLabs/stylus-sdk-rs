@@ -8,13 +8,15 @@ use alloy_primitives::U256;
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed array.
-pub struct StorageArray<'a, H: Host, S: StorageType<H>, const N: usize> {
+pub struct StorageArray<'a, H: Host, S: StorageType<'a, H>, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
     host: &'a H,
 }
 
-impl<'b, H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray<'b, H, S, N> {
+impl<'b, H: Host, S: StorageType<'b, H>, const N: usize> StorageType<'b, H>
+    for StorageArray<'b, H, S, N>
+{
     type Wraps<'a>
         = StorageGuard<'a, StorageArray<'a, H, S, N>>
     where
@@ -44,7 +46,7 @@ impl<'b, H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageA
     }
 }
 
-impl<'a, H: Host, S: StorageType<H>, const N: usize> StorageArray<'a, H, S, N> {
+impl<'a, H: Host, S: StorageType<'a, H>, const N: usize> StorageArray<'a, H, S, N> {
     /// Gets the number of elements stored.
     ///
     /// Although this type will always have the same length, this method is still provided for
@@ -134,7 +136,7 @@ impl<'a, H: Host, S: StorageType<H>, const N: usize> StorageArray<'a, H, S, N> {
     }
 }
 
-impl<'a, H: Host, S: Erase<H>, const N: usize> Erase<H> for StorageArray<'a, H, S, N> {
+impl<'a, H: Host, S: Erase<'a, H>, const N: usize> Erase<'a, H> for StorageArray<'a, H, S, N> {
     fn erase(&mut self) {
         for i in 0..N {
             let mut store = unsafe { self.accessor_unchecked(i) };

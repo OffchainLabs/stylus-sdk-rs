@@ -70,7 +70,7 @@ pub trait StorageType<'b, H: Host>: Sized {
 
 /// Trait for accessors that can be used to completely erase their underlying value.
 /// Note that some collections, like [`StorageMap`](super::StorageMap), don't implement this trait.
-pub trait Erase<H: Host>: StorageType<H> {
+pub trait Erase<'a, H: Host>: StorageType<'a, H> {
     /// Erase the value from persistent storage.
     fn erase(&mut self);
 }
@@ -79,7 +79,7 @@ pub trait Erase<H: Host>: StorageType<H> {
 /// The type's representation must be entirely inline, or storage leaks become possible.
 /// Note: it is a logic error if erasure does anything more than writing the zero-value.
 pub trait SimpleStorageType<'a, H: Host>:
-    StorageType<H> + Erase<H> + Into<Self::Wraps<'a>>
+    StorageType<'a, H> + Erase<'a, H> + Into<Self::Wraps<'a>>
 where
     Self: 'a,
 {

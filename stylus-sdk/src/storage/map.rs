@@ -9,16 +9,16 @@ use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed map.
-pub struct StorageMap<'a, H: Host, K: StorageKey, V: StorageType<H>> {
+pub struct StorageMap<'a, H: Host, K: StorageKey, V: StorageType<'a, H>> {
     slot: U256,
     marker: PhantomData<(K, V)>,
     host: &'a H,
 }
 
-impl<'b, H: Host, K, V> StorageType<H> for StorageMap<'b, H, K, V>
+impl<'b, H: Host, K, V> StorageType<'b, H> for StorageMap<'b, H, K, V>
 where
     K: StorageKey,
-    V: StorageType<H>,
+    V: StorageType<'b, H>,
 {
     type Wraps<'a>
         = StorageGuard<'a, StorageMap<'b, H, K, V>>
@@ -50,7 +50,7 @@ where
 impl<'a, H: Host, K, V> StorageMap<'a, H, K, V>
 where
     K: StorageKey,
-    V: StorageType<H>,
+    V: StorageType<'a, H>,
 {
     /// Where in a word to access the wrapped value.
     const CHILD_OFFSET: u8 = 32 - V::SLOT_BYTES as u8;
@@ -78,7 +78,7 @@ where
     }
 }
 
-impl<'a, 'b, H: Host, K, V> StorageMap<'b, H, K, V>
+impl<'a, H: Host, K, V> StorageMap<'a, H, K, V>
 where
     K: StorageKey,
     V: SimpleStorageType<'a, H>,
@@ -121,7 +121,7 @@ where
 impl<'a, H: Host, K, V> StorageMap<'a, H, K, V>
 where
     K: StorageKey,
-    V: Erase<H>,
+    V: Erase<'a, H>,
 {
     /// Delete the element at the given key, if it exists.
     pub fn delete(&mut self, key: K) {

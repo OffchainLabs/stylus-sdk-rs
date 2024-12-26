@@ -17,7 +17,7 @@ pub struct StorageBytes<'a, H: Host> {
     host: &'a H,
 }
 
-impl<'b, H: Host> StorageType<H> for StorageBytes<'b, H> {
+impl<'b, H: Host> StorageType<'b, H> for StorageBytes<'b, H> {
     type Wraps<'a>
         = StorageGuard<'a, StorageBytes<'b, H>>
     where
@@ -236,7 +236,7 @@ impl<'a, H: Host> StorageBytes<'a, H> {
     }
 }
 
-impl<'a, H: Host> Erase<H> for StorageBytes<'a, H> {
+impl<'a, H: Host> Erase<'a, H> for StorageBytes<'a, H> {
     fn erase(&mut self) {
         let mut len = self.len() as isize;
         if len > 31 {
@@ -269,7 +269,7 @@ impl<'a, 'b, H: Host> Extend<&'a u8> for StorageBytes<'b, H> {
 /// Accessor for storage-backed bytes
 pub struct StorageString<'a, H: Host>(pub StorageBytes<'a, H>);
 
-impl<'b, H: Host> StorageType<H> for StorageString<'b, H> {
+impl<'b, H: Host> StorageType<'b, H> for StorageString<'b, H> {
     type Wraps<'a>
         = StorageGuard<'a, StorageString<'b, H>>
     where
@@ -325,7 +325,7 @@ impl<'a, H: Host> StorageString<'a, H> {
     }
 }
 
-impl<'a, H: Host> Erase<H> for StorageString<'a, H> {
+impl<'a, H: Host> Erase<'a, H> for StorageString<'a, H> {
     fn erase(&mut self) {
         self.0.erase()
     }

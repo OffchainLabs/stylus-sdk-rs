@@ -9,14 +9,14 @@ use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
-pub struct StorageVec<'a, H: Host, S: StorageType<H>> {
+pub struct StorageVec<'a, H: Host, S: StorageType<'a, H>> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
     host: &'a H,
 }
 
-impl<'b, H: Host, S: StorageType<H>> StorageType<H> for StorageVec<'b, H, S> {
+impl<'b, H: Host, S: StorageType<'b, H>> StorageType<'b, H> for StorageVec<'b, H, S> {
     type Wraps<'a>
         = StorageGuard<'a, StorageVec<'b, H, S>>
     where
@@ -45,7 +45,7 @@ impl<'b, H: Host, S: StorageType<H>> StorageType<H> for StorageVec<'b, H, S> {
     }
 }
 
-impl<'a, H: Host, S: StorageType<H>> StorageVec<'a, H, S> {
+impl<'a, H: Host, S: StorageType<'a, H>> StorageVec<'a, H, S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -195,7 +195,7 @@ impl<'a, H: Host, S: StorageType<H>> StorageVec<'a, H, S> {
     }
 }
 
-impl<'a, 'b, H: Host, S: SimpleStorageType<'a, H>> StorageVec<'b, H, S> {
+impl<'a, H: Host, S: SimpleStorageType<'a, H>> StorageVec<'a, H, S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
@@ -222,7 +222,7 @@ impl<'a, 'b, H: Host, S: SimpleStorageType<'a, H>> StorageVec<'b, H, S> {
     }
 }
 
-impl<'a, H: Host, S: Erase<H>> StorageVec<'a, H, S> {
+impl<'a, H: Host, S: Erase<'a, H>> StorageVec<'a, H, S> {
     /// Removes and erases the last element of the vector.
     pub fn erase_last(&mut self) {
         if self.is_empty() {
@@ -236,7 +236,7 @@ impl<'a, H: Host, S: Erase<H>> StorageVec<'a, H, S> {
     }
 }
 
-impl<'a, H: Host, S: Erase<H>> Erase<H> for StorageVec<'a, H, S> {
+impl<'a, H: Host, S: Erase<'a, H>> Erase<'a, H> for StorageVec<'a, H, S> {
     fn erase(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
@@ -246,7 +246,7 @@ impl<'a, H: Host, S: Erase<H>> Erase<H> for StorageVec<'a, H, S> {
     }
 }
 
-impl<'a, 'b, H: Host, S: SimpleStorageType<'a, H>> Extend<S::Wraps<'a>> for StorageVec<'b, H, S> {
+impl<'a, H: Host, S: SimpleStorageType<'a, H>> Extend<S::Wraps<'a>> for StorageVec<'a, H, S> {
     fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);
