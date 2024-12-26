@@ -9,12 +9,14 @@ use core::{
 };
 use derivative::Derivative;
 
+use crate::host::Host;
+
 /// Accessor trait that lets a type be used in persistent storage.
 /// Users can implement this trait to add novel data structures to their contract definitions.
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
-pub trait StorageType: Sized {
+pub trait StorageType<H: Host>: Sized {
     /// For primitive types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
     type Wraps<'a>: 'a
@@ -51,7 +53,7 @@ pub trait StorageType: Sized {
     /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn new(slot: U256, offset: u8) -> Self;
+    unsafe fn new(slot: U256, offset: u8, host: &H) -> Self;
 
     /// Load the wrapped type, consuming the accessor.
     /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.
@@ -68,7 +70,7 @@ pub trait StorageType: Sized {
 
 /// Trait for accessors that can be used to completely erase their underlying value.
 /// Note that some collections, like [`StorageMap`](super::StorageMap), don't implement this trait.
-pub trait Erase: StorageType {
+pub trait Erase<H: Host>: StorageType<H> {
     /// Erase the value from persistent storage.
     fn erase(&mut self);
 }
@@ -76,7 +78,8 @@ pub trait Erase: StorageType {
 /// Trait for simple accessors that store no more than their wrapped value.
 /// The type's representation must be entirely inline, or storage leaks become possible.
 /// Note: it is a logic error if erasure does anything more than writing the zero-value.
-pub trait SimpleStorageType<'a>: StorageType + Erase + Into<Self::Wraps<'a>>
+pub trait SimpleStorageType<'a, H: Host>:
+    StorageType<H> + Erase<H> + Into<Self::Wraps<'a>>
 where
     Self: 'a,
 {

@@ -100,10 +100,10 @@ where
 pub fn router_entrypoint<R, S, H>(input: alloc::vec::Vec<u8>, host: H) -> ArbResult
 where
     R: Router<S>,
-    S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
+    S: StorageType<H> + TopLevelStorage + BorrowMut<R::Storage>,
     H: Host,
 {
-    let mut storage = unsafe { S::new(U256::ZERO, 0) };
+    let mut storage = unsafe { S::new(U256::ZERO, 0, &host) };
 
     if input.is_empty() {
         console!("no calldata provided");

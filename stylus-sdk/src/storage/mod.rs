@@ -74,7 +74,7 @@ macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::U", stringify!($bits), "`].")]
-            pub type $name = StorageUint<$bits, $limbs>;
+            pub type $name<'a, H: Host> = StorageUint<'a, $bits, $limbs, H>;
 
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::I", stringify!($bits), "`].")]
             pub type $signed_name = StorageSigned<$bits, $limbs>;
@@ -121,16 +121,17 @@ alias_bytes! {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageUint<const B: usize, const L: usize>
+pub struct StorageUint<'a, const B: usize, const L: usize, H: Host>
 where
     IntBitCount<B>: SupportedInt,
 {
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
+    host: &'a H,
 }
 
-impl<const B: usize, const L: usize> StorageUint<B, L>
+impl<'a, const B: usize, const L: usize, H: Host> StorageUint<'_, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -146,21 +147,24 @@ where
     }
 }
 
-impl<const B: usize, const L: usize> StorageType for StorageUint<B, L>
+impl<'b, const B: usize, const L: usize, H: Host> StorageType<H> for StorageUint<'b, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
     type Wraps<'a> = Uint<B, L>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
-
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
@@ -173,7 +177,7 @@ where
     }
 }
 
-impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L>
+impl<'a, const B: usize, const L: usize, H: Host> SimpleStorageType<'a> for StorageUint<'a, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -182,7 +186,7 @@ where
     }
 }
 
-impl<const B: usize, const L: usize> Erase for StorageUint<B, L>
+impl<'a, const B: usize, const L: usize, H: Host> Erase for StorageUint<'a, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -191,7 +195,7 @@ where
     }
 }
 
-impl<const B: usize, const L: usize> Deref for StorageUint<B, L>
+impl<'a, const B: usize, const L: usize, H: Host> Deref for StorageUint<'a, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -203,11 +207,11 @@ where
     }
 }
 
-impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L>
+impl<'a, const B: usize, const L: usize, H: Host> From<StorageUint<'a, B, L, H>> for Uint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn from(value: StorageUint<B, L>) -> Self {
+    fn from(value: StorageUint<'a, B, L, H>) -> Self {
         *value
     }
 }
