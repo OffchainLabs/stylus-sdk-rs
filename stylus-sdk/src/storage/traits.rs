@@ -16,7 +16,7 @@ use crate::host::Host;
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
-pub trait StorageType<H: Host>: Sized {
+pub trait StorageType<'b, H: Host>: Sized {
     /// For primitive types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
     type Wraps<'a>: 'a
@@ -53,7 +53,7 @@ pub trait StorageType<H: Host>: Sized {
     /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn new(slot: U256, offset: u8, host: &H) -> Self;
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self;
 
     /// Load the wrapped type, consuming the accessor.
     /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.

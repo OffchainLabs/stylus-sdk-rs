@@ -147,11 +147,14 @@ where
     }
 }
 
-impl<'b, const B: usize, const L: usize, H: Host> StorageType<H> for StorageUint<'b, B, L, H>
+impl<'b, const B: usize, const L: usize, H: Host> StorageType<'b, H> for StorageUint<'b, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
-    type Wraps<'a> = Uint<B, L>;
+    type Wraps<'a>
+        = Uint<B, L>
+    where
+        Self: 'a;
     type WrapsMut<'a>
         = StorageGuardMut<'a, Self>
     where
@@ -249,7 +252,7 @@ where
     }
 }
 
-impl<'b, H: Host, const B: usize, const L: usize> StorageType<H> for StorageSigned<'b, H, B, L>
+impl<'b, H: Host, const B: usize, const L: usize> StorageType<'b, H> for StorageSigned<'b, H, B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -338,7 +341,7 @@ impl<'a, H: Host, const N: usize> StorageFixedBytes<'a, H, N> {
     }
 }
 
-impl<'b, H: Host, const N: usize> StorageType<H> for StorageFixedBytes<'b, H, N>
+impl<'b, H: Host, const N: usize> StorageType<'b, H> for StorageFixedBytes<'b, H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
 {
@@ -400,13 +403,14 @@ impl<'a, H: Host, const N: usize> From<StorageFixedBytes<'a, H, N>> for FixedByt
 
 /// Accessor for a storage-backed [`bool`].
 #[derive(Debug)]
-pub struct StorageBool {
+pub struct StorageBool<'a, H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
+    host: &'a H,
 }
 
-impl StorageBool {
+impl<'a, H: Host> StorageBool<'a, H> {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn get(&self) -> bool {
         **self
@@ -419,17 +423,18 @@ impl StorageBool {
     }
 }
 
-impl<H: Host> StorageType<H> for StorageBool {
+impl<'b, H: Host> StorageType<'b, H> for StorageBool<'b, H> {
     type Wraps<'a> = bool;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
@@ -442,19 +447,19 @@ impl<H: Host> StorageType<H> for StorageBool {
     }
 }
 
-impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBool {
+impl<'a, 'b, H: Host> SimpleStorageType<'a, H> for StorageBool<'b, H> {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<H: Host> Erase<H> for StorageBool {
+impl<'a, H: Host> Erase<H> for StorageBool<'a, H> {
     fn erase(&mut self) {
         self.set(false);
     }
 }
 
-impl Deref for StorageBool {
+impl<'a, H: Host> Deref for StorageBool<'a, H> {
     type Target = bool;
 
     fn deref(&self) -> &Self::Target {
@@ -465,21 +470,22 @@ impl Deref for StorageBool {
     }
 }
 
-impl From<StorageBool> for bool {
-    fn from(value: StorageBool) -> Self {
+impl<'a, H: Host> From<StorageBool<'a, H>> for bool {
+    fn from(value: StorageBool<'a, H>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`Address`].
 #[derive(Debug)]
-pub struct StorageAddress {
+pub struct StorageAddress<'a, H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
+    host: &'a H,
 }
 
-impl StorageAddress {
+impl<'a, H: Host> StorageAddress<'a, H> {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn get(&self) -> Address {
         **self
@@ -492,17 +498,18 @@ impl StorageAddress {
     }
 }
 
-impl<H: Host> StorageType<H> for StorageAddress {
+impl<'b, H: Host> StorageType<'b, H> for StorageAddress<'b, H> {
     type Wraps<'a> = Address;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
@@ -515,19 +522,19 @@ impl<H: Host> StorageType<H> for StorageAddress {
     }
 }
 
-impl<'a, H: Host> SimpleStorageType<'a, H> for StorageAddress {
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageAddress<'a, H> {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<H: Host> Erase<H> for StorageAddress {
+impl<'a, H: Host> Erase<H> for StorageAddress<'a, H> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl Deref for StorageAddress {
+impl<'a, H: Host> Deref for StorageAddress<'a, H> {
     type Target = Address;
 
     fn deref(&self) -> &Self::Target {
@@ -536,8 +543,8 @@ impl Deref for StorageAddress {
     }
 }
 
-impl From<StorageAddress> for Address {
-    fn from(value: StorageAddress) -> Self {
+impl<'a, H: Host> From<StorageAddress<'a, H>> for Address {
+    fn from(value: StorageAddress<'a, H>) -> Self {
         *value
     }
 }
@@ -567,7 +574,7 @@ impl StorageBlockNumber {
     }
 }
 
-impl<H: Host> StorageType<H> for StorageBlockNumber {
+impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber {
     type Wraps<'a> = BlockNumber;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 

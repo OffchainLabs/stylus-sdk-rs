@@ -182,7 +182,7 @@ impl<'a, H: Host> StorageBytes<'a, H> {
     }
 
     /// Gets a mutable accessor to the byte at the given index, if it exists.
-    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<StorageB8>> {
+    pub fn get_mut(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<StorageB8<H>>> {
         let index = index.try_into().ok()?;
         if index >= self.len() {
             return None;
