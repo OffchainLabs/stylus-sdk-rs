@@ -4,9 +4,11 @@
 //! Defines host environment methods a Stylus contract has access to.
 
 use alloc::vec::Vec;
-use alloy_primitives::{Address, FixedBytes, U256};
+use alloy_primitives::{Address, FixedBytes, B256, U256};
 
 mod wasm;
+
+pub use wasm::GLOBAL_WASM_HOST;
 
 /// The host trait defines methods a contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
@@ -35,13 +37,13 @@ pub trait CryptographyAccess {
 /// TODO
 pub trait CalldataAccess {
     /// TODO
-    fn read_args(&self) -> Vec<u8>;
+    fn args(&self, len: usize) -> Vec<u8>;
     /// TODO
-    fn read_return_data(&self) -> Vec<u8>;
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8>;
     /// TODO
-    fn return_data_size(&self) -> usize;
+    fn return_data_len(&self) -> usize;
     /// TODO
-    fn write_result(&self);
+    fn output(&self, data: &[u8]);
 }
 
 /// TODO
@@ -57,9 +59,9 @@ pub trait StorageAccess {
     /// TODO
     fn emit_log(&self, input: &[u8]);
     /// TODO
-    fn load(&self, key: FixedBytes<32>) -> FixedBytes<32>;
+    fn load(&self, key: U256) -> B256;
     /// TODO
-    fn cache(&self, key: FixedBytes<32>, value: FixedBytes<32>);
+    fn cache(&self, key: U256, value: B256);
     /// TODO
     fn flush_cache(&self, clear: bool);
 }

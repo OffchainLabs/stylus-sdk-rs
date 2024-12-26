@@ -1,54 +1,84 @@
-use alloy_primitives::Address;
+use alloy_primitives::{Address, B256};
 use once_cell::sync::Lazy;
 
-use crate::{block, contract, evm, host::*, msg, tx, types::AddressVM};
+use crate::{block, contract, evm, host::*, hostio, msg, tx, types::AddressVM};
 
 pub static GLOBAL_WASM_HOST: Lazy<WasmHost> = Lazy::new(|| WasmHost {});
 
 pub struct WasmHost;
 
-impl Host for WasmHost {}
+//impl Host for WasmHost {}
 
-impl CryptographyAccess for WasmHost {
+impl Host for &WasmHost {}
+
+impl CryptographyAccess for &WasmHost {
     fn native_keccak256(&self, input: &[u8]) -> FixedBytes<32> {
         FixedBytes::<32>::default()
     }
 }
 
-impl CalldataAccess for WasmHost {
-    fn read_args(&self) -> Vec<u8> {
-        Vec::new()
+impl CalldataAccess for &WasmHost {
+    fn args(&self, len: usize) -> Vec<u8> {
+        let mut input = Vec::with_capacity(len);
+        unsafe {
+            hostio::read_args(input.as_mut_ptr());
+            input.set_len(len);
+        }
+        input
     }
-    fn read_return_data(&self) -> Vec<u8> {
-        Vec::new()
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
+        let size = size.unwrap_or_else(|| self.return_data_len().saturating_sub(offset));
+
+        let mut data = Vec::with_capacity(size);
+        if size > 0 {
+            unsafe {
+                let bytes_written = hostio::read_return_data(data.as_mut_ptr(), offset, size);
+                debug_assert!(bytes_written <= size);
+                data.set_len(bytes_written);
+            }
+        };
+        data
     }
-    fn return_data_size(&self) -> usize {
-        0
+    fn return_data_len(&self) -> usize {
+        contract::return_data_len()
     }
-    fn write_result(&self) {}
+    fn output(&self, data: &[u8]) {
+        unsafe {
+            hostio::write_result(data.as_ptr(), data.len());
+        }
+    }
 }
 
-impl DeploymentAccess for WasmHost {
+impl DeploymentAccess for &WasmHost {
     fn create1(&self) {}
     fn create2(&self) {}
 }
 
-impl StorageAccess for WasmHost {
+impl StorageAccess for &WasmHost {
     fn emit_log(&self, input: &[u8]) {}
-    fn load(&self, key: FixedBytes<32>) -> FixedBytes<32> {
-        FixedBytes::<32>::default()
+    fn load(&self, key: U256) -> B256 {
+        let mut data = B256::ZERO;
+        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+        data
     }
-    fn cache(&self, key: FixedBytes<32>, value: FixedBytes<32>) {}
-    fn flush_cache(&self, clear: bool) {}
+    fn cache(&self, key: U256, value: B256) {
+        // TODO: This converts the global storage method from unsafe to safe. Should we do this?
+        unsafe { hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr()) }
+    }
+    fn flush_cache(&self, clear: bool) {
+        unsafe {
+            hostio::storage_flush_cache(clear);
+        }
+    }
 }
 
-impl CallAccess for WasmHost {
+impl CallAccess for &WasmHost {
     fn call_contract(&self) {}
     fn static_call_contract(&self) {}
     fn delegate_call_contract(&self) {}
 }
 
-impl BlockAccess for WasmHost {
+impl BlockAccess for &WasmHost {
     fn block_basefee(&self) -> U256 {
         block::basefee()
     }
@@ -66,13 +96,13 @@ impl BlockAccess for WasmHost {
     }
 }
 
-impl ChainAccess for WasmHost {
+impl ChainAccess for &WasmHost {
     fn chain_id(&self) -> u64 {
         block::chainid()
     }
 }
 
-impl AccountAccess for WasmHost {
+impl AccountAccess for &WasmHost {
     fn balance(&self, account: Address) -> U256 {
         account.balance()
     }
@@ -90,11 +120,13 @@ impl AccountAccess for WasmHost {
     }
 }
 
-impl MemoryAccess for WasmHost {
-    fn pay_for_memory_grow(&self, pages: u16) {}
+impl MemoryAccess for &WasmHost {
+    fn pay_for_memory_grow(&self, pages: u16) {
+        evm::pay_for_memory_grow(pages);
+    }
 }
 
-impl MessageAccess for WasmHost {
+impl MessageAccess for &WasmHost {
     fn msg_sender(&self) -> Address {
         msg::sender()
     }
@@ -109,7 +141,7 @@ impl MessageAccess for WasmHost {
     }
 }
 
-impl MeteringAccess for WasmHost {
+impl MeteringAccess for &WasmHost {
     fn evm_gas_left(&self) -> u64 {
         evm::gas_left()
     }

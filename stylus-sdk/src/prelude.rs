@@ -9,6 +9,7 @@
 //! use stylus_sdk::prelude::*;
 //! ```
 
+pub use crate::host::GLOBAL_WASM_HOST;
 pub use crate::storage::{Erase, SimpleStorageType, StorageType, TopLevelStorage};
 pub use crate::stylus_proc::*;
 pub use crate::types::AddressVM;

@@ -22,7 +22,7 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::hostio;
+use crate::host::Host;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
@@ -52,9 +52,7 @@ pub struct StorageCache;
 impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
     fn get_word(key: U256) -> B256 {
-        let mut data = B256::ZERO;
-        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-        data
+        B256::ZERO
     }
 
     /// Stores a 32-byte EVM word to persistent storage.
@@ -62,25 +60,7 @@ impl GlobalStorage for StorageCache {
     /// # Safety
     ///
     /// May alias storage.
-    unsafe fn set_word(key: U256, value: B256) {
-        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr())
-    }
-}
-
-impl StorageCache {
-    /// Flushes the VM cache, persisting all values to the EVM state trie.
-    /// Note: this is used at the end of the [`entrypoint`] macro and is not typically called by user code.
-    ///
-    /// [`entrypoint`]: macro@stylus_proc::entrypoint
-    pub fn flush() {
-        unsafe { hostio::storage_flush_cache(false) }
-    }
-
-    /// Flushes and clears the VM cache, persisting all values to the EVM state trie.
-    /// This is useful in cases of reentrancy to ensure cached values from one call context show up in another.
-    pub fn clear() {
-        unsafe { hostio::storage_flush_cache(true) }
-    }
+    unsafe fn set_word(key: U256, value: B256) {}
 }
 
 /// Overwrites the value in a cell.
