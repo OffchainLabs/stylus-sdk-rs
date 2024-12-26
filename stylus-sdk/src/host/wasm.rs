@@ -68,7 +68,7 @@ impl BlockAccess for WasmHost {
 
 impl ChainAccess for WasmHost {
     fn chain_id(&self) -> u64 {
-        0
+        block::chainid()
     }
 }
 
@@ -80,13 +80,13 @@ impl AccountAccess for WasmHost {
         contract::address()
     }
     fn code(&self, account: Address) -> Vec<u8> {
-        Vec::new()
+        account.code()
     }
     fn code_size(&self, account: Address) -> usize {
-        0
+        account.code_size()
     }
     fn codehash(&self, account: Address) -> FixedBytes<32> {
-        FixedBytes::<32>::default()
+        account.code_hash()
     }
 }
 
@@ -105,7 +105,7 @@ impl MessageAccess for WasmHost {
         msg::value()
     }
     fn tx_origin(&self) -> Address {
-        Address::ZERO
+        tx::origin()
     }
 }
 
