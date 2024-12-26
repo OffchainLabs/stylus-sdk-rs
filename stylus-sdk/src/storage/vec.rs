@@ -4,33 +4,35 @@
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::crypto;
+use crate::{crypto, host::Host};
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
-pub struct StorageVec<S: StorageType> {
+pub struct StorageVec<'a, H: Host, S: StorageType<H>> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
+    host: &'a H,
 }
 
-impl<S: StorageType> StorageType for StorageVec<S> {
+impl<'b, H: Host, S: StorageType<H>> StorageType<H> for StorageVec<'b, H, S> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageVec<S>>
+        = StorageGuard<'a, StorageVec<'b, H, S>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageVec<S>>
+        = StorageGuardMut<'a, StorageVec<'b, H, S>>
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             base: OnceCell::new(),
             marker: PhantomData,
+            host,
         }
     }
 
@@ -43,7 +45,7 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     }
 }
 
-impl<S: StorageType> StorageVec<S> {
+impl<'a, H: Host, S: StorageType<H>> StorageVec<'a, H, S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -95,7 +97,7 @@ impl<S: StorageType> StorageVec<S> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, self.host))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -105,7 +107,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, self.host)
     }
 
     /// Gets the element at the given index, if it exists.
@@ -144,7 +146,7 @@ impl<S: StorageType> StorageVec<S> {
         unsafe { self.set_len(index + 1) };
 
         let (slot, offset) = self.index_slot(index);
-        let store = unsafe { S::new(slot, offset) };
+        let store = unsafe { S::new(slot, offset, self.host) };
         StorageGuardMut::new(store)
     }
 
@@ -193,7 +195,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 }
 
-impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
+impl<'a, 'b, H: Host, S: SimpleStorageType<'a, H>> StorageVec<'b, H, S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
@@ -220,7 +222,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     }
 }
 
-impl<S: Erase> StorageVec<S> {
+impl<'a, H: Host, S: Erase<H>> StorageVec<'a, H, S> {
     /// Removes and erases the last element of the vector.
     pub fn erase_last(&mut self) {
         if self.is_empty() {
@@ -234,7 +236,7 @@ impl<S: Erase> StorageVec<S> {
     }
 }
 
-impl<S: Erase> Erase for StorageVec<S> {
+impl<'a, H: Host, S: Erase<H>> Erase<H> for StorageVec<'a, H, S> {
     fn erase(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
@@ -244,7 +246,7 @@ impl<S: Erase> Erase for StorageVec<S> {
     }
 }
 
-impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
+impl<'a, 'b, H: Host, S: SimpleStorageType<'a, H>> Extend<S::Wraps<'a>> for StorageVec<'b, H, S> {
     fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);
