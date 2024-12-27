@@ -171,7 +171,10 @@ where
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -256,8 +259,14 @@ impl<'b, H: Host, const B: usize, const L: usize> StorageType<'b, H> for Storage
 where
     IntBitCount<B>: SupportedInt,
 {
-    type Wraps<'a> = Signed<B, L>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = Signed<B, L>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = (B / 8);
 
@@ -270,7 +279,10 @@ where
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -279,8 +291,8 @@ where
     }
 }
 
-impl<'a, 'b, H: Host, const B: usize, const L: usize> SimpleStorageType<'b, H>
-    for StorageSigned<'b, H, B, L>
+impl<'a, H: Host, const B: usize, const L: usize> SimpleStorageType<'a, H>
+    for StorageSigned<'a, H, B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -345,8 +357,14 @@ impl<'b, H: Host, const N: usize> StorageType<'b, H> for StorageFixedBytes<'b, H
 where
     ByteCount<N>: SupportedFixedBytes,
 {
-    type Wraps<'a> = FixedBytes<N>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = FixedBytes<N>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = N;
 
@@ -359,7 +377,10 @@ where
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -368,7 +389,7 @@ where
     }
 }
 
-impl<'a, 'b, H: Host, const N: usize> SimpleStorageType<'b, H> for StorageFixedBytes<'b, H, N>
+impl<'a, H: Host, const N: usize> SimpleStorageType<'a, H> for StorageFixedBytes<'a, H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
 {
@@ -424,8 +445,14 @@ impl<'a, H: Host> StorageBool<'a, H> {
 }
 
 impl<'b, H: Host> StorageType<'b, H> for StorageBool<'b, H> {
-    type Wraps<'a> = bool;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = bool
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 1;
 
@@ -438,7 +465,10 @@ impl<'b, H: Host> StorageType<'b, H> for StorageBool<'b, H> {
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -499,8 +529,14 @@ impl<'a, H: Host> StorageAddress<'a, H> {
 }
 
 impl<'b, H: Host> StorageType<'b, H> for StorageAddress<'b, H> {
-    type Wraps<'a> = Address;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = Address
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 20;
 
@@ -513,7 +549,10 @@ impl<'b, H: Host> StorageType<'b, H> for StorageAddress<'b, H> {
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -576,8 +615,14 @@ impl<'a, H: Host> StorageBlockNumber<'a, H> {
 }
 
 impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber<'b, H> {
-    type Wraps<'a> = BlockNumber;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = BlockNumber
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 8;
 
@@ -590,7 +635,10 @@ impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber<'b, H> {
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -653,15 +701,24 @@ impl<'a, H: Host> StorageBlockHash<'a, H> {
 }
 
 impl<'b, H: Host> StorageType<'b, H> for StorageBlockHash<'b, H> {
-    type Wraps<'a> = BlockHash;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = BlockHash
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     unsafe fn new(slot: U256, _offset: u8, host: &'b H) -> Self {
         let cached = OnceCell::new();
         Self { slot, cached, host }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
