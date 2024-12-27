@@ -5,11 +5,12 @@
 //! of programs by using a MockHost which implements the [`Host`] trait and provides
 //! Foundry-style cheatcodes for programs.
 
-use alloy_primitives::{Address, FixedBytes, U256};
+use alloc::vec::Vec;
+use alloy_primitives::{Address, FixedBytes, B256, U256};
 
+use crate::host::*;
 /// The host trait defines methods a contract can use to interact
 /// with a host environment, such as the EVM.
-use crate::host::Host;
 
 /// Extends the host trait to implement Foundry-style cheatcodes.
 pub trait CheatcodeProvider: Host {
@@ -46,11 +47,123 @@ pub trait CheatcodeProvider: Host {
 #[derive(Default)]
 pub struct MockHost;
 
-//impl Host for MockHost {
-//    fn msg_sender() -> Address {
-//        Address::ZERO
-//    }
-//}
+impl Host for MockHost {}
+
+impl CryptographyAccess for MockHost {
+    fn native_keccak256(&self, input: &[u8]) -> FixedBytes<32> {
+        FixedBytes::<32>::default()
+    }
+}
+
+impl CalldataAccess for MockHost {
+    fn args(&self, len: usize) -> Vec<u8> {
+        Vec::new()
+    }
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
+        Vec::new()
+    }
+    fn return_data_len(&self) -> usize {
+        0
+    }
+    fn output(&self, data: &[u8]) {}
+}
+
+impl DeploymentAccess for MockHost {
+    fn create1(&self) {}
+    fn create2(&self) {}
+}
+
+impl StorageAccess for MockHost {
+    fn emit_log(&self, input: &[u8]) {}
+    fn load(&self, key: U256) -> B256 {
+        B256::default()
+    }
+    fn cache(&self, key: U256, value: B256) {}
+    fn flush_cache(&self, clear: bool) {}
+}
+
+impl CallAccess for MockHost {
+    fn call_contract(&self) {}
+    fn static_call_contract(&self) {}
+    fn delegate_call_contract(&self) {}
+}
+
+impl BlockAccess for MockHost {
+    fn block_basefee(&self) -> U256 {
+        U256::ZERO
+    }
+    fn block_coinbase(&self) -> Address {
+        Address::ZERO
+    }
+    fn block_number(&self) -> u64 {
+        0
+    }
+    fn block_timestamp(&self) -> u64 {
+        0
+    }
+    fn block_gas_limit(&self) -> u64 {
+        0
+    }
+}
+
+impl ChainAccess for MockHost {
+    fn chain_id(&self) -> u64 {
+        0
+    }
+}
+
+impl AccountAccess for MockHost {
+    fn balance(&self, account: Address) -> U256 {
+        U256::ZERO
+    }
+    fn contract_address(&self) -> Address {
+        Address::ZERO
+    }
+    fn code(&self, account: Address) -> Vec<u8> {
+        Vec::new()
+    }
+    fn code_size(&self, account: Address) -> usize {
+        0
+    }
+    fn codehash(&self, account: Address) -> FixedBytes<32> {
+        FixedBytes::<32>::default()
+    }
+}
+
+impl MemoryAccess for MockHost {
+    fn pay_for_memory_grow(&self, pages: u16) {}
+}
+
+impl MessageAccess for MockHost {
+    fn msg_sender(&self) -> Address {
+        Address::ZERO
+    }
+    fn msg_reentrant(&self) -> bool {
+        false
+    }
+    fn msg_value(&self) -> U256 {
+        U256::ZERO
+    }
+    fn tx_origin(&self) -> Address {
+        Address::ZERO
+    }
+}
+
+impl MeteringAccess for MockHost {
+    fn evm_gas_left(&self) -> u64 {
+        0
+    }
+    fn evm_ink_left(&self) -> u64 {
+        0
+    }
+    fn tx_gas_price(&self) -> U256 {
+        U256::ZERO
+    }
+    fn tx_ink_price(&self) -> u32 {
+        0
+    }
+}
+
 //
 //impl CheatcodeProvider for MockHost {
 //    fn warp(&mut self, t: U256) {}
