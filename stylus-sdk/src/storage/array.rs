@@ -18,11 +18,11 @@ impl<'b, H: Host, S: StorageType<'b, H>, const N: usize> StorageType<'b, H>
     for StorageArray<'b, H, S, N>
 {
     type Wraps<'a>
-        = StorageGuard<'a, StorageArray<'a, H, S, N>>
+        = StorageGuard<'a, StorageArray<'b, H, S, N>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageArray<'a, H, S, N>>
+        = StorageGuardMut<'a, StorageArray<'b, H, S, N>>
     where
         Self: 'a;
 

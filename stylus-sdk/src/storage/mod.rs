@@ -190,7 +190,7 @@ where
     }
 }
 
-impl<'a, const B: usize, const L: usize, H: Host> Erase<H> for StorageUint<'a, B, L, H>
+impl<'a, const B: usize, const L: usize, H: Host> Erase<'a, H> for StorageUint<'a, B, L, H>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -279,7 +279,7 @@ where
     }
 }
 
-impl<'a, 'b, H: Host, const B: usize, const L: usize> SimpleStorageType<'a, H>
+impl<'a, 'b, H: Host, const B: usize, const L: usize> SimpleStorageType<'b, H>
     for StorageSigned<'b, H, B, L>
 where
     IntBitCount<B>: SupportedInt,
@@ -289,7 +289,7 @@ where
     }
 }
 
-impl<'a, H: Host, const B: usize, const L: usize> Erase<H> for StorageSigned<'a, H, B, L>
+impl<'a, H: Host, const B: usize, const L: usize> Erase<'a, H> for StorageSigned<'a, H, B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -368,7 +368,7 @@ where
     }
 }
 
-impl<'a, 'b, H: Host, const N: usize> SimpleStorageType<'a, H> for StorageFixedBytes<'b, H, N>
+impl<'a, 'b, H: Host, const N: usize> SimpleStorageType<'b, H> for StorageFixedBytes<'b, H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
 {
@@ -377,7 +377,7 @@ where
     }
 }
 
-impl<'a, H: Host, const N: usize> Erase<H> for StorageFixedBytes<'a, H, N>
+impl<'a, H: Host, const N: usize> Erase<'a, H> for StorageFixedBytes<'a, H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
 {
@@ -447,13 +447,13 @@ impl<'b, H: Host> StorageType<'b, H> for StorageBool<'b, H> {
     }
 }
 
-impl<'a, 'b, H: Host> SimpleStorageType<'a, H> for StorageBool<'b, H> {
-    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
+impl<'b, H: Host> SimpleStorageType<'b, H> for StorageBool<'b, H> {
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'b>) {
         self.set(value);
     }
 }
 
-impl<'a, H: Host> Erase<H> for StorageBool<'a, H> {
+impl<'a, H: Host> Erase<'a, H> for StorageBool<'a, H> {
     fn erase(&mut self) {
         self.set(false);
     }
@@ -528,7 +528,7 @@ impl<'a, H: Host> SimpleStorageType<'a, H> for StorageAddress<'a, H> {
     }
 }
 
-impl<'a, H: Host> Erase<H> for StorageAddress<'a, H> {
+impl<'a, H: Host> Erase<'a, H> for StorageAddress<'a, H> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
@@ -554,13 +554,14 @@ impl<'a, H: Host> From<StorageAddress<'a, H>> for Address {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockNumber`].
 #[derive(Debug)]
-pub struct StorageBlockNumber {
+pub struct StorageBlockNumber<'a, H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
+    host: &'a H,
 }
 
-impl StorageBlockNumber {
+impl<'a, H: Host> StorageBlockNumber<'a, H> {
     /// Gets the underlying [`BlockNumber`] in persistent storage.
     pub fn get(&self) -> BlockNumber {
         **self
@@ -574,17 +575,18 @@ impl StorageBlockNumber {
     }
 }
 
-impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber {
+impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber<'b, H> {
     type Wraps<'a> = BlockNumber;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: &'b H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
@@ -597,19 +599,19 @@ impl<'b, H: Host> StorageType<'b, H> for StorageBlockNumber {
     }
 }
 
-impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockNumber {
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockNumber<'a, H> {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<H: Host> Erase<H> for StorageBlockNumber {
+impl<'a, H: Host> Erase<'a, H> for StorageBlockNumber<'a, H> {
     fn erase(&mut self) {
         self.set(0);
     }
 }
 
-impl Deref for StorageBlockNumber {
+impl<'a, H: Host> Deref for StorageBlockNumber<'a, H> {
     type Target = BlockNumber;
 
     fn deref(&self) -> &Self::Target {
@@ -620,8 +622,8 @@ impl Deref for StorageBlockNumber {
     }
 }
 
-impl From<StorageBlockNumber> for BlockNumber {
-    fn from(value: StorageBlockNumber) -> Self {
+impl<'a, H: Host> From<StorageBlockNumber<'a, H>> for BlockNumber {
+    fn from(value: StorageBlockNumber<'a, H>) -> Self {
         *value
     }
 }
@@ -631,12 +633,13 @@ impl From<StorageBlockNumber> for BlockNumber {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockHash`].
 #[derive(Clone, Debug)]
-pub struct StorageBlockHash {
+pub struct StorageBlockHash<'a, H: Host> {
     slot: U256,
     cached: OnceCell<BlockHash>,
+    host: &'a H,
 }
 
-impl StorageBlockHash {
+impl<'a, H: Host> StorageBlockHash<'a, H> {
     /// Gets the underlying [`BlockHash`] in persistent storage.
     pub fn get(&self) -> BlockHash {
         **self
@@ -649,13 +652,13 @@ impl StorageBlockHash {
     }
 }
 
-impl<H: Host> StorageType<H> for StorageBlockHash {
+impl<'b, H: Host> StorageType<'b, H> for StorageBlockHash<'b, H> {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    unsafe fn new(slot: U256, _offset: u8) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, host: &'b H) -> Self {
         let cached = OnceCell::new();
-        Self { slot, cached }
+        Self { slot, cached, host }
     }
 
     fn load<'s>(self) -> Self::Wraps<'s> {
@@ -667,19 +670,19 @@ impl<H: Host> StorageType<H> for StorageBlockHash {
     }
 }
 
-impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockHash {
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockHash<'a, H> {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<H: Host> Erase<H> for StorageBlockHash {
+impl<'a, H: Host> Erase<'a, H> for StorageBlockHash<'a, H> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl Deref for StorageBlockHash {
+impl<'a, H: Host> Deref for StorageBlockHash<'a, H> {
     type Target = BlockHash;
 
     fn deref(&self) -> &Self::Target {
@@ -687,14 +690,14 @@ impl Deref for StorageBlockHash {
     }
 }
 
-impl From<StorageBlockHash> for BlockHash {
-    fn from(value: StorageBlockHash) -> Self {
+impl<'a, H: Host> From<StorageBlockHash<'a, H>> for BlockHash {
+    fn from(value: StorageBlockHash<'a, H>) -> Self {
         *value
     }
 }
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
-impl<T, H: Host> StorageType<H> for PhantomData<T> {
+impl<'b, T, H: Host> StorageType<'b, H> for PhantomData<T> {
     type Wraps<'a>
         = Self
     where
@@ -707,7 +710,7 @@ impl<T, H: Host> StorageType<H> for PhantomData<T> {
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
 
-    unsafe fn new(_slot: U256, _offset: u8) -> Self {
+    unsafe fn new(_slot: U256, _offset: u8, _host: &'b H) -> Self {
         Self
     }
 
