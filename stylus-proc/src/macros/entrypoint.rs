@@ -127,7 +127,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
         fn #STRUCT_ENTRYPOINT_FN<H: Host>(input: alloc::vec::Vec<u8>, host: Rc<H>) -> stylus_sdk::ArbResult {
-            stylus_sdk::abi::router_entrypoint::<#name, #name, H>(input, host)
+            stylus_sdk::abi::router_entrypoint::<#name<H>, #name<H>, H>(input, host)
         }
     }
 }

@@ -319,7 +319,7 @@ pub trait GlobalStorage<H: Host> {
 
         if B == 256 {
             return Self::set_word(
-                host,
+                Rc::clone(&host),
                 key,
                 FixedBytes::from_slice(&value.to_be_bytes::<32>()),
             );

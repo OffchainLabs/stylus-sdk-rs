@@ -166,6 +166,9 @@ impl StorageField {
             return None;
         };
         let ty = &self.ty;
+        if ty.to_token_stream().to_string() == "Rc < H >".to_string() {
+            return None;
+        }
         Some(parse_quote! {
             #ident: {
                 let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
@@ -177,7 +180,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType<H>>::new(root, space as u8, Rc::clone(&self.host));
+                let field = <#ty as storage::StorageType<H>>::new(root, space as u8, Rc::clone(&host));
                 if words > 0 {
                     slot += words;
                     space = 32;
@@ -189,6 +192,9 @@ impl StorageField {
 
     fn size(&self) -> TokenStream {
         let ty = &self.ty;
+        if ty.to_token_stream().to_string() == "Rc < H >".to_string() {
+            return quote! {};
+        }
         quote! {
             let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
             let words = <#ty as storage::StorageType<H>>::REQUIRED_SLOTS;
