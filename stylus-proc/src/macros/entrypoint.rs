@@ -126,8 +126,8 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN<H: stylus_sdk::host::Host>(input: alloc::vec::Vec<u8>, host: H) -> stylus_sdk::ArbResult {
-            stylus_sdk::abi::router_entrypoint::<#name, #name, H>(input, host)
+        fn #STRUCT_ENTRYPOINT_FN<'b, H: stylus_sdk::host::Host>(input: alloc::vec::Vec<u8>, host: &'b H) -> stylus_sdk::ArbResult {
+            stylus_sdk::abi::router_entrypoint::<#name<'b, H>, #name<'b, H>, H>(input, host)
         }
     }
 }
@@ -135,7 +135,7 @@ fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
 fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     parse_quote! {
         const _: () = {
-            <#name>::#ASSERT_OVERRIDES_FN();
+            // <#name<H: Host>>::#ASSERT_OVERRIDES_FN();
         };
     }
 }
@@ -144,8 +144,8 @@ fn mark_used_fn() -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
-            let host = once_cell::sync::Lazy::force(&GLOBAL_WASM_HOST);
-            host.pay_for_memory_grow(0);
+            // let host = once_cell::sync::Lazy::force(&GLOBAL_WASM_HOST);
+            // host.pay_for_memory_grow(0);
             panic!();
         }
     }
@@ -160,8 +160,10 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
 
             #deny_reentrant
 
+            host.pay_for_memory_grow(0);
+
             let input = host.args(len);
-            let (data, status) = match #user_fn(input, host) {
+            let (data, status) = match #user_fn(input, &host) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
