@@ -2,20 +2,22 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
-use crate::{crypto, host::Host};
+use crate::{
+    crypto,
+    host::{Host, HostAccess},
+};
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
 use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
-use rclite::Rc;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes<H: Host> {
     root: U256,
     base: OnceCell<U256>,
-    host: Rc<H>,
+    host: *const H,
 }
 
 impl<H: Host> StorageType<H> for StorageBytes<H> {
@@ -28,7 +30,7 @@ impl<H: Host> StorageType<H> for StorageBytes<H> {
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8, host: Rc<H>) -> Self {
+    unsafe fn new(root: U256, offset: u8, host: *const H) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
@@ -46,6 +48,14 @@ impl<H: Host> StorageType<H> for StorageBytes<H> {
     }
 }
 
+impl<H: Host> HostAccess<H> for StorageBytes<H> {
+    fn get_host(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
 impl<H: Host> StorageBytes<H> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -54,7 +64,7 @@ impl<H: Host> StorageBytes<H> {
 
     /// Gets the number of bytes stored.
     pub fn len(&self) -> usize {
-        let word = Storage::get_word(Rc::clone(&self.host), self.root);
+        let word = Storage::get_word(self.get_host(), self.root);
 
         // check if the data is short
         let slot: &[u8] = word.as_ref();
@@ -83,15 +93,15 @@ impl<H: Host> StorageBytes<H> {
 
         // if shrinking, pull data in
         if (len < 32) && (old > 32) {
-            let word = Storage::get_word(Rc::clone(&self.host), *self.base());
-            Storage::set_word(Rc::clone(&self.host), self.root, word);
+            let word = Storage::get_word(self.get_host(), *self.base());
+            Storage::set_word(self.get_host(), self.root, word);
             return self.write_len(len);
         }
 
         // if growing, push data out
-        let mut word = Storage::get_word(Rc::clone(&self.host), self.root);
+        let mut word = Storage::get_word(self.get_host(), self.root);
         word[31] = 0; // clear len byte
-        Storage::set_word(Rc::clone(&self.host), *self.base(), word);
+        Storage::set_word(self.get_host(), *self.base(), word);
         self.write_len(len)
     }
 
@@ -99,14 +109,10 @@ impl<H: Host> StorageBytes<H> {
     unsafe fn write_len(&mut self, len: usize) {
         if len < 32 {
             // place the len in the last byte of the root with the long bit low
-            Storage::set_uint(Rc::clone(&self.host), self.root, 31, U8::from(len * 2));
+            Storage::set_uint(self.get_host(), self.root, 31, U8::from(len * 2));
         } else {
             // place the len in the root with the long bit high
-            Storage::set_word(
-                Rc::clone(&self.host),
-                self.root,
-                U256::from(len * 2 + 1).into(),
-            )
+            Storage::set_word(self.get_host(), self.root, U256::from(len * 2 + 1).into())
         }
     }
 
@@ -118,7 +124,7 @@ impl<H: Host> StorageBytes<H> {
         macro_rules! assign {
             ($slot:expr) => {
                 unsafe {
-                    Storage::set_uint(Rc::clone(&self.host), $slot, index % 32, value); // pack value
+                    Storage::set_uint(self.get_host(), $slot, index % 32, value); // pack value
                     self.write_len(index + 1);
                 }
             };
@@ -131,8 +137,8 @@ impl<H: Host> StorageBytes<H> {
         // convert to multi-word representation
         if index == 31 {
             // copy content over (len byte will be overwritten)
-            let word = Storage::get_word(Rc::clone(&self.host), self.root);
-            unsafe { Storage::set_word(Rc::clone(&self.host), *self.base(), word) };
+            let word = Storage::get_word(self.get_host(), self.root);
+            unsafe { Storage::set_word(self.get_host(), *self.base(), word) };
         }
 
         let slot = self.base() + U256::from(index / 32);
@@ -152,13 +158,13 @@ impl<H: Host> StorageBytes<H> {
         let clean = index % 32 == 0;
         let byte = self.get(index)?;
 
-        let clear = |slot| unsafe { Storage::clear_word(Rc::clone(&self.host), slot) };
+        let clear = |slot| unsafe { Storage::clear_word(self.get_host(), slot) };
 
         // convert to single-word representation
         if len == 32 {
             // copy content over
-            let word = Storage::get_word(Rc::clone(&self.host), *self.base());
-            unsafe { Storage::set_word(Rc::clone(&self.host), self.root, word) };
+            let word = Storage::get_word(self.get_host(), *self.base());
+            unsafe { Storage::set_word(self.get_host(), self.root, word) };
             clear(*self.base());
         }
 
@@ -169,7 +175,7 @@ impl<H: Host> StorageBytes<H> {
 
         // clear the value
         if len < 32 {
-            unsafe { Storage::set_byte(Rc::clone(&self.host), self.root, index, 0) };
+            unsafe { Storage::set_byte(self.get_host(), self.root, index, 0) };
         }
 
         // set the new length
@@ -193,7 +199,7 @@ impl<H: Host> StorageBytes<H> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        let value = unsafe { StorageB8::new(slot, offset, Rc::clone(&self.host)) };
+        let value = unsafe { StorageB8::new(slot, offset, self.get_host()) };
         Some(StorageGuardMut::new(value))
     }
 
@@ -204,7 +210,7 @@ impl<H: Host> StorageBytes<H> {
     /// UB if index is out of bounds.
     pub unsafe fn get_unchecked(&self, index: usize) -> u8 {
         let (slot, offset) = self.index_slot(index);
-        unsafe { Storage::get_byte(Rc::clone(&self.host), slot, offset.into()) }
+        unsafe { Storage::get_byte(self.get_host(), slot, offset.into()) }
     }
 
     /// Gets the full contents of the collection.
@@ -247,11 +253,11 @@ impl<H: Host> Erase<H> for StorageBytes<H> {
         if len > 31 {
             while len > 0 {
                 let slot = self.index_slot(len as usize - 1).0;
-                unsafe { Storage::clear_word(Rc::clone(&self.host), slot) };
+                unsafe { Storage::clear_word(self.get_host(), slot) };
                 len -= 32;
             }
         }
-        unsafe { Storage::clear_word(Rc::clone(&self.host), self.root) };
+        unsafe { Storage::clear_word(self.get_host(), self.root) };
     }
 }
 
@@ -284,7 +290,7 @@ impl<H: Host> StorageType<H> for StorageString<H> {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self(StorageBytes::new(slot, offset, host))
     }
 

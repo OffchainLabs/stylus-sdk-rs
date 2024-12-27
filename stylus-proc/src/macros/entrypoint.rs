@@ -126,7 +126,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN<H: Host>(input: alloc::vec::Vec<u8>, host: Rc<H>) -> stylus_sdk::ArbResult {
+        fn #STRUCT_ENTRYPOINT_FN<H: Host>(input: alloc::vec::Vec<u8>, host: &H) -> stylus_sdk::ArbResult {
             stylus_sdk::abi::router_entrypoint::<#name<H>, #name<H>, H>(input, host)
         }
     }
@@ -155,12 +155,12 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = Rc::new(WasmHost{});
+            let host = WasmHost{};
             #deny_reentrant
             host.pay_for_memory_grow(0);
 
             let input = host.args(len);
-            let (data, status) = match #user_fn(input, Rc::clone(&host)) {
+            let (data, status) = match #user_fn(input, &host) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };

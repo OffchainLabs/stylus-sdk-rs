@@ -27,6 +27,10 @@ pub trait Host:
 {
 }
 
+pub trait HostAccess<H: Host> {
+    fn get_host(&self) -> &H;
+}
+
 /// TODO
 pub trait CryptographyAccess {
     /// TODO

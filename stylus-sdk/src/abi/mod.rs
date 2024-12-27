@@ -18,7 +18,6 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
-use rclite::Rc;
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
@@ -98,7 +97,7 @@ where
 //    if no value is received in the transaction. It is implicitly payable.
 //  - Fallback is called when no other function matches a selector. If a receive function is not
 //    defined, then calls with no input calldata will be routed to the fallback function.
-pub fn router_entrypoint<R, S, H>(input: alloc::vec::Vec<u8>, host: Rc<H>) -> ArbResult
+pub fn router_entrypoint<R, S, H>(input: alloc::vec::Vec<u8>, host: &H) -> ArbResult
 where
     R: Router<S>,
     S: StorageType<H> + TopLevelStorage + BorrowMut<R::Storage>,

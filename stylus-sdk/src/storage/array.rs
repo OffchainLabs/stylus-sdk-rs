@@ -1,18 +1,17 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::host::Host;
+use crate::host::{Host, HostAccess};
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
 use core::marker::PhantomData;
-use rclite::Rc;
 
 /// Accessor for a storage-backed array.
 pub struct StorageArray<H: Host, S: StorageType<H>, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
-    host: Rc<H>,
+    host: *const H,
 }
 
 impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray<H, S, N> {
@@ -27,7 +26,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -42,6 +41,14 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray
 
     fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
         StorageGuardMut::new(self)
+    }
+}
+
+impl<H: Host, S: StorageType<H>, const N: usize> HostAccess<H> for StorageArray<H, S, N> {
+    fn get_host(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
     }
 }
 
@@ -82,7 +89,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageArray<H, S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset, Rc::clone(&self.host)))
+        Some(S::new(slot, offset, self.get_host()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -92,7 +99,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageArray<H, S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset, Rc::clone(&self.host))
+        S::new(slot, offset, self.get_host())
     }
 
     /// Gets the element at the given index, if it exists.

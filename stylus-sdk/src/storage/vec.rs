@@ -4,17 +4,19 @@
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::{crypto, host::Host};
+use crate::{
+    crypto,
+    host::{Host, HostAccess},
+};
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
-use rclite::Rc;
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<H: Host, S: StorageType<H>> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
-    host: Rc<H>,
+    host: *const H,
 }
 
 impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
@@ -27,7 +29,7 @@ impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -46,6 +48,14 @@ impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
     }
 }
 
+impl<H: Host, S: StorageType<H>> HostAccess<H> for StorageVec<H, S> {
+    fn get_host(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
 impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -54,7 +64,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
 
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = Storage::get_word(Rc::clone(&self.host), self.slot).into();
+        let word: U256 = Storage::get_word(self.get_host(), self.slot).into();
         word.try_into().unwrap()
     }
 
@@ -66,7 +76,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
     /// or any junk data left over from prior dirty operations.
     /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
-        Storage::set_word(Rc::clone(&self.host), self.slot, U256::from(len).into())
+        Storage::set_word(self.get_host(), self.slot, U256::from(len).into())
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
@@ -98,7 +108,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset, Rc::clone(&self.host)))
+        Some(S::new(slot, offset, self.get_host()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -108,7 +118,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset, Rc::clone(&self.host))
+        S::new(slot, offset, self.get_host())
     }
 
     /// Gets the element at the given index, if it exists.
@@ -147,7 +157,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
         unsafe { self.set_len(index + 1) };
 
         let (slot, offset) = self.index_slot(index);
-        let store = unsafe { S::new(slot, offset, Rc::clone(&self.host)) };
+        let store = unsafe { S::new(slot, offset, self.get_host()) };
         StorageGuardMut::new(store)
     }
 
@@ -216,7 +226,7 @@ impl<'a, H: Host, S: SimpleStorageType<'a, H>> StorageVec<H, S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { Storage::clear_word(Rc::clone(&self.host), slot + U256::from(i)) };
+                unsafe { Storage::clear_word(self.get_host(), slot + U256::from(i)) };
             }
         }
         Some(value)

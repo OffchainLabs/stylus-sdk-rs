@@ -73,7 +73,7 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: Rc<H>) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: *const H) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
@@ -92,6 +92,20 @@ impl Storage {
 
                 fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
                     stylus_sdk::storage::StorageGuardMut::new(self)
+                }
+            }
+        }
+    }
+
+    fn impl_host_access(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::host::HostAccess<H> for #name #ty_generics #where_clause {
+                fn get_host(&self) -> &H {
+                    // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+                    // as injected by the Stylus entrypoint function.
+                    unsafe { &*self.host }
                 }
             }
         }
@@ -126,6 +140,7 @@ impl ToTokens for Storage {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
+        self.impl_host_access().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);
@@ -166,7 +181,7 @@ impl StorageField {
             return None;
         };
         let ty = &self.ty;
-        if ty.to_token_stream().to_string() == "Rc < H >".to_string() {
+        if ty.to_token_stream().to_string() == "*const H".to_string() {
             return None;
         }
         Some(parse_quote! {
@@ -180,7 +195,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType<H>>::new(root, space as u8, Rc::clone(&host));
+                let field = <#ty as storage::StorageType<H>>::new(root, space as u8, host);
                 if words > 0 {
                     slot += words;
                     space = 32;
@@ -192,7 +207,8 @@ impl StorageField {
 
     fn size(&self) -> TokenStream {
         let ty = &self.ty;
-        if ty.to_token_stream().to_string() == "Rc < H >".to_string() {
+        println!("{}", ty.to_token_stream().to_string());
+        if ty.to_token_stream().to_string() == "*const H".to_string() {
             return quote! {};
         }
         quote! {
