@@ -1,38 +1,42 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::crypto;
+use crate::{crypto, host::Host};
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
+use rclite::Rc;
 
 /// Accessor for a storage-backed map.
-pub struct StorageMap<K: StorageKey, V: StorageType> {
+pub struct StorageMap<H: Host, K: StorageKey, V: StorageType<H>> {
     slot: U256,
     marker: PhantomData<(K, V)>,
+    host: Rc<H>,
 }
 
-impl<K, V> StorageType for StorageMap<K, V>
+impl<H, K, V> StorageType<H> for StorageMap<H, K, V>
 where
     K: StorageKey,
-    V: StorageType,
+    V: StorageType<H>,
+    H: Host,
 {
     type Wraps<'a>
-        = StorageGuard<'a, StorageMap<K, V>>
+        = StorageGuard<'a, StorageMap<H, K, V>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageMap<K, V>>
+        = StorageGuardMut<'a, StorageMap<H, K, V>>
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
+            host,
         }
     }
 
@@ -45,10 +49,11 @@ where
     }
 }
 
-impl<K, V> StorageMap<K, V>
+impl<H, K, V> StorageMap<H, K, V>
 where
     K: StorageKey,
-    V: StorageType,
+    V: StorageType<H>,
+    H: Host,
 {
     /// Where in a word to access the wrapped value.
     const CHILD_OFFSET: u8 = 32 - V::SLOT_BYTES as u8;
@@ -58,7 +63,7 @@ where
     /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host))) }
     }
 
     /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
@@ -66,7 +71,7 @@ where
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host))) }
     }
 
     /// Gets the element at the given key, or the zero value if none is there.
@@ -76,10 +81,11 @@ where
     }
 }
 
-impl<'a, K, V> StorageMap<K, V>
+impl<'a, H, K, V> StorageMap<H, K, V>
 where
     K: StorageKey,
-    V: SimpleStorageType<'a>,
+    V: SimpleStorageType<'a, H>,
+    H: Host,
 {
     /// Sets the element at a given key, overwriting what may have been there.
     pub fn insert(&mut self, key: K, value: V::Wraps<'a>) {
@@ -93,8 +99,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host));
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host));
             let prior = store.load();
             alias.set_by_wrapped(value);
             prior
@@ -107,8 +113,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host));
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, Rc::clone(&self.host));
             let value = store.load();
             alias.erase();
             value
@@ -116,10 +122,11 @@ where
     }
 }
 
-impl<K, V> StorageMap<K, V>
+impl<H, K, V> StorageMap<H, K, V>
 where
     K: StorageKey,
-    V: Erase,
+    V: Erase<H>,
+    H: Host,
 {
     /// Delete the element at the given key, if it exists.
     pub fn delete(&mut self, key: K) {

@@ -8,13 +8,16 @@ use core::{
     ptr,
 };
 use derivative::Derivative;
+use rclite::Rc;
+
+use crate::host::Host;
 
 /// Accessor trait that lets a type be used in persistent storage.
 /// Users can implement this trait to add novel data structures to their contract definitions.
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
 ///
 /// [`the same way`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
-pub trait StorageType: Sized {
+pub trait StorageType<H: Host>: Sized {
     /// For primitive types, this is the type being stored.
     /// For collections, this is the [`StorageType`] being collected.
     type Wraps<'a>: 'a
@@ -51,7 +54,7 @@ pub trait StorageType: Sized {
     /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn new(slot: U256, offset: u8) -> Self;
+    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self;
 
     /// Load the wrapped type, consuming the accessor.
     /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.
@@ -68,7 +71,7 @@ pub trait StorageType: Sized {
 
 /// Trait for accessors that can be used to completely erase their underlying value.
 /// Note that some collections, like [`StorageMap`](super::StorageMap), don't implement this trait.
-pub trait Erase: StorageType {
+pub trait Erase<H: Host>: StorageType<H> {
     /// Erase the value from persistent storage.
     fn erase(&mut self);
 }
@@ -76,7 +79,8 @@ pub trait Erase: StorageType {
 /// Trait for simple accessors that store no more than their wrapped value.
 /// The type's representation must be entirely inline, or storage leaks become possible.
 /// Note: it is a logic error if erasure does anything more than writing the zero-value.
-pub trait SimpleStorageType<'a>: StorageType + Erase + Into<Self::Wraps<'a>>
+pub trait SimpleStorageType<'a, H: Host>:
+    StorageType<H> + Erase<H> + Into<Self::Wraps<'a>>
 where
     Self: 'a,
 {
@@ -176,7 +180,7 @@ impl<'a, T: 'a> DerefMut for StorageGuardMut<'a, T> {
 
 /// Trait for managing access to persistent storage.
 /// Implemented by the [`StorageCache`](super::StorageCache) type.
-pub trait GlobalStorage {
+pub trait GlobalStorage<H: Host> {
     /// Retrieves `N ≤ 32` bytes from persistent storage, performing [`SLOAD`]'s only as needed.
     /// The bytes are read from slot `key`, starting `offset` bytes from the left.
     /// Note that the bytes must exist within a single, 32-byte EVM word.
@@ -188,9 +192,9 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn get<const N: usize>(key: U256, offset: usize) -> FixedBytes<N> {
+    unsafe fn get<const N: usize>(host: Rc<H>, key: U256, offset: usize) -> FixedBytes<N> {
         debug_assert!(N + offset <= 32);
-        let word = Self::get_word(key);
+        let word = Self::get_word(host, key);
         let value = &word[offset..][..N];
         FixedBytes::from_slice(value)
     }
@@ -206,9 +210,13 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn get_uint<const B: usize, const L: usize>(key: U256, offset: usize) -> Uint<B, L> {
+    unsafe fn get_uint<const B: usize, const L: usize>(
+        host: Rc<H>,
+        key: U256,
+        offset: usize,
+    ) -> Uint<B, L> {
         debug_assert!(B / 8 + offset <= 32);
-        let word = Self::get_word(key);
+        let word = Self::get_word(host, key);
         let value = &word[offset..][..B / 8];
         Uint::try_from_be_slice(value).unwrap()
     }
@@ -224,8 +232,12 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn get_signed<const B: usize, const L: usize>(key: U256, offset: usize) -> Signed<B, L> {
-        Signed::from_raw(Self::get_uint(key, offset))
+    unsafe fn get_signed<const B: usize, const L: usize>(
+        host: Rc<H>,
+        key: U256,
+        offset: usize,
+    ) -> Signed<B, L> {
+        Signed::from_raw(Self::get_uint(host, key, offset))
     }
 
     /// Retrieves a [`u8`] from persistent storage, performing [`SLOAD`]'s only as needed.
@@ -238,9 +250,9 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn get_byte(key: U256, offset: usize) -> u8 {
+    unsafe fn get_byte(host: Rc<H>, key: U256, offset: usize) -> u8 {
         debug_assert!(offset <= 32);
-        let word = Self::get::<1>(key, offset);
+        let word = Self::get::<1>(host, key, offset);
         word[0]
     }
 
@@ -255,7 +267,7 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    fn get_word(key: U256) -> B256;
+    fn get_word(host: Rc<H>, key: U256) -> B256;
 
     /// Writes `N ≤ 32` bytes to persistent storage, performing [`SSTORE`]'s only as needed.
     /// The bytes are written to slot `key`, starting `offset` bytes from the left.
@@ -267,19 +279,23 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn set<const N: usize>(key: U256, offset: usize, value: FixedBytes<N>) {
+    unsafe fn set<const N: usize>(host: Rc<H>, key: U256, offset: usize, value: FixedBytes<N>) {
         debug_assert!(N + offset <= 32);
 
         if N == 32 {
-            return Self::set_word(key, FixedBytes::from_slice(value.as_slice()));
+            return Self::set_word(
+                Rc::clone(&host),
+                key,
+                FixedBytes::from_slice(value.as_slice()),
+            );
         }
 
-        let mut word = Self::get_word(key);
+        let mut word = Self::get_word(Rc::clone(&host), key);
 
         let dest = word[offset..].as_mut_ptr();
         ptr::copy(value.as_ptr(), dest, N);
 
-        Self::set_word(key, word);
+        Self::set_word(Rc::clone(&host), key, word);
     }
 
     /// Writes a [`Uint`] to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -293,6 +309,7 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set_uint<const B: usize, const L: usize>(
+        host: Rc<H>,
         key: U256,
         offset: usize,
         value: Uint<B, L>,
@@ -301,15 +318,19 @@ pub trait GlobalStorage {
         debug_assert!(B / 8 + offset <= 32);
 
         if B == 256 {
-            return Self::set_word(key, FixedBytes::from_slice(&value.to_be_bytes::<32>()));
+            return Self::set_word(
+                host,
+                key,
+                FixedBytes::from_slice(&value.to_be_bytes::<32>()),
+            );
         }
 
-        let mut word = Self::get_word(key);
+        let mut word = Self::get_word(Rc::clone(&host), key);
 
         let value = value.to_be_bytes_vec();
         let dest = word[offset..].as_mut_ptr();
         ptr::copy(value.as_ptr(), dest, B / 8);
-        Self::set_word(key, word);
+        Self::set_word(Rc::clone(&host), key, word);
     }
 
     /// Writes a [`Signed`] to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -323,11 +344,12 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set_signed<const B: usize, const L: usize>(
+        host: Rc<H>,
         key: U256,
         offset: usize,
         value: Signed<B, L>,
     ) {
-        Self::set_uint(key, offset, value.into_raw())
+        Self::set_uint(host, key, offset, value.into_raw())
     }
 
     /// Writes a [`u8`] to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -339,9 +361,9 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn set_byte(key: U256, offset: usize, value: u8) {
+    unsafe fn set_byte(host: Rc<H>, key: U256, offset: usize, value: u8) {
         let fixed = FixedBytes::from_slice(&[value]);
-        Self::set::<1>(key, offset, fixed)
+        Self::set::<1>(host, key, offset, fixed)
     }
 
     /// Stores a 32-byte EVM word to persistent storage, performing [`SSTORE`]'s only as needed.
@@ -351,7 +373,7 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn set_word(key: U256, value: B256);
+    unsafe fn set_word(host: Rc<H>, key: U256, value: B256);
 
     /// Clears the 32-byte word at the given key, performing [`SSTORE`]'s only as needed.
     ///
@@ -360,7 +382,7 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn clear_word(key: U256) {
-        Self::set_word(key, B256::ZERO)
+    unsafe fn clear_word(host: Rc<H>, key: U256) {
+        Self::set_word(host, key, B256::ZERO)
     }
 }

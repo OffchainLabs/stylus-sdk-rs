@@ -1,33 +1,38 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::host::Host;
+
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
 use core::marker::PhantomData;
+use rclite::Rc;
 
 /// Accessor for a storage-backed array.
-pub struct StorageArray<S: StorageType, const N: usize> {
+pub struct StorageArray<H: Host, S: StorageType<H>, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
+    host: Rc<H>,
 }
 
-impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
+impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray<H, S, N> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageArray<S, N>>
+        = StorageGuard<'a, StorageArray<H, S, N>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageArray<S, N>>
+        = StorageGuardMut<'a, StorageArray<H, S, N>>
     where
         Self: 'a;
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: Rc<H>) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
+            host,
         }
     }
 
@@ -40,7 +45,7 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
     }
 }
 
-impl<S: StorageType, const N: usize> StorageArray<S, N> {
+impl<H: Host, S: StorageType<H>, const N: usize> StorageArray<H, S, N> {
     /// Gets the number of elements stored.
     ///
     /// Although this type will always have the same length, this method is still provided for
@@ -77,7 +82,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, Rc::clone(&self.host)))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -87,7 +92,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, Rc::clone(&self.host))
     }
 
     /// Gets the element at the given index, if it exists.
@@ -130,7 +135,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     }
 }
 
-impl<S: Erase, const N: usize> Erase for StorageArray<S, N> {
+impl<H: Host, S: Erase<H>, const N: usize> Erase<H> for StorageArray<H, S, N> {
     fn erase(&mut self) {
         for i in 0..N {
             let mut store = unsafe { self.accessor_unchecked(i) };
