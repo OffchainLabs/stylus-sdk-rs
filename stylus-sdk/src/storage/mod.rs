@@ -95,10 +95,10 @@ macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::U", stringify!($bits), "`].")]
-            pub type $name<H: Host> = StorageUint<H, $bits, $limbs>;
+            pub type $name<H> = StorageUint<H, $bits, $limbs>;
 
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::I", stringify!($bits), "`].")]
-            pub type $signed_name<H: Host> = StorageSigned<H, $bits, $limbs>;
+            pub type $signed_name<H> = StorageSigned<H, $bits, $limbs>;
         )*
     };
 }
@@ -107,7 +107,7 @@ macro_rules! alias_bytes {
     ($($name:ident, $bits:expr, $bytes:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::B", stringify!($bits), "`].")]
-            pub type $name<H: Host> = StorageFixedBytes<H, $bytes>;
+            pub type $name<H> = StorageFixedBytes<H, $bytes>;
         )*
     };
 }
