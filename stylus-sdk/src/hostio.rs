@@ -8,17 +8,22 @@
 //! high-level equivalents of [`block`](crate::block), [`contract`](crate::contract),
 //! [`crypto`](crate::crypto), [`evm`](crate::evm), [`msg`](crate::msg), and [`tx`](crate::tx).
 //!
-//! ```ignore
-//! use stylus_sdk::hostio;
-//! use stylus_sdk::{alloy_primitives::Address, msg};
-//!
-//! let mut sender = Address::ZERO;
-//! unsafe {
-//!     hostio::msg_sender(sender.as_mut_ptr());
-//! }
-//!
-//! assert_eq!(sender, msg::sender());
-//! ```
+#![cfg_attr(
+    feature = "hostio",
+    doc = r##"
+```no_run
+use stylus_sdk::hostio;
+use stylus_sdk::{alloy_primitives::Address, msg};
+
+let mut sender = Address::ZERO;
+unsafe {
+    hostio::msg_sender(sender.as_mut_ptr());
+}
+
+assert_eq!(sender, msg::sender());
+```
+"##
+)]
 
 use cfg_if::cfg_if;
 
@@ -200,7 +205,7 @@ vm_hooks! {
     /// `read_return_data` hostio. The semantics are equivalent to that of the EVM's [`CREATE`]
     /// opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/stylus-quickstart
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE`]: https://www.evm.codes/#f0
     pub fn create1(
         code: *const u8,
@@ -223,7 +228,7 @@ vm_hooks! {
     /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
     /// `[CREATE2`] opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/stylus-quickstart
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE2`]: https://www.evm.codes/#f5
     pub fn create2(
         code: *const u8,
@@ -279,7 +284,7 @@ vm_hooks! {
     /// [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
     /// [`GAS`]: https://www.evm.codes/#5a
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn evm_ink_left() -> u64;
 
     /// The `entrypoint!` macro handles importing this hostio, which is required if the
@@ -375,7 +380,7 @@ vm_hooks! {
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
     /// Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/stylus-gas
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn tx_ink_price() -> u32;
 
     /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
@@ -438,47 +443,91 @@ macro_rules! wrap_hostio {
         }
     };
     (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
-        $(#[$meta])*
-        pub fn $name() -> $ty {
-            unsafe{ $cache.get() }
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "hostio-caching")] {
+                $(#[$meta])*
+                pub fn $name() -> $ty {
+                    $cache.get()
+                }
+                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
+            } else {
+                wrap_hostio!(@simple $(#[$meta])* $name, $hostio, $ty); // uncached
+            }
         }
-        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
     };
-    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
+    (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
         pub fn $name() -> $ty {
-            unsafe{ $cache.get() }
-        }
-        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
             data.into()
-        });
+        }
+    };
+    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "hostio-caching")] {
+                $(#[$meta])*
+                pub fn $name() -> $ty {
+                    $cache.get()
+                }
+                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+                    let mut data = $from::ZERO;
+                    unsafe { hostio::$hostio(data.as_mut_ptr()) };
+                    data.into()
+                });
+            } else {
+                wrap_hostio!(@convert $(#[$meta])* $name, $hostio, $from, $ty); // uncached
+            }
+        }
     };
 }
 
 pub(crate) use wrap_hostio;
 
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+
 /// Caches a value to avoid paying for hostio invocations.
 pub(crate) struct CachedOption<T: Copy> {
-    value: Option<T>,
+    value: UnsafeCell<MaybeUninit<T>>,
+    initialized: UnsafeCell<bool>,
     loader: fn() -> T,
 }
 
 impl<T: Copy> CachedOption<T> {
     /// Creates a new [`CachedOption`], which will use the `loader` during `get`.
     pub const fn new(loader: fn() -> T) -> Self {
-        let value = None;
-        Self { value, loader }
+        Self {
+            value: UnsafeCell::new(MaybeUninit::uninit()),
+            initialized: UnsafeCell::new(false),
+            loader,
+        }
     }
 
-    /// Sets and overwrites the cached value.
-    pub fn set(&mut self, value: T) {
-        self.value = Some(value);
+    /// # Safety
+    /// Must only be called from a single-threaded context.
+    pub fn get(&self) -> T {
+        unsafe {
+            if !*self.initialized.get() {
+                let value = (self.loader)();
+                (*self.value.get()).write(value);
+                *self.initialized.get() = true;
+                value
+            } else {
+                (*self.value.get()).assume_init()
+            }
+        }
     }
 
-    /// Gets the value, writing it to the cache if necessary.
-    pub fn get(&mut self) -> T {
-        *self.value.get_or_insert_with(|| (self.loader)())
+    /// # Safety
+    /// Must only be called from a single-threaded context.
+    pub fn set(&self, value: T) {
+        unsafe {
+            (*self.value.get()).write(value);
+            *self.initialized.get() = true;
+        }
     }
 }
+
+// Required to use in statics even in single-threaded context.
+unsafe impl<T: Copy> Sync for CachedOption<T> {}

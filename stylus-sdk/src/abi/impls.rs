@@ -3,7 +3,7 @@
 
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
-use alloy_primitives::{Address, FixedBytes, Signed, Uint};
+use alloy_primitives::{Address, FixedBytes};
 use alloy_sol_types::sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
@@ -52,27 +52,8 @@ where
 
 test_type!(bytes, "bytes calldata", super::Bytes);
 
-impl<const BITS: usize, const LIMBS: usize> AbiType for Uint<BITS, LIMBS>
-where
-    IntBitCount<BITS>: SupportedInt<Uint = Self>,
-{
-    type SolType = sol_data::Uint<BITS>;
-
-    const ABI: ConstString = append_dec!("uint", BITS);
-}
-
-test_type!(uint256, "uint256", Uint<256, 4>);
-
-impl<const BITS: usize, const LIMBS: usize> AbiType for Signed<BITS, LIMBS>
-where
-    IntBitCount<BITS>: SupportedInt<Int = Self>,
-{
-    type SolType = sol_data::Int<BITS>;
-
-    const ABI: ConstString = append_dec!("int", BITS);
-}
-
-test_type!(int256, "int256", Signed<256, 4>);
+test_type!(uint160, "uint160", alloy_primitives::Uint<160, 3>);
+test_type!(uint256, "uint256", alloy_primitives::Uint<256, 4>);
 
 macro_rules! impl_int {
     ($bits:literal, $as_arg:expr, $unsigned:ty, $signed:ty) => {
@@ -245,3 +226,78 @@ test_type!(
         [Vec<bool>; 8],
     )
 );
+
+#[cfg(test)]
+mod tests {
+    use alloy_primitives::{hex, FixedBytes, U256};
+
+    use crate::abi::{test_encode_decode_params, Bytes};
+
+    #[test]
+    fn encode_tuple_of_single_u8() {
+        let value = (100u8,);
+        let encoded = hex!("0000000000000000000000000000000000000000000000000000000000000064");
+        test_encode_decode_params(value, encoded)
+    }
+
+    #[test]
+    fn encode_tuple_of_single_u256() {
+        let value = (U256::from(100),);
+        let encoded = hex!("0000000000000000000000000000000000000000000000000000000000000064");
+        test_encode_decode_params(value, encoded)
+    }
+
+    #[test]
+    fn encode_tuple_of_two_u8s() {
+        let value = (100u8, 200u8);
+        let encoded = hex!(
+            "0000000000000000000000000000000000000000000000000000000000000064"
+            "00000000000000000000000000000000000000000000000000000000000000C8"
+        );
+        test_encode_decode_params(value, encoded)
+    }
+
+    #[test]
+    fn encode_tuple_of_u8_and_u256() {
+        let value = (100u8, U256::from(200));
+        let encoded = hex!(
+            "0000000000000000000000000000000000000000000000000000000000000064"
+            "00000000000000000000000000000000000000000000000000000000000000C8"
+        );
+        test_encode_decode_params(value, encoded)
+    }
+
+    #[test]
+    fn encode_tuple_of_five_types() {
+        let value = (
+            100u8,
+            vec![U256::from(1), U256::from(2)],
+            Bytes(vec![1, 2, 3, 4]),
+            FixedBytes::new([5, 6]),
+            [vec![true, false, true], vec![false, true, false]],
+        );
+        let encoded = hex!(
+            "0000000000000000000000000000000000000000000000000000000000000064"
+            "00000000000000000000000000000000000000000000000000000000000000A0"
+            "0000000000000000000000000000000000000000000000000000000000000100"
+            "0506000000000000000000000000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000000000000000000000000000140"
+            "0000000000000000000000000000000000000000000000000000000000000002"
+            "0000000000000000000000000000000000000000000000000000000000000001"
+            "0000000000000000000000000000000000000000000000000000000000000002"
+            "0000000000000000000000000000000000000000000000000000000000000004"
+            "0102030400000000000000000000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000000000000000000000000000040"
+            "00000000000000000000000000000000000000000000000000000000000000C0"
+            "0000000000000000000000000000000000000000000000000000000000000003"
+            "0000000000000000000000000000000000000000000000000000000000000001"
+            "0000000000000000000000000000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000000000000000000000000000001"
+            "0000000000000000000000000000000000000000000000000000000000000003"
+            "0000000000000000000000000000000000000000000000000000000000000000"
+            "0000000000000000000000000000000000000000000000000000000000000001"
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        );
+        test_encode_decode_params(value, encoded)
+    }
+}

@@ -1,0 +1,11 @@
+error: unexpected token
+  --> tests/fail/public/macro_errors.rs:12:10
+   |
+12 | #[public(unsupported)]
+   |          ^^^^^^^^^^^
+
+error: unexpected token
+  --> tests/fail/public/macro_errors.rs:14:15
+   |
+14 |     #[payable(unsupported)]
+   |               ^^^^^^^^^^^

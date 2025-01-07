@@ -10,7 +10,7 @@
 //!
 //! Some of the features available in the SDK include:
 //! - **Generic**, storage-backed Rust types for programming **Solidity-equivalent** smart contracts with optimal
-//! storage caching.
+//!   storage caching.
 //! - Simple macros for writing **language-agnostic** methods and entrypoints.
 //! - Automatic export of Solidity interfaces for interoperability across programming languages.
 //! - Powerful **primitive types** backed by the feature-rich [Alloy][alloy].

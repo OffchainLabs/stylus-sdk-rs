@@ -1,0 +1,22 @@
+error[E0277]: the trait bound `MyStruct: SolType` is not satisfied
+ --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
+  |
+9 | #[derive(AbiType)]
+  |          ^^^^^^^ the trait `SolType` is not implemented for `MyStruct`
+  |
+  = help: the following other types implement trait `SolType`:
+            ()
+            (T1, T2)
+            (T1, T2, T3)
+            (T1, T2, T3, T4)
+            (T1, T2, T3, T4, T5)
+            (T1, T2, T3, T4, T5, T6)
+            (T1, T2, T3, T4, T5, T6, T7)
+            (T1, T2, T3, T4, T5, T6, T7, T8)
+          and $N others
+note: required by a bound in `stylus_sdk::abi::AbiType::SolType`
+ --> $WORKSPACE/stylus-sdk/src/abi/mod.rs
+  |
+  |     type SolType: SolType<RustType = Self>;
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `AbiType::SolType`
+  = note: this error originates in the derive macro `AbiType` (in Nightly builds, run with -Z macro-backtrace for more info)

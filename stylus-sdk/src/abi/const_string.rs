@@ -128,9 +128,24 @@ impl Debug for ConstString {
     }
 }
 
-#[test]
-fn test_from_decimal() {
-    for i in (0..=100).chain(1000..=1001) {
-        assert_eq!(ConstString::from_decimal_number(i).as_str(), i.to_string());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_decimal() {
+        for i in (0..=100).chain(1000..=1001) {
+            assert_eq!(ConstString::from_decimal_number(i).as_str(), i.to_string());
+        }
+    }
+
+    #[test]
+    fn test_concat() {
+        assert_eq!(
+            ConstString::new("foo")
+                .concat(ConstString::new("bar"))
+                .as_str(),
+            "foobar"
+        );
     }
 }

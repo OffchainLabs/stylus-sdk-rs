@@ -39,9 +39,15 @@ pub fn transfer_eth(
 /// All gas is supplied, which the recipient may burn.
 /// If this is not desired, the [`call`](super::call) function may be used directly.
 ///
-/// ```ignore
+/// ```
+/// # use stylus_sdk::call::{call, Call, transfer_eth};
+/// # fn wrap() -> Result<(), Vec<u8>> {
+/// #   let value = alloy_primitives::U256::ZERO;
+/// #   let recipient = alloy_primitives::Address::ZERO;
 /// transfer_eth(recipient, value)?;                 // these two are equivalent
 /// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
+/// #     Ok(())
+/// # }
 /// ```
 #[cfg(not(feature = "reentrant"))]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {

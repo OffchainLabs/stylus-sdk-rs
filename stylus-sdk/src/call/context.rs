@@ -29,7 +29,7 @@ where
     /// Although this reference to [`TopLevelStorage`] is not used, the lifetime is still required
     /// to ensure safety of the storage cache.
     ///
-    /// ```no_run
+    /// ```
     /// use stylus_sdk::call::{Call, Error};
     /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
     /// extern crate alloc;
@@ -93,7 +93,7 @@ impl<S, const HAS_VALUE: bool> CallContext for Call<S, HAS_VALUE> {
 }
 
 // allow &self as a context
-impl<'a, T> CallContext for &'a T
+impl<T> CallContext for &T
 where
     T: TopLevelStorage,
 {
@@ -113,10 +113,10 @@ where
 }
 
 // allow &self to be a `pure` and `static` call context
-impl<'a, T> StaticCallContext for &'a T where T: TopLevelStorage {}
+impl<T> StaticCallContext for &T where T: TopLevelStorage {}
 
 // allow &mut self to be a `pure` and `static` call context
-impl<'a, T> StaticCallContext for &'a mut T where T: TopLevelStorage {}
+impl<T> StaticCallContext for &mut T where T: TopLevelStorage {}
 
 // allow &mut self to be a `write` and `payable` call context
 unsafe impl<T> MutatingCallContext for &mut T
@@ -178,7 +178,7 @@ cfg_if! {
             /// This is not available if `reentrant` feature is enabled, as it may lead to
             /// vulnerability to reentrancy attacks. See [`Call::new_in`].
             ///
-            /// ```ignore
+            /// ```no_compile
             /// use stylus_sdk::call::{Call, Error};
             /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
             /// extern crate alloc;

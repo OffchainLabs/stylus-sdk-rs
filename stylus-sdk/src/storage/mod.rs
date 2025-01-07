@@ -24,7 +24,7 @@
 
 use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
-use alloy_sol_types::sol_data::{ByteCount, SupportedFixedBytes};
+use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 
 pub use array::StorageArray;
@@ -141,13 +141,19 @@ alias_bytes! {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageUint<const B: usize, const L: usize> {
+pub struct StorageUint<const B: usize, const L: usize>
+where
+    IntBitCount<B>: SupportedInt,
+{
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
 }
 
-impl<const B: usize, const L: usize> StorageUint<B, L> {
+impl<const B: usize, const L: usize> StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     /// Gets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn get(&self) -> Uint<B, L> {
         **self
@@ -160,7 +166,10 @@ impl<const B: usize, const L: usize> StorageUint<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
+impl<const B: usize, const L: usize> StorageType for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     type Wraps<'a> = Uint<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
@@ -184,19 +193,28 @@ impl<const B: usize, const L: usize> StorageType for StorageUint<B, L> {
     }
 }
 
-impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L> {
+impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<const B: usize, const L: usize> Erase for StorageUint<B, L> {
+impl<const B: usize, const L: usize> Erase for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl<const B: usize, const L: usize> Deref for StorageUint<B, L> {
+impl<const B: usize, const L: usize> Deref for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     type Target = Uint<B, L>;
 
     fn deref(&self) -> &Self::Target {
@@ -205,7 +223,10 @@ impl<const B: usize, const L: usize> Deref for StorageUint<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
+impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn from(value: StorageUint<B, L>) -> Self {
         *value
     }
@@ -217,13 +238,19 @@ impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L> {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageSigned<const B: usize, const L: usize> {
+pub struct StorageSigned<const B: usize, const L: usize>
+where
+    IntBitCount<B>: SupportedInt,
+{
     slot: U256,
     offset: u8,
     cached: OnceCell<Signed<B, L>>,
 }
 
-impl<const B: usize, const L: usize> StorageSigned<B, L> {
+impl<const B: usize, const L: usize> StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn get(&self) -> Signed<B, L> {
         **self
@@ -236,7 +263,10 @@ impl<const B: usize, const L: usize> StorageSigned<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     type Wraps<'a> = Signed<B, L>;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
@@ -259,19 +289,28 @@ impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L> {
     }
 }
 
-impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned<B, L> {
+impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<const B: usize, const L: usize> Erase for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> Erase for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
 }
 
-impl<const B: usize, const L: usize> Deref for StorageSigned<B, L> {
+impl<const B: usize, const L: usize> Deref for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     type Target = Signed<B, L>;
 
     fn deref(&self) -> &Self::Target {
@@ -280,7 +319,10 @@ impl<const B: usize, const L: usize> Deref for StorageSigned<B, L> {
     }
 }
 
-impl<const B: usize, const L: usize> From<StorageSigned<B, L>> for Signed<B, L> {
+impl<const B: usize, const L: usize> From<StorageSigned<B, L>> for Signed<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     fn from(value: StorageSigned<B, L>) -> Self {
         *value
     }
@@ -656,8 +698,14 @@ impl From<StorageBlockHash> for BlockHash {
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
 impl<T> StorageType for PhantomData<T> {
-    type Wraps<'a> = Self where Self: 'a;
-    type WrapsMut<'a> = Self where Self: 'a;
+    type Wraps<'a>
+        = Self
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = Self
+    where
+        Self: 'a;
 
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;

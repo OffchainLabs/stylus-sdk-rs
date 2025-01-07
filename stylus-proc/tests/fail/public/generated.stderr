@@ -1,0 +1,58 @@
+error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
+  --> tests/fail/public/generated.rs:16:32
+   |
+16 |     fn unsupported_input(_arg: UnsupportedType) {}
+   |                                ^^^^^^^^^^^^^^^ the trait `AbiType` is not implemented for `UnsupportedType`
+   |
+   = help: the following other types implement trait `AbiType`:
+             ()
+             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+           and $N others
+
+error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
+  --> tests/fail/public/generated.rs:16:26
+   |
+16 |     fn unsupported_input(_arg: UnsupportedType) {}
+   |                          ^^^^ the trait `AbiType` is not implemented for `UnsupportedType`, which is required by `(UnsupportedType,): AbiType`
+   |
+   = help: the following other types implement trait `AbiType`:
+             ()
+             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+           and $N others
+   = note: required for `(UnsupportedType,)` to implement `AbiType`
+
+error[E0277]: the trait bound `UnsupportedType: EncodableReturnType` is not satisfied
+  --> tests/fail/public/generated.rs:18:32
+   |
+18 |     fn unsupported_output() -> UnsupportedType {
+   |                                ^^^^^^^^^^^^^^^ the trait `AbiType` is not implemented for `UnsupportedType`, which is required by `UnsupportedType: EncodableReturnType`
+   |
+   = help: the following other types implement trait `AbiType`:
+             ()
+             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+           and $N others
+   = note: required for `UnsupportedType` to implement `EncodableReturnType`
+
+error: could not evaluate constant pattern
+  --> tests/fail/public/generated.rs:16:8
+   |
+16 |     fn unsupported_input(_arg: UnsupportedType) {}
+   |        ^^^^^^^^^^^^^^^^^

@@ -12,8 +12,14 @@ pub struct StorageArray<S: StorageType, const N: usize> {
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
-    type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
-    type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, N>> where Self: 'a;
+    type Wraps<'a>
+        = StorageGuard<'a, StorageArray<S, N>>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, StorageArray<S, N>>
+    where
+        Self: 'a;
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
@@ -39,6 +45,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     ///
     /// Although this type will always have the same length, this method is still provided for
     /// consistency with [`StorageVec`].
+    #[allow(clippy::len_without_is_empty)]
     pub const fn len(&self) -> usize {
         N
     }
@@ -115,7 +122,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     const fn required_slots() -> usize {
         let reserved = N * S::REQUIRED_SLOTS;
         let density = Self::density();
-        let packed = (N + density - 1) / density; // ceil division for packed items.
+        let packed = N.div_ceil(density);
         if reserved > packed {
             return reserved;
         }

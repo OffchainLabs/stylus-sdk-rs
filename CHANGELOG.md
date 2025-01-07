@@ -2,6 +2,23 @@
 
 These crates follow [semver](https://semver.org).
 
+
+## [0.7.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.7.0) - 2024-01-06
+
+### Added
+
+- `impl From<alloy_primitives::Bytes> for stylus_sdk::Bytes`
+- Support for integer types from `alloy_primitives`
+- Fallback/receive functionality for routers created using `#[public]`
+
+### Changed
+
+- Upgrade alloy dependency to `0.8.14`
+- Allow struct references within `sol_interface!` macro
+- `pub` structs in `sol_interface!` macro
+- Refactor of proc macros for better maintainability and testability
+
+
 ## [0.6.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.6.0) - 2024-08-30
 
 ### Breaking Changes
