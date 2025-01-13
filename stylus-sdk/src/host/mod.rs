@@ -7,6 +7,10 @@ use alloy_primitives::{Address, B256, U256};
 
 use crate::call::{MutatingCallContext, StaticCallContext};
 
+/// The `wasm` module contains the default implementation of the host trait for all programs
+/// that are built for a WASM target.
+pub mod wasm;
+
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
 /// of traits with different access to host values and modifications.
