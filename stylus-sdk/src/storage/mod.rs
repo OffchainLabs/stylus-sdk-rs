@@ -150,7 +150,7 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H, const B: usize, const L: usize> StorageUint<H, B, L>
@@ -178,7 +178,7 @@ where
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
@@ -204,7 +204,7 @@ where
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -278,7 +278,7 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Signed<B, L>>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H, const B: usize, const L: usize> StorageSigned<H, B, L>
@@ -319,7 +319,7 @@ where
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -343,7 +343,7 @@ where
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
@@ -401,7 +401,7 @@ pub struct StorageFixedBytes<H: Host, const N: usize> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host, const N: usize> StorageFixedBytes<H, N> {
@@ -438,7 +438,7 @@ where
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -507,7 +507,7 @@ pub struct StorageBool<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host> StorageBool<H> {
@@ -540,7 +540,7 @@ impl<H: Host> StorageType<H> for StorageBool<H> {
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -560,7 +560,7 @@ impl<H: Host> HostAccess<H> for StorageBool<H> {
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
@@ -605,7 +605,7 @@ pub struct StorageAddress<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host> StorageAddress<H> {
@@ -638,7 +638,7 @@ impl<H: Host> StorageType<H> for StorageAddress<H> {
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -658,7 +658,7 @@ impl<H: Host> HostAccess<H> for StorageAddress<H> {
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
@@ -702,7 +702,7 @@ pub struct StorageBlockNumber<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host> StorageBlockNumber<H> {
@@ -736,7 +736,7 @@ impl<H: Host> StorageType<H> for StorageBlockNumber<H> {
             slot,
             offset,
             cached: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -800,7 +800,7 @@ impl<H: Host> From<StorageBlockNumber<H>> for BlockNumber {
 pub struct StorageBlockHash<H: Host> {
     slot: U256,
     cached: OnceCell<BlockHash>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host> StorageBlockHash<H> {
@@ -828,7 +828,11 @@ impl<H: Host> StorageType<H> for StorageBlockHash<H> {
 
     unsafe fn new(slot: U256, _offset: u8, host: *const H) -> Self {
         let cached = OnceCell::new();
-        Self { slot, cached, host }
+        Self {
+            slot,
+            cached,
+            __stylus_host: host,
+        }
     }
 
     fn load<'s>(self) -> Self::Wraps<'s>
@@ -847,7 +851,7 @@ impl<H: Host> HostAccess<H> for StorageBlockHash<H> {
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 

@@ -15,7 +15,7 @@ use core::marker::PhantomData;
 pub struct StorageMap<H: Host, K: StorageKey, V: StorageType<H>> {
     slot: U256,
     marker: PhantomData<(K, V)>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H, K, V> StorageType<H> for StorageMap<H, K, V>
@@ -38,7 +38,7 @@ where
         Self {
             slot,
             marker: PhantomData,
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -60,7 +60,7 @@ where
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 

@@ -11,7 +11,7 @@ use core::marker::PhantomData;
 pub struct StorageArray<H: Host, S: StorageType<H>, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray<H, S, N> {
@@ -31,7 +31,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray
         Self {
             slot,
             marker: PhantomData,
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -48,7 +48,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> HostAccess<H> for StorageArray<
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 

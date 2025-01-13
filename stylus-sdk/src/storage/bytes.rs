@@ -17,7 +17,7 @@ use core::cell::OnceCell;
 pub struct StorageBytes<H: Host> {
     root: U256,
     base: OnceCell<U256>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host> StorageType<H> for StorageBytes<H> {
@@ -35,7 +35,7 @@ impl<H: Host> StorageType<H> for StorageBytes<H> {
         Self {
             root,
             base: OnceCell::new(),
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -52,7 +52,7 @@ impl<H: Host> HostAccess<H> for StorageBytes<H> {
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
