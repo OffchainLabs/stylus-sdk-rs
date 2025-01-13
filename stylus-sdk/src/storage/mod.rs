@@ -1,4 +1,4 @@
-// Copyright 2023-2024, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Solidity compatible storage types and persistent storage access.
@@ -22,7 +22,10 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::hostio;
+use crate::{
+    host::{Host, HostAccess},
+    hostio,
+};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
@@ -49,12 +52,10 @@ pub(crate) type Storage = StorageCache;
 /// [`LocalStorageCache`]: super::LocalStorageCache
 pub struct StorageCache;
 
-impl GlobalStorage for StorageCache {
+impl<H: Host> GlobalStorage<H> for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
-    fn get_word(key: U256) -> B256 {
-        let mut data = B256::ZERO;
-        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-        data
+    fn get_word(host: &H, key: U256) -> B256 {
+        host.storage_load_bytes32(key)
     }
 
     /// Stores a 32-byte EVM word to persistent storage.
@@ -62,8 +63,8 @@ impl GlobalStorage for StorageCache {
     /// # Safety
     ///
     /// May alias storage.
-    unsafe fn set_word(key: U256, value: B256) {
-        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr())
+    unsafe fn set_word(host: &H, key: U256, value: B256) {
+        host.storage_cache_bytes32(key, value)
     }
 }
 
@@ -94,10 +95,10 @@ macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::U", stringify!($bits), "`].")]
-            pub type $name = StorageUint<$bits, $limbs>;
+            pub type $name<H> = StorageUint<H, $bits, $limbs>;
 
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::I", stringify!($bits), "`].")]
-            pub type $signed_name = StorageSigned<$bits, $limbs>;
+            pub type $signed_name<H> = StorageSigned<H, $bits, $limbs>;
         )*
     };
 }
@@ -106,7 +107,7 @@ macro_rules! alias_bytes {
     ($($name:ident, $bits:expr, $bytes:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::B", stringify!($bits), "`].")]
-            pub type $name = StorageFixedBytes<$bytes>;
+            pub type $name<H> = StorageFixedBytes<H, $bytes>;
         )*
     };
 }
@@ -141,18 +142,21 @@ alias_bytes! {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageUint<const B: usize, const L: usize>
+pub struct StorageUint<H, const B: usize, const L: usize>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
+    host: *const H,
 }
 
-impl<const B: usize, const L: usize> StorageUint<B, L>
+impl<H, const B: usize, const L: usize> StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     /// Gets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn get(&self) -> Uint<B, L> {
@@ -162,29 +166,52 @@ where
     /// Sets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn set(&mut self, value: Uint<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_uint(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set_uint(self.vm(), self.slot, self.offset.into(), value) };
     }
 }
 
-impl<const B: usize, const L: usize> StorageType for StorageUint<B, L>
+impl<H, const B: usize, const L: usize> HostAccess<H> for StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
-    type Wraps<'a> = Uint<B, L>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<H, const B: usize, const L: usize> StorageType<H> for StorageUint<H, B, L>
+where
+    IntBitCount<B>: SupportedInt,
+    H: Host,
+{
+    type Wraps<'a>
+        = Uint<B, L>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -193,41 +220,46 @@ where
     }
 }
 
-impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageUint<B, L>
+impl<'a, H, const B: usize, const L: usize> SimpleStorageType<'a, H> for StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
+    Self: 'a,
 {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<const B: usize, const L: usize> Erase for StorageUint<B, L>
+impl<H, const B: usize, const L: usize> Erase<H> for StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl<const B: usize, const L: usize> Deref for StorageUint<B, L>
+impl<H, const B: usize, const L: usize> Deref for StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     type Target = Uint<B, L>;
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| unsafe { Storage::get_uint(self.slot, self.offset.into()) })
+            .get_or_init(|| unsafe { Storage::get_uint(self.vm(), self.slot, self.offset.into()) })
     }
 }
 
-impl<const B: usize, const L: usize> From<StorageUint<B, L>> for Uint<B, L>
+impl<H, const B: usize, const L: usize> From<StorageUint<H, B, L>> for Uint<B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
-    fn from(value: StorageUint<B, L>) -> Self {
+    fn from(value: StorageUint<H, B, L>) -> Self {
         *value
     }
 }
@@ -238,18 +270,21 @@ where
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageSigned<const B: usize, const L: usize>
+pub struct StorageSigned<H, const B: usize, const L: usize>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     slot: U256,
     offset: u8,
     cached: OnceCell<Signed<B, L>>,
+    host: *const H,
 }
 
-impl<const B: usize, const L: usize> StorageSigned<B, L>
+impl<H, const B: usize, const L: usize> StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn get(&self) -> Signed<B, L> {
@@ -259,28 +294,39 @@ where
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn set(&mut self, value: Signed<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_signed(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set_signed(self.vm(), self.slot, self.offset.into(), value) };
     }
 }
 
-impl<const B: usize, const L: usize> StorageType for StorageSigned<B, L>
+impl<H, const B: usize, const L: usize> StorageType<H> for StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
-    type Wraps<'a> = Signed<B, L>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = Signed<B, L>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -289,54 +335,76 @@ where
     }
 }
 
-impl<'a, const B: usize, const L: usize> SimpleStorageType<'a> for StorageSigned<B, L>
+impl<H, const B: usize, const L: usize> HostAccess<H> for StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
-    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H, const B: usize, const L: usize> SimpleStorageType<'a, H> for StorageSigned<H, B, L>
+where
+    IntBitCount<B>: SupportedInt,
+    H: Host,
+    Self: 'a,
+{
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>)
+    where
+        Self: 'a,
+    {
         self.set(value);
     }
 }
 
-impl<const B: usize, const L: usize> Erase for StorageSigned<B, L>
+impl<H, const B: usize, const L: usize> Erase<H> for StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
 }
 
-impl<const B: usize, const L: usize> Deref for StorageSigned<B, L>
+impl<H, const B: usize, const L: usize> Deref for StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
     type Target = Signed<B, L>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get_signed(self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get_signed(self.vm(), self.slot, self.offset.into())
+        })
     }
 }
 
-impl<const B: usize, const L: usize> From<StorageSigned<B, L>> for Signed<B, L>
+impl<H, const B: usize, const L: usize> From<StorageSigned<H, B, L>> for Signed<B, L>
 where
     IntBitCount<B>: SupportedInt,
+    H: Host,
 {
-    fn from(value: StorageSigned<B, L>) -> Self {
+    fn from(value: StorageSigned<H, B, L>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`FixedBytes`].
 #[derive(Debug)]
-pub struct StorageFixedBytes<const N: usize> {
+pub struct StorageFixedBytes<H: Host, const N: usize> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
+    host: *const H,
 }
 
-impl<const N: usize> StorageFixedBytes<N> {
+impl<H: Host, const N: usize> StorageFixedBytes<H, N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn get(&self) -> FixedBytes<N> {
         **self
@@ -345,28 +413,39 @@ impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn set(&mut self, value: FixedBytes<N>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set(self.slot, self.offset.into(), value) }
+        unsafe { Storage::set(self.vm(), self.slot, self.offset.into(), value) }
     }
 }
 
-impl<const N: usize> StorageType for StorageFixedBytes<N>
+impl<H, const N: usize> StorageType<H> for StorageFixedBytes<H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
+    H: Host,
 {
-    type Wraps<'a> = FixedBytes<N>;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+    type Wraps<'a>
+        = FixedBytes<N>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = N;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -375,48 +454,63 @@ where
     }
 }
 
-impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N>
+impl<H, const N: usize> HostAccess<H> for StorageFixedBytes<H, N>
+where
+    H: Host,
+{
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H, const N: usize> SimpleStorageType<'a, H> for StorageFixedBytes<H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
+    H: Host,
+    Self: 'a,
 {
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl<const N: usize> Erase for StorageFixedBytes<N>
+impl<H, const N: usize> Erase<H> for StorageFixedBytes<H, N>
 where
     ByteCount<N>: SupportedFixedBytes,
+    H: Host,
 {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO)
     }
 }
 
-impl<const N: usize> Deref for StorageFixedBytes<N> {
+impl<H: Host, const N: usize> Deref for StorageFixedBytes<H, N> {
     type Target = FixedBytes<N>;
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| unsafe { Storage::get(self.slot, self.offset.into()) })
+            .get_or_init(|| unsafe { Storage::get(self.vm(), self.slot, self.offset.into()) })
     }
 }
 
-impl<const N: usize> From<StorageFixedBytes<N>> for FixedBytes<N> {
-    fn from(value: StorageFixedBytes<N>) -> Self {
+impl<H: Host, const N: usize> From<StorageFixedBytes<H, N>> for FixedBytes<N> {
+    fn from(value: StorageFixedBytes<H, N>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`bool`].
 #[derive(Debug)]
-pub struct StorageBool {
+pub struct StorageBool<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
+    host: *const H,
 }
 
-impl StorageBool {
+impl<H: Host> StorageBool<H> {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn get(&self) -> bool {
         **self
@@ -425,25 +519,35 @@ impl StorageBool {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn set(&mut self, value: bool) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_byte(self.slot, self.offset.into(), value as u8) }
+        unsafe { Storage::set_byte(self.vm(), self.slot, self.offset.into(), value as u8) }
     }
 }
 
-impl StorageType for StorageBool {
-    type Wraps<'a> = bool;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+impl<H: Host> StorageType<H> for StorageBool<H> {
+    type Wraps<'a>
+        = bool
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -452,44 +556,59 @@ impl StorageType for StorageBool {
     }
 }
 
-impl<'a> SimpleStorageType<'a> for StorageBool {
-    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
+impl<H: Host> HostAccess<H> for StorageBool<H> {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBool<H>
+where
+    Self: 'a,
+{
+    fn set_by_wrapped(&mut self, value: Self::Wraps<'a>)
+    where
+        Self: 'a,
+    {
         self.set(value);
     }
 }
 
-impl Erase for StorageBool {
+impl<H: Host> Erase<H> for StorageBool<H> {
     fn erase(&mut self) {
         self.set(false);
     }
 }
 
-impl Deref for StorageBool {
+impl<H: Host> Deref for StorageBool<H> {
     type Target = bool;
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get_byte(self.slot, self.offset.into());
+            let data = Storage::get_byte(self.vm(), self.slot, self.offset.into());
             data != 0
         })
     }
 }
 
-impl From<StorageBool> for bool {
-    fn from(value: StorageBool) -> Self {
+impl<H: Host> From<StorageBool<H>> for bool {
+    fn from(value: StorageBool<H>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`Address`].
 #[derive(Debug)]
-pub struct StorageAddress {
+pub struct StorageAddress<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
+    host: *const H,
 }
 
-impl StorageAddress {
+impl<H: Host> StorageAddress<H> {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn get(&self) -> Address {
         **self
@@ -498,25 +617,35 @@ impl StorageAddress {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn set(&mut self, value: Address) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set::<20>(self.slot, self.offset.into(), value.into()) }
+        unsafe { Storage::set::<20>(self.vm(), self.slot, self.offset.into(), value.into()) }
     }
 }
 
-impl StorageType for StorageAddress {
-    type Wraps<'a> = Address;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+impl<H: Host> StorageType<H> for StorageAddress<H> {
+    type Wraps<'a>
+        = Address
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -525,29 +654,41 @@ impl StorageType for StorageAddress {
     }
 }
 
-impl<'a> SimpleStorageType<'a> for StorageAddress {
+impl<H: Host> HostAccess<H> for StorageAddress<H> {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageAddress<H>
+where
+    Self: 'a,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl Erase for StorageAddress {
+impl<H: Host> Erase<H> for StorageAddress<H> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl Deref for StorageAddress {
+impl<H: Host> Deref for StorageAddress<H> {
     type Target = Address;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get::<20>(self.slot, self.offset.into()).into() })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get::<20>(self.vm(), self.slot, self.offset.into()).into()
+        })
     }
 }
 
-impl From<StorageAddress> for Address {
-    fn from(value: StorageAddress) -> Self {
+impl<H: Host> From<StorageAddress<H>> for Address {
+    fn from(value: StorageAddress<H>) -> Self {
         *value
     }
 }
@@ -557,13 +698,14 @@ impl From<StorageAddress> for Address {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockNumber`].
 #[derive(Debug)]
-pub struct StorageBlockNumber {
+pub struct StorageBlockNumber<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
+    host: *const H,
 }
 
-impl StorageBlockNumber {
+impl<H: Host> StorageBlockNumber<H> {
     /// Gets the underlying [`BlockNumber`] in persistent storage.
     pub fn get(&self) -> BlockNumber {
         **self
@@ -573,25 +715,35 @@ impl StorageBlockNumber {
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());
-        unsafe { Storage::set::<8>(self.slot, self.offset.into(), value) };
+        unsafe { Storage::set::<8>(self.vm(), self.slot, self.offset.into(), value) };
     }
 }
 
-impl StorageType for StorageBlockNumber {
-    type Wraps<'a> = BlockNumber;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+impl<H: Host> StorageType<H> for StorageBlockNumber<H> {
+    type Wraps<'a>
+        = BlockNumber
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
+            host,
         }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -600,31 +752,42 @@ impl StorageType for StorageBlockNumber {
     }
 }
 
-impl<'a> SimpleStorageType<'a> for StorageBlockNumber {
+impl<H: Host> HostAccess<H> for StorageBlockNumber<H> {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockNumber<H>
+where
+    Self: 'a,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl Erase for StorageBlockNumber {
+impl<H: Host> Erase<H> for StorageBlockNumber<H> {
     fn erase(&mut self) {
         self.set(0);
     }
 }
 
-impl Deref for StorageBlockNumber {
+impl<H: Host> Deref for StorageBlockNumber<H> {
     type Target = BlockNumber;
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get::<8>(self.slot, self.offset.into());
+            let data = Storage::get::<8>(self.vm(), self.slot, self.offset.into());
             u64::from_be_bytes(data.0)
         })
     }
 }
 
-impl From<StorageBlockNumber> for BlockNumber {
-    fn from(value: StorageBlockNumber) -> Self {
+impl<H: Host> From<StorageBlockNumber<H>> for BlockNumber {
+    fn from(value: StorageBlockNumber<H>) -> Self {
         *value
     }
 }
@@ -634,12 +797,13 @@ impl From<StorageBlockNumber> for BlockNumber {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockHash`].
 #[derive(Clone, Debug)]
-pub struct StorageBlockHash {
+pub struct StorageBlockHash<H: Host> {
     slot: U256,
     cached: OnceCell<BlockHash>,
+    host: *const H,
 }
 
-impl StorageBlockHash {
+impl<H: Host> StorageBlockHash<H> {
     /// Gets the underlying [`BlockHash`] in persistent storage.
     pub fn get(&self) -> BlockHash {
         **self
@@ -648,20 +812,29 @@ impl StorageBlockHash {
     /// Sets the underlying [`BlockHash`] in persistent storage.
     pub fn set(&mut self, value: BlockHash) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_word(self.slot, value) }
+        unsafe { Storage::set_word(self.vm(), self.slot, value) }
     }
 }
 
-impl StorageType for StorageBlockHash {
-    type Wraps<'a> = BlockHash;
-    type WrapsMut<'a> = StorageGuardMut<'a, Self>;
+impl<H: Host> StorageType<H> for StorageBlockHash<H> {
+    type Wraps<'a>
+        = BlockHash
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, Self>
+    where
+        Self: 'a;
 
-    unsafe fn new(slot: U256, _offset: u8) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, host: *const H) -> Self {
         let cached = OnceCell::new();
-        Self { slot, cached }
+        Self { slot, cached, host }
     }
 
-    fn load<'s>(self) -> Self::Wraps<'s> {
+    fn load<'s>(self) -> Self::Wraps<'s>
+    where
+        Self: 's,
+    {
         self.get()
     }
 
@@ -670,34 +843,46 @@ impl StorageType for StorageBlockHash {
     }
 }
 
-impl<'a> SimpleStorageType<'a> for StorageBlockHash {
+impl<H: Host> HostAccess<H> for StorageBlockHash<H> {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<'a, H: Host> SimpleStorageType<'a, H> for StorageBlockHash<H>
+where
+    Self: 'a,
+{
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>) {
         self.set(value);
     }
 }
 
-impl Erase for StorageBlockHash {
+impl<H: Host> Erase<H> for StorageBlockHash<H> {
     fn erase(&mut self) {
         self.set(Self::Wraps::ZERO);
     }
 }
 
-impl Deref for StorageBlockHash {
+impl<H: Host> Deref for StorageBlockHash<H> {
     type Target = BlockHash;
 
     fn deref(&self) -> &Self::Target {
-        self.cached.get_or_init(|| Storage::get_word(self.slot))
+        self.cached
+            .get_or_init(|| Storage::get_word(self.vm(), self.slot))
     }
 }
 
-impl From<StorageBlockHash> for BlockHash {
-    fn from(value: StorageBlockHash) -> Self {
+impl<H: Host> From<StorageBlockHash<H>> for BlockHash {
+    fn from(value: StorageBlockHash<H>) -> Self {
         *value
     }
 }
 
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
-impl<T> StorageType for PhantomData<T> {
+impl<T, H: Host> StorageType<H> for PhantomData<T> {
     type Wraps<'a>
         = Self
     where
@@ -710,7 +895,7 @@ impl<T> StorageType for PhantomData<T> {
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
 
-    unsafe fn new(_slot: U256, _offset: u8) -> Self {
+    unsafe fn new(_slot: U256, _offset: u8, _host: *const H) -> Self {
         Self
     }
 

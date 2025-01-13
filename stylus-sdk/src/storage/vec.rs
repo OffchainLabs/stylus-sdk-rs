@@ -1,36 +1,41 @@
-// Copyright 2023-2024, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::crypto;
+use crate::{
+    crypto,
+    host::{Host, HostAccess},
+};
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
-pub struct StorageVec<S: StorageType> {
+pub struct StorageVec<H: Host, S: StorageType<H>> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
+    host: *const H,
 }
 
-impl<S: StorageType> StorageType for StorageVec<S> {
+impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageVec<S>>
+        = StorageGuard<'a, StorageVec<H, S>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageVec<S>>
+        = StorageGuardMut<'a, StorageVec<H, S>>
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const H) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             base: OnceCell::new(),
             marker: PhantomData,
+            host,
         }
     }
 
@@ -43,7 +48,15 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     }
 }
 
-impl<S: StorageType> StorageVec<S> {
+impl<H: Host, S: StorageType<H>> HostAccess<H> for StorageVec<H, S> {
+    fn vm(&self) -> &H {
+        // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+        // as injected by the Stylus entrypoint function.
+        unsafe { &*self.host }
+    }
+}
+
+impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -51,7 +64,7 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = Storage::get_word(self.slot).into();
+        let word: U256 = Storage::get_word(self.vm(), self.slot).into();
         word.try_into().unwrap()
     }
 
@@ -63,7 +76,7 @@ impl<S: StorageType> StorageVec<S> {
     /// or any junk data left over from prior dirty operations.
     /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
-        Storage::set_word(self.slot, U256::from(len).into())
+        Storage::set_word(self.vm(), self.slot, U256::from(len).into())
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
@@ -95,7 +108,7 @@ impl<S: StorageType> StorageVec<S> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, self.vm()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -105,7 +118,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, self.vm())
     }
 
     /// Gets the element at the given index, if it exists.
@@ -144,7 +157,7 @@ impl<S: StorageType> StorageVec<S> {
         unsafe { self.set_len(index + 1) };
 
         let (slot, offset) = self.index_slot(index);
-        let store = unsafe { S::new(slot, offset) };
+        let store = unsafe { S::new(slot, offset, self.vm()) };
         StorageGuardMut::new(store)
     }
 
@@ -193,7 +206,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 }
 
-impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
+impl<'a, H: Host, S: SimpleStorageType<'a, H>> StorageVec<H, S> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
@@ -213,14 +226,14 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { Storage::clear_word(slot + U256::from(i)) };
+                unsafe { Storage::clear_word(self.vm(), slot + U256::from(i)) };
             }
         }
         Some(value)
     }
 }
 
-impl<S: Erase> StorageVec<S> {
+impl<H: Host, S: Erase<H>> StorageVec<H, S> {
     /// Removes and erases the last element of the vector.
     pub fn erase_last(&mut self) {
         if self.is_empty() {
@@ -234,7 +247,7 @@ impl<S: Erase> StorageVec<S> {
     }
 }
 
-impl<S: Erase> Erase for StorageVec<S> {
+impl<H: Host, S: Erase<H>> Erase<H> for StorageVec<H, S> {
     fn erase(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
@@ -244,7 +257,7 @@ impl<S: Erase> Erase for StorageVec<S> {
     }
 }
 
-impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
+impl<'a, H: Host, S: SimpleStorageType<'a, H>> Extend<S::Wraps<'a>> for StorageVec<H, S> {
     fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);

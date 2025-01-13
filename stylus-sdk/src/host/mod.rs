@@ -35,7 +35,7 @@ pub trait Host:
 pub trait HostAccess<H: Host> {
     /// Provides access to the parametrized host of a contract, giving access
     /// to all the desired hostios from the user.
-    fn vm(&self) -> H;
+    fn vm(&self) -> &H;
 }
 
 /// Provides access to native cryptography extensions provided by
