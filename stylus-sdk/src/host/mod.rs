@@ -96,6 +96,10 @@ pub unsafe trait DeploymentAccess {
     ///
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE`]: https://www.evm.codes/#f0
+    ///
+    /// SAFETY: This method should only be used in advanced cases when lowest-level access to create1 is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create1(
         &self,
         code: Address,
@@ -118,6 +122,10 @@ pub unsafe trait DeploymentAccess {
     ///
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE2`]: https://www.evm.codes/#f5
+    ///
+    /// SAFETY: This method should only be used in advanced cases when lowest-level access to create2 is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create2(
         &self,
         code: Address,
@@ -188,6 +196,10 @@ pub unsafe trait CallAccess {
     /// to send as much as possible.
     ///
     /// [`CALL`]: https://www.evm.codes/#f1
+    ///
+    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn call_contract(
         &self,
         to: Address,
@@ -210,6 +222,10 @@ pub unsafe trait CallAccess {
     /// possible.
     ///
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
+    ///
+    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn static_call_contract(
         &self,
         to: Address,
@@ -231,6 +247,10 @@ pub unsafe trait CallAccess {
     /// possible.
     ///
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
+    ///
+    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn delegate_call_contract(
         &self,
         to: Address,
