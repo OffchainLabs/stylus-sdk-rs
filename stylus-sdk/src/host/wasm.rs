@@ -178,7 +178,7 @@ impl AccountAccess for WasmHost {
     fn code_size(&self, account: Address) -> usize {
         account.code_size()
     }
-    fn codehash(&self, account: Address) -> B256 {
+    fn code_hash(&self, account: Address) -> B256 {
         account.code_hash()
     }
 }
