@@ -89,11 +89,8 @@ impl StorageAccess for WasmHost {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
     }
-    // TODO: Make this an unsafe func?
-    fn storage_cache_bytes32(&self, key: U256, value: B256) {
-        unsafe {
-            hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
-        }
+    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
+        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
     }
     fn storage_load_bytes32(&self, key: U256) -> B256 {
         let mut data = B256::ZERO;
