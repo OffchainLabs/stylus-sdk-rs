@@ -5,8 +5,6 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-use crate::call::{MutatingCallContext, StaticCallContext};
-
 /// The `wasm` module contains the default implementation of the host trait for all programs
 /// that are built for a WASM target.
 pub mod wasm;
@@ -81,6 +79,7 @@ pub trait CalldataAccess {
 
 /// Provides access to programmatic creation of contracts via the host environment's CREATE
 /// and CREATE2 opcodes in the EVM.
+///
 pub unsafe trait DeploymentAccess {
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
