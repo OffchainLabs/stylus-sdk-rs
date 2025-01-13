@@ -1,17 +1,20 @@
-use crate::{
-    block, call::Call, contract, evm, host::*, hostio, msg, storage::Storage, tx, types::AddressVM,
-};
+use crate::{block, contract, evm, host::*, hostio, msg, tx, types::AddressVM};
 
 /// WasmHost is the default implementation of the host trait
 /// for all Stylus programs using the SDK.
 pub struct WasmHost;
-// impl Host for WasmHost {}
 
-// impl CryptographyAccess for WasmHost {
-//     fn native_keccak256(&self, input: &[u8]) -> FixedBytes<32> {
-//         FixedBytes::<32>::default()
-//     }
-// }
+impl Host for WasmHost {}
+
+impl CryptographyAccess for WasmHost {
+    fn native_keccak256(&self, input: &[u8]) -> B256 {
+        let mut output = B256::ZERO;
+        unsafe {
+            hostio::native_keccak256(input.as_ptr(), input.len(), output.as_mut_ptr());
+        }
+        output
+    }
+}
 
 impl CalldataAccess for WasmHost {
     fn read_args(&self, len: usize) -> Vec<u8> {
@@ -45,6 +48,43 @@ impl CalldataAccess for WasmHost {
     }
 }
 
+unsafe impl DeploymentAccess for WasmHost {
+    unsafe fn create1(
+        &self,
+        code: Address,
+        endowment: U256,
+        contract: &mut Address,
+        revert_data_len: &mut usize,
+    ) {
+        let endowment: B256 = endowment.into();
+        hostio::create1(
+            code.as_ptr(),
+            code.len(),
+            endowment.as_ptr(),
+            contract.as_mut_ptr(),
+            revert_data_len as *mut _,
+        );
+    }
+    unsafe fn create2(
+        &self,
+        code: Address,
+        endowment: U256,
+        salt: B256,
+        contract: &mut Address,
+        revert_data_len: &mut usize,
+    ) {
+        let endowment: B256 = endowment.into();
+        hostio::create2(
+            code.as_ptr(),
+            code.len(),
+            endowment.as_ptr(),
+            salt.as_ptr(),
+            contract.as_mut_ptr(),
+            revert_data_len as *mut _,
+        );
+    }
+}
+
 impl StorageAccess for WasmHost {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
@@ -62,6 +102,45 @@ impl StorageAccess for WasmHost {
     }
     fn flush_cache(&self, clear: bool) {
         unsafe { hostio::storage_flush_cache(clear) }
+    }
+}
+
+unsafe impl CallAccess for WasmHost {
+    unsafe fn call_contract(
+        &self,
+        to: Address,
+        data: &[u8],
+        value: U256,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        let value = B256::from(value);
+        hostio::call_contract(
+            to.as_ptr(),
+            data.as_ptr(),
+            data.len(),
+            value.as_ptr(),
+            gas,
+            outs_len,
+        )
+    }
+    unsafe fn delegate_call_contract(
+        &self,
+        to: Address,
+        data: &[u8],
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        hostio::delegate_call_contract(to.as_ptr(), data.as_ptr(), data.len(), gas, outs_len)
+    }
+    unsafe fn static_call_contract(
+        &self,
+        to: Address,
+        data: &[u8],
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        hostio::static_call_contract(to.as_ptr(), data.as_ptr(), data.len(), gas, outs_len)
     }
 }
 
@@ -83,109 +162,62 @@ impl BlockAccess for WasmHost {
     }
 }
 
-// impl DeploymentAccess for WasmHost {
-//     fn create1(&self) {}
-//     fn create2(&self) {}
-// }
+impl ChainAccess for WasmHost {
+    fn chain_id(&self) -> u64 {
+        block::chainid()
+    }
+}
 
-// impl StorageAccess for WasmHost {
-//     fn emit_log(&self, input: &[u8]) {}
-//     fn load(&self, key: U256) -> B256 {
-//         let mut data = B256::ZERO;
-//         unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-//         data
-//     }
-//     fn cache(&self, key: U256, value: B256) {
-//         // TODO: This converts the global storage method from unsafe to safe. Should we do this?
-//         unsafe { hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr()) }
-//     }
-//     fn flush_cache(&self, clear: bool) {
-//         unsafe {
-//             hostio::storage_flush_cache(clear);
-//         }
-//     }
-// }
+impl AccountAccess for WasmHost {
+    fn balance(&self, account: Address) -> U256 {
+        account.balance()
+    }
+    fn contract_address(&self) -> Address {
+        contract::address()
+    }
+    fn code(&self, account: Address) -> Vec<u8> {
+        account.code()
+    }
+    fn code_size(&self, account: Address) -> usize {
+        account.code_size()
+    }
+    fn codehash(&self, account: Address) -> B256 {
+        account.code_hash()
+    }
+}
 
-// impl CallAccess for WasmHost {
-//     fn call_contract(&self) {}
-//     fn static_call_contract(&self) {}
-//     fn delegate_call_contract(&self) {}
-// }
+impl MemoryAccess for WasmHost {
+    fn pay_for_memory_grow(&self, pages: u16) {
+        evm::pay_for_memory_grow(pages)
+    }
+}
 
-// impl BlockAccess for WasmHost {
-//     fn block_basefee(&self) -> U256 {
-//         block::basefee()
-//     }
-//     fn block_coinbase(&self) -> Address {
-//         block::coinbase()
-//     }
-//     fn block_number(&self) -> u64 {
-//         block::number()
-//     }
-//     fn block_timestamp(&self) -> u64 {
-//         block::timestamp()
-//     }
-//     fn block_gas_limit(&self) -> u64 {
-//         block::gas_limit()
-//     }
-// }
+impl MessageAccess for WasmHost {
+    fn msg_reentrant(&self) -> bool {
+        msg::reentrant()
+    }
+    fn msg_sender(&self) -> Address {
+        msg::sender()
+    }
+    fn msg_value(&self) -> U256 {
+        msg::value()
+    }
+    fn tx_origin(&self) -> Address {
+        tx::origin()
+    }
+}
 
-// impl ChainAccess for WasmHost {
-//     fn chain_id(&self) -> u64 {
-//         block::chainid()
-//     }
-// }
-
-// impl AccountAccess for WasmHost {
-//     fn balance(&self, account: Address) -> U256 {
-//         account.balance()
-//     }
-//     fn contract_address(&self) -> Address {
-//         contract::address()
-//     }
-//     fn code(&self, account: Address) -> Vec<u8> {
-//         account.code()
-//     }
-//     fn code_size(&self, account: Address) -> usize {
-//         account.code_size()
-//     }
-//     fn codehash(&self, account: Address) -> FixedBytes<32> {
-//         account.code_hash()
-//     }
-// }
-
-// impl MemoryAccess for WasmHost {
-//     fn pay_for_memory_grow(&self, pages: u16) {
-//         evm::pay_for_memory_grow(pages);
-//     }
-// }
-
-// impl MessageAccess for WasmHost {
-//     fn msg_sender(&self) -> Address {
-//         msg::sender()
-//     }
-//     fn msg_reentrant(&self) -> bool {
-//         msg::reentrant()
-//     }
-//     fn msg_value(&self) -> U256 {
-//         msg::value()
-//     }
-//     fn tx_origin(&self) -> Address {
-//         tx::origin()
-//     }
-// }
-
-// impl MeteringAccess for WasmHost {
-//     fn evm_gas_left(&self) -> u64 {
-//         evm::gas_left()
-//     }
-//     fn evm_ink_left(&self) -> u64 {
-//         evm::ink_left()
-//     }
-//     fn tx_gas_price(&self) -> U256 {
-//         tx::gas_price()
-//     }
-//     fn tx_ink_price(&self) -> u32 {
-//         tx::ink_price()
-//     }
-// }
+impl MeteringAccess for WasmHost {
+    fn evm_gas_left(&self) -> u64 {
+        evm::gas_left()
+    }
+    fn evm_ink_left(&self) -> u64 {
+        evm::ink_left()
+    }
+    fn tx_gas_price(&self) -> U256 {
+        tx::gas_price()
+    }
+    fn tx_ink_price(&self) -> u32 {
+        tx::ink_price()
+    }
+}
