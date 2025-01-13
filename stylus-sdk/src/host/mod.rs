@@ -76,7 +76,8 @@ pub trait CalldataAccess {
 /// Provides access to programmatic creation of contracts via the host environment's CREATE
 /// and CREATE2 opcodes in the EVM.
 ///
-/// SAFETY: These methods should only be used in advanced cases when lowest-level access
+/// # Safety
+/// These methods should only be used in advanced cases when lowest-level access
 /// to create1 and create2 opcodes is needed. Using the methods by themselves will not protect
 /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract deployment,
 /// utilize a [`RawDeploy`] struct instead.
@@ -97,7 +98,8 @@ pub unsafe trait DeploymentAccess {
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE`]: https://www.evm.codes/#f0
     ///
-    /// SAFETY: This method should only be used in advanced cases when lowest-level access to create1 is required.
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to create1 is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create1(
@@ -123,7 +125,8 @@ pub unsafe trait DeploymentAccess {
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE2`]: https://www.evm.codes/#f5
     ///
-    /// SAFETY: This method should only be used in advanced cases when lowest-level access to create2 is required.
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to create2 is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create2(
@@ -177,7 +180,8 @@ pub trait StorageAccess {
 
 /// Provides access to calling other contracts using host semantics.
 ///
-/// SAFETY: These methods should only be used in advanced cases when lowest-level access
+/// # Safety
+/// These methods should only be used in advanced cases when lowest-level access
 /// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
 /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
 /// utilize a [`RawCall`] struct instead.
@@ -197,7 +201,8 @@ pub unsafe trait CallAccess {
     ///
     /// [`CALL`]: https://www.evm.codes/#f1
     ///
-    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn call_contract(
@@ -223,7 +228,8 @@ pub unsafe trait CallAccess {
     ///
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
     ///
-    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn static_call_contract(
@@ -248,7 +254,8 @@ pub unsafe trait CallAccess {
     ///
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
     ///
-    /// SAFETY: This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn delegate_call_contract(
