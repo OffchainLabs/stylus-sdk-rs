@@ -101,7 +101,8 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
-            impl #impl_generics stylus_sdk::host::HostAccess<H> for #name #ty_generics #where_clause {
+            impl #impl_generics stylus_sdk::host::HostAccess for #name #ty_generics #where_clause {
+                type Host = H;
                 fn vm(&self) -> &H {
                     // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
                     // as injected by the Stylus entrypoint function.

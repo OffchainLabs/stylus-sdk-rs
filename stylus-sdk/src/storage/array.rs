@@ -44,7 +44,8 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray
     }
 }
 
-impl<H: Host, S: StorageType<H>, const N: usize> HostAccess<H> for StorageArray<H, S, N> {
+impl<H: Host, S: StorageType<H>, const N: usize> HostAccess for StorageArray<H, S, N> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.

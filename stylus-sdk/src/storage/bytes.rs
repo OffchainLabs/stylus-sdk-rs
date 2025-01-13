@@ -48,7 +48,8 @@ impl<H: Host> StorageType<H> for StorageBytes<H> {
     }
 }
 
-impl<H: Host> HostAccess<H> for StorageBytes<H> {
+impl<H: Host> HostAccess for StorageBytes<H> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.

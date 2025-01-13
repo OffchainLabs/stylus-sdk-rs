@@ -170,11 +170,12 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> HostAccess<H> for StorageUint<H, B, L>
+impl<H, const B: usize, const L: usize> HostAccess for StorageUint<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
 {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -335,11 +336,12 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> HostAccess<H> for StorageSigned<H, B, L>
+impl<H, const B: usize, const L: usize> HostAccess for StorageSigned<H, B, L>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
 {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -454,10 +456,11 @@ where
     }
 }
 
-impl<H, const N: usize> HostAccess<H> for StorageFixedBytes<H, N>
+impl<H, const N: usize> HostAccess for StorageFixedBytes<H, N>
 where
     H: Host,
 {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -556,7 +559,8 @@ impl<H: Host> StorageType<H> for StorageBool<H> {
     }
 }
 
-impl<H: Host> HostAccess<H> for StorageBool<H> {
+impl<H: Host> HostAccess for StorageBool<H> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -654,7 +658,8 @@ impl<H: Host> StorageType<H> for StorageAddress<H> {
     }
 }
 
-impl<H: Host> HostAccess<H> for StorageAddress<H> {
+impl<H: Host> HostAccess for StorageAddress<H> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -752,7 +757,8 @@ impl<H: Host> StorageType<H> for StorageBlockNumber<H> {
     }
 }
 
-impl<H: Host> HostAccess<H> for StorageBlockNumber<H> {
+impl<H: Host> HostAccess for StorageBlockNumber<H> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
@@ -847,7 +853,8 @@ impl<H: Host> StorageType<H> for StorageBlockHash<H> {
     }
 }
 
-impl<H: Host> HostAccess<H> for StorageBlockHash<H> {
+impl<H: Host> HostAccess for StorageBlockHash<H> {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.

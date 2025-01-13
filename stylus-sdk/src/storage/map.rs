@@ -51,12 +51,13 @@ where
     }
 }
 
-impl<H, K, V> HostAccess<H> for StorageMap<H, K, V>
+impl<H, K, V> HostAccess for StorageMap<H, K, V>
 where
     K: StorageKey,
     V: StorageType<H>,
     H: Host,
 {
+    type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
