@@ -108,6 +108,7 @@ pub fn storage(
             }
         }
     };
+    // Inject the host trait generic into the item struct if not defined.
     let mut host_injected_item: syn::ItemStruct = parse_quote! {
         #(#attrs)*
         #vis struct #ident #generics #where_clause {
