@@ -9,7 +9,7 @@ use syn::{
     Type,
 };
 
-use crate::utils::attrs::consume_flag;
+use crate::{consts::STYLUS_HOST_FIELD, utils::attrs::consume_flag};
 
 /// Implementation of the [`#[storage]`][crate::storage] macro.
 pub fn storage(
@@ -81,7 +81,7 @@ impl Storage {
                     let mut slot: usize = 0;
                     let accessor = Self {
                         #init,
-                        host,
+                        #STYLUS_HOST_FIELD: host,
                     };
                     accessor
                 }
@@ -102,10 +102,10 @@ impl Storage {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
             impl #impl_generics stylus_sdk::host::HostAccess<H> for #name #ty_generics #where_clause {
-                fn get_host(&self) -> &H {
+                fn vm(&self) -> &H {
                     // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
                     // as injected by the Stylus entrypoint function.
-                    unsafe { &*self.host }
+                    unsafe { &*self.#STYLUS_HOST_FIELD }
                 }
             }
         }
@@ -180,10 +180,10 @@ impl StorageField {
         let Some(ident) = &self.name else {
             return None;
         };
-        let ty = &self.ty;
-        if ty.to_token_stream().to_string() == "*const H".to_string() {
+        if *ident == STYLUS_HOST_FIELD.as_ident() {
             return None;
         }
+        let ty = &self.ty;
         Some(parse_quote! {
             #ident: {
                 let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
@@ -206,11 +206,13 @@ impl StorageField {
     }
 
     fn size(&self) -> TokenStream {
-        let ty = &self.ty;
-        println!("{}", ty.to_token_stream().to_string());
-        if ty.to_token_stream().to_string() == "*const H".to_string() {
+        let Some(ident) = &self.name else {
+            return quote! {};
+        };
+        if *ident == STYLUS_HOST_FIELD.as_ident() {
             return quote! {};
         }
+        let ty = &self.ty;
         quote! {
             let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
             let words = <#ty as storage::StorageType<H>>::REQUIRED_SLOTS;

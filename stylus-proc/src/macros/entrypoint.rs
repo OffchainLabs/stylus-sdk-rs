@@ -144,7 +144,8 @@ fn mark_used_fn() -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
-            // stylus_sdk::evm::pay_for_memory_grow(0);
+            let host = stylus_sdk::host::wasm::WasmHost{};
+            host.pay_for_memory_grow(0);
             panic!();
         }
     }
@@ -155,7 +156,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = WasmHost{};
+            let host = stylus_sdk::host::wasm::WasmHost{};
             #deny_reentrant
             host.pay_for_memory_grow(0);
 
@@ -164,10 +165,8 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            host.flush_cache(false); /// TODO: Make this more explicit without the need for a bool.
-            host.output(&data);
-            // unsafe { stylus_sdk::storage::StorageCache::flush() };
-            // stylus_sdk::contract::output(&data);
+            host.flush_cache(false /* do not clear */);
+            host.write_result(&data);
             status
         }
     }

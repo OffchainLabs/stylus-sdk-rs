@@ -16,7 +16,7 @@ pub struct StorageVec<H: Host, S: StorageType<H>> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
-    host: *const H,
+    __stylus_host: *const H,
 }
 
 impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
@@ -35,7 +35,7 @@ impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
             slot,
             base: OnceCell::new(),
             marker: PhantomData,
-            host,
+            __stylus_host: host,
         }
     }
 
@@ -52,7 +52,7 @@ impl<H: Host, S: StorageType<H>> HostAccess<H> for StorageVec<H, S> {
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
         // as injected by the Stylus entrypoint function.
-        unsafe { &*self.host }
+        unsafe { &*self.__stylus_host }
     }
 }
 
