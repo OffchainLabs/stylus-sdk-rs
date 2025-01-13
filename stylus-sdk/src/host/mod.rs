@@ -165,9 +165,6 @@ pub trait StorageAccess {
     /// will cost less than in the EVM.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
-    ///
-    /// # Safety
-    /// May alias storage.
     fn storage_load_bytes32(&self, key: U256) -> B256;
     /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
     /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
