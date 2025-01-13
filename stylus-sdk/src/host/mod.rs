@@ -5,10 +5,6 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-/// The `wasm` module contains the default implementation of the host trait for all programs
-/// that are built for a WASM target.
-pub mod wasm;
-
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
 /// of traits with different access to host values and modifications.
@@ -80,6 +76,10 @@ pub trait CalldataAccess {
 /// Provides access to programmatic creation of contracts via the host environment's CREATE
 /// and CREATE2 opcodes in the EVM.
 ///
+/// SAFETY: These methods should only be used in advanced cases when lowest-level access
+/// to create1 and create2 opcodes is needed. Using the methods by themselves will not protect
+/// against reentrancy safety, storage aliasing, or cache flushing. For safe contract deployment,
+/// utilize a [`RawDeploy`] struct instead.
 pub unsafe trait DeploymentAccess {
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
@@ -168,6 +168,11 @@ pub trait StorageAccess {
 }
 
 /// Provides access to calling other contracts using host semantics.
+///
+/// SAFETY: These methods should only be used in advanced cases when lowest-level access
+/// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
+/// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
+/// utilize a [`RawCall`] struct instead.
 pub unsafe trait CallAccess {
     /// Calls the contract at the given address with options for passing value and to limit the
     /// amount of gas supplied. The return status indicates whether the call succeeded, and is
@@ -183,9 +188,6 @@ pub unsafe trait CallAccess {
     /// to send as much as possible.
     ///
     /// [`CALL`]: https://www.evm.codes/#f1
-    ///
-    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
-    /// instantiate a CallBuilder instead.
     unsafe fn call_contract(
         &self,
         to: Address,
@@ -208,9 +210,6 @@ pub unsafe trait CallAccess {
     /// possible.
     ///
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
-    ///
-    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
-    /// instantiate a CallBuilder instead.
     unsafe fn static_call_contract(
         &self,
         to: Address,
@@ -232,9 +231,6 @@ pub unsafe trait CallAccess {
     /// possible.
     ///
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
-    ///
-    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
-    /// instantiate a CallBuilder instead.
     unsafe fn delegate_call_contract(
         &self,
         to: Address,
