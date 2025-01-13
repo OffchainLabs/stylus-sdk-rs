@@ -5,7 +5,9 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-use crate::call::{MutatingCallContext, StaticCallContext};
+/// The `wasm` module contains the default implementation of the host trait for all programs
+/// that are built for a WASM target.
+pub mod wasm;
 
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
@@ -77,7 +79,8 @@ pub trait CalldataAccess {
 
 /// Provides access to programmatic creation of contracts via the host environment's CREATE
 /// and CREATE2 opcodes in the EVM.
-pub trait DeploymentAccess {
+///
+pub unsafe trait DeploymentAccess {
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
@@ -93,12 +96,13 @@ pub trait DeploymentAccess {
     ///
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE`]: https://www.evm.codes/#f0
-    fn create1(
+    unsafe fn create1(
         &self,
         code: Address,
         endowment: U256,
-        salt: Option<B256>,
-    ) -> Result<Address, Vec<u8>>;
+        contract: &mut Address,
+        revert_data_len: &mut usize,
+    );
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
@@ -114,12 +118,14 @@ pub trait DeploymentAccess {
     ///
     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
     /// [`CREATE2`]: https://www.evm.codes/#f5
-    fn create2(
+    unsafe fn create2(
         &self,
         code: Address,
         endowment: U256,
-        salt: Option<B256>,
-    ) -> Result<Address, Vec<u8>>;
+        salt: B256,
+        contract: &mut Address,
+        revert_data_len: &mut usize,
+    );
 }
 
 /// Provides access to storage access and mutation via host methods.
@@ -162,7 +168,7 @@ pub trait StorageAccess {
 }
 
 /// Provides access to calling other contracts using host semantics.
-pub trait CallAccess {
+pub unsafe trait CallAccess {
     /// Calls the contract at the given address with options for passing value and to limit the
     /// amount of gas supplied. The return status indicates whether the call succeeded, and is
     /// nonzero on failure.
@@ -177,12 +183,17 @@ pub trait CallAccess {
     /// to send as much as possible.
     ///
     /// [`CALL`]: https://www.evm.codes/#f1
-    fn call_contract(
+    ///
+    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
+    /// instantiate a CallBuilder instead.
+    unsafe fn call_contract(
         &self,
-        context: impl MutatingCallContext,
         to: Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, crate::call::Error>;
+        value: U256,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
     /// Static calls the contract at the given address, with the option to limit the amount of gas
     /// supplied. The return status indicates whether the call succeeded, and is nonzero on
     /// failure.
@@ -197,12 +208,16 @@ pub trait CallAccess {
     /// possible.
     ///
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
-    fn static_call_contract(
+    ///
+    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
+    /// instantiate a CallBuilder instead.
+    unsafe fn static_call_contract(
         &self,
-        context: impl StaticCallContext,
         to: Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, crate::call::Error>;
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
     /// Delegate calls the contract at the given address, with the option to limit the amount of
     /// gas supplied. The return status indicates whether the call succeeded, and is nonzero on
     /// failure.
@@ -217,12 +232,16 @@ pub trait CallAccess {
     /// possible.
     ///
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
-    fn delegate_call_contract(
+    ///
+    /// SAFETY: This method should only be used in advanced cases. For safe calls to contracts,
+    /// instantiate a CallBuilder instead.
+    unsafe fn delegate_call_contract(
         &self,
-        context: impl MutatingCallContext,
         to: Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, crate::call::Error>;
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
 }
 
 /// Provides access to host methods relating to the block a transactions
