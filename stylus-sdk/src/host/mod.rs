@@ -5,6 +5,10 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
+/// The `wasm` module contains the default implementation of the host trait for all programs
+/// that are built for a WASM target.
+pub mod wasm;
+
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
 /// of traits with different access to host values and modifications.
@@ -172,7 +176,10 @@ pub trait StorageAccess {
     /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    fn storage_cache_bytes32(&self, key: U256, value: B256);
+    ///
+    /// # Safety
+    /// May alias storage.
+    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256);
     /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
     /// Analogous to repeated invocations of [`SSTORE`].
     ///
@@ -342,7 +349,7 @@ pub trait AccountAccess {
     /// `keccak("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`.
     ///
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
-    fn codehash(&self, account: Address) -> B256;
+    fn code_hash(&self, account: Address) -> B256;
 }
 
 /// Provides the ability to pay for memory growth of a Stylus contract.
