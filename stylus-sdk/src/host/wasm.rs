@@ -1,3 +1,6 @@
+// Copyright 2025-2026, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 use crate::{block, contract, evm, host::*, hostio, msg, tx, types::AddressVM};
 
 /// WasmHost is the default implementation of the host trait
