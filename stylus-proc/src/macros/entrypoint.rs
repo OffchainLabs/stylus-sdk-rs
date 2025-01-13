@@ -4,7 +4,7 @@
 use cfg_if::cfg_if;
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::{abort, emit_error};
-use quote::{quote, ToTokens};
+use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
