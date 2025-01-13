@@ -135,7 +135,7 @@ fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
 fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     parse_quote! {
         const _: () = {
-            // <#name>::#ASSERT_OVERRIDES_FN();
+            <#name<stylus_sdk::host::wasm::WasmHost>>::#ASSERT_OVERRIDES_FN();
         };
     }
 }
@@ -160,7 +160,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
             #deny_reentrant
             host.pay_for_memory_grow(0);
 
-            let input = host.args(len);
+            let input = host.read_args(len);
             let (data, status) = match #user_fn(input, &host) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
