@@ -349,7 +349,7 @@ pub trait AccountAccess {
     /// `keccak("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`.
     ///
     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
-    fn codehash(&self, account: Address) -> B256;
+    fn code_hash(&self, account: Address) -> B256;
 }
 
 /// Provides the ability to pay for memory growth of a Stylus contract.
