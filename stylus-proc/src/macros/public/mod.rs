@@ -6,7 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
 use quote::ToTokens;
-use syn::{parse_macro_input, parse_quote, spanned::Spanned, ItemImpl, TypeParamBound};
+use syn::{parse_macro_input, spanned::Spanned};
 
 use crate::{
     types::Purity,

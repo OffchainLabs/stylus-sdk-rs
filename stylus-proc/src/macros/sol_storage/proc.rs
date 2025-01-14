@@ -103,7 +103,7 @@ impl Parse for SolidityTy {
             let value = content.parse::<SolidityTy>()?.0;
 
             let ty = format!(
-                "{}<{}, {}>",
+                "{}<{}, {}, H>",
                 sdk!("StorageMap"),
                 quote!(#key),
                 quote!(#value)
@@ -121,7 +121,7 @@ impl Parse for SolidityTy {
             if content.is_empty() {
                 let outer = sdk!("StorageVec");
                 let inner = quote! { #path };
-                path = syn::parse_str(&format!("{outer}<{inner}>"))?;
+                path = syn::parse_str(&format!("{outer}<{inner}, H>"))?;
             } else {
                 let content: Literal = content.parse()?;
                 let Ok(size) = content.to_string().parse::<usize>() else {
@@ -129,7 +129,7 @@ impl Parse for SolidityTy {
                 };
                 let outer = sdk!("StorageArray");
                 let inner = quote! { #path };
-                path = syn::parse_str(&format!("{outer}<{inner}, {size}>"))?;
+                path = syn::parse_str(&format!("{outer}<{inner}, {size}, H>"))?;
             }
         }
 
@@ -180,7 +180,7 @@ impl TryFrom<Path> for Primitive {
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }
-            return ty!("StorageUint<{}, {}>", bits, limbs);
+            return ty!("StorageUint<{}, {}, H>", bits, limbs);
         }
 
         if let Some(caps) = INT_REGEX.captures(name) {
@@ -189,7 +189,7 @@ impl TryFrom<Path> for Primitive {
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }
-            return ty!("StorageSigned<{}, {}>", bits, limbs);
+            return ty!("StorageSigned<{}, {}, H>", bits, limbs);
         }
 
         if let Some(caps) = BYTES_REGEX.captures(name) {
@@ -201,12 +201,12 @@ impl TryFrom<Path> for Primitive {
         }
 
         let ty = match name.as_str() {
-            "address" => "StorageAddress",
-            "bool" => "StorageBool",
-            "bytes" => "StorageBytes",
-            "int" => "StorageI256",
-            "string" => "StorageString",
-            "uint" => "StorageU256",
+            "address" => "StorageAddress<H>",
+            "bool" => "StorageBool<H>",
+            "bytes" => "StorageBytes<H>",
+            "int" => "StorageI256<H>",
+            "string" => "StorageString<H>",
+            "uint" => "StorageU256<H>",
             x => match LOWER_REGEX.is_match(x) {
                 true => return Err(Error::new_spanned(ident, "Type not supported")),
                 false => return Ok(Self(syn::parse_str(x)?)),

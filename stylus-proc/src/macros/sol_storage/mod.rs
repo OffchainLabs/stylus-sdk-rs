@@ -1,11 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, parse_quote, punctuated::Punctuated, Token};
-
-use proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 
 mod proc;
 
@@ -36,7 +35,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #generics {
-                #fields
+                #fields,
             }
         });
     }
