@@ -45,7 +45,7 @@ pub fn storage(
             let original_fields = named_fields.named;
             quote! {
                 #original_fields
-                #STYLUS_HOST_FIELD: *const #host_ident,
+                #STYLUS_HOST_FIELD: *const H,
             }
         }
         syn::Fields::Unnamed(_) => {
@@ -280,7 +280,7 @@ impl StorageField {
         Some(parse_quote! {
             #ident: {
                 let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
-                let words = <#ty as storage::StorageType<H>::REQUIRED_SLOTS;
+                let words = <#ty as storage::StorageType<H>>::REQUIRED_SLOTS;
                 if space < bytes {
                     space = 32;
                     slot += 1;
