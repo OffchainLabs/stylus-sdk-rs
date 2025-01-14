@@ -62,16 +62,12 @@ fn ensure_host_generic_param(generics: &mut syn::Generics) -> syn::Ident {
 }
 
 fn find_host_param(generics: &syn::Generics) -> Option<syn::Ident> {
-    // Check generic parameters
     if let Some(ident) = find_host_in_params(&generics.params) {
         return Some(ident);
     }
-
-    // Check where clause
     if let Some(where_clause) = &generics.where_clause {
         return find_host_in_where_clause(where_clause);
     }
-
     None
 }
 
@@ -171,7 +167,6 @@ fn transform_fields(item: &mut ItemStruct, host_param: &syn::Ident) {
 fn transform_type(ty: &mut Type, host_param: &syn::Ident) {
     if let Type::Path(type_path) = ty {
         if is_storage_type(&type_path.path) {
-            // Get the last path segment
             if let Some(last_segment) = type_path.path.segments.last_mut() {
                 match &mut last_segment.arguments {
                     syn::PathArguments::None => {
@@ -203,7 +198,6 @@ fn transform_type(ty: &mut Type, host_param: &syn::Ident) {
                         }
                     }
                     syn::PathArguments::Parenthesized(_) => {
-                        // Shouldn't happen with normal Rust types
                         emit_error!(
                             last_segment.span(),
                             "Parenthesized arguments are not supported"
@@ -213,7 +207,6 @@ fn transform_type(ty: &mut Type, host_param: &syn::Ident) {
             }
         }
 
-        // Recursively transform generic arguments
         if let Some(args) = get_type_arguments_mut(ty) {
             for arg in args {
                 transform_type(arg, host_param);
