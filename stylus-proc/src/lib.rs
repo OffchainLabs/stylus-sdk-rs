@@ -74,13 +74,6 @@ pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
     macros::storage(attr, input)
 }
 
-/// TODO: This is a proof of concept macro.
-#[proc_macro_attribute]
-#[proc_macro_error]
-pub fn proof_of_concept(attr: TokenStream, input: TokenStream) -> TokenStream {
-    macros::proof_of_concept(attr, input)
-}
-
 #[doc(hidden)]
 #[deprecated = "please use `#[storage]` instead"]
 #[proc_macro_attribute]

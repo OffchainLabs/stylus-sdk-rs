@@ -3,7 +3,7 @@
 
 use crate::{
     crypto,
-    host::{Host, HostAccess},
+    host::{DefaultHost, Host, HostAccess},
 };
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
@@ -12,24 +12,24 @@ use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed map.
-pub struct StorageMap<H: Host, K: StorageKey, V: StorageType<H>> {
+pub struct StorageMap<K: StorageKey, V: StorageType<H>, H: Host = DefaultHost> {
     slot: U256,
     marker: PhantomData<(K, V)>,
     __stylus_host: *const H,
 }
 
-impl<H, K, V> StorageType<H> for StorageMap<H, K, V>
+impl<K, V, H> StorageType<H> for StorageMap<K, V, H>
 where
     K: StorageKey,
     V: StorageType<H>,
     H: Host,
 {
     type Wraps<'a>
-        = StorageGuard<'a, StorageMap<H, K, V>>
+        = StorageGuard<'a, StorageMap<K, V, H>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageMap<H, K, V>>
+        = StorageGuardMut<'a, StorageMap<K, V, H>>
     where
         Self: 'a;
 
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<H, K, V> HostAccess for StorageMap<H, K, V>
+impl<K, V, H> HostAccess for StorageMap<K, V, H>
 where
     K: StorageKey,
     V: StorageType<H>,
@@ -65,7 +65,7 @@ where
     }
 }
 
-impl<H, K, V> StorageMap<H, K, V>
+impl<K, V, H> StorageMap<K, V, H>
 where
     K: StorageKey,
     V: StorageType<H>,
@@ -97,7 +97,7 @@ where
     }
 }
 
-impl<'a, H, K, V> StorageMap<H, K, V>
+impl<'a, K, V, H> StorageMap<K, V, H>
 where
     K: StorageKey,
     V: SimpleStorageType<'a, H>,
@@ -138,7 +138,7 @@ where
     }
 }
 
-impl<H, K, V> StorageMap<H, K, V>
+impl<K, V, H> StorageMap<K, V, H>
 where
     K: StorageKey,
     V: Erase<H>,

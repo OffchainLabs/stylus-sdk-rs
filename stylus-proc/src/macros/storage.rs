@@ -78,7 +78,8 @@ pub fn storage(
 
     if !h_with_host && !h_in_where {
         // Add H: Host to generics if it's not found in either place
-        let host_param: syn::GenericParam = parse_quote!(H: stylus_sdk::host::Host);
+        let host_param: syn::GenericParam =
+            parse_quote!(H: stylus_sdk::host::Host = stylus_sdk::host::wasm::WasmHost);
         generics.params.push(host_param);
     }
     let where_clause = generics.clone().where_clause;

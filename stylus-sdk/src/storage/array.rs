@@ -1,26 +1,26 @@
 // Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::host::{Host, HostAccess};
+use crate::host::{DefaultHost, Host, HostAccess};
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed array.
-pub struct StorageArray<H: Host, S: StorageType<H>, const N: usize> {
+pub struct StorageArray<S: StorageType<H>, const N: usize, H: Host = DefaultHost> {
     slot: U256,
     marker: PhantomData<S>,
     __stylus_host: *const H,
 }
 
-impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray<H, S, N> {
+impl<S: StorageType<H>, const N: usize, H: Host> StorageType<H> for StorageArray<S, N, H> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageArray<H, S, N>>
+        = StorageGuard<'a, StorageArray<S, N, H>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageArray<H, S, N>>
+        = StorageGuardMut<'a, StorageArray<S, N, H>>
     where
         Self: 'a;
 
@@ -44,7 +44,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageType<H> for StorageArray
     }
 }
 
-impl<H: Host, S: StorageType<H>, const N: usize> HostAccess for StorageArray<H, S, N> {
+impl<S: StorageType<H>, const N: usize, H: Host> HostAccess for StorageArray<S, N, H> {
     type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
@@ -53,7 +53,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> HostAccess for StorageArray<H, 
     }
 }
 
-impl<H: Host, S: StorageType<H>, const N: usize> StorageArray<H, S, N> {
+impl<S: StorageType<H>, const N: usize, H: Host> StorageArray<S, N, H> {
     /// Gets the number of elements stored.
     ///
     /// Although this type will always have the same length, this method is still provided for
@@ -143,7 +143,7 @@ impl<H: Host, S: StorageType<H>, const N: usize> StorageArray<H, S, N> {
     }
 }
 
-impl<H: Host, S: Erase<H>, const N: usize> Erase<H> for StorageArray<H, S, N> {
+impl<S: Erase<H>, const N: usize, H: Host> Erase<H> for StorageArray<S, N, H> {
     fn erase(&mut self) {
         for i in 0..N {
             let mut store = unsafe { self.accessor_unchecked(i) };

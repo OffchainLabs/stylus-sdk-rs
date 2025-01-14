@@ -23,7 +23,7 @@
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
 use crate::{
-    host::{Host, HostAccess},
+    host::{DefaultHost, Host, HostAccess},
     hostio,
 };
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
@@ -95,10 +95,10 @@ macro_rules! alias_ints {
     ($($name:ident, $signed_name:ident, $bits:expr, $limbs:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::U", stringify!($bits), "`].")]
-            pub type $name<H> = StorageUint<H, $bits, $limbs>;
+            pub type $name<H> = StorageUint<$bits, $limbs, H>;
 
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::I", stringify!($bits), "`].")]
-            pub type $signed_name<H> = StorageSigned<H, $bits, $limbs>;
+            pub type $signed_name<H> = StorageSigned<$bits, $limbs, H>;
         )*
     };
 }
@@ -107,7 +107,7 @@ macro_rules! alias_bytes {
     ($($name:ident, $bits:expr, $bytes:expr;)*) => {
         $(
             #[doc = concat!("Accessor for a storage-backed [`alloy_primitives::aliases::B", stringify!($bits), "`].")]
-            pub type $name<H> = StorageFixedBytes<H, $bytes>;
+            pub type $name<H> = StorageFixedBytes<$bytes, H>;
         )*
     };
 }
@@ -142,10 +142,9 @@ alias_bytes! {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageUint<H, const B: usize, const L: usize>
+pub struct StorageUint<const B: usize, const L: usize, H: Host = DefaultHost>
 where
     IntBitCount<B>: SupportedInt,
-    H: Host,
 {
     slot: U256,
     offset: u8,
@@ -153,7 +152,7 @@ where
     __stylus_host: *const H,
 }
 
-impl<H, const B: usize, const L: usize> StorageUint<H, B, L>
+impl<H, const B: usize, const L: usize> StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -170,7 +169,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> HostAccess for StorageUint<H, B, L>
+impl<H, const B: usize, const L: usize> HostAccess for StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -183,7 +182,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> StorageType<H> for StorageUint<H, B, L>
+impl<const B: usize, const L: usize, H> StorageType<H> for StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -221,7 +220,7 @@ where
     }
 }
 
-impl<'a, H, const B: usize, const L: usize> SimpleStorageType<'a, H> for StorageUint<H, B, L>
+impl<'a, const B: usize, const L: usize, H> SimpleStorageType<'a, H> for StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -232,7 +231,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> Erase<H> for StorageUint<H, B, L>
+impl<const B: usize, const L: usize, H> Erase<H> for StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -242,7 +241,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> Deref for StorageUint<H, B, L>
+impl<const B: usize, const L: usize, H> Deref for StorageUint<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -255,12 +254,12 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> From<StorageUint<H, B, L>> for Uint<B, L>
+impl<const B: usize, const L: usize, H> From<StorageUint<B, L, H>> for Uint<B, L>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
 {
-    fn from(value: StorageUint<H, B, L>) -> Self {
+    fn from(value: StorageUint<B, L, H>) -> Self {
         *value
     }
 }
@@ -271,10 +270,9 @@ where
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageSigned<H, const B: usize, const L: usize>
+pub struct StorageSigned<const B: usize, const L: usize, H: Host = DefaultHost>
 where
     IntBitCount<B>: SupportedInt,
-    H: Host,
 {
     slot: U256,
     offset: u8,
@@ -282,7 +280,7 @@ where
     __stylus_host: *const H,
 }
 
-impl<H, const B: usize, const L: usize> StorageSigned<H, B, L>
+impl<const B: usize, const L: usize, H> StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -299,7 +297,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> StorageType<H> for StorageSigned<H, B, L>
+impl<const B: usize, const L: usize, H> StorageType<H> for StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -336,7 +334,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> HostAccess for StorageSigned<H, B, L>
+impl<const B: usize, const L: usize, H> HostAccess for StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -349,7 +347,7 @@ where
     }
 }
 
-impl<'a, H, const B: usize, const L: usize> SimpleStorageType<'a, H> for StorageSigned<H, B, L>
+impl<'a, const B: usize, const L: usize, H> SimpleStorageType<'a, H> for StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -363,7 +361,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> Erase<H> for StorageSigned<H, B, L>
+impl<const B: usize, const L: usize, H> Erase<H> for StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -373,7 +371,7 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> Deref for StorageSigned<H, B, L>
+impl<const B: usize, const L: usize, H> Deref for StorageSigned<B, L, H>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
@@ -387,26 +385,26 @@ where
     }
 }
 
-impl<H, const B: usize, const L: usize> From<StorageSigned<H, B, L>> for Signed<B, L>
+impl<const B: usize, const L: usize, H> From<StorageSigned<B, L, H>> for Signed<B, L>
 where
     IntBitCount<B>: SupportedInt,
     H: Host,
 {
-    fn from(value: StorageSigned<H, B, L>) -> Self {
+    fn from(value: StorageSigned<B, L, H>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`FixedBytes`].
 #[derive(Debug)]
-pub struct StorageFixedBytes<H: Host, const N: usize> {
+pub struct StorageFixedBytes<const N: usize, H: Host = DefaultHost> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
     __stylus_host: *const H,
 }
 
-impl<H: Host, const N: usize> StorageFixedBytes<H, N> {
+impl<const N: usize, H: Host> StorageFixedBytes<N, H> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn get(&self) -> FixedBytes<N> {
         **self
@@ -419,7 +417,7 @@ impl<H: Host, const N: usize> StorageFixedBytes<H, N> {
     }
 }
 
-impl<H, const N: usize> StorageType<H> for StorageFixedBytes<H, N>
+impl<const N: usize, H> StorageType<H> for StorageFixedBytes<N, H>
 where
     ByteCount<N>: SupportedFixedBytes,
     H: Host,
@@ -456,7 +454,7 @@ where
     }
 }
 
-impl<H, const N: usize> HostAccess for StorageFixedBytes<H, N>
+impl<const N: usize, H> HostAccess for StorageFixedBytes<N, H>
 where
     H: Host,
 {
@@ -468,7 +466,7 @@ where
     }
 }
 
-impl<'a, H, const N: usize> SimpleStorageType<'a, H> for StorageFixedBytes<H, N>
+impl<'a, const N: usize, H> SimpleStorageType<'a, H> for StorageFixedBytes<N, H>
 where
     ByteCount<N>: SupportedFixedBytes,
     H: Host,
@@ -479,7 +477,7 @@ where
     }
 }
 
-impl<H, const N: usize> Erase<H> for StorageFixedBytes<H, N>
+impl<const N: usize, H> Erase<H> for StorageFixedBytes<N, H>
 where
     ByteCount<N>: SupportedFixedBytes,
     H: Host,
@@ -489,7 +487,7 @@ where
     }
 }
 
-impl<H: Host, const N: usize> Deref for StorageFixedBytes<H, N> {
+impl<const N: usize, H: Host> Deref for StorageFixedBytes<N, H> {
     type Target = FixedBytes<N>;
 
     fn deref(&self) -> &Self::Target {
@@ -498,15 +496,15 @@ impl<H: Host, const N: usize> Deref for StorageFixedBytes<H, N> {
     }
 }
 
-impl<H: Host, const N: usize> From<StorageFixedBytes<H, N>> for FixedBytes<N> {
-    fn from(value: StorageFixedBytes<H, N>) -> Self {
+impl<const N: usize, H: Host> From<StorageFixedBytes<N, H>> for FixedBytes<N> {
+    fn from(value: StorageFixedBytes<N, H>) -> Self {
         *value
     }
 }
 
 /// Accessor for a storage-backed [`bool`].
 #[derive(Debug)]
-pub struct StorageBool<H: Host> {
+pub struct StorageBool<H: Host = DefaultHost> {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
@@ -605,7 +603,7 @@ impl<H: Host> From<StorageBool<H>> for bool {
 
 /// Accessor for a storage-backed [`Address`].
 #[derive(Debug)]
-pub struct StorageAddress<H: Host> {
+pub struct StorageAddress<H: Host = DefaultHost> {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
@@ -703,7 +701,7 @@ impl<H: Host> From<StorageAddress<H>> for Address {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockNumber`].
 #[derive(Debug)]
-pub struct StorageBlockNumber<H: Host> {
+pub struct StorageBlockNumber<H: Host = DefaultHost> {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
@@ -803,7 +801,7 @@ impl<H: Host> From<StorageBlockNumber<H>> for BlockNumber {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockHash`].
 #[derive(Clone, Debug)]
-pub struct StorageBlockHash<H: Host> {
+pub struct StorageBlockHash<H: Host = DefaultHost> {
     slot: U256,
     cached: OnceCell<BlockHash>,
     __stylus_host: *const H,

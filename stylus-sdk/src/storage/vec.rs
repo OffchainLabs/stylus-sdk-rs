@@ -6,26 +6,26 @@ use super::{
 };
 use crate::{
     crypto,
-    host::{Host, HostAccess},
+    host::{DefaultHost, Host, HostAccess},
 };
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
-pub struct StorageVec<H: Host, S: StorageType<H>> {
+pub struct StorageVec<S: StorageType<H>, H: Host = DefaultHost> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
     __stylus_host: *const H,
 }
 
-impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
+impl<S: StorageType<H>, H: Host> StorageType<H> for StorageVec<S, H> {
     type Wraps<'a>
-        = StorageGuard<'a, StorageVec<H, S>>
+        = StorageGuard<'a, StorageVec<S, H>>
     where
         Self: 'a;
     type WrapsMut<'a>
-        = StorageGuardMut<'a, StorageVec<H, S>>
+        = StorageGuardMut<'a, StorageVec<S, H>>
     where
         Self: 'a;
 
@@ -48,7 +48,7 @@ impl<H: Host, S: StorageType<H>> StorageType<H> for StorageVec<H, S> {
     }
 }
 
-impl<H: Host, S: StorageType<H>> HostAccess for StorageVec<H, S> {
+impl<S: StorageType<H>, H: Host> HostAccess for StorageVec<S, H> {
     type Host = H;
     fn vm(&self) -> &H {
         // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
@@ -57,7 +57,7 @@ impl<H: Host, S: StorageType<H>> HostAccess for StorageVec<H, S> {
     }
 }
 
-impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
+impl<S: StorageType<H>, H: Host> StorageVec<S, H> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -207,7 +207,7 @@ impl<H: Host, S: StorageType<H>> StorageVec<H, S> {
     }
 }
 
-impl<'a, H: Host, S: SimpleStorageType<'a, H>> StorageVec<H, S> {
+impl<'a, S: SimpleStorageType<'a, H>, H: Host> StorageVec<S, H> {
     /// Adds an element to the end of the vector.
     pub fn push(&mut self, value: S::Wraps<'a>) {
         let mut store = self.grow();
@@ -234,7 +234,7 @@ impl<'a, H: Host, S: SimpleStorageType<'a, H>> StorageVec<H, S> {
     }
 }
 
-impl<H: Host, S: Erase<H>> StorageVec<H, S> {
+impl<S: Erase<H>, H: Host> StorageVec<S, H> {
     /// Removes and erases the last element of the vector.
     pub fn erase_last(&mut self) {
         if self.is_empty() {
@@ -248,7 +248,7 @@ impl<H: Host, S: Erase<H>> StorageVec<H, S> {
     }
 }
 
-impl<H: Host, S: Erase<H>> Erase<H> for StorageVec<H, S> {
+impl<S: Erase<H>, H: Host> Erase<H> for StorageVec<S, H> {
     fn erase(&mut self) {
         for i in 0..self.len() {
             let mut store = unsafe { self.accessor_unchecked(i) };
@@ -258,7 +258,7 @@ impl<H: Host, S: Erase<H>> Erase<H> for StorageVec<H, S> {
     }
 }
 
-impl<'a, H: Host, S: SimpleStorageType<'a, H>> Extend<S::Wraps<'a>> for StorageVec<H, S> {
+impl<'a, S: SimpleStorageType<'a, H>, H: Host> Extend<S::Wraps<'a>> for StorageVec<S, H> {
     fn extend<T: IntoIterator<Item = S::Wraps<'a>>>(&mut self, iter: T) {
         for elem in iter {
             self.push(elem);

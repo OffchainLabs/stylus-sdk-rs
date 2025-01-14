@@ -4,7 +4,7 @@
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
 use crate::{
     crypto,
-    host::{Host, HostAccess},
+    host::{DefaultHost, Host, HostAccess},
 };
 use alloc::{
     string::{String, ToString},
@@ -14,7 +14,7 @@ use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
 
 /// Accessor for storage-backed bytes.
-pub struct StorageBytes<H: Host> {
+pub struct StorageBytes<H: Host = DefaultHost> {
     root: U256,
     base: OnceCell<U256>,
     __stylus_host: *const H,
@@ -279,7 +279,7 @@ impl<'a, H: Host> Extend<&'a u8> for StorageBytes<H> {
 }
 
 /// Accessor for storage-backed bytes
-pub struct StorageString<H: Host>(pub StorageBytes<H>);
+pub struct StorageString<H: Host = DefaultHost>(pub StorageBytes<H>);
 
 impl<H: Host> StorageType<H> for StorageString<H> {
     type Wraps<'a>
