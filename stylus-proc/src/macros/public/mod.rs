@@ -40,86 +40,9 @@ cfg_if! {
 /// - Expand those AST items into tokens for output
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     check_attr_is_empty(attr);
-    let item_impl = parse_macro_input!(input as syn::ItemImpl);
-
-    let ItemImpl {
-        mut generics,
-        self_ty,
-        items,
-        ..
-    } = item_impl;
-
-    let is_stylus_host_path = |bound: &TypeParamBound| -> bool {
-        if let syn::TypeParamBound::Trait(trait_bound) = bound {
-            // Check if the path is stylus_sdk::host::Host
-            let segments = &trait_bound.path.segments;
-            segments.len() == 3
-                && segments[0].ident == "stylus_sdk"
-                && segments[1].ident == "host"
-                && segments[2].ident == "Host"
-        } else {
-            false
-        }
-    };
-    // Check if H exists and has Host bound in params.
-    let h_with_host = generics.params.iter().any(|param| {
-        if let syn::GenericParam::Type(type_param) = param {
-            if type_param.ident == "H" {
-                return type_param.bounds.iter().any(is_stylus_host_path);
-            }
-            false
-        } else {
-            false
-        }
-    });
-
-    // Check if H exists in where clauses.
-    let h_in_where = if let Some(where_clause) = &generics.where_clause {
-        where_clause.predicates.iter().any(|pred| {
-            if let syn::WherePredicate::Type(pred_type) = pred {
-                if let syn::Type::Path(type_path) = &pred_type.bounded_ty {
-                    if type_path.path.segments.len() == 1 && type_path.path.segments[0].ident == "H"
-                    {
-                        return pred_type.bounds.iter().any(is_stylus_host_path);
-                    }
-                }
-                false
-            } else {
-                false
-            }
-        })
-    } else {
-        false
-    };
-    if !h_with_host && !h_in_where {
-        // Add H: Host to generics
-        let host_param: syn::GenericParam = parse_quote!(H: stylus_sdk::host::Host);
-        generics.params.push(host_param);
-    }
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    let type_name = if let syn::Type::Path(type_path) = self_ty.as_ref() {
-        if let Some(last_segment) = type_path.path.segments.last() {
-            &last_segment.ident
-        } else {
-            return syn::Error::new_spanned(self_ty, "Expected a named type")
-                .to_compile_error()
-                .into();
-        }
-    } else {
-        return syn::Error::new_spanned(self_ty, "Expected a named type")
-            .to_compile_error()
-            .into();
-    };
-
-    let mut host_injected_impl: ItemImpl = parse_quote! {
-        impl #impl_generics #type_name #ty_generics #where_clause {
-            #(#items)*
-        }
-    };
-
-    let public_impl = PublicImpl::<Extension>::from(&mut host_injected_impl);
-    let mut output = host_injected_impl.into_token_stream();
+    let mut item_impl = parse_macro_input!(input as syn::ItemImpl);
+    let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
+    let mut output = item_impl.into_token_stream();
     public_impl.to_tokens(&mut output);
     output.into()
 }

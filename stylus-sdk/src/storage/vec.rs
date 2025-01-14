@@ -6,13 +6,13 @@ use super::{
 };
 use crate::{
     crypto,
-    host::{DefaultHost, Host, HostAccess},
+    host::{Host, HostAccess},
 };
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
 
 /// Accessor for a storage-backed vector.
-pub struct StorageVec<S: StorageType<H>, H: Host = DefaultHost> {
+pub struct StorageVec<S: StorageType<H>, H: Host> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,

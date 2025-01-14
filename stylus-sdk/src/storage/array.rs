@@ -1,14 +1,14 @@
 // Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::host::{DefaultHost, Host, HostAccess};
+use crate::host::{Host, HostAccess};
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed array.
-pub struct StorageArray<S: StorageType<H>, const N: usize, H: Host = DefaultHost> {
+pub struct StorageArray<S: StorageType<H>, const N: usize, H: Host> {
     slot: U256,
     marker: PhantomData<S>,
     __stylus_host: *const H,

@@ -23,7 +23,7 @@
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
 use crate::{
-    host::{DefaultHost, Host, HostAccess},
+    host::{Host, HostAccess},
     hostio,
 };
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
@@ -142,7 +142,7 @@ alias_bytes! {
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageUint<const B: usize, const L: usize, H: Host = DefaultHost>
+pub struct StorageUint<const B: usize, const L: usize, H: Host>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -270,7 +270,7 @@ where
 // TODO: drop L after SupportedInt provides LIMBS (waiting for clarity reasons)
 // https://github.com/rust-lang/rust/issues/76560
 #[derive(Debug)]
-pub struct StorageSigned<const B: usize, const L: usize, H: Host = DefaultHost>
+pub struct StorageSigned<const B: usize, const L: usize, H: Host>
 where
     IntBitCount<B>: SupportedInt,
 {
@@ -397,7 +397,7 @@ where
 
 /// Accessor for a storage-backed [`FixedBytes`].
 #[derive(Debug)]
-pub struct StorageFixedBytes<const N: usize, H: Host = DefaultHost> {
+pub struct StorageFixedBytes<const N: usize, H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
@@ -504,7 +504,7 @@ impl<const N: usize, H: Host> From<StorageFixedBytes<N, H>> for FixedBytes<N> {
 
 /// Accessor for a storage-backed [`bool`].
 #[derive(Debug)]
-pub struct StorageBool<H: Host = DefaultHost> {
+pub struct StorageBool<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
@@ -603,7 +603,7 @@ impl<H: Host> From<StorageBool<H>> for bool {
 
 /// Accessor for a storage-backed [`Address`].
 #[derive(Debug)]
-pub struct StorageAddress<H: Host = DefaultHost> {
+pub struct StorageAddress<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
@@ -701,7 +701,7 @@ impl<H: Host> From<StorageAddress<H>> for Address {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockNumber`].
 #[derive(Debug)]
-pub struct StorageBlockNumber<H: Host = DefaultHost> {
+pub struct StorageBlockNumber<H: Host> {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
@@ -801,7 +801,7 @@ impl<H: Host> From<StorageBlockNumber<H>> for BlockNumber {
 /// This storage type allows convenient and type-safe storage of a
 /// [`BlockHash`].
 #[derive(Clone, Debug)]
-pub struct StorageBlockHash<H: Host = DefaultHost> {
+pub struct StorageBlockHash<H: Host> {
     slot: U256,
     cached: OnceCell<BlockHash>,
     __stylus_host: *const H,

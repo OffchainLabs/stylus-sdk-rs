@@ -6,7 +6,7 @@ use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
     parse_macro_input, parse_quote, punctuated::Punctuated, spanned::Spanned, ItemStruct, Token,
-    Type, TypeParamBound,
+    Type,
 };
 
 use crate::{consts::STYLUS_HOST_FIELD, utils::attrs::consume_flag};
@@ -28,61 +28,15 @@ pub fn storage(
         attrs,
         vis,
         ident,
-        mut generics,
+        generics,
         fields,
         ..
     } = item;
 
-    let is_stylus_host_path = |bound: &TypeParamBound| -> bool {
-        if let syn::TypeParamBound::Trait(trait_bound) = bound {
-            // Check if the path is stylus_sdk::host::Host
-            let segments = &trait_bound.path.segments;
-            segments.len() == 3
-                && segments[0].ident == "stylus_sdk"
-                && segments[1].ident == "host"
-                && segments[2].ident == "Host"
-        } else {
-            false
-        }
-    };
-    // Check if H exists and has Host bound in params.
-    let h_with_host = generics.params.iter().any(|param| {
-        if let syn::GenericParam::Type(type_param) = param {
-            if type_param.ident == "H" {
-                return type_param.bounds.iter().any(is_stylus_host_path);
-            }
-            false
-        } else {
-            false
-        }
-    });
-
-    // Check if H exists in where clauses.
-    let h_in_where = if let Some(where_clause) = &generics.where_clause {
-        where_clause.predicates.iter().any(|pred| {
-            if let syn::WherePredicate::Type(pred_type) = pred {
-                if let syn::Type::Path(type_path) = &pred_type.bounded_ty {
-                    if type_path.path.segments.len() == 1 && type_path.path.segments[0].ident == "H"
-                    {
-                        return pred_type.bounds.iter().any(is_stylus_host_path);
-                    }
-                }
-                false
-            } else {
-                false
-            }
-        })
-    } else {
-        false
-    };
-
-    if !h_with_host && !h_in_where {
-        // Add H: Host to generics if it's not found in either place
-        let host_param: syn::GenericParam =
-            parse_quote!(H: stylus_sdk::host::Host = stylus_sdk::host::wasm::WasmHost);
-        generics.params.push(host_param);
-    }
-    let where_clause = generics.clone().where_clause;
+    // First find if there's an existing Host trait parameter, otherwise use H
+    // as the identifier for the __stylus_host field in the struct we will inject via this proc macro.
+    let host_ident = find_host_param(&generics)
+        .unwrap_or_else(|| syn::Ident::new("H", proc_macro2::Span::call_site()));
 
     // Handle fields based on their type (named or unnamed)
     let expanded_fields = match fields {
@@ -91,7 +45,7 @@ pub fn storage(
             let original_fields = named_fields.named;
             quote! {
                 #original_fields
-                #STYLUS_HOST_FIELD: *const H,
+                #STYLUS_HOST_FIELD: *const #host_ident,
             }
         }
         syn::Fields::Unnamed(_) => {
@@ -105,22 +59,67 @@ pub fn storage(
         syn::Fields::Unit => {
             // Handle unit structs if needed.
             quote! {
-                #STYLUS_HOST_FIELD: *const H,
+                #STYLUS_HOST_FIELD: *const #host_ident,
             }
         }
     };
     // Inject the host trait generic into the item struct if not defined.
     let mut host_injected_item: syn::ItemStruct = parse_quote! {
         #(#attrs)*
-        #vis struct #ident #generics #where_clause {
+        #vis struct #ident #generics {
             #expanded_fields
         }
-
     };
     let storage = Storage::from(&mut host_injected_item);
     let mut output = host_injected_item.into_token_stream();
     storage.to_tokens(&mut output);
     output.into()
+}
+
+fn find_host_param(generics: &syn::Generics) -> Option<syn::Ident> {
+    // Check generic parameters.
+    for param in &generics.params {
+        if let syn::GenericParam::Type(type_param) = param {
+            if has_host_bound(&type_param.bounds) {
+                return Some(type_param.ident.clone());
+            }
+        }
+    }
+    // Check where clause if it exists.
+    if let Some(where_clause) = &generics.where_clause {
+        for pred in &where_clause.predicates {
+            if let syn::WherePredicate::Type(pred_type) = pred {
+                if let syn::Type::Path(type_path) = &pred_type.bounded_ty {
+                    if type_path.path.segments.len() == 1 && has_host_bound(&pred_type.bounds) {
+                        return Some(type_path.path.segments[0].ident.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+fn has_host_bound(
+    bounds: &syn::punctuated::Punctuated<syn::TypeParamBound, syn::Token![+]>,
+) -> bool {
+    bounds.iter().any(|bound| {
+        if let syn::TypeParamBound::Trait(trait_bound) = bound {
+            let segments = &trait_bound.path.segments;
+            if segments.len() == 3 {
+                segments[0].ident == "stylus_sdk"
+                    && segments[1].ident == "host"
+                    && segments[2].ident == "Host"
+            } else if segments.len() == 1 {
+                segments[0].ident == "Host"
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    })
 }
 
 #[derive(Debug)]
@@ -281,7 +280,7 @@ impl StorageField {
         Some(parse_quote! {
             #ident: {
                 let bytes = <#ty as storage::StorageType<H>>::SLOT_BYTES;
-                let words = <#ty as storage::StorageType<H>>::REQUIRED_SLOTS;
+                let words = <#ty as storage::StorageType<H>::REQUIRED_SLOTS;
                 if space < bytes {
                     space = 32;
                     slot += 1;

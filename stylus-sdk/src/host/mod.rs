@@ -4,19 +4,10 @@
 //! Defines host environment methods Stylus SDK contracts have access to.
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
-use cfg_if::cfg_if;
 
 /// The `wasm` module contains the default implementation of the host trait for all programs
 /// that are built for a WASM target.
 pub mod wasm;
-
-cfg_if! {
-    if #[cfg(target_arch = "wasm")] {
-        pub type DefaultHost = wasm::WasmHost;
-    } else {
-        pub type DefaultHost = wasm::WasmHost;
-    }
-}
 
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition

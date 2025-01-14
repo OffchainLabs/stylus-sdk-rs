@@ -3,7 +3,7 @@
 
 use crate::{
     crypto,
-    host::{DefaultHost, Host, HostAccess},
+    host::{Host, HostAccess},
 };
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
@@ -12,7 +12,7 @@ use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
 
 /// Accessor for a storage-backed map.
-pub struct StorageMap<K: StorageKey, V: StorageType<H>, H: Host = DefaultHost> {
+pub struct StorageMap<K: StorageKey, V: StorageType<H>, H: Host> {
     slot: U256,
     marker: PhantomData<(K, V)>,
     __stylus_host: *const H,
