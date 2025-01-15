@@ -26,7 +26,9 @@ impl Contract {
     }
 
     #[receive]
-    fn receive(&mut self) {}
+    fn receive(&mut self) -> Result<(), Vec<u8>> {
+        Ok(())
+    }
 
     #[constructor]
     fn constructor(&mut self, value: U256) {
