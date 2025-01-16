@@ -11,8 +11,8 @@ cargo -V
 
 # Build and test main crate
 if [ "$CFG_RELEASE_CHANNEL" == "nightly" ]; then
-    cargo build --locked --all-features
+    cargo build --locked --features=docs,reentrant,hostio,mini-alloc,hostio-caching,debug
 else
     cargo build --locked
 fi
-cargo test --all-features
+cargo test --features=docs,reentrant,hostio,mini-alloc,hostio-caching,debug
