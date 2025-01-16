@@ -26,7 +26,6 @@ use crate::{
     host::{Host, HostAccess},
     hostio,
 };
-use alloc::boxed::Box;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
