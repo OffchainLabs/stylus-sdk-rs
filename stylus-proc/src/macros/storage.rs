@@ -137,6 +137,20 @@ impl Storage {
             }
         }
     }
+
+    fn impl_host_access(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::host::HostAccess for #name #ty_generics #where_clause {
+                fn vm(&self) -> alloc::boxed::Box<dyn stylus_sdk::host::Host> {
+                    // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
+                    // as injected by the Stylus entrypoint function.
+                    unsafe { alloc::boxed::Box::from_raw(self.#STYLUS_HOST_FIELD as *mut dyn stylus_sdk::host::Host) }
+                }
+            }
+        }
+    }
 }
 
 impl From<&mut syn::ItemStruct> for Storage {
@@ -167,6 +181,7 @@ impl ToTokens for Storage {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
+        self.impl_host_access().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);
