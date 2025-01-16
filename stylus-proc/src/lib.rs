@@ -41,8 +41,10 @@ mod utils;
 /// Allows a Rust `struct` to be used in persistent storage.
 ///
 /// ```
+/// extern crate alloc;
 /// # use stylus_sdk::storage::{StorageAddress, StorageBool};
 /// # use stylus_proc::storage;
+/// # use stylus_sdk::prelude::*;
 /// #[storage]
 /// pub struct Contract {
 ///    owner: StorageAddress,
@@ -52,7 +54,7 @@ mod utils;
 ///
 ///#[storage]
 ///pub struct SubStruct {
-///    // types implementing the `StorageType` trait.
+///    number: StorageBool,
 ///}
 /// ```
 ///
@@ -88,6 +90,8 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// define types using Solidity syntax, which makes this guarantee easier to see.
 ///
 /// ```
+/// extern crate alloc;
+/// # use stylus_sdk::prelude::*;
 /// # use stylus_proc::sol_storage;
 /// sol_storage! {
 ///     pub struct Contract {
@@ -101,7 +105,9 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///         mapping(address => uint) balances;  // becomes a StorageMap
 ///         Delegate[] delegates;               // becomes a StorageVec
 ///     }
-/// #     pub struct Delegate {}
+///     pub struct Delegate {
+///         uint256 id;
+///     }
 /// }
 /// ```
 ///
@@ -197,6 +203,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// ```
 /// # extern crate alloc;
 /// # use stylus_sdk::call::Call;
+/// # use stylus_sdk::prelude::*;
 /// # use stylus_proc::{entrypoint, public, sol_interface, storage};
 /// sol_interface! {
 ///     interface IMethods {
@@ -207,7 +214,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// # #[entrypoint] #[storage] struct Contract {}
+/// #[entrypoint] #[storage] struct Contract {
+///    total: stylus_sdk::storage::StorageU256,
+/// }
 /// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
@@ -293,6 +302,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 /// lets you do this automatically.
 ///
 /// ```
+/// extern crate alloc;
 /// # use stylus_proc::{Erase, sol_storage};
 /// sol_storage! {
 ///    #[derive(Erase)]
@@ -367,15 +377,16 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// ```
 /// # extern crate alloc;
 /// # use stylus_proc::{entrypoint, public, sol_storage};
+/// # use stylus_sdk::prelude::*;
 /// sol_storage! {
 ///     #[entrypoint]
 ///     pub struct Contract {
-///         // ...
+///         uint256 number;
 ///     }
 ///
 ///     // only one entrypoint is allowed
 ///     pub struct SubStruct {
-///         // ...
+///         uint256 number;
 ///     }
 /// }
 /// # #[public] impl Contract {}
@@ -391,10 +402,12 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// wherein the Stylus SDK's macros and storage types are entirely optional.
 ///
 /// ```
+/// extern crate alloc;
 /// # use stylus_sdk::ArbResult;
 /// # use stylus_proc::entrypoint;
+/// # use stylus_sdk::prelude::*;
 /// #[entrypoint]
-/// fn entrypoint(calldata: Vec<u8>) -> ArbResult {
+/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_sdk::host::Host>) -> ArbResult {
 ///     // bytes-in, bytes-out programming
 /// #   Ok(Vec::new())
 /// }
@@ -479,7 +492,8 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # extern crate alloc;
 /// # use alloy_primitives::Address;
 /// # use stylus_proc::{entrypoint, public, storage};
-/// # #[entrypoint] #[storage] struct Contract { #[borrow] erc20: Erc20 }
+/// # use stylus_sdk::prelude::*;
+/// # #[entrypoint] #[storage] struct Contract { #[borrow] erc20: Erc20, }
 /// # mod msg {
 /// #     use alloy_primitives::Address;
 /// #     pub fn sender() -> Address { Address::ZERO }
@@ -492,7 +506,9 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///         self.erc20.add_balance(msg::sender(), msg::value())
 ///     }
 /// }
-/// # #[storage] struct Erc20;
+/// # #[storage] struct Erc20 {
+/// #    total: stylus_sdk::storage::StorageU256,
+/// # }
 /// # #[public]
 /// # impl Erc20 {
 /// #     pub fn add_balance(&self, sender: Address, value: u32) -> Result<(), Vec<u8>> {
@@ -525,7 +541,8 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # extern crate alloc;
 /// # use alloy_primitives::U256;
 /// # use stylus_proc::{entrypoint, public, storage};
-/// # #[entrypoint] #[storage] struct Token { #[borrow] erc20: Erc20 }
+/// # use stylus_sdk::prelude::*;
+/// # #[entrypoint] #[storage] struct Token { #[borrow] erc20: Erc20, }
 /// #[public]
 /// #[inherit(Erc20)]
 /// impl Token {
@@ -535,7 +552,9 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// # #[storage] struct Erc20;
+/// #[storage] struct Erc20 {
+///    total: stylus_sdk::storage::StorageU256,
+/// }
 /// #[public]
 /// impl Erc20 {
 ///     pub fn balance_of() -> Result<U256, Vec<u8>> {
@@ -569,17 +588,17 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// ```
 /// # extern crate alloc;
+/// # use stylus_sdk::prelude::*;
 /// # use stylus_proc::{entrypoint, public, sol_storage};
 /// sol_storage! {
 ///     #[entrypoint]
 ///     pub struct Token {
 ///         #[borrow]
 ///         Erc20 erc20;
-///         // ...
 ///     }
 ///
 ///     pub struct Erc20 {
-///         // ...
+///         uint256 total;
 ///     }
 /// }
 /// # #[public] impl Token {}

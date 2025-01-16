@@ -135,10 +135,13 @@ impl<S: StorageType> StorageVec<S> {
     /// # Example
     ///
     /// ```no_run
+    /// extern crate alloc;
+    /// use alloc::boxed::Box;
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
     ///
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0) };
+    /// let host = Box::new(stylus_sdk::host::wasm::WasmHost {});
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0, Box::into_raw(host)) };
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///

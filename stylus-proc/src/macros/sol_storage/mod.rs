@@ -36,7 +36,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #generics {
-                #fields
+                #fields,
             }
         });
     }
