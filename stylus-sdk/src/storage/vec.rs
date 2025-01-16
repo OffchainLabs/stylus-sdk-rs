@@ -142,8 +142,11 @@ impl<S: StorageType<H>, H: Host> StorageVec<S, H> {
     /// ```no_run
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
+    /// use stylus_sdk::host::*;
+    /// use stylus_sdk::host::wasm::WasmHost;
     ///
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0) };
+    /// let h = WasmHost {};
+    /// let mut vec: StorageVec<StorageVec<StorageU256<WasmHost>, WasmHost>, WasmHost> = unsafe { StorageVec::new(U256::ZERO, 0, &h) };
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///

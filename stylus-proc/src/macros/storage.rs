@@ -235,8 +235,12 @@ impl ToTokens for Storage {
         self.impl_storage_type().to_tokens(tokens);
         self.impl_host_access().to_tokens(tokens);
         for field in &self.fields {
-            field.impl_borrow(&self.name).to_tokens(tokens);
-            field.impl_borrow_mut(&self.name).to_tokens(tokens);
+            field
+                .impl_borrow(&self.name, &self.generics)
+                .to_tokens(tokens);
+            field
+                .impl_borrow_mut(&self.name, &self.generics)
+                .to_tokens(tokens);
         }
     }
 }
@@ -323,11 +327,12 @@ impl StorageField {
         }
     }
 
-    fn impl_borrow(&self, name: &syn::Ident) -> Option<syn::ItemImpl> {
+    fn impl_borrow(&self, name: &syn::Ident, generics: &syn::Generics) -> Option<syn::ItemImpl> {
         let Self { ty, accessor, .. } = self;
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         self.borrow.then(|| {
             parse_quote! {
-                impl core::borrow::Borrow<#ty> for #name {
+                impl #impl_generics core::borrow::Borrow<#ty> for #name #ty_generics #where_clause {
                     fn borrow(&self) -> &#ty {
                         &self.#accessor
                     }
@@ -336,11 +341,16 @@ impl StorageField {
         })
     }
 
-    fn impl_borrow_mut(&self, name: &syn::Ident) -> Option<syn::ItemImpl> {
+    fn impl_borrow_mut(
+        &self,
+        name: &syn::Ident,
+        generics: &syn::Generics,
+    ) -> Option<syn::ItemImpl> {
         let Self { ty, accessor, .. } = self;
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         self.borrow.then(|| {
             parse_quote! {
-                impl core::borrow::BorrowMut<#ty> for #name {
+                impl #impl_generics core::borrow::BorrowMut<#ty> for #name #ty_generics #where_clause {
                     fn borrow_mut(&mut self) -> &mut #ty {
                         &mut self.#accessor
                     }

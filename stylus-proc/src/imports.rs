@@ -9,6 +9,7 @@
 //! Usage:
 //! ```compile_fail
 //! use crate::imports::alloy_primitives::Address;
+//! use quote::quote;
 //!
 //! let _ = quote! {
 //!     let addr = #Address::random();

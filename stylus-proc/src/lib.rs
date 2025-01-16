@@ -458,7 +458,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # extern crate alloc;
 /// # use stylus_sdk::storage::StorageAddress;
 /// # use stylus_proc::public;
+/// # use stylus_sdk::prelude::*;
 /// # use alloy_primitives::Address;
+/// #
+/// # #[storage]
 /// # struct Contract<H: stylus_sdk::host::Host> {
 /// #     owner: StorageAddress<H>,
 /// # }
@@ -489,13 +492,18 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # extern crate alloc;
 /// # use alloy_primitives::Address;
 /// # use stylus_proc::{entrypoint, public, storage};
-/// # use stylus_sdk::host::*;
-/// # #[entrypoint] #[storage] struct Contract<H: stylus_sdk::host::Host> { #[borrow] erc20: Erc20<H> }
+/// # use stylus_sdk::prelude::*;
+/// #[entrypoint]
+/// #[storage]
+/// struct Contract<H: stylus_sdk::host::Host> {
+///     erc20: Erc20<H>,
+/// }
 /// # mod msg {
 /// #     use alloy_primitives::Address;
 /// #     pub fn sender() -> Address { Address::ZERO }
 /// #     pub fn value() -> u32 { 0 }
 /// # }
+///
 /// #[public]
 /// impl<H: stylus_sdk::host::Host> Contract<H> {
 ///     #[payable]
@@ -503,7 +511,9 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///         self.erc20.add_balance(msg::sender(), msg::value())
 ///     }
 /// }
-/// # #[storage] struct Erc20<H: stylus_sdk::host::Host> {
+///
+/// # #[storage]
+/// # struct Erc20<H: stylus_sdk::host::Host> {
 /// #   number: stylus_sdk::storage::StorageU256<H>,
 /// # }
 /// # #[public]
@@ -539,9 +549,14 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # use alloy_primitives::U256;
 /// # use stylus_proc::{entrypoint, public, storage};
 /// # use stylus_sdk::host::*;
-/// # #[entrypoint] #[storage] struct Token<H: stylus_sdk::host::Host> { #[borrow] erc20: Erc20<H> }
+/// #[entrypoint]
+/// #[storage]
+/// struct Token<H: stylus_sdk::host::Host> {
+///     #[borrow]
+///     erc20: Erc20<H>,
+/// }
 /// #[public]
-/// #[inherit(Erc20)]
+/// #[inherit(Erc20<H>)]
 /// impl<H: stylus_sdk::host::Host> Token<H> {
 ///     pub fn mint(&mut self, amount: U256) -> Result<(), Vec<u8>> {
 ///         // ...
@@ -596,12 +611,13 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///     }
 ///
 ///     pub struct Erc20<H: stylus_sdk::host::Host> {
-///         // ...
+///         uint256 number
 ///     }
 /// }
 /// # #[public] impl<H: stylus_sdk::host::Host> Token<H> {}
 /// # #[public] impl<H: stylus_sdk::host::Host> Erc20<H> {}
 /// ```
+///
 ///
 /// In the future we plan to simplify the SDK so that [`Borrow`][Borrow] isn't needed and so that
 /// [`Router`] composition is more configurable. The motivation for this becomes clearer in complex
