@@ -6,6 +6,6 @@ use stylus_sdk::storage::{StorageU256, StorageVec};
 
 #[storage]
 #[derive(Erase)]
-pub struct Erasable {
-    arr: StorageVec<StorageU256>,
+pub struct Erasable<H: stylus_sdk::host::Host> {
+    arr: StorageVec<StorageU256<H>, H>,
 }

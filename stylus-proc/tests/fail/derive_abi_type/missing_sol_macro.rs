@@ -7,8 +7,8 @@ use stylus_proc::AbiType;
 use stylus_sdk::storage::StorageBool;
 
 #[derive(AbiType)]
-struct MyStruct {
-    bar: StorageBool,
+struct MyStruct<H: stylus_sdk::host::Host> {
+    bar: StorageBool<H>,
 }
 
 fn main() {}
