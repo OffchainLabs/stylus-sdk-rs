@@ -9,7 +9,7 @@ use syn::{
     Type,
 };
 
-use crate::utils::attrs::consume_flag;
+use crate::{consts::STYLUS_HOST_FIELD, utils::attrs::consume_flag};
 
 /// Implementation of the [`#[storage]`][crate::storage] macro.
 pub fn storage(
@@ -23,9 +23,50 @@ pub fn storage(
         );
     }
 
-    let mut item = parse_macro_input!(input as ItemStruct);
-    let storage = Storage::from(&mut item);
-    let mut output = item.into_token_stream();
+    let item = parse_macro_input!(input as ItemStruct);
+    let ItemStruct {
+        attrs,
+        vis,
+        ident,
+        generics,
+        fields,
+        ..
+    } = item;
+
+    // Handle fields based on their type (named or unnamed)
+    let expanded_fields = match fields {
+        syn::Fields::Named(named_fields) => {
+            // Extract the original fields.
+            let original_fields = named_fields.named;
+            quote! {
+                #original_fields
+                #STYLUS_HOST_FIELD: *const dyn stylus_sdk::host::Host,
+            }
+        }
+        syn::Fields::Unnamed(_) => {
+            // Handle tuple structs if needed.
+            emit_error!(
+                fields.span(),
+                "Tuple structs are not supported by #[storage]"
+            );
+            return fields.to_token_stream().into();
+        }
+        syn::Fields::Unit => {
+            // Handle unit structs if needed.
+            quote! {
+                #STYLUS_HOST_FIELD: *const dyn stylus_sdk::host::Host,
+            }
+        }
+    };
+    // Inject the host trait generic into the item struct if not defined.
+    let mut host_injected_item: syn::ItemStruct = parse_quote! {
+        #(#attrs)*
+        #vis struct #ident #generics {
+            #expanded_fields
+        }
+    };
+    let storage = Storage::from(&mut host_injected_item);
+    let mut output = host_injected_item.into_token_stream();
     storage.to_tokens(&mut output);
     output.into()
 }
@@ -73,14 +114,15 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: *const dyn stylus_sdk::host::Host) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
-                        #init
+                        #init,
+                        #STYLUS_HOST_FIELD: host,
                     };
                     accessor
                 }
@@ -164,6 +206,9 @@ impl StorageField {
         let Some(ident) = &self.name else {
             return None;
         };
+        if *ident == STYLUS_HOST_FIELD.as_ident() {
+            return None;
+        }
         let ty = &self.ty;
         Some(parse_quote! {
             #ident: {
@@ -176,7 +221,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType>::new(root, space as u8);
+                let field = <#ty as storage::StorageType>::new(root, space as u8, host);
                 if words > 0 {
                     slot += words;
                     space = 32;
@@ -188,6 +233,12 @@ impl StorageField {
 
     fn size(&self) -> TokenStream {
         let ty = &self.ty;
+        let Some(ident) = &self.name else {
+            return quote! {};
+        };
+        if *ident == STYLUS_HOST_FIELD.as_ident() {
+            return quote! {};
+        }
         quote! {
             let bytes = <#ty as storage::StorageType>::SLOT_BYTES;
             let words = <#ty as storage::StorageType>::REQUIRED_SLOTS;

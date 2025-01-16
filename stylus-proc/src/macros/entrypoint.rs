@@ -126,8 +126,8 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
-            stylus_sdk::abi::router_entrypoint::<#name, #name>(input)
+        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: alloc::boxed::Box<dyn stylus_sdk::host::Host>) -> stylus_sdk::ArbResult {
+            stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
     }
 }
@@ -144,7 +144,8 @@ fn mark_used_fn() -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub unsafe fn mark_used() {
-            stylus_sdk::evm::pay_for_memory_grow(0);
+            let host = stylus_sdk::host::wasm::WasmHost{};
+            host.pay_for_memory_grow(0);
             panic!();
         }
     }
@@ -155,15 +156,17 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
     parse_quote! {
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
+            let host = alloc::boxed::Box::new(stylus_sdk::host::wasm::WasmHost{});
             #deny_reentrant
+            host.pay_for_memory_grow(0);
 
-            let input = stylus_sdk::contract::args(len);
-            let (data, status) = match #user_fn(input) {
+            let input = host.read_args(len);
+            let (data, status) = match #user_fn(input, alloc::boxed::Box::new(stylus_sdk::host::wasm::WasmHost{})) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            unsafe { stylus_sdk::storage::StorageCache::flush() };
-            stylus_sdk::contract::output(&data);
+            host.flush_cache(false /* do not clear */);
+            host.write_result(&data);
             status
         }
     }
@@ -176,7 +179,7 @@ fn deny_reentrant() -> Option<syn::ExprIf> {
             None
         } else {
             Some(parse_quote! {
-                if stylus_sdk::msg::reentrant() {
+                if host.msg_reentrant() {
                     return 1; // revert
                 }
             })

@@ -33,11 +33,9 @@ pub trait Host:
 
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
-    /// The associated host type for a Stylus contract.
-    type Host: Host;
     /// Provides access to the parametrized host of a contract, giving access
     /// to all the desired hostios from the user.
-    fn vm(&self) -> &Self::Host;
+    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host>;
 }
 
 /// Provides access to native cryptography extensions provided by
