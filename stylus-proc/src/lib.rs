@@ -106,7 +106,6 @@ pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///         Delegate[] delegates;               // becomes a StorageVec
 ///     }
 ///     pub struct Delegate {
-///         uint256 id;
 ///     }
 /// }
 /// ```
@@ -214,9 +213,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// #[entrypoint] #[storage] struct Contract {
-///    total: stylus_sdk::storage::StorageU256,
-/// }
+/// #[entrypoint] #[storage] struct Contract {}
 /// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
@@ -381,12 +378,10 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// sol_storage! {
 ///     #[entrypoint]
 ///     pub struct Contract {
-///         uint256 number;
 ///     }
 ///
 ///     // only one entrypoint is allowed
 ///     pub struct SubStruct {
-///         uint256 number;
 ///     }
 /// }
 /// # #[public] impl Contract {}
@@ -506,9 +501,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///         self.erc20.add_balance(msg::sender(), msg::value())
 ///     }
 /// }
-/// # #[storage] struct Erc20 {
-/// #    total: stylus_sdk::storage::StorageU256,
-/// # }
+/// # #[storage] struct Erc20;
 /// # #[public]
 /// # impl Erc20 {
 /// #     pub fn add_balance(&self, sender: Address, value: u32) -> Result<(), Vec<u8>> {
@@ -552,9 +545,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// #[storage] struct Erc20 {
-///    total: stylus_sdk::storage::StorageU256,
-/// }
+/// #[storage] struct Erc20;
 /// #[public]
 /// impl Erc20 {
 ///     pub fn balance_of() -> Result<U256, Vec<u8>> {
