@@ -27,7 +27,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             .map(|SolidityField { attrs, name, ty }| -> syn::Field {
                 parse_quote! {
                     #(#attrs)*
-                    pub #name: #ty
+                    pub #name: #ty,
                 }
             })
             .collect();
@@ -36,7 +36,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #generics {
-                #fields,
+                #fields
             }
         });
     }

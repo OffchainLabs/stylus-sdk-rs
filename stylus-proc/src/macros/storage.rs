@@ -40,7 +40,7 @@ pub fn storage(
             let original_fields = named_fields.named;
             quote! {
                 #original_fields
-                #STYLUS_HOST_FIELD: *const dyn stylus_sdk::host::Host,
+                #STYLUS_HOST_FIELD: *const dyn stylus_host::Host,
             }
         }
         syn::Fields::Unnamed(_) => {
@@ -54,7 +54,7 @@ pub fn storage(
         syn::Fields::Unit => {
             // Handle unit structs if needed.
             quote! {
-                #STYLUS_HOST_FIELD: *const dyn stylus_sdk::host::Host,
+                #STYLUS_HOST_FIELD: *const dyn stylus_host::Host
             }
         }
     };
@@ -114,15 +114,15 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: *const dyn stylus_sdk::host::Host) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
-                        #init,
                         #STYLUS_HOST_FIELD: host,
+                        #init
                     };
                     accessor
                 }
@@ -142,11 +142,11 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
-            impl #impl_generics stylus_sdk::host::HostAccess for #name #ty_generics #where_clause {
-                fn vm(&self) -> alloc::boxed::Box<dyn stylus_sdk::host::Host> {
+            impl #impl_generics stylus_host::HostAccess for #name #ty_generics #where_clause {
+                fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
                     // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
                     // as injected by the Stylus entrypoint function.
-                    unsafe { alloc::boxed::Box::from_raw(self.#STYLUS_HOST_FIELD as *mut dyn stylus_sdk::host::Host) }
+                    unsafe { alloc::boxed::Box::from_raw(self.#STYLUS_HOST_FIELD as *mut dyn stylus_host::Host) }
                 }
             }
         }

@@ -407,7 +407,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// # use stylus_proc::entrypoint;
 /// # use stylus_sdk::prelude::*;
 /// #[entrypoint]
-/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_sdk::host::Host>) -> ArbResult {
+/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_host::Host>) -> ArbResult {
 ///     // bytes-in, bytes-out programming
 /// #   Ok(Vec::new())
 /// }
