@@ -1,7 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::host::HostAccess;
+
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
+use alloc::boxed::Box;
 use alloy_primitives::U256;
 use core::marker::PhantomData;
 
@@ -9,6 +12,7 @@ use core::marker::PhantomData;
 pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
+    __stylus_host: *const dyn crate::host::Host,
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
@@ -23,11 +27,12 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
+            __stylus_host: host,
         }
     }
 
@@ -37,6 +42,12 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
         StorageGuardMut::new(self)
+    }
+}
+
+impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
+    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
     }
 }
 
@@ -77,7 +88,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, Box::into_raw(self.vm())))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -87,7 +98,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, Box::into_raw(self.vm()))
     }
 
     /// Gets the element at the given index, if it exists.

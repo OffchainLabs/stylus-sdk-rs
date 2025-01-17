@@ -1,9 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::crypto;
+use crate::{crypto, host::HostAccess};
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
+use alloc::boxed::Box;
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use core::marker::PhantomData;
@@ -12,6 +13,7 @@ use core::marker::PhantomData;
 pub struct StorageMap<K: StorageKey, V: StorageType> {
     slot: U256,
     marker: PhantomData<(K, V)>,
+    __stylus_host: *const dyn crate::host::Host,
 }
 
 impl<K, V> StorageType for StorageMap<K, V>
@@ -28,11 +30,12 @@ where
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
+            __stylus_host: host,
         }
     }
 
@@ -42,6 +45,16 @@ where
 
     fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
         StorageGuardMut::new(self)
+    }
+}
+
+impl<K, V> HostAccess for StorageMap<K, V>
+where
+    K: StorageKey,
+    V: StorageType,
+{
+    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
     }
 }
 
@@ -58,7 +71,7 @@ where
     /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()))) }
     }
 
     /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
@@ -66,7 +79,7 @@ where
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()))) }
     }
 
     /// Gets the element at the given key, or the zero value if none is there.
@@ -93,8 +106,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
             let prior = store.load();
             alias.set_by_wrapped(value);
             prior
@@ -107,8 +120,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
             let value = store.load();
             alias.erase();
             value

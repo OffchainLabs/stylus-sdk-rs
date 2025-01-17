@@ -19,6 +19,8 @@ pub const ASSERT_OVERRIDES_FN: ConstIdent = ConstIdent("__stylus_assert_override
 /// function.
 pub const ALLOW_OVERRIDE_FN: ConstIdent = ConstIdent("__stylus_allow_override");
 
+pub const STYLUS_HOST_FIELD: ConstIdent = ConstIdent("__stylus_host");
+
 /// Definition of a constant identifier
 pub struct ConstIdent(&'static str);
 
