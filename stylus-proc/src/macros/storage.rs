@@ -39,8 +39,8 @@ pub fn storage(
             // Extract the original fields.
             let original_fields = named_fields.named;
             quote! {
-                #original_fields
                 #STYLUS_HOST_FIELD: *const dyn stylus_sdk::host::Host,
+                #original_fields
             }
         }
         syn::Fields::Unnamed(_) => {
