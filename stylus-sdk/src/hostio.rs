@@ -438,6 +438,7 @@ macro_rules! wrap_hostio {
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
+        #[deprecated(since = "0.8.0", note = "Use the .vm() method available on Stylus storage types instead to access host methods")]
         pub fn $name() -> $ty {
             unsafe { $ty::from(hostio::$hostio()) }
         }
@@ -446,6 +447,7 @@ macro_rules! wrap_hostio {
         cfg_if::cfg_if! {
             if #[cfg(feature = "hostio-caching")] {
                 $(#[$meta])*
+                #[deprecated(since = "0.8.0", note = "Use the .vm() method available on Stylus storage types instead to access host methods")]
                 pub fn $name() -> $ty {
                     $cache.get()
                 }
@@ -457,6 +459,7 @@ macro_rules! wrap_hostio {
     };
     (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
+        #[deprecated(since = "0.8.0", note = "Use the .vm() method available on Stylus storage types instead to access host methods")]
         pub fn $name() -> $ty {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
@@ -467,6 +470,7 @@ macro_rules! wrap_hostio {
         cfg_if::cfg_if! {
             if #[cfg(feature = "hostio-caching")] {
                 $(#[$meta])*
+                #[deprecated(since = "0.8.0", note = "Use the .vm() method available on Stylus storage types instead to access host methods")]
                 pub fn $name() -> $ty {
                     $cache.get()
                 }
@@ -481,7 +485,6 @@ macro_rules! wrap_hostio {
         }
     };
 }
-
 pub(crate) use wrap_hostio;
 
 use core::cell::UnsafeCell;

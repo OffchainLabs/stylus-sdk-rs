@@ -21,6 +21,10 @@ use alloy_primitives::{Address, U256};
 
 /// Reads the invocation's calldata.
 /// The [`entrypoint`](macro@stylus_proc::entrypoint) macro uses this under the hood.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn args(len: usize) -> Vec<u8> {
     let mut input = Vec::with_capacity(len);
     unsafe {
@@ -32,6 +36,10 @@ pub fn args(len: usize) -> Vec<u8> {
 
 /// Writes the contract's return data.
 /// The [`entrypoint`](macro@stylus_proc::entrypoint) macro uses this under the hood.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn output(data: &[u8]) {
     unsafe {
         hostio::write_result(data.as_ptr(), data.len());
@@ -40,6 +48,10 @@ pub fn output(data: &[u8]) {
 
 /// Copies the bytes of the last EVM call or deployment return result.
 /// Note: this function does not revert if out of bounds, but rather will copy the overlapping portion.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn read_return_data(offset: usize, size: Option<usize>) -> Vec<u8> {
     let size = size.unwrap_or_else(|| return_data_len().saturating_sub(offset));
 
@@ -66,6 +78,10 @@ wrap_hostio!(
 );
 
 /// Gets the balance of the current program.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn balance() -> U256 {
     address().balance()
 }

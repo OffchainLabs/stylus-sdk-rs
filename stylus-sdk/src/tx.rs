@@ -27,6 +27,10 @@ wrap_hostio! {
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn gas_to_ink(gas: u64) -> u64 {
     gas.saturating_mul(ink_price().into())
 }
@@ -35,6 +39,10 @@ pub fn gas_to_ink(gas: u64) -> u64 {
 /// Stylus's compute-pricing model.
 ///
 /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn ink_to_gas(ink: u64) -> u64 {
     ink / ink_price() as u64
 }

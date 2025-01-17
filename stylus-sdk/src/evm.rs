@@ -18,12 +18,20 @@ use alloy_primitives::B256;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 fn emit_log(bytes: &[u8], num_topics: usize) {
     unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), num_topics) }
 }
 
 /// Emits an EVM log from its raw topics and data.
 /// Most users should prefer the alloy-typed [`log`].
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     if topics.len() > 4 {
         return Err("too many topics");
@@ -36,6 +44,10 @@ pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
 }
 
 /// Emits a typed alloy log.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn log<T: SolEvent>(event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
 
@@ -53,6 +65,10 @@ pub fn log<T: SolEvent>(event: T) {
 
 /// This function exists to force the compiler to import this symbol.
 /// Calling it will unproductively consume gas.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types instead to access host methods"
+)]
 pub fn pay_for_memory_grow(pages: u16) {
     unsafe { hostio::pay_for_memory_grow(pages) }
 }
