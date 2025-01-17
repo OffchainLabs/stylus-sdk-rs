@@ -1,7 +1,10 @@
 // Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{block, contract, evm, host::*, hostio, msg, tx, types::AddressVM};
+use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
+use alloc::vec::Vec;
+use alloy_primitives::{Address, B256, U256};
+use stylus_host::*;
 
 /// WasmHost is the default implementation of the host trait
 /// for all Stylus programs using the SDK.

@@ -51,7 +51,7 @@ pub trait StorageType: Sized {
     /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self;
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self;
 
     /// Load the wrapped type, consuming the accessor.
     /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.
@@ -189,7 +189,7 @@ pub trait GlobalStorage {
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn get<const N: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
     ) -> FixedBytes<N> {
@@ -211,7 +211,7 @@ pub trait GlobalStorage {
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn get_uint<const B: usize, const L: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
     ) -> Uint<B, L> {
@@ -233,7 +233,7 @@ pub trait GlobalStorage {
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn get_signed<const B: usize, const L: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
     ) -> Signed<B, L> {
@@ -251,7 +251,7 @@ pub trait GlobalStorage {
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
     unsafe fn get_byte(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
     ) -> u8 {
@@ -271,7 +271,7 @@ pub trait GlobalStorage {
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    fn get_word(host: &alloc::boxed::Box<dyn crate::host::Host>, key: U256) -> B256;
+    fn get_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256) -> B256;
 
     /// Writes `N ≤ 32` bytes to persistent storage, performing [`SSTORE`]'s only as needed.
     /// The bytes are written to slot `key`, starting `offset` bytes from the left.
@@ -284,7 +284,7 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set<const N: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
         value: FixedBytes<N>,
@@ -314,7 +314,7 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set_uint<const B: usize, const L: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
         value: Uint<B, L>,
@@ -349,7 +349,7 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set_signed<const B: usize, const L: usize>(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
         value: Signed<B, L>,
@@ -367,7 +367,7 @@ pub trait GlobalStorage {
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn set_byte(
-        host: &alloc::boxed::Box<dyn crate::host::Host>,
+        host: &alloc::boxed::Box<dyn stylus_host::Host>,
         key: U256,
         offset: usize,
         value: u8,
@@ -383,7 +383,7 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn set_word(host: &alloc::boxed::Box<dyn crate::host::Host>, key: U256, value: B256);
+    unsafe fn set_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256, value: B256);
 
     /// Clears the 32-byte word at the given key, performing [`SSTORE`]'s only as needed.
     ///
@@ -392,7 +392,7 @@ pub trait GlobalStorage {
     /// Aliases if called during the lifetime an overlapping accessor.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    unsafe fn clear_word(host: &alloc::boxed::Box<dyn crate::host::Host>, key: U256) {
+    unsafe fn clear_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256) {
         Self::set_word(host, key, B256::ZERO)
     }
 }

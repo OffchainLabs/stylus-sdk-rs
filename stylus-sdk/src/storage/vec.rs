@@ -4,17 +4,18 @@
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::{crypto, host::HostAccess};
+use crate::crypto;
 use alloc::boxed::Box;
 use alloy_primitives::U256;
 use core::{cell::OnceCell, marker::PhantomData};
+use stylus_host::HostAccess;
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
-    __stylus_host: *const dyn crate::host::Host,
+    __stylus_host: *const dyn stylus_host::Host,
 }
 
 impl<S: StorageType> StorageType for StorageVec<S> {
@@ -27,7 +28,7 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -47,8 +48,8 @@ impl<S: StorageType> StorageType for StorageVec<S> {
 }
 
 impl<S: StorageType> HostAccess for StorageVec<S> {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -261,5 +262,25 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
         for elem in iter {
             self.push(elem);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_storage_vec() {
+        use super::super::StorageBool;
+        use super::*;
+        use alloc::boxed::Box;
+        use stylus_host::Host;
+        use stylus_test::mock::*;
+
+        let vm = TestVM::new();
+        let host_ptr = Box::new(vm) as Box<dyn Host>;
+        let mut vec: StorageVec<StorageBool> =
+            unsafe { StorageVec::new(U256::ZERO, 0, Box::into_raw(host_ptr)) };
+        vec.push(true);
+        vec.push(false);
+        vec.push(false);
     }
 }

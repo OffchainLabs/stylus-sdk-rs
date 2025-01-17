@@ -667,6 +667,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "stylus-host"
+version = "0.7.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+]
+
+[[package]]
 name = "stylus-proc"
 version = "0.7.0"
 dependencies = [
@@ -704,7 +712,18 @@ dependencies = [
  "paste",
  "regex",
  "sha3",
+ "stylus-host",
  "stylus-proc",
+ "stylus-test",
+]
+
+[[package]]
+name = "stylus-test"
+version = "0.7.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+ "stylus-host",
 ]
 
 [[package]]

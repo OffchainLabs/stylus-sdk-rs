@@ -1,18 +1,17 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::host::HostAccess;
-
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloc::boxed::Box;
 use alloy_primitives::U256;
 use core::marker::PhantomData;
+use stylus_host::HostAccess;
 
 /// Accessor for a storage-backed array.
 pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
-    __stylus_host: *const dyn crate::host::Host,
+    __stylus_host: *const dyn stylus_host::Host,
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
@@ -27,7 +26,7 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -46,8 +45,8 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 }
 
 impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 

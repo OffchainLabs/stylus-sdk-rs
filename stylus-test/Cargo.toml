@@ -1,0 +1,20 @@
+[package]
+name = "stylus-test"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Testing utilities for Arbitrum Stylus contracts"
+readme = "../README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+stylus-host.workspace = true
+
+[dev-dependencies]
+
+[features]

@@ -1,0 +1,19 @@
+[package]
+name = "stylus-host"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Host trait definition for Arbitrum Stylus contracts"
+readme = "../README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+
+[dev-dependencies]
+
+[features]

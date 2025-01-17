@@ -22,13 +22,11 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::{
-    host::{Host, HostAccess},
-    hostio,
-};
+use crate::hostio;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
+use stylus_host::*;
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
@@ -54,7 +52,7 @@ pub struct StorageCache;
 
 impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
-    fn get_word(host: &alloc::boxed::Box<dyn crate::host::Host>, key: U256) -> B256 {
+    fn get_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256) -> B256 {
         host.storage_load_bytes32(key)
     }
 
@@ -63,7 +61,7 @@ impl GlobalStorage for StorageCache {
     /// # Safety
     ///
     /// May alias storage.
-    unsafe fn set_word(host: &alloc::boxed::Box<dyn crate::host::Host>, key: U256, value: B256) {
+    unsafe fn set_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256, value: B256) {
         host.storage_cache_bytes32(key, value)
     }
 }
@@ -156,8 +154,8 @@ impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -186,7 +184,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
@@ -264,8 +262,8 @@ impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -294,7 +292,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self {
             slot,
             offset,
@@ -362,8 +360,8 @@ pub struct StorageFixedBytes<const N: usize> {
 }
 
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -389,7 +387,7 @@ where
 
     const SLOT_BYTES: usize = N;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self {
             slot,
             offset,
@@ -450,8 +448,8 @@ pub struct StorageBool {
 }
 
 impl HostAccess for StorageBool {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -474,7 +472,7 @@ impl StorageType for StorageBool {
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self {
             slot,
             offset,
@@ -531,8 +529,8 @@ pub struct StorageAddress {
 }
 
 impl HostAccess for StorageAddress {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -555,7 +553,7 @@ impl StorageType for StorageAddress {
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self {
             slot,
             offset,
@@ -614,8 +612,8 @@ pub struct StorageBlockNumber {
 }
 
 impl HostAccess for StorageBlockNumber {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -639,7 +637,7 @@ impl StorageType for StorageBlockNumber {
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self {
             slot,
             offset,
@@ -698,8 +696,8 @@ pub struct StorageBlockHash {
 }
 
 impl HostAccess for StorageBlockHash {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -720,7 +718,7 @@ impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    unsafe fn new(slot: U256, _offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, host: *const dyn stylus_host::Host) -> Self {
         let cached = OnceCell::new();
         Self {
             slot,
@@ -779,7 +777,7 @@ impl<T> StorageType for PhantomData<T> {
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
 
-    unsafe fn new(_slot: U256, _offset: u8, _host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(_slot: U256, _offset: u8, _host: *const dyn stylus_host::Host) -> Self {
         Self
     }
 

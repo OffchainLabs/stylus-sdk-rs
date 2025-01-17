@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
-use crate::{crypto, host::HostAccess};
+use crate::crypto;
 use alloc::boxed::Box;
 use alloc::{
     string::{String, ToString},
@@ -10,12 +10,13 @@ use alloc::{
 };
 use alloy_primitives::{U256, U8};
 use core::cell::OnceCell;
+use stylus_host::HostAccess;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {
     root: U256,
     base: OnceCell<U256>,
-    __stylus_host: *const dyn crate::host::Host,
+    __stylus_host: *const dyn stylus_host::Host,
 }
 
 impl StorageType for StorageBytes {
@@ -28,7 +29,7 @@ impl StorageType for StorageBytes {
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(root: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
@@ -47,8 +48,8 @@ impl StorageType for StorageBytes {
 }
 
 impl HostAccess for StorageBytes {
-    fn vm(&self) -> alloc::boxed::Box<dyn crate::host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn crate::host::Host) }
+    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
+        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
     }
 }
 
@@ -286,7 +287,7 @@ impl StorageType for StorageString {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn crate::host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
         Self(StorageBytes::new(slot, offset, host))
     }
 
