@@ -99,7 +99,7 @@ where
 //    defined, then calls with no input calldata will be routed to the fallback function.
 pub fn router_entrypoint<R, S>(
     input: alloc::vec::Vec<u8>,
-    host: alloc::boxed::Box<dyn crate::host::Host>,
+    host: Box<dyn crate::host::Host>,
 ) -> ArbResult
 where
     R: Router<S>,

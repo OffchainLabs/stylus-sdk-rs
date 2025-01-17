@@ -60,7 +60,7 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = Storage::get_word(&self.vm(), self.slot).into();
+        let word: U256 = Storage::get_word(self.vm().as_ref(), self.slot).into();
         word.try_into().unwrap()
     }
 
@@ -72,7 +72,7 @@ impl<S: StorageType> StorageVec<S> {
     /// or any junk data left over from prior dirty operations.
     /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
-        Storage::set_word(&self.vm(), self.slot, U256::from(len).into())
+        Storage::set_word(self.vm().as_ref(), self.slot, U256::from(len).into())
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
@@ -225,7 +225,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { Storage::clear_word(&self.vm(), slot + U256::from(i)) };
+                unsafe { Storage::clear_word(self.vm().as_ref(), slot + U256::from(i)) };
             }
         }
         Some(value)
