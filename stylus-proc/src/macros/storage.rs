@@ -121,8 +121,8 @@ impl Storage {
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
-                        #init,
                         #STYLUS_HOST_FIELD: host,
+                        #init
                     };
                     accessor
                 }
