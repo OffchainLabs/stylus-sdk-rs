@@ -13,3 +13,4 @@ pub use crate::host::*;
 pub use crate::storage::{Erase, SimpleStorageType, StorageType, TopLevelStorage};
 pub use crate::stylus_proc::*;
 pub use crate::types::AddressVM;
+pub use stylus_host::*;

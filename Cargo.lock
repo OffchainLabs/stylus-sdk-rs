@@ -691,6 +691,7 @@ dependencies = [
  "quote",
  "regex",
  "sha3",
+ "stylus-host",
  "stylus-sdk",
  "syn 2.0.95",
  "syn-solidity",
