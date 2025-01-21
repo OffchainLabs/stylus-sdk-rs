@@ -51,7 +51,7 @@ impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                &self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }

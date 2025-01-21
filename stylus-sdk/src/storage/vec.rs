@@ -51,7 +51,7 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -279,18 +279,20 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
 mod test {
     #[test]
     fn test_storage_vec() {
-        // use super::super::StorageBool;
-        // use super::*;
-        // use alloc::boxed::Box;
-        // use stylus_host::Host;
-        // use stylus_test::mock::*;
+        use super::super::StorageBool;
+        use super::*;
+        use alloc::boxed::Box;
+        use stylus_test::mock::*;
 
-        // let vm = TestVM::new();
-        // let host_ptr = Box::new(vm) as Box<dyn Host>;
-        // let mut vec: StorageVec<StorageBool> =
-        //     unsafe { StorageVec::new(U256::ZERO, 0, Box::into_raw(host_ptr)) };
-        // vec.push(true);
-        // vec.push(false);
-        // vec.push(false);
+        let vm = super::VM {
+            host: rclite::Rc::new(Box::new(TestVM::new())),
+        };
+        let mut vec: StorageVec<StorageBool> = unsafe { StorageVec::new(U256::ZERO, 0, vm) };
+        vec.push(true);
+        vec.push(false);
+        vec.push(true);
+        assert_eq!(true, vec.get(0).unwrap());
+        assert_eq!(false, vec.get(1).unwrap());
+        assert_eq!(true, vec.get(2).unwrap());
     }
 }

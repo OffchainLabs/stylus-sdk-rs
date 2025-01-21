@@ -56,7 +56,7 @@ impl GlobalStorage for StorageCache {
     fn get_word(vm: VM, key: U256) -> B256 {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                vm.storage_load_bytes32(key, &mut data);
+                vm.storage_load_bytes32(key)
             } else {
                 vm.host.storage_load_bytes32(key)
             }
@@ -170,7 +170,7 @@ where
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -292,7 +292,7 @@ where
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -403,7 +403,7 @@ impl<const N: usize> HostAccess for StorageFixedBytes<N> {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -505,7 +505,7 @@ impl HostAccess for StorageBool {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -599,7 +599,7 @@ impl HostAccess for StorageAddress {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -695,7 +695,7 @@ impl HostAccess for StorageBlockNumber {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }
@@ -792,7 +792,7 @@ impl HostAccess for StorageBlockHash {
     fn vm(&self) -> &dyn stylus_host::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
-                self.__stylus_host.clone()
+                &self.__stylus_host
             } else {
                 &**self.__stylus_host.host
             }

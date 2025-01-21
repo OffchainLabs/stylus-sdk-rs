@@ -146,7 +146,7 @@ impl Storage {
                 fn vm(&self) -> &dyn stylus_host::Host {
                     #[cfg(target_arch = "wasm32")]
                     {
-                        self.__stylus_host.clone()
+                        &self.__stylus_host
                     }
                     #[cfg(not(target_arch = "wasm32"))]
                     {
