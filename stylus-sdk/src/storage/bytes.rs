@@ -3,12 +3,13 @@
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
 use crate::crypto;
-use alloc::boxed::Box;
+use crate::host::VM;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
 use alloy_primitives::{U256, U8};
+use cfg_if::cfg_if;
 use core::cell::OnceCell;
 use stylus_host::HostAccess;
 
@@ -16,7 +17,7 @@ use stylus_host::HostAccess;
 pub struct StorageBytes {
     root: U256,
     base: OnceCell<U256>,
-    __stylus_host: *const dyn stylus_host::Host,
+    __stylus_host: VM,
 }
 
 impl StorageType for StorageBytes {
@@ -29,7 +30,7 @@ impl StorageType for StorageBytes {
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(root: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
@@ -48,8 +49,14 @@ impl StorageType for StorageBytes {
 }
 
 impl HostAccess for StorageBytes {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                self.__stylus_host.clone()
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -61,7 +68,7 @@ impl StorageBytes {
 
     /// Gets the number of bytes stored.
     pub fn len(&self) -> usize {
-        let word = Storage::get_word(&self.vm(), self.root);
+        let word = Storage::get_word(self.__stylus_host.clone(), self.root);
 
         // check if the data is short
         let slot: &[u8] = word.as_ref();
@@ -90,15 +97,15 @@ impl StorageBytes {
 
         // if shrinking, pull data in
         if (len < 32) && (old > 32) {
-            let word = Storage::get_word(&self.vm(), *self.base());
-            Storage::set_word(&self.vm(), self.root, word);
+            let word = Storage::get_word(self.__stylus_host.clone(), *self.base());
+            Storage::set_word(self.__stylus_host.clone(), self.root, word);
             return self.write_len(len);
         }
 
         // if growing, push data out
-        let mut word = Storage::get_word(&self.vm(), self.root);
+        let mut word = Storage::get_word(self.__stylus_host.clone(), self.root);
         word[31] = 0; // clear len byte
-        Storage::set_word(&self.vm(), *self.base(), word);
+        Storage::set_word(self.__stylus_host.clone(), *self.base(), word);
         self.write_len(len)
     }
 
@@ -106,10 +113,14 @@ impl StorageBytes {
     unsafe fn write_len(&mut self, len: usize) {
         if len < 32 {
             // place the len in the last byte of the root with the long bit low
-            Storage::set_uint(&self.vm(), self.root, 31, U8::from(len * 2));
+            Storage::set_uint(self.__stylus_host.clone(), self.root, 31, U8::from(len * 2));
         } else {
             // place the len in the root with the long bit high
-            Storage::set_word(&self.vm(), self.root, U256::from(len * 2 + 1).into())
+            Storage::set_word(
+                self.__stylus_host.clone(),
+                self.root,
+                U256::from(len * 2 + 1).into(),
+            )
         }
     }
 
@@ -121,7 +132,7 @@ impl StorageBytes {
         macro_rules! assign {
             ($slot:expr) => {
                 unsafe {
-                    Storage::set_uint(&self.vm(), $slot, index % 32, value); // pack value
+                    Storage::set_uint(self.__stylus_host.clone(), $slot, index % 32, value); // pack value
                     self.write_len(index + 1);
                 }
             };
@@ -134,8 +145,8 @@ impl StorageBytes {
         // convert to multi-word representation
         if index == 31 {
             // copy content over (len byte will be overwritten)
-            let word = Storage::get_word(&self.vm(), self.root);
-            unsafe { Storage::set_word(&self.vm(), *self.base(), word) };
+            let word = Storage::get_word(self.__stylus_host.clone(), self.root);
+            unsafe { Storage::set_word(self.__stylus_host.clone(), *self.base(), word) };
         }
 
         let slot = self.base() + U256::from(index / 32);
@@ -155,13 +166,13 @@ impl StorageBytes {
         let clean = index % 32 == 0;
         let byte = self.get(index)?;
 
-        let clear = |slot| unsafe { Storage::clear_word(&self.vm(), slot) };
+        let clear = |slot| unsafe { Storage::clear_word(self.__stylus_host.clone(), slot) };
 
         // convert to single-word representation
         if len == 32 {
             // copy content over
-            let word = Storage::get_word(&self.vm(), *self.base());
-            unsafe { Storage::set_word(&self.vm(), self.root, word) };
+            let word = Storage::get_word(self.__stylus_host.clone(), *self.base());
+            unsafe { Storage::set_word(self.__stylus_host.clone(), self.root, word) };
             clear(*self.base());
         }
 
@@ -172,7 +183,7 @@ impl StorageBytes {
 
         // clear the value
         if len < 32 {
-            unsafe { Storage::set_byte(&self.vm(), self.root, index, 0) };
+            unsafe { Storage::set_byte(self.__stylus_host.clone(), self.root, index, 0) };
         }
 
         // set the new length
@@ -196,7 +207,7 @@ impl StorageBytes {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        let value = unsafe { StorageB8::new(slot, offset, Box::into_raw(self.vm())) };
+        let value = unsafe { StorageB8::new(slot, offset, self.__stylus_host.clone()) };
         Some(StorageGuardMut::new(value))
     }
 
@@ -207,7 +218,7 @@ impl StorageBytes {
     /// UB if index is out of bounds.
     pub unsafe fn get_unchecked(&self, index: usize) -> u8 {
         let (slot, offset) = self.index_slot(index);
-        unsafe { Storage::get_byte(&self.vm(), slot, offset.into()) }
+        unsafe { Storage::get_byte(self.__stylus_host.clone(), slot, offset.into()) }
     }
 
     /// Gets the full contents of the collection.
@@ -250,11 +261,11 @@ impl Erase for StorageBytes {
         if len > 31 {
             while len > 0 {
                 let slot = self.index_slot(len as usize - 1).0;
-                unsafe { Storage::clear_word(&self.vm(), slot) };
+                unsafe { Storage::clear_word(self.__stylus_host.clone(), slot) };
                 len -= 32;
             }
         }
-        unsafe { Storage::clear_word(&self.vm(), self.root) };
+        unsafe { Storage::clear_word(self.__stylus_host.clone(), self.root) };
     }
 }
 
@@ -287,7 +298,7 @@ impl StorageType for StorageString {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self(StorageBytes::new(slot, offset, host))
     }
 

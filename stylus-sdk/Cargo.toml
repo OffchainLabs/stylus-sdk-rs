@@ -26,6 +26,7 @@ regex = { workspace = true, optional = true }
 mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
 stylus-host.workspace = true
+rclite = "0.2.4"
 
 [dev-dependencies]
 paste.workspace = true

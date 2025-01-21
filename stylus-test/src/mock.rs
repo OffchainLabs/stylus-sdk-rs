@@ -111,11 +111,12 @@ unsafe impl DeploymentAccess for TestVM {
 }
 
 impl StorageAccess for TestVM {
-    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
-    fn flush_cache(&self, _clear: bool) {}
     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
         self.storage.borrow_mut().insert(key, value);
     }
+
+    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
+    fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
         self.storage
             .borrow()
