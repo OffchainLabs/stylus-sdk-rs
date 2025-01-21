@@ -69,11 +69,17 @@ impl TestVM {
     }
 }
 
+impl Default for TestVM {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Host for TestVM {}
 
 impl CryptographyAccess for TestVM {
     fn native_keccak256(&self, input: &[u8]) -> B256 {
-        alloy_primitives::keccak256(input).into()
+        alloy_primitives::keccak256(input)
     }
 }
 
@@ -85,7 +91,7 @@ impl CalldataAccess for TestVM {
         Vec::new()
     }
     fn return_data_size(&self) -> usize {
-        return 0;
+        0
     }
     fn write_result(&self, _data: &[u8]) {}
 }
@@ -111,11 +117,12 @@ unsafe impl DeploymentAccess for TestVM {
 }
 
 impl StorageAccess for TestVM {
-    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
-    fn flush_cache(&self, _clear: bool) {}
     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
         self.storage.borrow_mut().insert(key, value);
     }
+
+    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
+    fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
         self.storage
             .borrow()
@@ -204,7 +211,7 @@ impl AccountAccess for TestVM {
 
     fn code_hash(&self, account: Address) -> B256 {
         if let Some(code) = self.code_storage.borrow().get(&account) {
-            alloy_primitives::keccak256(code).into()
+            alloy_primitives::keccak256(code)
         } else {
             B256::ZERO
         }

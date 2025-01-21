@@ -15,7 +15,6 @@
 //! [prelude]: crate::prelude
 //!
 
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
@@ -24,6 +23,7 @@ use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
 use crate::{
     console,
+    host::VM,
     storage::{StorageType, TopLevelStorage},
     ArbResult,
 };
@@ -97,15 +97,12 @@ where
 //    if no value is received in the transaction. It is implicitly payable.
 //  - Fallback is called when no other function matches a selector. If a receive function is not
 //    defined, then calls with no input calldata will be routed to the fallback function.
-pub fn router_entrypoint<R, S>(
-    input: alloc::vec::Vec<u8>,
-    host: alloc::boxed::Box<dyn stylus_host::Host>,
-) -> ArbResult
+pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>, host: VM) -> ArbResult
 where
     R: Router<S>,
     S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
 {
-    let mut storage = unsafe { S::new(U256::ZERO, 0, Box::into_raw(host)) };
+    let mut storage = unsafe { S::new(U256::ZERO, 0, host) };
 
     if input.is_empty() {
         console!("no calldata provided");

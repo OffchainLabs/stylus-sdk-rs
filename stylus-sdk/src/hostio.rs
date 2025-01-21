@@ -105,6 +105,7 @@ vm_hooks! {
     /// will cost less than in the EVM.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
+    #[allow(dead_code)]
     pub fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
@@ -115,6 +116,7 @@ vm_hooks! {
     /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
+    #[allow(dead_code)]
     pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
 
     /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.

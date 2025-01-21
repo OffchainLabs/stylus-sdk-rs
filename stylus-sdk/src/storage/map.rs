@@ -2,11 +2,12 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::crypto;
+use crate::host::VM;
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
-use alloc::boxed::Box;
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
+use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_host::HostAccess;
 
@@ -14,7 +15,7 @@ use stylus_host::HostAccess;
 pub struct StorageMap<K: StorageKey, V: StorageType> {
     slot: U256,
     marker: PhantomData<(K, V)>,
-    __stylus_host: *const dyn stylus_host::Host,
+    __stylus_host: VM,
 }
 
 impl<K, V> StorageType for StorageMap<K, V>
@@ -31,7 +32,7 @@ where
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -54,8 +55,14 @@ where
     K: StorageKey,
     V: StorageType,
 {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -72,7 +79,7 @@ where
     /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()))) }
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone())) }
     }
 
     /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
@@ -80,7 +87,9 @@ where
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()))) }
+        unsafe {
+            StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone()))
+        }
     }
 
     /// Gets the element at the given key, or the zero value if none is there.
@@ -107,8 +116,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
-            let mut alias = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
+            let store = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
             let prior = store.load();
             alias.set_by_wrapped(value);
             prior
@@ -121,8 +130,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
-            let mut alias = V::new(slot, Self::CHILD_OFFSET, Box::into_raw(self.vm()));
+            let store = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
             let value = store.load();
             alias.erase();
             value

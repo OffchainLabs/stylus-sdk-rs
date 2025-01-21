@@ -39,7 +39,7 @@ pub fn storage(
             // Extract the original fields.
             let original_fields = named_fields.named;
             quote! {
-                #STYLUS_HOST_FIELD: *const dyn stylus_host::Host,
+                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
                 #original_fields
             }
         }
@@ -54,7 +54,7 @@ pub fn storage(
         syn::Fields::Unit => {
             // Handle unit structs if needed.
             quote! {
-                #STYLUS_HOST_FIELD: *const dyn stylus_host::Host
+                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
             }
         }
     };
@@ -114,14 +114,14 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: stylus_sdk::host::VM) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
-                        #STYLUS_HOST_FIELD: host,
+                        #STYLUS_HOST_FIELD: host.clone(),
                         #init
                     };
                     accessor
@@ -143,10 +143,15 @@ impl Storage {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
             impl #impl_generics stylus_host::HostAccess for #name #ty_generics #where_clause {
-                fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-                    // SAFETY: Host is guaranteed to be valid and non-null for the lifetime of the storage
-                    // as injected by the Stylus entrypoint function.
-                    unsafe { alloc::boxed::Box::from_raw(self.#STYLUS_HOST_FIELD as *mut dyn stylus_host::Host) }
+                fn vm(&self) -> &dyn stylus_host::Host {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        &self.__stylus_host
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        &**self.__stylus_host.host
+                    }
                 }
             }
         }
@@ -236,7 +241,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType>::new(root, space as u8, host);
+                let field = <#ty as storage::StorageType>::new(root, space as u8, host.clone());
                 if words > 0 {
                     slot += words;
                     space = 32;

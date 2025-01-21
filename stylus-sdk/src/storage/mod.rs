@@ -22,9 +22,10 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::hostio;
+use crate::{host::VM, hostio};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
+use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 use stylus_host::*;
 
@@ -52,8 +53,14 @@ pub struct StorageCache;
 
 impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
-    fn get_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256) -> B256 {
-        host.storage_load_bytes32(key)
+    fn get_word(vm: VM, key: U256) -> B256 {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                vm.storage_load_bytes32(key)
+            } else {
+                vm.host.storage_load_bytes32(key)
+            }
+        }
     }
 
     /// Stores a 32-byte EVM word to persistent storage.
@@ -61,8 +68,14 @@ impl GlobalStorage for StorageCache {
     /// # Safety
     ///
     /// May alias storage.
-    unsafe fn set_word(host: &alloc::boxed::Box<dyn stylus_host::Host>, key: U256, value: B256) {
-        host.storage_cache_bytes32(key, value)
+    unsafe fn set_word(vm: VM, key: U256, value: B256) {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                vm.storage_cache_bytes32(key, value)
+            } else {
+                vm.host.storage_cache_bytes32(key, value)
+            }
+        }
     }
 }
 
@@ -147,15 +160,21 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -171,7 +190,14 @@ where
     /// Sets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn set(&mut self, value: Uint<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_uint(&self.vm(), self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set_uint(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -184,7 +210,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
@@ -228,8 +254,9 @@ where
     type Target = Uint<B, L>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get_uint(&self.vm(), self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get_uint(self.__stylus_host.clone(), self.slot, self.offset.into())
+        })
     }
 }
 
@@ -255,15 +282,21 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Signed<B, L>>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -279,7 +312,14 @@ where
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn set(&mut self, value: Signed<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_signed(&self.vm(), self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set_signed(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -292,7 +332,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -336,7 +376,7 @@ where
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            Storage::get_signed(&self.vm(), self.slot, self.offset.into())
+            Storage::get_signed(self.__stylus_host.clone(), self.slot, self.offset.into())
         })
     }
 }
@@ -356,12 +396,18 @@ pub struct StorageFixedBytes<const N: usize> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -374,7 +420,14 @@ impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn set(&mut self, value: FixedBytes<N>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set(&self.vm(), self.slot, self.offset.into(), value) }
+        unsafe {
+            Storage::set(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        }
     }
 }
 
@@ -387,7 +440,7 @@ where
 
     const SLOT_BYTES: usize = N;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -427,8 +480,9 @@ impl<const N: usize> Deref for StorageFixedBytes<N> {
     type Target = FixedBytes<N>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get(&self.vm(), self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get(self.__stylus_host.clone(), self.slot, self.offset.into())
+        })
     }
 }
 
@@ -444,12 +498,18 @@ pub struct StorageBool {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl HostAccess for StorageBool {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -462,7 +522,14 @@ impl StorageBool {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn set(&mut self, value: bool) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_byte(&self.vm(), self.slot, self.offset.into(), value as u8) }
+        unsafe {
+            Storage::set_byte(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value as u8,
+            )
+        }
     }
 }
 
@@ -472,7 +539,7 @@ impl StorageType for StorageBool {
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -507,7 +574,7 @@ impl Deref for StorageBool {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get_byte(&self.vm(), self.slot, self.offset.into());
+            let data = Storage::get_byte(self.__stylus_host.clone(), self.slot, self.offset.into());
             data != 0
         })
     }
@@ -525,12 +592,18 @@ pub struct StorageAddress {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl HostAccess for StorageAddress {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -543,7 +616,14 @@ impl StorageAddress {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn set(&mut self, value: Address) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set::<20>(&self.vm(), self.slot, self.offset.into(), value.into()) }
+        unsafe {
+            Storage::set::<20>(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value.into(),
+            )
+        }
     }
 }
 
@@ -553,7 +633,7 @@ impl StorageType for StorageAddress {
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -588,7 +668,7 @@ impl Deref for StorageAddress {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            Storage::get::<20>(&self.vm(), self.slot, self.offset.into()).into()
+            Storage::get::<20>(self.__stylus_host.clone(), self.slot, self.offset.into()).into()
         })
     }
 }
@@ -608,12 +688,18 @@ pub struct StorageBlockNumber {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl HostAccess for StorageBlockNumber {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -627,7 +713,14 @@ impl StorageBlockNumber {
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());
-        unsafe { Storage::set::<8>(&self.vm(), self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set::<8>(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -637,7 +730,7 @@ impl StorageType for StorageBlockNumber {
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -672,7 +765,7 @@ impl Deref for StorageBlockNumber {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get::<8>(&self.vm(), self.slot, self.offset.into());
+            let data = Storage::get::<8>(self.__stylus_host.clone(), self.slot, self.offset.into());
             u64::from_be_bytes(data.0)
         })
     }
@@ -692,12 +785,18 @@ impl From<StorageBlockNumber> for BlockNumber {
 pub struct StorageBlockHash {
     slot: U256,
     cached: OnceCell<BlockHash>,
-    __stylus_host: *const dyn Host,
+    __stylus_host: VM,
 }
 
 impl HostAccess for StorageBlockHash {
-    fn vm(&self) -> alloc::boxed::Box<dyn stylus_host::Host> {
-        unsafe { alloc::boxed::Box::from_raw(self.__stylus_host as *mut dyn stylus_host::Host) }
+    fn vm(&self) -> &dyn stylus_host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &**self.__stylus_host.host
+            }
+        }
     }
 }
 
@@ -710,7 +809,7 @@ impl StorageBlockHash {
     /// Sets the underlying [`BlockHash`] in persistent storage.
     pub fn set(&mut self, value: BlockHash) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_word(&self.vm(), self.slot, value) }
+        unsafe { Storage::set_word(self.__stylus_host.clone(), self.slot, value) }
     }
 }
 
@@ -718,7 +817,7 @@ impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    unsafe fn new(slot: U256, _offset: u8, host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, host: VM) -> Self {
         let cached = OnceCell::new();
         Self {
             slot,
@@ -753,7 +852,7 @@ impl Deref for StorageBlockHash {
 
     fn deref(&self) -> &Self::Target {
         self.cached
-            .get_or_init(|| Storage::get_word(&self.vm(), self.slot))
+            .get_or_init(|| Storage::get_word(self.__stylus_host.clone(), self.slot))
     }
 }
 
@@ -777,7 +876,7 @@ impl<T> StorageType for PhantomData<T> {
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
 
-    unsafe fn new(_slot: U256, _offset: u8, _host: *const dyn stylus_host::Host) -> Self {
+    unsafe fn new(_slot: U256, _offset: u8, _host: VM) -> Self {
         Self
     }
 
