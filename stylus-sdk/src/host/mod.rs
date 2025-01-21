@@ -1,6 +1,12 @@
 // Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+//! Defines a struct that provides Stylus contracts access to a host VM
+//! environment via the HostAccessor trait defined in stylus_host. Makes contracts
+//! a lot more testable, as the VM can be mocked and injected upon initialization
+//! of a storage type. Defines two implementations, one when the target arch is wasm32 and the
+//! other when the target is native.
+
 use stylus_host::*;
 
 cfg_if::cfg_if! {
