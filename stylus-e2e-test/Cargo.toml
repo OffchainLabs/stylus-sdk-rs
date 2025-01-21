@@ -1,0 +1,18 @@
+[package]
+name = "stylus-e2e-test"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "End-to-end tests for Stylus Rust SDK"
+readme = "../README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy.workspace = true
+eyre.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+testcontainers.workspace = true
