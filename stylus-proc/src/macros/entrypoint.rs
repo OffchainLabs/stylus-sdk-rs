@@ -145,7 +145,7 @@ fn mark_used_fn() -> syn::ItemFn {
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub unsafe fn mark_used() {
-            let host = stylus_sdk::host::VM{};
+            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
             host.pay_for_memory_grow(0);
             panic!();
         }
@@ -158,7 +158,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = stylus_sdk::host::VM {};
+            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
             #deny_reentrant
             host.pay_for_memory_grow(0);
 

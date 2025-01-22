@@ -2,8 +2,10 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::call::RawCall;
+use crate::host::WasmVM;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
+use stylus_host::Host;
 
 #[cfg(feature = "reentrant")]
 use crate::storage::TopLevelStorage;
@@ -26,7 +28,7 @@ pub fn transfer_eth(
 ) -> Result<(), Vec<u8>> {
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
     unsafe {
-        RawCall::new_with_value(amount)
+        RawCall::<WasmVM>::new_with_value(amount)
             .skip_return_data()
             .call(to, &[])?;
     }
@@ -51,7 +53,7 @@ pub fn transfer_eth(
 /// ```
 #[cfg(not(feature = "reentrant"))]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
-    RawCall::new_with_value(amount)
+    RawCall::<WasmVM>::new_with_value(amount)
         .skip_return_data()
         .call(to, &[])?;
     Ok(())

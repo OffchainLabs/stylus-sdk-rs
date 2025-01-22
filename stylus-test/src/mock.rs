@@ -135,9 +135,10 @@ impl StorageAccess for TestVM {
 unsafe impl CallAccess for TestVM {
     unsafe fn call_contract(
         &self,
-        _to: Address,
-        _data: &[u8],
-        _value: U256,
+        _to: *const u8,
+        _data: *const u8,
+        _data_len: usize,
+        _value: *const u8,
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {
@@ -145,8 +146,9 @@ unsafe impl CallAccess for TestVM {
     }
     unsafe fn delegate_call_contract(
         &self,
-        _to: Address,
-        _data: &[u8],
+        _to: *const u8,
+        _data: *const u8,
+        _data_len: usize,
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {
@@ -154,8 +156,9 @@ unsafe impl CallAccess for TestVM {
     }
     unsafe fn static_call_contract(
         &self,
-        _to: Address,
-        _data: &[u8],
+        _to: *const u8,
+        _data: *const u8,
+        _data_len: usize,
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {

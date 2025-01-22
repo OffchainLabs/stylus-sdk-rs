@@ -6,6 +6,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
+pub mod calls;
+
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
 /// of traits with different access to host values and modifications.
@@ -211,9 +213,10 @@ pub unsafe trait CallAccess {
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn call_contract(
         &self,
-        to: Address,
-        data: &[u8],
-        value: U256,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        value: *const u8,
         gas: u64,
         outs_len: &mut usize,
     ) -> u8;
@@ -238,8 +241,9 @@ pub unsafe trait CallAccess {
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn static_call_contract(
         &self,
-        to: Address,
-        data: &[u8],
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
         gas: u64,
         outs_len: &mut usize,
     ) -> u8;
@@ -264,8 +268,9 @@ pub unsafe trait CallAccess {
     /// utilize a [`RawCall`] struct instead for safety.
     unsafe fn delegate_call_contract(
         &self,
-        to: Address,
-        data: &[u8],
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
         gas: u64,
         outs_len: &mut usize,
     ) -> u8;
@@ -408,4 +413,9 @@ pub trait MeteringAccess {
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     fn tx_ink_price(&self) -> u32;
+
+    /// Computes the units of gas per a specified amount of ink.
+    fn ink_to_gas(&self, ink: u64) -> u64 {
+        ink / self.tx_ink_price() as u64
+    }
 }
