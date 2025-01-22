@@ -15,6 +15,7 @@ impl DeploymentAccess for WasmVM {
         cache_policy: stylus_core::deploy::CachePolicy,
     ) -> Result<Address, Vec<u8>> {
         use stylus_core::deploy::CachePolicy;
+        use stylus_core::host::StorageAccess;
         match cache_policy {
             CachePolicy::Clear => self.flush_cache(true),
             CachePolicy::Flush => self.flush_cache(false),
