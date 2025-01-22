@@ -41,6 +41,19 @@ pub trait CallAccess {
 
 /// Trait for transferring ETH.
 pub trait ValueTransfer {
+    #[cfg(feature = "reentrant")]
+    /// Transfers an amount of ETH in wei to the given account.
+    /// Note that this method will call the other contract, which may in turn call others.
+    ///
+    /// All gas is supplied, which the recipient may burn.
+    /// If this is not desired, the [`call`] method on the CallAccess trait may be used directly.
+    fn transfer_eth(
+        &self,
+        storage: &mut dyn crate::storage::TopLevelStorage,
+        to: Address,
+        amount: U256,
+    ) -> Result<(), Vec<u8>>;
+    #[cfg(not(feature = "reentrant"))]
     /// Transfers an amount of ETH in wei to the given account.
     /// Note that this method will call the other contract, which may in turn call others.
     ///

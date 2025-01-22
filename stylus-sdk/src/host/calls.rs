@@ -32,7 +32,10 @@ impl CallAccess for WasmVM {
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
-        self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        {
+            use stylus_core::host::StorageAccess;
+            self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        }
 
         unsafe_reentrant! {{
             RawCall::<WasmVM>::new_with_value(context.value())
@@ -55,7 +58,10 @@ impl CallAccess for WasmVM {
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
-        self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        {
+            use stylus_core::host::StorageAccess;
+            self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        }
 
         RawCall::<WasmVM>::new_delegate()
             .gas(context.gas())
@@ -70,7 +76,10 @@ impl CallAccess for WasmVM {
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
-        self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
+        {
+            use stylus_core::host::StorageAccess;
+            self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
+        }
 
         unsafe_reentrant! {{
             RawCall::<WasmVM>::new_static()
@@ -91,10 +100,12 @@ impl ValueTransfer for WasmVM {
     /// [`call`]: super::call
     #[cfg(feature = "reentrant")]
     fn transfer_eth(
-        _storage: &mut impl stylus_core::storage::TopLevelStorage,
+        &self,
+        _storage: &mut dyn stylus_core::storage::TopLevelStorage,
         to: Address,
         amount: U256,
     ) -> Result<(), Vec<u8>> {
+        use stylus_core::host::StorageAccess;
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         unsafe {
             RawCall::<WasmVM>::new_with_value(amount)

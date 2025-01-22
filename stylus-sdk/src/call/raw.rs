@@ -6,9 +6,6 @@ use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 use stylus_core::Host;
 
-#[cfg(feature = "reentrant")]
-use crate::storage::StorageCache;
-
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
         cfg_if! {
@@ -88,12 +85,13 @@ where
     /// ```no_run
     /// use stylus_sdk::call::RawCall;
     /// use stylus_sdk::{alloy_primitives::address, hex};
+    /// use stylus_sdk::host::WasmVM;
     ///
     /// let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
     /// let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
     ///
     /// unsafe {
-    ///     let result = RawCall::new()       // configure a call
+    ///     let result = RawCall::<WasmVM>::new()       // configure a call
     ///         .gas(2100)                    // supply 2100 gas
     ///         .limit_return_data(0, 32)     // only read the first 32 bytes back
     ///     //  .flush_storage_cache()        // flush the storage cache before the call (available in `reentrant`)

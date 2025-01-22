@@ -31,6 +31,7 @@ where
     /// ```
     /// use stylus_sdk::call::{Call, Error};
     /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
+    /// use stylus_core::storage::TopLevelStorage;
     /// extern crate alloc;
     ///
     /// sol_interface! {

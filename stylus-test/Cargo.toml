@@ -18,3 +18,5 @@ stylus-core.workspace = true
 [dev-dependencies]
 
 [features]
+default = []
+reentrant = []

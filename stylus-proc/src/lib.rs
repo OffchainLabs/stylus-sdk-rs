@@ -246,7 +246,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// `&self` or `&mut self` won't work. Building a [`Call`] from a generic parameter is the usual solution.
 ///
 /// ```
-/// use stylus_sdk::{call::{Call, Error}, storage::TopLevelStorage};
+/// use stylus_sdk::{call::{Call, Error}};
+/// use stylus_core::storage::TopLevelStorage;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///

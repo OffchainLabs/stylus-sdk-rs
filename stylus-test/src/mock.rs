@@ -301,6 +301,16 @@ impl CallAccess for TestVM {
 }
 
 impl ValueTransfer for TestVM {
+    #[cfg(feature = "reentrant")]
+    fn transfer_eth(
+        &self,
+        _storage: &mut dyn stylus_core::storage::TopLevelStorage,
+        _to: Address,
+        _amount: U256,
+    ) -> Result<(), Vec<u8>> {
+        Ok(())
+    }
+    #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, _to: Address, _amount: U256) -> Result<(), Vec<u8>> {
         Ok(())
     }

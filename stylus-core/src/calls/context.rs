@@ -20,46 +20,6 @@ impl<'a, S: TopLevelStorage> Call<&'a mut S, false>
 where
     S: TopLevelStorage + 'a,
 {
-    /// Similar to [`new`], but intended for projects and libraries using reentrant patterns.
-    ///
-    /// [`new_in`] safeguards persistent storage by requiring a reference to a [`TopLevelStorage`] `struct`.
-    ///
-    /// Recall that [`TopLevelStorage`] is special in that a reference to it represents access to the entire
-    /// contract's state. So that it's sound to [`flush`] or [`clear`] the [`StorageCache`] when calling out
-    /// to other contracts, calls that may induce reentrancy require an `&` or `&mut` to one.
-    /// Although this reference to [`TopLevelStorage`] is not used, the lifetime is still required
-    /// to ensure safety of the storage cache.
-    ///
-    /// ```
-    /// use stylus_sdk::call::{Call, Error};
-    /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
-    /// extern crate alloc;
-    ///
-    /// sol_interface! {
-    ///     interface IService {
-    ///         function makePayment(address user) external payable returns (string);
-    ///     }
-    /// }
-    ///
-    /// pub fn do_call(
-    ///     storage: &mut impl TopLevelStorage,  // can be generic, but often just &mut self
-    ///     account: IService,                   // serializes as an Address
-    ///     user: Address,
-    /// ) -> Result<String, Error> {
-    ///
-    ///     let config = Call::new_in(storage)
-    ///         .gas(evm::gas_left() / 2)        // limit to half the gas left
-    ///         .value(msg::value());            // set the callvalue
-    ///
-    ///     account.make_payment(config, user)   // note the snake case
-    /// }
-    /// ```
-    ///
-    /// [`StorageCache`]: crate::storage::StorageCache
-    /// [`flush`]: crate::storage::StorageCache::flush
-    /// [`clear`]: crate::storage::StorageCache::clear
-    /// [`new_in`]: Call::new_in
-    /// [`new`]: Call::new
     pub fn new_in(storage: &'a mut S) -> Self {
         Self {
             gas: u64::MAX,
@@ -173,33 +133,6 @@ cfg_if! {
         }
 
         impl Call<(), false> {
-            /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and
-            /// [`std::fs::OpenOptions`][OpenOptions] work.
-            ///
-            /// This is not available if `reentrant` feature is enabled, as it may lead to
-            /// vulnerability to reentrancy attacks. See [`Call::new_in`].
-            ///
-            /// ```no_compile
-            /// use stylus_sdk::call::{Call, Error};
-            /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
-            /// extern crate alloc;
-            ///
-            /// sol_interface! {
-            ///     interface IService {
-            ///         function makePayment(address user) external payable returns (string);
-            ///     }
-            /// }
-            ///
-            /// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
-            ///     let config = Call::new()
-            ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
-            ///         .value(msg::value());           // set the callvalue
-            ///
-            ///     account.make_payment(config, user)  // note the snake case
-            /// }
-            /// ```
-            ///
-            /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
             pub fn new() -> Self {
                 Self {
                     gas: u64::MAX,
