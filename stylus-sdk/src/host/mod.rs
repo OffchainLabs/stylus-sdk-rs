@@ -18,9 +18,14 @@ use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
 /// provides access to cross-contract calls.
 pub mod calls;
 
+/// Defines an implementation of traits for the VM struct
+/// that provide access to programmatic contract deployment.
+pub mod deploy;
+
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use stylus_core::calls::*;
+        use stylus_core::deploy::*;
 
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
@@ -55,27 +60,29 @@ cfg_if::cfg_if! {
             }
         }
 
-        unsafe impl DeploymentAccess for VM {
+        unsafe impl UnsafeDeploymentAccess for VM {
             #[inline]
             unsafe fn create1(
                 &self,
-                code: Address,
-                endowment: U256,
-                contract: &mut Address,
-                revert_data_len: &mut usize,
+                code: *const u8,
+                code_len: usize,
+                endowment: *const u8,
+                contract: *mut u8,
+                revert_data_len: *mut usize,
             ) {
-                self.0.create1(code, endowment, contract, revert_data_len)
+                self.0.create1(code, code_len, endowment, contract, revert_data_len)
             }
             #[inline]
             unsafe fn create2(
                 &self,
-                code: Address,
-                endowment: U256,
-                salt: B256,
-                contract: &mut Address,
-                revert_data_len: &mut usize,
+                code: *const u8,
+                code_len: usize,
+                endowment: *const u8,
+                salt: *const u8,
+                contract: *mut u8,
+                revert_data_len: *mut usize,
             ) {
-                self.0.create2(code, endowment, salt, contract, revert_data_len)
+                self.0.create2(code, code_len, endowment, salt, contract, revert_data_len)
             }
         }
 
@@ -263,6 +270,17 @@ cfg_if::cfg_if! {
         }
         impl ValueTransfer for VM {
             #[inline]
+            #[cfg(feature = "reentrant")]
+            fn transfer_eth(
+                &self,
+                storage: &mut dyn stylus_core::storage::TopLevelStorage,
+                to: Address,
+                amount: U256,
+            ) -> Result<(), Vec<u8>> {
+                self.0.transfer_eth(to, storage, amount)
+            }
+            #[inline]
+            #[cfg(not(feature = "reentrant"))]
             fn transfer_eth(
                 &self,
                 to: alloy_primitives::Address,
@@ -270,6 +288,26 @@ cfg_if::cfg_if! {
             ) -> Result<(), Vec<u8>> {
                 self.0.transfer_eth(to, amount)
             }
+        }
+        impl DeploymentAccess for VM {
+            #[inline]
+            #[cfg(feature = "reentrant")]
+            unsafe fn deploy(
+                &self,
+                code: &[u8],
+                endowment: U256,
+                salt: Option<B256>,
+                cache_policy: CachePolicy,
+            ) -> Result<Address, Vec<u8>>;
+
+            #[inline]
+            #[cfg(not(feature = "reentrant"))]
+            unsafe fn deploy(
+                &self,
+                code: &[u8],
+                endowment: U256,
+                salt: Option<B256>,
+            ) -> Result<Address, Vec<u8>>;
         }
     } else {
         /// Defines a struct that provides Stylus contracts access to a host VM
@@ -346,40 +384,27 @@ impl CalldataAccess for WasmVM {
     }
 }
 
-unsafe impl DeploymentAccess for WasmVM {
+unsafe impl UnsafeDeploymentAccess for WasmVM {
     unsafe fn create1(
         &self,
-        code: Address,
-        endowment: U256,
-        contract: &mut Address,
-        revert_data_len: &mut usize,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
     ) {
-        let endowment: B256 = endowment.into();
-        hostio::create1(
-            code.as_ptr(),
-            code.len(),
-            endowment.as_ptr(),
-            contract.as_mut_ptr(),
-            revert_data_len as *mut _,
-        );
+        hostio::create1(code, code_len, endowment, contract, revert_data_len);
     }
     unsafe fn create2(
         &self,
-        code: Address,
-        endowment: U256,
-        salt: B256,
-        contract: &mut Address,
-        revert_data_len: &mut usize,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        salt: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
     ) {
-        let endowment: B256 = endowment.into();
-        hostio::create2(
-            code.as_ptr(),
-            code.len(),
-            endowment.as_ptr(),
-            salt.as_ptr(),
-            contract.as_mut_ptr(),
-            revert_data_len as *mut _,
-        );
+        hostio::create2(code, code_len, endowment, salt, contract, revert_data_len);
     }
 }
 

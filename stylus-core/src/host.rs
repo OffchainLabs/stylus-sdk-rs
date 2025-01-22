@@ -1,9 +1,13 @@
 // Copyright 2024-2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 //! Defines host environment methods Stylus SDK contracts have access to.
 extern crate alloc;
 
-use crate::calls::{CallAccess, ValueTransfer};
+use crate::{
+    calls::{CallAccess, ValueTransfer},
+    deploy::DeploymentAccess,
+};
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
@@ -17,7 +21,7 @@ use alloy_primitives::{Address, B256, U256};
 pub trait Host:
     CryptographyAccess
     + CalldataAccess
-    + DeploymentAccess
+    + UnsafeDeploymentAccess
     + StorageAccess
     + UnsafeCallAccess
     + BlockAccess
@@ -27,6 +31,7 @@ pub trait Host:
     + MessageAccess
     + MeteringAccess
     + CallAccess
+    + DeploymentAccess
     + ValueTransfer
 {
 }
@@ -85,7 +90,7 @@ pub trait CalldataAccess {
 /// to create1 and create2 opcodes is needed. Using the methods by themselves will not protect
 /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract deployment,
 /// utilize a [`RawDeploy`] struct instead.
-pub unsafe trait DeploymentAccess {
+pub unsafe trait UnsafeDeploymentAccess {
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
@@ -108,10 +113,11 @@ pub unsafe trait DeploymentAccess {
     /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create1(
         &self,
-        code: Address,
-        endowment: U256,
-        contract: &mut Address,
-        revert_data_len: &mut usize,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
     );
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
@@ -135,11 +141,12 @@ pub unsafe trait DeploymentAccess {
     /// utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create2(
         &self,
-        code: Address,
-        endowment: U256,
-        salt: B256,
-        contract: &mut Address,
-        revert_data_len: &mut usize,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        salt: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
     );
 }
 
