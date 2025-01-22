@@ -18,7 +18,7 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
-use stylus_core::context::TopLevelStorage;
+use stylus_core::storage::TopLevelStorage;
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 

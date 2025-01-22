@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 
 #[cfg(feature = "reentrant")]
-use stylus_core::context::TopLevelStorage;
+use stylus_core::storage::TopLevelStorage;
 
 #[cfg(feature = "reentrant")]
 use crate::storage::Storage;
@@ -61,6 +61,7 @@ pub fn transfer_eth(
     note = "Use the .vm() method available on Stylus storage types along \
     with the stylus_core::ValueTransfer trait instead to transfer eth."
 )]
+#[allow(dead_code)]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
     RawCall::<WasmVM>::new_with_value(amount)
         .skip_return_data()

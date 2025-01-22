@@ -14,10 +14,7 @@
 use alloc::vec::Vec;
 use alloy_primitives::Address;
 
-pub use self::{
-    context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
-    transfer::transfer_eth,
-};
+pub use self::{context::Call, error::Error, error::MethodError, raw::RawCall, traits::*};
 
 pub(crate) use raw::CachePolicy;
 

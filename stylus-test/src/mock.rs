@@ -1,5 +1,5 @@
 use alloy_primitives::{address, Address, B256, U256};
-use calls::{CallAccess, Error, MutatingCallContext, StaticCallContext, ValueTransfer};
+use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use std::{cell::RefCell, collections::HashMap};
 
 pub use stylus_core::*;

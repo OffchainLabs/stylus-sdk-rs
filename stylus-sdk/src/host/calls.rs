@@ -4,7 +4,7 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 use stylus_core::calls::{
-    CallAccess, Error, MutatingCallContext, StaticCallContext, ValueTransfer,
+    errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer,
 };
 
 use crate::call::RawCall;
@@ -30,7 +30,7 @@ impl CallAccess for WasmVM {
         context: &dyn MutatingCallContext,
         to: alloy_primitives::Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+    ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
 
@@ -53,7 +53,7 @@ impl CallAccess for WasmVM {
         context: &dyn MutatingCallContext,
         to: alloy_primitives::Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+    ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
 
@@ -68,7 +68,7 @@ impl CallAccess for WasmVM {
         context: &dyn StaticCallContext,
         to: alloy_primitives::Address,
         data: &[u8],
-    ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+    ) -> Result<Vec<u8>, Error> {
         #[cfg(feature = "reentrant")]
         self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
 
@@ -91,7 +91,7 @@ impl ValueTransfer for WasmVM {
     /// [`call`]: super::call
     #[cfg(feature = "reentrant")]
     fn transfer_eth(
-        _storage: &mut impl stylus_core::context::TopLevelStorage,
+        _storage: &mut impl stylus_core::storage::TopLevelStorage,
         to: Address,
         amount: U256,
     ) -> Result<(), Vec<u8>> {

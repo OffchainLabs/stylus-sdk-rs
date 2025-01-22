@@ -4,7 +4,7 @@
 use super::{CallContext, MutatingCallContext, NonPayableCallContext, StaticCallContext};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
-use stylus_core::context::TopLevelStorage;
+use stylus_core::storage::TopLevelStorage;
 
 /// Enables configurable calls to other contracts.
 #[derive(Debug, Clone)]
