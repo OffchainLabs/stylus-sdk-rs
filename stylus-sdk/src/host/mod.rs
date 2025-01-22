@@ -7,6 +7,8 @@
 //! of a storage type. Defines two implementations, one when the target arch is wasm32 and the
 //! other when the target is native.
 
+use core::f32::consts::E;
+
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
@@ -246,7 +248,7 @@ cfg_if::cfg_if! {
                 context: &dyn MutatingCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
                 self.0.call(context, to, data)
             }
             #[inline]
@@ -255,7 +257,7 @@ cfg_if::cfg_if! {
                 context: &dyn MutatingCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
                 self.0.delegate_call(context, to, data)
             }
             #[inline]
@@ -264,7 +266,7 @@ cfg_if::cfg_if! {
                 context: &dyn StaticCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
                 self.0.static_call(context, to, data)
             }
         }
@@ -298,8 +300,9 @@ cfg_if::cfg_if! {
                 endowment: U256,
                 salt: Option<B256>,
                 cache_policy: CachePolicy,
-            ) -> Result<Address, Vec<u8>>;
-
+            ) -> Result<Address, Vec<u8>> {
+                self.0.deploy(code, endowment, salt, cache_policy)
+            }
             #[inline]
             #[cfg(not(feature = "reentrant"))]
             unsafe fn deploy(
@@ -307,7 +310,9 @@ cfg_if::cfg_if! {
                 code: &[u8],
                 endowment: U256,
                 salt: Option<B256>,
-            ) -> Result<Address, Vec<u8>>;
+            ) -> Result<Address, Vec<u8>> {
+                self.0.deploy(code, endowment, salt)
+            }
         }
     } else {
         /// Defines a struct that provides Stylus contracts access to a host VM
