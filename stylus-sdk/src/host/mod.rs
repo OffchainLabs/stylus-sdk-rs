@@ -7,8 +7,6 @@
 //! of a storage type. Defines two implementations, one when the target arch is wasm32 and the
 //! other when the target is native.
 
-use core::f32::consts::E;
-
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
