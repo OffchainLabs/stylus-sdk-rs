@@ -1,7 +1,8 @@
 use alloy_primitives::{address, Address, B256, U256};
+use calls::{CallAccess, Error, MutatingCallContext, StaticCallContext, ValueTransfer};
 use std::{cell::RefCell, collections::HashMap};
 
-pub use stylus_host::*;
+pub use stylus_core::*;
 
 /// Arbitrum's CHAID ID.
 pub const CHAIN_ID: u64 = 42161;
@@ -132,7 +133,7 @@ impl StorageAccess for TestVM {
     }
 }
 
-unsafe impl CallAccess for TestVM {
+unsafe impl UnsafeCallAccess for TestVM {
     unsafe fn call_contract(
         &self,
         _to: *const u8,
@@ -269,6 +270,39 @@ impl MeteringAccess for TestVM {
 
     fn tx_ink_price(&self) -> u32 {
         1_000
+    }
+}
+
+impl CallAccess for TestVM {
+    fn call(
+        &self,
+        _context: &dyn MutatingCallContext,
+        _to: Address,
+        _data: &[u8],
+    ) -> Result<Vec<u8>, Error> {
+        Ok(Vec::new())
+    }
+    unsafe fn delegate_call(
+        &self,
+        _context: &dyn MutatingCallContext,
+        _to: Address,
+        _data: &[u8],
+    ) -> Result<Vec<u8>, Error> {
+        Ok(Vec::new())
+    }
+    fn static_call(
+        &self,
+        _context: &dyn StaticCallContext,
+        _to: Address,
+        _data: &[u8],
+    ) -> Result<Vec<u8>, Error> {
+        Ok(Vec::new())
+    }
+}
+
+impl ValueTransfer for TestVM {
+    fn transfer_eth(&self, _to: Address, _amount: U256) -> Result<(), Vec<u8>> {
+        Ok(())
     }
 }
 

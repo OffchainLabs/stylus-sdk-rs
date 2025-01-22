@@ -1,28 +1,49 @@
+// Copyright 2025-2026, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 use alloy_primitives::{Address, U256};
 
+/// Trait for accessing a safe API for calling other contracts.
+/// Its implementation should have reentrancy awareness and protections depending
+/// on the SDK configuration.
 pub trait CallAccess {
+    /// Static calls the contract at the given address.
     fn static_call(
         &self,
-        context: impl StaticCallContext,
+        context: &dyn StaticCallContext,
         to: Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error>;
-    fn delegate_call(
+    /// Delegate calls the contract at the given address.
+    ///
+    /// # Safety
+    ///
+    /// A delegate call must trust the other contract to uphold safety requirements.
+    /// Though this function clears any cached values, the other contract may arbitrarily change storage,
+    /// spend ether, and do other things one should never blindly allow other contracts to do.
+    unsafe fn delegate_call(
         &self,
-        context: impl MutatingCallContext,
+        context: &dyn MutatingCallContext,
         to: Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error>;
+    /// Calls the contract at the given address.
     fn call(
         &self,
-        context: impl MutatingCallContext,
+        context: &dyn MutatingCallContext,
         to: Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error>;
 }
 
+/// Trait for transferring ETH.
 pub trait ValueTransfer {
-    fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>>;
+    /// Transfers an amount of ETH in wei to the given account.
+    /// Note that this method will call the other contract, which may in turn call others.
+    ///
+    /// All gas is supplied, which the recipient may burn.
+    /// If this is not desired, the [`call`] method on the CallAccess trait may be used directly.
+    fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>>;
 }
 
 /// Trait for calling other contracts.
@@ -44,7 +65,7 @@ pub trait StaticCallContext: CallContext {}
 ///
 /// The type must contain a [`TopLevelStorage`][TLS] to prevent aliasing in cases of reentrancy.
 ///
-/// [TLS]: crate::storage::TopLevelStorage
+/// [TLS]: stylus_core::context::TopLevelStorage
 pub unsafe trait MutatingCallContext: CallContext {
     /// Amount of ETH in wei to give the other contract.
     fn value(&self) -> U256;

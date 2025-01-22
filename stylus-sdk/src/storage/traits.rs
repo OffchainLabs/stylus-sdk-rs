@@ -86,19 +86,6 @@ where
     fn set_by_wrapped(&mut self, value: Self::Wraps<'a>);
 }
 
-/// Trait for top-level storage types, usually implemented by proc macros.
-/// Top-level types are special in that their lifetimes track the entirety
-/// of all the EVM state-changes throughout a contract invocation.
-///
-/// To prevent storage aliasing during reentrancy, you must hold a reference
-/// to such a type when making an EVM call. This may change in the future
-/// for programs that prevent reentrancy.
-///
-/// # Safety
-///
-/// The type must be top-level to prevent storage aliasing.
-pub unsafe trait TopLevelStorage {}
-
 /// Binds a storage accessor to a lifetime to prevent aliasing.
 /// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
 /// For a mutable accessor, see [`StorageGuardMut`].

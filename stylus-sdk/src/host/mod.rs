@@ -10,12 +10,18 @@
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
-use stylus_host::*;
+use stylus_core::*;
 
 use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
 
+/// Defines an implementation of traits for the VM struct that
+/// provides access to cross-contract calls.
+pub mod calls;
+
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
+        use stylus_core::calls::*;
+
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
         #[derive(Clone, Debug)]
@@ -24,27 +30,33 @@ cfg_if::cfg_if! {
         impl Host for VM {}
 
         impl CryptographyAccess for VM {
+            #[inline]
             fn native_keccak256(&self, input: &[u8]) -> B256 {
                 self.0.native_keccak256(input)
             }
         }
 
         impl CalldataAccess for VM {
+            #[inline]
             fn read_args(&self, len: usize) -> Vec<u8> {
                 self.0.read_args(len)
             }
+            #[inline]
             fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
                 self.0.read_return_data(offset, size)
             }
+            #[inline]
             fn return_data_size(&self) -> usize {
                 self.0.return_data_size()
             }
+            #[inline]
             fn write_result(&self, data: &[u8]) {
                 self.0.write_result(data)
             }
         }
 
         unsafe impl DeploymentAccess for VM {
+            #[inline]
             unsafe fn create1(
                 &self,
                 code: Address,
@@ -54,6 +66,7 @@ cfg_if::cfg_if! {
             ) {
                 self.0.create1(code, endowment, contract, revert_data_len)
             }
+            #[inline]
             unsafe fn create2(
                 &self,
                 code: Address,
@@ -67,21 +80,26 @@ cfg_if::cfg_if! {
         }
 
         impl StorageAccess for VM {
+            #[inline]
             fn emit_log(&self, input: &[u8], num_topics: usize) {
                 self.0.emit_log(input, num_topics)
             }
+            #[inline]
             unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
                 self.0.storage_cache_bytes32(key, value)
             }
+            #[inline]
             fn storage_load_bytes32(&self, key: U256) -> B256 {
                 self.0.storage_load_bytes32(key)
             }
+            #[inline]
             fn flush_cache(&self, clear: bool) {
                 self.0.flush_cache(clear)
             }
         }
 
-        unsafe impl CallAccess for VM {
+        unsafe impl UnsafeCallAccess for VM {
+            #[inline]
             unsafe fn call_contract(
                 &self,
                 to: *const u8,
@@ -93,6 +111,7 @@ cfg_if::cfg_if! {
             ) -> u8 {
                 self.0.call_contract(to, data, data_len, value, gas, outs_len)
             }
+            #[inline]
             unsafe fn delegate_call_contract(
                 &self,
                 to: *const u8,
@@ -103,6 +122,7 @@ cfg_if::cfg_if! {
             ) -> u8 {
                 self.0.delegate_call_contract(to, data, data_len, gas, outs_len)
             }
+            #[inline]
             unsafe fn static_call_contract(
                 &self,
                 to: *const u8,
@@ -116,80 +136,139 @@ cfg_if::cfg_if! {
         }
 
         impl BlockAccess for VM {
+            #[inline]
             fn block_basefee(&self) -> U256 {
                 self.0.block_basefee()
             }
+            #[inline]
             fn block_coinbase(&self) -> Address {
                 self.0.block_coinbase()
             }
+            #[inline]
             fn block_gas_limit(&self) -> u64 {
                 self.0.block_gas_limit()
             }
+            #[inline]
             fn block_number(&self) -> u64 {
                 self.0.block_number()
             }
+            #[inline]
             fn block_timestamp(&self) -> u64 {
                 self.0.block_timestamp()
             }
         }
 
         impl ChainAccess for VM {
+            #[inline]
             fn chain_id(&self) -> u64 {
                 self.0.chain_id()
             }
         }
 
         impl AccountAccess for VM {
+            #[inline]
             fn balance(&self, account: Address) -> U256 {
                 self.0.balance(account)
             }
+            #[inline]
             fn contract_address(&self) -> Address {
                 self.0.contract_address()
             }
+            #[inline]
             fn code(&self, account: Address) -> Vec<u8> {
                 self.0.code(account)
             }
+            #[inline]
             fn code_size(&self, account: Address) -> usize {
                 self.0.code_size(account)
             }
+            #[inline]
             fn code_hash(&self, account: Address) -> B256 {
                 self.0.code_hash(account)
             }
         }
 
         impl MemoryAccess for VM {
+            #[inline]
             fn pay_for_memory_grow(&self, pages: u16) {
                 self.0.pay_for_memory_grow(pages)
             }
         }
 
         impl MessageAccess for VM {
+            #[inline]
             fn msg_reentrant(&self) -> bool {
                 self.0.msg_reentrant()
             }
+            #[inline]
             fn msg_sender(&self) -> Address {
                 self.0.msg_sender()
             }
+            #[inline]
             fn msg_value(&self) -> U256 {
                 self.0.msg_value()
             }
+            #[inline]
             fn tx_origin(&self) -> Address {
                 self.0.tx_origin()
             }
         }
 
         impl MeteringAccess for VM {
+            #[inline]
             fn evm_gas_left(&self) -> u64 {
                 self.0.evm_gas_left()
             }
+            #[inline]
             fn evm_ink_left(&self) -> u64 {
                 self.0.evm_ink_left()
             }
+            #[inline]
             fn tx_gas_price(&self) -> U256 {
                 self.0.tx_gas_price()
             }
+            #[inline]
             fn tx_ink_price(&self) -> u32 {
                 self.0.tx_ink_price()
+            }
+        }
+        impl CallAccess for VM {
+            #[inline]
+            fn call(
+                &self,
+                context: &dyn MutatingCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+                self.0.call(context, to, data)
+            }
+            #[inline]
+            unsafe fn delegate_call(
+                &self,
+                context: &dyn MutatingCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+                self.0.delegate_call(context, to, data)
+            }
+            #[inline]
+            fn static_call(
+                &self,
+                context: &dyn StaticCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, stylus_core::calls::Error> {
+                self.0.static_call(context, to, data)
+            }
+        }
+        impl ValueTransfer for VM {
+            #[inline]
+            fn transfer_eth(
+                &self,
+                to: alloy_primitives::Address,
+                amount: alloy_primitives::U256,
+            ) -> Result<(), Vec<u8>> {
+                self.0.transfer_eth(to, amount)
             }
         }
     } else {
@@ -321,7 +400,7 @@ impl StorageAccess for WasmVM {
     }
 }
 
-unsafe impl CallAccess for WasmVM {
+unsafe impl UnsafeCallAccess for WasmVM {
     unsafe fn call_contract(
         &self,
         to: *const u8,

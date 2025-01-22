@@ -120,7 +120,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
     let name = &item.ident;
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
     parse_quote! {
-        unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #name #ty_generics #where_clause {}
+        unsafe impl #impl_generics stylus_core::context::TopLevelStorage for #name #ty_generics #where_clause {}
     }
 }
 

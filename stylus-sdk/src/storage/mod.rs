@@ -27,14 +27,13 @@ use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
-use stylus_host::*;
+use stylus_core::*;
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
 pub use map::{StorageKey, StorageMap};
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
-    TopLevelStorage,
 };
 pub use vec::StorageVec;
 
@@ -167,7 +166,7 @@ impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -289,7 +288,7 @@ impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -400,7 +399,7 @@ pub struct StorageFixedBytes<const N: usize> {
 }
 
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -502,7 +501,7 @@ pub struct StorageBool {
 }
 
 impl HostAccess for StorageBool {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -596,7 +595,7 @@ pub struct StorageAddress {
 }
 
 impl HostAccess for StorageAddress {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -692,7 +691,7 @@ pub struct StorageBlockNumber {
 }
 
 impl HostAccess for StorageBlockNumber {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
@@ -789,7 +788,7 @@ pub struct StorageBlockHash {
 }
 
 impl HostAccess for StorageBlockHash {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host

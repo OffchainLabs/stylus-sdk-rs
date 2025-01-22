@@ -13,7 +13,6 @@
 
 use alloc::vec::Vec;
 use alloy_primitives::Address;
-use stylus_host::Host;
 
 pub use self::{
     context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
@@ -45,6 +44,11 @@ macro_rules! unsafe_reentrant {
 }
 
 /// Static calls the contract at the given address.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types along \
+    with the stylus_core::CallAccess trait instead to make static calls."
+)]
 pub fn static_call(
     context: impl StaticCallContext,
     to: Address,
@@ -68,6 +72,11 @@ pub fn static_call(
 /// A delegate call must trust the other contract to uphold safety requirements.
 /// Though this function clears any cached values, the other contract may arbitrarily change storage,
 /// spend ether, and do other things one should never blindly allow other contracts to do.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types along \
+    with the stylus_core::CallAccess trait instead to make delegate calls."
+)]
 pub unsafe fn delegate_call(
     context: impl MutatingCallContext,
     to: Address,
@@ -83,6 +92,11 @@ pub unsafe fn delegate_call(
 }
 
 /// Calls the contract at the given address.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus storage types along \
+    with the stylus_core::CallAccess trait instead to make calls."
+)]
 pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
     #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache

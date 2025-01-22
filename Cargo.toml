@@ -1,5 +1,5 @@
 [workspace]
-members = ["stylus-sdk", "stylus-proc", "stylus-test", "mini-alloc", "stylus-host"]
+members = ["stylus-sdk", "stylus-proc", "stylus-test", "mini-alloc", "stylus-core"]
 resolver = "2"
 
 [workspace.package]
@@ -40,6 +40,6 @@ trybuild = "1.0"
 # members
 mini-alloc = { path = "mini-alloc", version = "0.7.0-rc.1" }
 stylus-sdk = { path = "stylus-sdk" }
-stylus-host = { path = "stylus-host" }
+stylus-core = { path = "stylus-core" }
 stylus-test = { path = "stylus-test" }
 stylus-proc = { path = "stylus-proc", version = "0.7.0-rc.1" }

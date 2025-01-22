@@ -4,7 +4,7 @@
 use crate::{host::WasmVM, ArbResult};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
-use stylus_host::Host;
+use stylus_core::Host;
 
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;

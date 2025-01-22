@@ -5,8 +5,10 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
+use calls::{CallAccess, ValueTransfer};
 
 pub mod calls;
+pub mod context;
 
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
@@ -20,13 +22,15 @@ pub trait Host:
     + CalldataAccess
     + DeploymentAccess
     + StorageAccess
-    + CallAccess
+    + UnsafeCallAccess
     + BlockAccess
     + ChainAccess
     + AccountAccess
     + MemoryAccess
     + MessageAccess
     + MeteringAccess
+    + CallAccess
+    + ValueTransfer
 {
 }
 
@@ -191,7 +195,7 @@ pub trait StorageAccess {
 /// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
 /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
 /// utilize a [`RawCall`] struct instead.
-pub unsafe trait CallAccess {
+pub unsafe trait UnsafeCallAccess {
     /// Calls the contract at the given address with options for passing value and to limit the
     /// amount of gas supplied. The return status indicates whether the call succeeded, and is
     /// nonzero on failure.

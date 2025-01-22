@@ -6,7 +6,7 @@ use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
-use stylus_host::HostAccess;
+use stylus_core::HostAccess;
 
 use crate::host::VM;
 
@@ -48,7 +48,7 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 }
 
 impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host

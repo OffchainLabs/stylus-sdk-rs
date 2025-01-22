@@ -18,15 +18,11 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
+use stylus_core::context::TopLevelStorage;
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
-use crate::{
-    console,
-    host::VM,
-    storage::{StorageType, TopLevelStorage},
-    ArbResult,
-};
+use crate::{console, host::VM, storage::StorageType, ArbResult};
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;

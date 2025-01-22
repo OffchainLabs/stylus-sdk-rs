@@ -142,8 +142,8 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
-            impl #impl_generics stylus_host::HostAccess for #name #ty_generics #where_clause {
-                fn vm(&self) -> &dyn stylus_host::Host {
+            impl #impl_generics stylus_core::HostAccess for #name #ty_generics #where_clause {
+                fn vm(&self) -> &dyn stylus_core::Host {
                     #[cfg(target_arch = "wasm32")]
                     {
                         &self.__stylus_host

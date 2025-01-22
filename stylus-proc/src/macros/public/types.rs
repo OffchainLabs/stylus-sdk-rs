@@ -82,7 +82,7 @@ impl PublicImpl {
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
-                S: stylus_sdk::storage::TopLevelStorage + core::borrow::BorrowMut<Self>,
+                S: stylus_core::context::TopLevelStorage + core::borrow::BorrowMut<Self>,
                 #(
                     S: core::borrow::BorrowMut<#inheritance>,
                 )*

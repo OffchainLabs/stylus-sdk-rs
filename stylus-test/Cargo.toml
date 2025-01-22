@@ -13,7 +13,7 @@ version.workspace = true
 [dependencies]
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
-stylus-host.workspace = true
+stylus-core.workspace = true
 
 [dev-dependencies]
 
