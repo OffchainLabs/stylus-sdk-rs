@@ -126,7 +126,7 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: alloc::boxed::Box<dyn stylus_sdk::host::Host>) -> stylus_sdk::ArbResult {
+        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
             stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
     }
@@ -142,9 +142,10 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
 
 fn mark_used_fn() -> syn::ItemFn {
     parse_quote! {
+        #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub unsafe fn mark_used() {
-            let host = stylus_sdk::host::wasm::WasmHost{};
+            let host = stylus_sdk::host::VM{};
             host.pay_for_memory_grow(0);
             panic!();
         }
@@ -154,14 +155,15 @@ fn mark_used_fn() -> syn::ItemFn {
 fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
     let deny_reentrant = deny_reentrant();
     parse_quote! {
+        #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = alloc::boxed::Box::new(stylus_sdk::host::wasm::WasmHost{});
+            let host = stylus_sdk::host::VM {};
             #deny_reentrant
             host.pay_for_memory_grow(0);
 
             let input = host.read_args(len);
-            let (data, status) = match #user_fn(input, alloc::boxed::Box::new(stylus_sdk::host::wasm::WasmHost{})) {
+            let (data, status) = match #user_fn(input, host.clone()) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };

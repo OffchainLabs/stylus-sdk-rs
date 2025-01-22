@@ -30,6 +30,7 @@ paste.workspace = true
 pretty_assertions.workspace = true
 prettyplease.workspace = true
 stylus-sdk.workspace = true
+stylus-host.workspace = true
 
 [features]
 default = []
