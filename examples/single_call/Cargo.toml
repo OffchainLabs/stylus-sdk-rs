@@ -7,14 +7,29 @@ keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Stylus single call router contract"
 
 [dependencies]
-alloy-primitives = "=0.8.14"
-alloy-sol-types = "=0.8.14"
+alloy-primitives = "=0.8.19"
+alloy-sol-types = "=0.8.19"
 hex = "0.4.3"
 stylus-sdk = { path = "../../stylus-sdk" }
+stylus-host = { path = "../../stylus-host" }
 mini-alloc = { path = "../../mini-alloc" }
+
+[dev-dependencies]
+tokio = "1.43.0"
+eyre = "0.6.12"
+stylus-e2e-test = { path = "../../stylus-e2e-test" }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
+
+[[bin]]
+name = "export-abi"
+path = "src/main.rs"
+required-features = ["export-abi"]
+
+[[test]]
+name = "devnet"
+required-features = ["export-abi"]
 
 [lib]
 crate-type = ["lib", "cdylib"]
