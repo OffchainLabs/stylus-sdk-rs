@@ -1,3 +1,6 @@
+// Copyright 2025-2026, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+//
 extern crate alloc;
 
 use alloc::vec::Vec;
