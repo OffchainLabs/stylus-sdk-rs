@@ -1,7 +1,7 @@
 [package]
-name = "stylus-host"
+name = "stylus-core"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
-description = "Host trait definition for Arbitrum Stylus contracts"
+description = "Core definitions of Stylus SDK traits and types that are used by multiple crates in the workspace"
 readme = "../README.md"
 
 authors.workspace = true
@@ -13,7 +13,10 @@ version.workspace = true
 [dependencies]
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
+cfg-if.workspace = true
 
 [dev-dependencies]
 
 [features]
+default = []
+reentrant = []

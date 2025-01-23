@@ -14,13 +14,11 @@
 use alloc::vec::Vec;
 use alloy_primitives::Address;
 
-pub use self::{
-    context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
-    transfer::transfer_eth,
-};
+pub use self::{context::Call, error::Error, error::MethodError, raw::RawCall, traits::*};
 
 pub(crate) use raw::CachePolicy;
 
+use crate::host::WasmVM;
 #[cfg(feature = "reentrant")]
 use crate::storage::Storage;
 
@@ -52,7 +50,7 @@ pub fn static_call(
     Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
 
     unsafe_reentrant! {{
-        RawCall::new_static()
+        RawCall::<WasmVM>::new_static()
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
@@ -74,7 +72,7 @@ pub unsafe fn delegate_call(
     #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
-    RawCall::new_delegate()
+    RawCall::<WasmVM>::new_delegate()
         .gas(context.gas())
         .call(to, data)
         .map_err(Error::Revert)
@@ -86,7 +84,7 @@ pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Resu
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
     unsafe_reentrant! {{
-        RawCall::new_with_value(context.value())
+        RawCall::<WasmVM>::new_with_value(context.value())
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)

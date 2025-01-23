@@ -22,7 +22,7 @@ pub trait StaticCallContext: CallContext {}
 ///
 /// The type must contain a [`TopLevelStorage`][TLS] to prevent aliasing in cases of reentrancy.
 ///
-/// [TLS]: crate::storage::TopLevelStorage
+/// [TLS]: stylus_core::storage::TopLevelStorage
 pub unsafe trait MutatingCallContext: CallContext {
     /// Amount of ETH in wei to give the other contract.
     fn value(&self) -> U256;

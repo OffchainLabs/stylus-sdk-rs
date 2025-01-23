@@ -11,7 +11,7 @@ use alloc::{
 use alloy_primitives::{U256, U8};
 use cfg_if::cfg_if;
 use core::cell::OnceCell;
-use stylus_host::HostAccess;
+use stylus_core::HostAccess;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {
@@ -49,7 +49,7 @@ impl StorageType for StorageBytes {
 }
 
 impl HostAccess for StorageBytes {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host

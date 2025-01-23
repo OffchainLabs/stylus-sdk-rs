@@ -9,7 +9,7 @@ use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
-use stylus_host::HostAccess;
+use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed map.
 pub struct StorageMap<K: StorageKey, V: StorageType> {
@@ -55,7 +55,7 @@ where
     K: StorageKey,
     V: StorageType,
 {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host

@@ -8,7 +8,7 @@ use crate::{crypto, host::VM};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData};
-use stylus_host::HostAccess;
+use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {
@@ -48,7 +48,7 @@ impl<S: StorageType> StorageType for StorageVec<S> {
 }
 
 impl<S: StorageType> HostAccess for StorageVec<S> {
-    fn vm(&self) -> &dyn stylus_host::Host {
+    fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host

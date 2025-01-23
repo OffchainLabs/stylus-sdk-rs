@@ -246,7 +246,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// `&self` or `&mut self` won't work. Building a [`Call`] from a generic parameter is the usual solution.
 ///
 /// ```
-/// use stylus_sdk::{call::{Call, Error}, storage::TopLevelStorage};
+/// use stylus_sdk::{call::{Call, Error}};
+/// use stylus_core::storage::TopLevelStorage;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///
@@ -402,7 +403,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// # use stylus_proc::entrypoint;
 /// # use stylus_sdk::prelude::*;
 /// #[entrypoint]
-/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_host::Host>) -> ArbResult {
+/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_core::Host>) -> ArbResult {
 ///     // bytes-in, bytes-out programming
 /// #   Ok(Vec::new())
 /// }
