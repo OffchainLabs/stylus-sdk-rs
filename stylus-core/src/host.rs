@@ -14,7 +14,7 @@ use alloy_primitives::{Address, B256, U256};
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
 /// of traits with different access to host values and modifications.
-/// Stylus contracts in the SDK parametrized by a host trait allow for safe access
+/// Stylus contracts in the SDK have access to a host via the HostAccessor trait for safe access
 /// to hostios without the need for global invocations. The host trait may be implemented
 /// by test frameworks as an easier way of mocking hostio invocations for testing
 /// Stylus contracts.
