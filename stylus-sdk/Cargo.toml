@@ -15,6 +15,7 @@ alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 cfg-if.workspace = true
 derivative.workspace = true
+stylus-test.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
 lazy_static.workspace = true
@@ -31,7 +32,6 @@ rclite = "0.2.4"
 [dev-dependencies]
 paste.workspace = true
 sha3.workspace = true
-stylus-test.workspace = true
 alloy-primitives = { workspace = true, default-features = false, features=["tiny-keccak"] }
 
 [package.metadata.docs.rs]
