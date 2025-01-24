@@ -60,21 +60,19 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<K, V> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageMap<K, V>
+impl<K, V> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageMap<K, V>
 where
     K: StorageKey,
     V: StorageType,
 {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }

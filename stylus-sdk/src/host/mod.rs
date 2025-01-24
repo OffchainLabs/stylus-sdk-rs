@@ -320,7 +320,7 @@ cfg_if::cfg_if! {
             /// A reference-counted host object that provides access to the VM
             /// for use in non-native mode. Reference counting avoids the need for
             /// unsafe code, explicit lifetimes, and other complexities.
-            pub host: rclite::Rc<alloc::boxed::Box<dyn TestHost>>,
+            pub host: rclite::Rc<alloc::boxed::Box<dyn Host>>,
         }
 
         impl Clone for VM {

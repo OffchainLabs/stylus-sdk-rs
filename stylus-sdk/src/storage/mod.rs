@@ -179,21 +179,19 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const B: usize, const L: usize>
-    From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageUint<B, L>
+impl<const B: usize, const L: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>>
+    for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -314,21 +312,19 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const B: usize, const L: usize>
-    From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageSigned<B, L>
+impl<const B: usize, const L: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>>
+    for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -438,9 +434,7 @@ impl<const N: usize> HostAccess for StorageFixedBytes<N> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
@@ -494,12 +488,12 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const N: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>>
+impl<const N: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>>
     for StorageFixedBytes<N>
 where
     ByteCount<N>: SupportedFixedBytes,
 {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -553,17 +547,15 @@ impl HostAccess for StorageBool {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBool {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageBool {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -656,17 +648,15 @@ impl HostAccess for StorageAddress {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageAddress {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageAddress {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -761,17 +751,15 @@ impl HostAccess for StorageBlockNumber {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBlockNumber {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageBlockNumber {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -867,17 +855,15 @@ impl HostAccess for StorageBlockHash {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBlockHash {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageBlockHash {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }

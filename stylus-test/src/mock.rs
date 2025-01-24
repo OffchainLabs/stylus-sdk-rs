@@ -6,6 +6,28 @@ use std::{cell::RefCell, collections::HashMap};
 
 pub use stylus_core::*;
 
+pub struct MockHost;
+
+impl MockHost {
+    pub fn new() -> Rc<Box<dyn Host>> {
+        let vm = TestVM {
+            storage: RefCell::new(HashMap::new()),
+            msg_sender: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
+            contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
+            chain_id: CHAIN_ID,
+            reentrant: false,
+            block_number: RefCell::new(0),
+            block_timestamp: 0,
+            tx_origin: Address::ZERO,
+            balances: RefCell::new(HashMap::new()),
+            code_storage: RefCell::new(HashMap::new()),
+            gas_left: 1_000_000,
+            ink_left: 1_000_000,
+        };
+        Rc::new(Box::new(vm))
+    }
+}
+
 /// Arbitrum's CHAID ID.
 pub const CHAIN_ID: u64 = 42161;
 
@@ -26,22 +48,8 @@ pub struct TestVM {
 }
 
 impl TestVM {
-    pub fn new() -> Rc<Box<dyn TestHost>> {
-        let vm = Self {
-            storage: RefCell::new(HashMap::new()),
-            msg_sender: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
-            contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
-            chain_id: CHAIN_ID,
-            reentrant: false,
-            block_number: RefCell::new(0),
-            block_timestamp: 0,
-            tx_origin: Address::ZERO,
-            balances: RefCell::new(HashMap::new()),
-            code_storage: RefCell::new(HashMap::new()),
-            gas_left: 1_000_000,
-            ink_left: 1_000_000,
-        };
-        Rc::new(Box::new(vm))
+    pub fn new<'a>(host: Rc<Box<dyn Host>>) -> &'a Self {
+        unsafe { &*(host.as_ref().as_ref() as *const dyn Host as *const TestVM) }
     }
 }
 
@@ -356,7 +364,8 @@ mod tests {
 
     #[test]
     fn test_basic_vm_operations() {
-        let vm = TestVM::new();
+        let host = MockHost::new();
+        let vm = TestVM::new(host);
 
         vm.set_block_number(12345);
         assert_eq!(vm.block_number(), 12345);

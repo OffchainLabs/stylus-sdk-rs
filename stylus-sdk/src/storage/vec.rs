@@ -53,19 +53,15 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                unsafe {
-                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
-                }
+                &**self.__stylus_host.host
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<S: StorageType> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>>
-    for StorageVec<S>
-{
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+impl<S: StorageType> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageVec<S> {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
@@ -296,8 +292,8 @@ mod test {
         use super::*;
         use stylus_test::mock::*;
 
-        let vm = TestVM::new();
-        let mut vec: StorageVec<StorageBool> = StorageVec::from(vm.clone());
+        let host = MockHost::new();
+        let mut vec: StorageVec<StorageBool> = StorageVec::from(host);
         vec.push(true);
         vec.push(false);
         vec.push(true);
