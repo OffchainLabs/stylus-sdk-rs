@@ -741,6 +741,7 @@ version = "0.7.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "rclite",
  "stylus-core",
 ]
 

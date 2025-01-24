@@ -68,6 +68,17 @@ where
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl<K, V> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageMap<K, V>
+where
+    K: StorageKey,
+    V: StorageType,
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl<K, V> StorageMap<K, V>
 where
     K: StorageKey,

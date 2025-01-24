@@ -187,6 +187,17 @@ where
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl<const B: usize, const L: usize>
+    From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl<const B: usize, const L: usize> StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
@@ -308,6 +319,17 @@ where
                 }
             }
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<const B: usize, const L: usize>
+    From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
 
@@ -471,6 +493,17 @@ where
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl<const N: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>>
+    for StorageFixedBytes<N>
+where
+    ByteCount<N>: SupportedFixedBytes,
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl<'a, const N: usize> SimpleStorageType<'a> for StorageFixedBytes<N>
 where
     ByteCount<N>: SupportedFixedBytes,
@@ -525,6 +558,13 @@ impl HostAccess for StorageBool {
                 }
             }
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBool {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
 
@@ -621,6 +661,13 @@ impl HostAccess for StorageAddress {
                 }
             }
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageAddress {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
 
@@ -722,6 +769,13 @@ impl HostAccess for StorageBlockNumber {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBlockNumber {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl StorageBlockNumber {
     /// Gets the underlying [`BlockNumber`] in persistent storage.
     pub fn get(&self) -> BlockNumber {
@@ -818,6 +872,13 @@ impl HostAccess for StorageBlockHash {
                 }
             }
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBlockHash {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }
 

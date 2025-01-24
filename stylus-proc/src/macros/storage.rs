@@ -158,6 +158,20 @@ impl Storage {
             }
         }
     }
+    fn impl_from_vm(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            #[cfg(not(target_arch = "wasm32"))]
+            impl #impl_generics From<rclite::Rc<alloc::boxed::Box<dyn stylus_sdk::testing::mock::TestHost>>> for #name #ty_generics #where_clause {
+                fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_sdk::testing::mock::TestHost>>) -> Self {
+                    unsafe {
+                        Self::new(U256::ZERO, 0, stylus_sdk::host::VM { host: host.clone() })
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl From<&mut syn::ItemStruct> for Storage {
@@ -189,6 +203,7 @@ impl ToTokens for Storage {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
         self.impl_host_access().to_tokens(tokens);
+        self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);

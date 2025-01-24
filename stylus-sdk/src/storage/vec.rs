@@ -61,6 +61,15 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl<S: StorageType> From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>>
+    for StorageVec<S>
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl<S: StorageType> StorageVec<S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -285,13 +294,10 @@ mod test {
     fn test_storage_vec() {
         use super::super::StorageBool;
         use super::*;
-        use alloc::boxed::Box;
         use stylus_test::mock::*;
 
-        let vm = super::VM {
-            host: rclite::Rc::new(Box::new(TestVM::new())),
-        };
-        let mut vec: StorageVec<StorageBool> = unsafe { StorageVec::new(U256::ZERO, 0, vm) };
+        let vm = TestVM::new();
+        let mut vec: StorageVec<StorageBool> = StorageVec::from(vm.clone());
         vec.push(true);
         vec.push(false);
         vec.push(true);

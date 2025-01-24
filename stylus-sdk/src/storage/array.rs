@@ -62,6 +62,15 @@ impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl<S: StorageType, const N: usize>
+    From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageArray<S, N>
+{
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Gets the number of elements stored.
     ///

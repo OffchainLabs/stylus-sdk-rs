@@ -63,6 +63,13 @@ impl HostAccess for StorageBytes {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl From<rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>> for StorageBytes {
+    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_test::mock::TestHost>>) -> Self {
+        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    }
+}
+
 impl StorageBytes {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {

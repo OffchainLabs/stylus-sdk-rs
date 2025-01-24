@@ -1,6 +1,7 @@
 use alloy_primitives::{address, Address, B256, U256};
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
+use rclite::Rc;
 use std::{cell::RefCell, collections::HashMap};
 
 pub use stylus_core::*;
@@ -25,8 +26,8 @@ pub struct TestVM {
 }
 
 impl TestVM {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Rc<Box<dyn TestHost>> {
+        let vm = Self {
             storage: RefCell::new(HashMap::new()),
             msg_sender: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
             contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
@@ -39,7 +40,8 @@ impl TestVM {
             code_storage: RefCell::new(HashMap::new()),
             gas_left: 1_000_000,
             ink_left: 1_000_000,
-        }
+        };
+        Rc::new(Box::new(vm))
     }
 }
 
@@ -51,6 +53,9 @@ pub trait TestHost: Host {
     fn set_code(&self, address: Address, code: Vec<u8>);
     fn set_gas_left(&self, gas: u64);
     fn set_ink_left(&self, ink: u64);
+    fn get_storage(&self, key: U256) -> B256;
+    fn set_storage(&self, key: U256, value: B256);
+    fn clear_storage(&self);
 }
 
 impl TestHost for TestVM {
@@ -67,11 +72,14 @@ impl TestHost for TestVM {
     }
     fn set_gas_left(&self, gas: u64) {}
     fn set_ink_left(&self, ink: u64) {}
-}
-
-impl Default for TestVM {
-    fn default() -> Self {
-        Self::new()
+    fn get_storage(&self, key: U256) -> B256 {
+        self.storage.borrow().get(&key).copied().unwrap_or_default()
+    }
+    fn set_storage(&self, key: U256, value: B256) {
+        self.storage.borrow_mut().insert(key, value);
+    }
+    fn clear_storage(&self) {
+        self.storage.borrow_mut().clear();
     }
 }
 
@@ -340,19 +348,7 @@ impl DeploymentAccess for TestVM {
 }
 
 // Add test helpers
-impl TestVM {
-    pub fn get_storage(&self, key: U256) -> B256 {
-        self.storage.borrow().get(&key).copied().unwrap_or_default()
-    }
-
-    pub fn set_storage(&self, key: U256, value: B256) {
-        self.storage.borrow_mut().insert(key, value);
-    }
-
-    pub fn clear_storage(&self) {
-        self.storage.borrow_mut().clear();
-    }
-}
+impl TestVM {}
 
 #[cfg(test)]
 mod tests {
@@ -360,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_basic_vm_operations() {
-        let mut vm = TestVM::new();
+        let vm = TestVM::new();
 
         vm.set_block_number(12345);
         assert_eq!(vm.block_number(), 12345);
