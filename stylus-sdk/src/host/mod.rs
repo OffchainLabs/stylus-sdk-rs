@@ -11,6 +11,7 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
 use stylus_core::*;
+use stylus_test::mock::TestHost;
 
 use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
 
@@ -319,7 +320,7 @@ cfg_if::cfg_if! {
             /// A reference-counted host object that provides access to the VM
             /// for use in non-native mode. Reference counting avoids the need for
             /// unsafe code, explicit lifetimes, and other complexities.
-            pub host: rclite::Rc<alloc::boxed::Box<dyn Host>>,
+            pub host: rclite::Rc<alloc::boxed::Box<dyn TestHost>>,
         }
 
         impl Clone for VM {

@@ -179,7 +179,9 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -301,7 +303,9 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -412,7 +416,9 @@ impl<const N: usize> HostAccess for StorageFixedBytes<N> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -514,7 +520,9 @@ impl HostAccess for StorageBool {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -608,7 +616,9 @@ impl HostAccess for StorageAddress {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -704,7 +714,9 @@ impl HostAccess for StorageBlockNumber {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }
@@ -801,7 +813,9 @@ impl HostAccess for StorageBlockHash {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }

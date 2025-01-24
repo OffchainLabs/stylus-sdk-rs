@@ -53,7 +53,9 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }

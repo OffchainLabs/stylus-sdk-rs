@@ -150,7 +150,9 @@ impl Storage {
                     }
                     #[cfg(not(target_arch = "wasm32"))]
                     {
-                        &**self.__stylus_host.host
+                        unsafe {
+                            core::mem::transmute::<&dyn stylus_test::mock::TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                        }
                     }
                 }
             }

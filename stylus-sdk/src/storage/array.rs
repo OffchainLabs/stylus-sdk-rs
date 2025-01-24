@@ -7,6 +7,7 @@ use alloy_primitives::U256;
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_core::HostAccess;
+use stylus_test::mock::TestHost;
 
 use crate::host::VM;
 
@@ -53,7 +54,9 @@ impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                unsafe {
+                    core::mem::transmute::<&dyn TestHost, &dyn stylus_core::Host>(&**self.__stylus_host.host)
+                }
             }
         }
     }

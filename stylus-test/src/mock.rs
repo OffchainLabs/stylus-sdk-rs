@@ -15,7 +15,7 @@ pub struct TestVM {
     chain_id: u64,
     reentrant: bool,
     // Add fields for enhanced testing
-    block_number: u64,
+    block_number: RefCell<u64>,
     block_timestamp: u64,
     tx_origin: Address,
     balances: RefCell<HashMap<Address, U256>>,
@@ -32,7 +32,7 @@ impl TestVM {
             contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
             chain_id: CHAIN_ID,
             reentrant: false,
-            block_number: 0,
+            block_number: RefCell::new(0),
             block_timestamp: 0,
             tx_origin: Address::ZERO,
             balances: RefCell::new(HashMap::new()),
@@ -41,34 +41,32 @@ impl TestVM {
             ink_left: 1_000_000,
         }
     }
+}
 
-    pub fn set_block_number(&mut self, block_number: u64) {
-        self.block_number = block_number;
+pub trait TestHost: Host {
+    fn set_block_number(&self, block_number: u64);
+    fn set_block_timestamp(&self, timestamp: u64);
+    fn set_tx_origin(&self, origin: Address);
+    fn set_balance(&self, address: Address, balance: U256);
+    fn set_code(&self, address: Address, code: Vec<u8>);
+    fn set_gas_left(&self, gas: u64);
+    fn set_ink_left(&self, ink: u64);
+}
+
+impl TestHost for TestVM {
+    fn set_block_number(&self, block_number: u64) {
+        *self.block_number.borrow_mut() = block_number;
     }
-
-    pub fn set_block_timestamp(&mut self, timestamp: u64) {
-        self.block_timestamp = timestamp;
-    }
-
-    pub fn set_tx_origin(&mut self, origin: Address) {
-        self.tx_origin = origin;
-    }
-
-    pub fn set_balance(&mut self, address: Address, balance: U256) {
+    fn set_block_timestamp(&self, timestamp: u64) {}
+    fn set_tx_origin(&self, origin: Address) {}
+    fn set_balance(&self, address: Address, balance: U256) {
         self.balances.borrow_mut().insert(address, balance);
     }
-
-    pub fn set_code(&mut self, address: Address, code: Vec<u8>) {
+    fn set_code(&self, address: Address, code: Vec<u8>) {
         self.code_storage.borrow_mut().insert(address, code);
     }
-
-    pub fn set_gas_left(&mut self, gas: u64) {
-        self.gas_left = gas;
-    }
-
-    pub fn set_ink_left(&mut self, ink: u64) {
-        self.ink_left = ink;
-    }
+    fn set_gas_left(&self, gas: u64) {}
+    fn set_ink_left(&self, ink: u64) {}
 }
 
 impl Default for TestVM {
@@ -185,7 +183,7 @@ impl BlockAccess for TestVM {
     }
 
     fn block_number(&self) -> u64 {
-        self.block_number
+        *self.block_number.borrow()
     }
 
     fn block_timestamp(&self) -> u64 {
