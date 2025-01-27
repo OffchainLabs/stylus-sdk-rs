@@ -171,7 +171,7 @@ impl Storage {
                 fn from(host: __StylusHostType) -> Self {
                     unsafe {
                         Self::new(
-                            U256::ZERO,
+                            stylus_sdk::alloy_primitives::U256::ZERO,
                             0,
                             stylus_sdk::host::VM {
                                 host: alloc::boxed::Box::new(host),

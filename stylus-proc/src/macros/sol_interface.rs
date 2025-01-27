@@ -139,6 +139,7 @@ impl Interface {
 
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
+            #[allow(deprecated)]
             pub fn #rust_name(&self, context: impl #context #(, #rust_args)*) ->
                 Result<<#return_type as #SolType>::RustType, stylus_sdk::call::Error>
             {
@@ -341,7 +342,6 @@ mod tests {
         assert_ast_eq(
             &visitor.interfaces[0].item_impl,
             &parse_quote! {
-                #[allow(deprecated)]
                 impl IService {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self { address }

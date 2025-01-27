@@ -302,6 +302,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 /// ```
 /// extern crate alloc;
 /// # use stylus_proc::{Erase, sol_storage};
+/// # use stylus_sdk::prelude::*;
 /// sol_storage! {
 ///    #[derive(Erase)]
 ///    pub struct Contract {
