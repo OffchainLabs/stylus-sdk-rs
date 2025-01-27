@@ -11,7 +11,6 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
 use stylus_core::*;
-use stylus_test::mock::TestHost;
 
 use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
 

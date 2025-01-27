@@ -151,6 +151,7 @@ cfg_if! {
         #[allow(deprecated)]
         impl<S: TopLevelStorage> NonPayableCallContext for Call<&mut S, false> {}
 
+        #[allow(deprecated)]
         unsafe impl<S: TopLevelStorage, const HAS_VALUE: bool> MutatingCallContext
             for Call<&mut S, HAS_VALUE>
         {

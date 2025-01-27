@@ -70,16 +70,16 @@ impl TestHost for TestVM {
     fn set_block_number(&self, block_number: u64) {
         *self.block_number.borrow_mut() = block_number;
     }
-    fn set_block_timestamp(&self, timestamp: u64) {}
-    fn set_tx_origin(&self, origin: Address) {}
+    fn set_block_timestamp(&self, _timestamp: u64) {}
+    fn set_tx_origin(&self, _origin: Address) {}
     fn set_balance(&self, address: Address, balance: U256) {
         self.balances.borrow_mut().insert(address, balance);
     }
     fn set_code(&self, address: Address, code: Vec<u8>) {
         self.code_storage.borrow_mut().insert(address, code);
     }
-    fn set_gas_left(&self, gas: u64) {}
-    fn set_ink_left(&self, ink: u64) {}
+    fn set_gas_left(&self, _gas: u64) {}
+    fn set_ink_left(&self, _ink: u64) {}
     fn get_storage(&self, key: U256) -> B256 {
         self.storage.borrow().get(&key).copied().unwrap_or_default()
     }

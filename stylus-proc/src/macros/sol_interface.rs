@@ -341,12 +341,14 @@ mod tests {
         assert_ast_eq(
             &visitor.interfaces[0].item_impl,
             &parse_quote! {
+                #[allow(deprecated)]
                 impl IService {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self { address }
                     }
 
                     #[function_attr]
+                    #[allow(deprecated)]
                     pub fn make_payment(
                         &self,
                         context: impl stylus_sdk::call::MutatingCallContext,
@@ -365,6 +367,7 @@ mod tests {
                         ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
+                    #[allow(deprecated)]
                     pub fn get_constant(
                         &self,
                         context: impl stylus_sdk::call::StaticCallContext,
@@ -378,6 +381,7 @@ mod tests {
                         Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
+                    #[allow(deprecated)]
                     pub fn get_foo(
                         &self,
                         context: impl stylus_sdk::call::StaticCallContext,

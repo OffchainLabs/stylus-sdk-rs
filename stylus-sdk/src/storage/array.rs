@@ -7,7 +7,6 @@ use alloy_primitives::U256;
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_core::HostAccess;
-use stylus_test::mock::TestHost;
 
 use crate::host::VM;
 

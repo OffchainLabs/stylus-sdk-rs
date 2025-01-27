@@ -161,8 +161,8 @@ impl Storage {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
             #[cfg(not(target_arch = "wasm32"))]
-            impl #impl_generics From<rclite::Rc<alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>>> for #name #ty_generics #where_clause {
-                fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>>) -> Self {
+            impl #impl_generics From<stylus_sdk::rc::Rc<alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>>> for #name #ty_generics #where_clause {
+                fn from(host: stylus_sdk::rc::Rc<alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>>) -> Self {
                     unsafe {
                         Self::new(U256::ZERO, 0, stylus_sdk::host::VM { host: host.clone() })
                     }

@@ -12,7 +12,6 @@ use alloy_primitives::{U256, U8};
 use cfg_if::cfg_if;
 use core::cell::OnceCell;
 use stylus_core::HostAccess;
-use stylus_test::mock::TestHost;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {
