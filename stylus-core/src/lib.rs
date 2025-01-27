@@ -11,7 +11,7 @@ use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 pub use host::*;
 
 /// Emits a typed, Alloy log.
-pub fn log<T: SolEvent>(vm: &impl Host, event: T) {
+pub fn log<T: SolEvent>(vm: &dyn Host, event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
     let mut topics = [WordToken::default(); 4];
     event.encode_topics_raw(&mut topics).unwrap();
