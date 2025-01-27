@@ -24,6 +24,18 @@ struct MockVMState {
     code_storage: HashMap<Address, Vec<u8>>,
     gas_left: u64,
     ink_left: u64,
+    msg_value: U256,
+    block_gas_limit: u64,
+    coinbase: Address,
+    block_basefee: U256,
+    tx_gas_price: U256,
+    tx_ink_price: u32,
+    // Add ways of mocking expected calls, deployments, and logs.
+    call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
+    emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
 }
 
 impl MockVMState {
@@ -41,6 +53,17 @@ impl MockVMState {
             code_storage: HashMap::new(),
             gas_left: 1_000_000,
             ink_left: 1_000_000,
+            msg_value: U256::ZERO,
+            block_basefee: U256::from(1_000_000),
+            block_gas_limit: 30_000_000,
+            coinbase: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
+            tx_gas_price: U256::from(1),
+            tx_ink_price: 1,
+            call_returns: HashMap::new(),
+            delegate_call_returns: HashMap::new(),
+            static_call_returns: HashMap::new(),
+            deploy_returns: HashMap::new(),
+            emitted_logs: Vec::new(),
         }
     }
 }
@@ -65,16 +88,30 @@ impl TestVM {
     pub fn set_block_number(&self, block_number: u64) {
         self.state.borrow_mut().block_number = block_number;
     }
-    pub fn set_block_timestamp(&self, _timestamp: u64) {}
-    pub fn set_tx_origin(&self, _origin: Address) {}
+    pub fn set_block_timestamp(&self, timestamp: u64) {
+        self.state.borrow_mut().block_timestamp = timestamp;
+    }
+    pub fn set_tx_origin(&self, origin: Address) {
+        self.state.borrow_mut().tx_origin = origin;
+    }
     pub fn set_balance(&self, address: Address, balance: U256) {
         self.state.borrow_mut().balances.insert(address, balance);
     }
     pub fn set_code(&self, address: Address, code: Vec<u8>) {
         self.state.borrow_mut().code_storage.insert(address, code);
     }
-    pub fn set_gas_left(&self, _gas: u64) {}
-    pub fn set_ink_left(&self, _ink: u64) {}
+    pub fn set_gas_left(&self, gas: u64) {
+        self.state.borrow_mut().gas_left = gas;
+    }
+    pub fn set_ink_left(&self, ink: u64) {
+        self.state.borrow_mut().ink_left = ink;
+    }
+    pub fn set_sender(&self, sender: Address) {
+        self.state.borrow_mut().msg_sender = sender;
+    }
+    pub fn set_value(&self, value: U256) {
+        self.state.borrow_mut().msg_value = value;
+    }
     pub fn get_storage(&self, key: U256) -> B256 {
         self.state
             .borrow()
@@ -88,6 +125,51 @@ impl TestVM {
     }
     pub fn clear_storage(&self) {
         self.state.borrow_mut().storage.clear();
+    }
+    pub fn mock_call(&self, to: Address, data: Vec<u8>, return_data: Result<Vec<u8>, Vec<u8>>) {
+        self.state
+            .borrow_mut()
+            .call_returns
+            .insert((to, data), return_data);
+    }
+    pub fn mock_delegate_call(
+        &self,
+        to: Address,
+        data: Vec<u8>,
+        return_data: Result<Vec<u8>, Vec<u8>>,
+    ) {
+        self.state
+            .borrow_mut()
+            .delegate_call_returns
+            .insert((to, data), return_data);
+    }
+    pub fn mock_static_call(
+        &self,
+        to: Address,
+        data: Vec<u8>,
+        return_data: Result<Vec<u8>, Vec<u8>>,
+    ) {
+        self.state
+            .borrow_mut()
+            .static_call_returns
+            .insert((to, data), return_data);
+    }
+    pub fn mock_deploy(&self, code: Vec<u8>, salt: Option<B256>, result: Result<Address, Vec<u8>>) {
+        self.state
+            .borrow_mut()
+            .deploy_returns
+            .insert((code, salt), result);
+    }
+    pub fn get_emitted_logs(&self) -> Vec<(Vec<B256>, Vec<u8>)> {
+        self.state.borrow().emitted_logs.clone()
+    }
+    pub fn clear_mocks(&self) {
+        let mut state = self.state.borrow_mut();
+        state.call_returns.clear();
+        state.delegate_call_returns.clear();
+        state.static_call_returns.clear();
+        state.deploy_returns.clear();
+        state.emitted_logs.clear();
     }
 }
 
@@ -187,15 +269,15 @@ unsafe impl UnsafeCallAccess for TestVM {
 // Update existing trait implementations with new functionality
 impl BlockAccess for TestVM {
     fn block_basefee(&self) -> U256 {
-        U256::from(1_000_000_000) // Default to 1 gwei.
+        self.state.borrow().block_basefee
     }
 
     fn block_coinbase(&self) -> Address {
-        Address::from([0x42; 20])
+        self.state.borrow().coinbase
     }
 
     fn block_gas_limit(&self) -> u64 {
-        30_000_000
+        self.state.borrow().block_gas_limit
     }
 
     fn block_number(&self) -> u64 {
@@ -267,7 +349,7 @@ impl MessageAccess for TestVM {
     }
 
     fn msg_value(&self) -> U256 {
-        U256::ZERO // Can be enhanced to support value transfers
+        self.state.borrow().msg_value
     }
 
     fn tx_origin(&self) -> Address {
@@ -285,11 +367,11 @@ impl MeteringAccess for TestVM {
     }
 
     fn tx_gas_price(&self) -> U256 {
-        U256::from(1_000_000_000) // Default to 1 gwei
+        self.state.borrow().tx_gas_price
     }
 
     fn tx_ink_price(&self) -> u32 {
-        1_000
+        self.state.borrow().tx_ink_price
     }
 }
 
@@ -297,26 +379,55 @@ impl CallAccess for TestVM {
     fn call(
         &self,
         _context: &dyn MutatingCallContext,
-        _to: Address,
-        _data: &[u8],
+        to: Address,
+        data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
+        self.state
+            .borrow()
+            .call_returns
+            .get(&(to, data.to_vec()))
+            .cloned()
+            .map(|opt| match opt {
+                Ok(data) => Ok(data),
+                Err(data) => Err(Error::Revert(data)),
+            })
+            .unwrap_or(Ok(Vec::new()))
     }
+
     unsafe fn delegate_call(
         &self,
         _context: &dyn MutatingCallContext,
-        _to: Address,
-        _data: &[u8],
+        to: Address,
+        data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
+        self.state
+            .borrow()
+            .delegate_call_returns
+            .get(&(to, data.to_vec()))
+            .cloned()
+            .map(|opt| match opt {
+                Ok(data) => Ok(data),
+                Err(data) => Err(Error::Revert(data)),
+            })
+            .unwrap_or(Ok(Vec::new()))
     }
+
     fn static_call(
         &self,
         _context: &dyn StaticCallContext,
-        _to: Address,
-        _data: &[u8],
+        to: Address,
+        data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
+        self.state
+            .borrow()
+            .static_call_returns
+            .get(&(to, data.to_vec()))
+            .cloned()
+            .map(|opt| match opt {
+                Ok(data) => Ok(data),
+                Err(data) => Err(Error::Revert(data)),
+            })
+            .unwrap_or(Ok(Vec::new()))
     }
 }
 
@@ -325,13 +436,48 @@ impl ValueTransfer for TestVM {
     fn transfer_eth(
         &self,
         _storage: &mut dyn stylus_core::storage::TopLevelStorage,
-        _to: Address,
-        _amount: U256,
+        to: Address,
+        amount: U256,
     ) -> Result<(), Vec<u8>> {
+        let mut state = self.state.borrow_mut();
+        let from = state.contract_address;
+
+        let from_balance = state.balances.get(&from).copied().unwrap_or_default();
+        let to_balance = state.balances.get(&to).copied().unwrap_or_default();
+
+        if from_balance < amount {
+            return Err(b"insufficient funds for transfer".to_vec());
+        }
+
+        let new_to_balance = to_balance
+            .checked_add(amount)
+            .ok_or_else(|| b"balance overflow".to_vec())?;
+
+        state.balances.insert(from, from_balance - amount);
+        state.balances.insert(to, new_to_balance);
+
         Ok(())
     }
+
     #[cfg(not(feature = "reentrant"))]
-    fn transfer_eth(&self, _to: Address, _amount: U256) -> Result<(), Vec<u8>> {
+    fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+        let mut state = self.state.borrow_mut();
+        let from = state.contract_address;
+
+        let from_balance = state.balances.get(&from).copied().unwrap_or_default();
+        let to_balance = state.balances.get(&to).copied().unwrap_or_default();
+
+        if from_balance < amount {
+            return Err(b"insufficient funds for transfer".to_vec());
+        }
+
+        let new_to_balance = to_balance
+            .checked_add(amount)
+            .ok_or_else(|| b"balance overflow".to_vec())?;
+
+        state.balances.insert(from, from_balance - amount);
+        state.balances.insert(to, new_to_balance);
+
         Ok(())
     }
 }
@@ -340,32 +486,61 @@ impl DeploymentAccess for TestVM {
     #[cfg(feature = "reentrant")]
     unsafe fn deploy(
         &self,
-        _code: &[u8],
+        code: &[u8],
         _endowment: U256,
-        _salt: Option<B256>,
+        salt: Option<B256>,
         _cache_policy: stylus_core::deploy::CachePolicy,
     ) -> Result<Address, Vec<u8>> {
-        Ok(Address::ZERO)
+        self.state
+            .borrow()
+            .deploy_returns
+            .get(&(code.to_vec(), salt))
+            .cloned()
+            .unwrap_or(Ok(Address::ZERO))
     }
+
     #[cfg(not(feature = "reentrant"))]
     unsafe fn deploy(
         &self,
-        _code: &[u8],
+        code: &[u8],
         _endowment: U256,
-        _salt: Option<B256>,
+        salt: Option<B256>,
     ) -> Result<Address, Vec<u8>> {
-        Ok(Address::ZERO)
+        self.state
+            .borrow()
+            .deploy_returns
+            .get(&(code.to_vec(), salt))
+            .cloned()
+            .unwrap_or(Ok(Address::ZERO))
     }
 }
 
 impl LogAccess for TestVM {
-    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
-    fn raw_log(&self, _topics: &[B256], _data: &[u8]) -> Result<(), &'static str> {
+    fn emit_log(&self, input: &[u8], num_topics: usize) {
+        let (topics_data, data) = input.split_at(num_topics * 32);
+        let mut topics = Vec::with_capacity(num_topics);
+
+        for chunk in topics_data.chunks(32) {
+            let mut bytes = [0u8; 32];
+            bytes.copy_from_slice(chunk);
+            topics.push(B256::from(bytes));
+        }
+
+        self.state
+            .borrow_mut()
+            .emitted_logs
+            .push((topics, data.to_vec()));
+    }
+
+    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
+        self.state
+            .borrow_mut()
+            .emitted_logs
+            .push((topics.to_vec(), data.to_vec()));
         Ok(())
     }
 }
 
-// Add test helpers
 impl TestVM {}
 
 #[cfg(test)]
@@ -388,5 +563,121 @@ mod tests {
         let value = B256::new([1u8; 32]);
         vm.set_storage(key, value);
         assert_eq!(vm.get_storage(key), value);
+    }
+
+    #[test]
+    fn test_mock_calls() {
+        let vm = TestVM::new();
+        let target = Address::from([2u8; 20]);
+        let data = vec![1, 2, 3, 4];
+        let expected_return = vec![5, 6, 7, 8];
+
+        // Mock a regular call.
+        vm.mock_call(target, data.clone(), Ok(expected_return.clone()));
+
+        let ctx = stylus_core::calls::context::Call::new();
+        let result = vm.call(&ctx, target, &data).unwrap();
+        assert_eq!(result, expected_return);
+
+        // Mock an error case.
+        let error_data = vec![9, 9, 9];
+        vm.mock_call(target, data.clone(), Err(error_data.clone()));
+
+        match vm.call(&ctx, target, &data) {
+            Err(Error::Revert(returned_data)) => assert_eq!(returned_data, error_data),
+            _ => panic!("Expected revert error"),
+        }
+    }
+
+    #[test]
+    fn test_mock_deploys() {
+        let vm = TestVM::new();
+        let code = vec![1, 2, 3, 4];
+        let expected_address = Address::from([3u8; 20]);
+
+        // Mock a successful deployment.
+        vm.mock_deploy(code.clone(), None, Ok(expected_address));
+
+        unsafe {
+            let result = vm.deploy(&code, U256::ZERO, None).unwrap();
+            assert_eq!(result, expected_address);
+        }
+
+        // Mock a failed deployment.
+        let error_data = vec![9, 9, 9];
+        vm.mock_deploy(code.clone(), None, Err(error_data.clone()));
+
+        unsafe {
+            match vm.deploy(&code, U256::ZERO, None) {
+                Err(returned_data) => assert_eq!(returned_data, error_data),
+                _ => panic!("Expected deployment error"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_logs() {
+        let vm = TestVM::new();
+        let topic1 = B256::from([1u8; 32]);
+        let topic2 = B256::from([2u8; 32]);
+        let data = vec![3, 4, 5];
+
+        vm.raw_log(&[topic1, topic2], &data).unwrap();
+
+        let logs = vm.get_emitted_logs();
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].0, vec![topic1, topic2]);
+        assert_eq!(logs[0].1, data);
+    }
+
+    #[test]
+    fn test_transfer_eth_success() {
+        let vm = TestVM::new();
+        let from = vm.state.borrow().contract_address;
+        let to = Address::from([1u8; 20]);
+        let initial_balance = U256::from(1000);
+        let transfer_amount = U256::from(300);
+
+        vm.set_balance(from, initial_balance);
+
+        let result = vm.transfer_eth(to, transfer_amount);
+        assert!(result.is_ok());
+
+        assert_eq!(vm.balance(from), initial_balance - transfer_amount);
+        assert_eq!(vm.balance(to), transfer_amount);
+    }
+
+    #[test]
+    fn test_transfer_eth_insufficient_funds() {
+        let vm = TestVM::new();
+        let from = vm.state.borrow().contract_address;
+        let to = Address::from([1u8; 20]);
+        let initial_balance = U256::from(100);
+        let transfer_amount = U256::from(200);
+
+        vm.set_balance(from, initial_balance);
+
+        let result = vm.transfer_eth(to, transfer_amount);
+        assert!(result.is_err());
+
+        // Check that balances remain unchanged
+        assert_eq!(vm.balance(from), initial_balance);
+        assert_eq!(vm.balance(to), U256::ZERO);
+    }
+
+    #[test]
+    fn test_transfer_eth_overflow() {
+        let vm = TestVM::new();
+        let from = vm.state.borrow().contract_address;
+        let to = Address::from([1u8; 20]);
+
+        vm.set_balance(from, U256::MAX);
+        vm.set_balance(to, U256::MAX);
+
+        let result = vm.transfer_eth(to, U256::from(1));
+        assert!(result.is_err());
+
+        assert_eq!(vm.balance(from), U256::MAX);
+        assert_eq!(vm.balance(to), U256::MAX);
     }
 }
