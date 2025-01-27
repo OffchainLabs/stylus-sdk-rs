@@ -158,23 +158,23 @@ impl Storage {
     }
     fn impl_from_vm(&self) -> syn::ItemImpl {
         let name = &self.name;
-        // Use a more unique name for the Host generic
         let (_, ty_generics, where_clause) = self.generics.split_for_impl();
         let mut new_generics = self.generics.clone();
-        let host_param = parse_quote!(__StylusHostType: stylus_sdk::stylus_core::Host + 'static);
+        let host_param =
+            parse_quote!(__StylusHostType: stylus_sdk::stylus_core::Host + Clone + 'static);
         new_generics.params.push(host_param);
         let (impl_generics, _, _) = new_generics.split_for_impl();
 
         parse_quote! {
             #[cfg(not(target_arch = "wasm32"))]
-            impl #impl_generics From<__StylusHostType> for #name #ty_generics #where_clause {
-                fn from(host: __StylusHostType) -> Self {
+            impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
+                fn from(host: &__StylusHostType) -> Self {
                     unsafe {
                         Self::new(
                             stylus_sdk::alloy_primitives::U256::ZERO,
                             0,
                             stylus_sdk::host::VM {
-                                host: alloc::boxed::Box::new(host),
+                                host: alloc::boxed::Box::new(host.clone()),
                             },
                         )
                     }

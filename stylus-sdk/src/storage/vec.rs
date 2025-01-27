@@ -60,18 +60,18 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<S, T> From<T> for StorageVec<S>
+impl<S, T> From<&T> for StorageVec<S>
 where
     S: StorageType,
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -171,7 +171,7 @@ impl<S: StorageType> StorageVec<S> {
     /// use stylus_test::mock::*;
     ///
     /// let vm = stylus_sdk::testing::TestVM::default();
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::from(vm);
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::from(&vm);
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///
@@ -304,7 +304,7 @@ mod test {
         use super::*;
 
         let host = TestVM::new();
-        let mut vec: StorageVec<StorageBool> = StorageVec::from(host);
+        let mut vec: StorageVec<StorageBool> = StorageVec::from(&host);
         vec.push(true);
         vec.push(false);
         vec.push(true);

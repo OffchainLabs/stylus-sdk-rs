@@ -61,17 +61,17 @@ impl HostAccess for StorageBytes {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageBytes
+impl<T> From<&T> for StorageBytes
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -342,17 +342,17 @@ impl HostAccess for StorageString {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageString
+impl<T> From<&T> for StorageString
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }

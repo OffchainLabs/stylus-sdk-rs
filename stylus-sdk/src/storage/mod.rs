@@ -186,18 +186,18 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const B: usize, const L: usize, T> From<T> for StorageUint<B, L>
+impl<const B: usize, const L: usize, T> From<&T> for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -327,18 +327,18 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const B: usize, const L: usize, T> From<T> for StorageSigned<B, L>
+impl<const B: usize, const L: usize, T> From<&T> for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -504,18 +504,18 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<const N: usize, T> From<T> for StorageFixedBytes<N>
+impl<const N: usize, T> From<&T> for StorageFixedBytes<N>
 where
     ByteCount<N>: SupportedFixedBytes,
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -578,17 +578,17 @@ impl HostAccess for StorageBool {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageBool
+impl<T> From<&T> for StorageBool
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -690,17 +690,17 @@ impl HostAccess for StorageAddress {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageAddress
+impl<T> From<&T> for StorageAddress
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -804,17 +804,17 @@ impl HostAccess for StorageBlockNumber {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageBlockNumber
+impl<T> From<&T> for StorageBlockNumber
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }
@@ -919,17 +919,17 @@ impl HostAccess for StorageBlockHash {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> From<T> for StorageBlockHash
+impl<T> From<&T> for StorageBlockHash
 where
     T: stylus_core::Host + Clone + 'static,
 {
-    fn from(host: T) -> Self {
+    fn from(host: &T) -> Self {
         unsafe {
             Self::new(
                 U256::ZERO,
                 0,
                 crate::host::VM {
-                    host: alloc::boxed::Box::new(host),
+                    host: alloc::boxed::Box::new(host.clone()),
                 },
             )
         }

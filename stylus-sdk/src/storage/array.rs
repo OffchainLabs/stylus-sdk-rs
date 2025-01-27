@@ -60,11 +60,21 @@ impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<S: StorageType, const N: usize> From<alloc::boxed::Box<dyn stylus_core::Host>>
-    for StorageArray<S, N>
+impl<const N: usize, S, T> From<&T> for StorageArray<S, N>
+where
+    T: stylus_core::Host + Clone + 'static,
+    S: StorageType,
 {
-    fn from(host: alloc::boxed::Box<dyn stylus_core::Host>) -> Self {
-        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
+        }
     }
 }
 
