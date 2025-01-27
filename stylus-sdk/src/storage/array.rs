@@ -53,17 +53,17 @@ impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<S: StorageType, const N: usize> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>>
+impl<S: StorageType, const N: usize> From<alloc::boxed::Box<dyn stylus_core::Host>>
     for StorageArray<S, N>
 {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
+    fn from(host: alloc::boxed::Box<dyn stylus_core::Host>) -> Self {
         unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
     }
 }

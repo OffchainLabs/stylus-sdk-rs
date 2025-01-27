@@ -53,16 +53,28 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<S: StorageType> From<rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>> for StorageVec<S> {
-    fn from(host: rclite::Rc<alloc::boxed::Box<dyn stylus_core::Host>>) -> Self {
-        unsafe { Self::new(U256::ZERO, 0, crate::host::VM { host: host.clone() }) }
+impl<S, T> From<T> for StorageVec<S>
+where
+    S: StorageType,
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host),
+                },
+            )
+        }
     }
 }
 
@@ -286,13 +298,14 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
 
 #[cfg(test)]
 mod test {
+    use stylus_test::mock::TestVM;
+
     #[test]
     fn test_storage_vec() {
         use super::super::StorageBool;
         use super::*;
-        use stylus_test::mock::*;
 
-        let host = MockHost::new();
+        let host = TestVM::new();
         let mut vec: StorageVec<StorageBool> = StorageVec::from(host);
         vec.push(true);
         vec.push(false);

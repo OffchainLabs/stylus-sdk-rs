@@ -10,6 +10,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
+use dyn_clone::DynClone;
 
 /// The host trait defines methods a Stylus contract can use to interact
 /// with a host environment, such as the EVM. It is a composition
@@ -33,8 +34,12 @@ pub trait Host:
     + CallAccess
     + DeploymentAccess
     + ValueTransfer
+    + DynClone
 {
 }
+
+// Enables cloning of a boxed, host trait object.
+dyn_clone::clone_trait_object!(Host);
 
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
