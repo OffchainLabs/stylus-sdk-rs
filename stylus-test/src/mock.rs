@@ -1,5 +1,6 @@
 use alloy_primitives::{address, Address, B256, U256};
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
+use deploy::DeploymentAccess;
 use std::{cell::RefCell, collections::HashMap};
 
 pub use stylus_core::*;
@@ -97,22 +98,24 @@ impl CalldataAccess for TestVM {
     fn write_result(&self, _data: &[u8]) {}
 }
 
-unsafe impl DeploymentAccess for TestVM {
+unsafe impl UnsafeDeploymentAccess for TestVM {
     unsafe fn create1(
         &self,
-        _code: Address,
-        _endowment: U256,
-        _contract: &mut Address,
-        _revert_data_len: &mut usize,
+        _code: *const u8,
+        _code_len: usize,
+        _endowment: *const u8,
+        _contract: *mut u8,
+        _revert_data_len: *mut usize,
     ) {
     }
     unsafe fn create2(
         &self,
-        _code: Address,
-        _endowment: U256,
-        _salt: B256,
-        _contract: &mut Address,
-        _revert_data_len: &mut usize,
+        _code: *const u8,
+        _code_len: usize,
+        _endowment: *const u8,
+        _salt: *const u8,
+        _contract: *mut u8,
+        _revert_data_len: *mut usize,
     ) {
     }
 }
@@ -313,6 +316,28 @@ impl ValueTransfer for TestVM {
     #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, _to: Address, _amount: U256) -> Result<(), Vec<u8>> {
         Ok(())
+    }
+}
+
+impl DeploymentAccess for TestVM {
+    #[cfg(feature = "reentrant")]
+    unsafe fn deploy(
+        &self,
+        _code: &[u8],
+        _endowment: U256,
+        _salt: Option<B256>,
+        _cache_policy: stylus_core::deploy::CachePolicy,
+    ) -> Result<Address, Vec<u8>> {
+        Ok(Address::ZERO)
+    }
+    #[cfg(not(feature = "reentrant"))]
+    unsafe fn deploy(
+        &self,
+        _code: &[u8],
+        _endowment: U256,
+        _salt: Option<B256>,
+    ) -> Result<Address, Vec<u8>> {
+        Ok(Address::ZERO)
     }
 }
 
