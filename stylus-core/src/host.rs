@@ -33,6 +33,7 @@ pub trait Host:
     + MeteringAccess
     + CallAccess
     + DeploymentAccess
+    + LogAccess
     + ValueTransfer
     + DynClone
 {
@@ -157,17 +158,6 @@ pub unsafe trait UnsafeDeploymentAccess {
 
 /// Provides access to storage access and mutation via host methods.
 pub trait StorageAccess {
-    /// Emits an EVM log with the given number of topics and data, the first bytes of which should
-    /// be the 32-byte-aligned topic data. The semantics are equivalent to that of the EVM's
-    /// [`LOG0`], [`LOG1`], [`LOG2`], [`LOG3`], and [`LOG4`] opcodes based on the number of topics
-    /// specified. Requesting more than `4` topics will induce a revert.
-    ///
-    /// [`LOG0`]: https://www.evm.codes/#a0
-    /// [`LOG1`]: https://www.evm.codes/#a1
-    /// [`LOG2`]: https://www.evm.codes/#a2
-    /// [`LOG3`]: https://www.evm.codes/#a3
-    /// [`LOG4`]: https://www.evm.codes/#a4
-    fn emit_log(&self, input: &[u8], num_topics: usize);
     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
@@ -431,4 +421,26 @@ pub trait MeteringAccess {
     fn ink_to_gas(&self, ink: u64) -> u64 {
         ink / self.tx_ink_price() as u64
     }
+
+    /// Computes the units of ink per a specified amount of gas.
+    fn gas_to_ink(&self, gas: u64) -> u64 {
+        gas.saturating_mul(self.tx_ink_price().into())
+    }
+}
+
+/// Provides access to the ability to emit logs from a Stylus contract.
+pub trait LogAccess {
+    /// Emits an EVM log with the given number of topics and data, the first bytes of which should
+    /// be the 32-byte-aligned topic data. The semantics are equivalent to that of the EVM's
+    /// [`LOG0`], [`LOG1`], [`LOG2`], [`LOG3`], and [`LOG4`] opcodes based on the number of topics
+    /// specified. Requesting more than `4` topics will induce a revert.
+    ///
+    /// [`LOG0`]: https://www.evm.codes/#a0
+    /// [`LOG1`]: https://www.evm.codes/#a1
+    /// [`LOG2`]: https://www.evm.codes/#a2
+    /// [`LOG3`]: https://www.evm.codes/#a3
+    /// [`LOG4`]: https://www.evm.codes/#a4
+    fn emit_log(&self, input: &[u8], num_topics: usize);
+    /// Emits a raw log from topics and data.
+    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str>;
 }

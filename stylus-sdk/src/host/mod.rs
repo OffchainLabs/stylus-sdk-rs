@@ -12,7 +12,12 @@ use alloy_primitives::{Address, B256, U256};
 
 use stylus_core::*;
 
-use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
+use crate::{
+    block, contract,
+    evm::{self},
+    hostio, msg, tx,
+    types::AddressVM,
+};
 
 /// Defines an implementation of traits for the VM struct that
 /// provides access to cross-contract calls.
@@ -87,10 +92,6 @@ cfg_if::cfg_if! {
         }
 
         impl StorageAccess for VM {
-            #[inline]
-            fn emit_log(&self, input: &[u8], num_topics: usize) {
-                self.0.emit_log(input, num_topics)
-            }
             #[inline]
             unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
                 self.0.storage_cache_bytes32(key, value)
@@ -312,6 +313,16 @@ cfg_if::cfg_if! {
                 self.0.deploy(code, endowment, salt)
             }
         }
+        impl LogAccess for VM {
+            #[inline]
+            fn emit_log(&self, input: &[u8], num_topics: usize) {
+                self.0.emit_log(input, num_topics)
+            }
+            #[inline]
+            fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
+                self.0.raw_log(topics, data)
+            }
+    }
     } else {
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
@@ -414,9 +425,6 @@ unsafe impl UnsafeDeploymentAccess for WasmVM {
 
 #[allow(deprecated)]
 impl StorageAccess for WasmVM {
-    fn emit_log(&self, input: &[u8], num_topics: usize) {
-        unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
-    }
     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
         hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
     }
@@ -427,6 +435,16 @@ impl StorageAccess for WasmVM {
     }
     fn flush_cache(&self, clear: bool) {
         unsafe { hostio::storage_flush_cache(clear) }
+    }
+}
+
+#[allow(deprecated)]
+impl LogAccess for WasmVM {
+    fn emit_log(&self, input: &[u8], num_topics: usize) {
+        unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
+    }
+    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
+        evm::raw_log(topics, data)
     }
 }
 

@@ -47,7 +47,7 @@ pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
 /// Emits a typed alloy log.
 #[deprecated(
     since = "0.8.0",
-    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    note = "Use the log method available under stylus_sdk::stylus_core::log, or provided by stylus_sdk::prelude::*"
 )]
 pub fn log<T: SolEvent>(event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
