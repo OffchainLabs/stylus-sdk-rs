@@ -1,41 +1,48 @@
 use alloy_primitives::{address, Address, B256, U256};
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
+use ethers::middleware::Middleware;
+use ethers::{
+    providers::{Http, Provider},
+    types::{NameOrAddress, H160, H256},
+};
 use rclite::Rc;
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, sync::Arc};
+use tokio::runtime::Runtime;
 
 pub use stylus_core::*;
 
-/// Arbitrum's CHAID ID.
+/// Arbitrum's CHAIN ID.
 pub const CHAIN_ID: u64 = 42161;
 
 #[derive(Clone)]
-struct MockVMState {
-    storage: HashMap<U256, B256>,
-    msg_sender: Address,
-    contract_address: Address,
-    chain_id: u64,
-    reentrant: bool,
+pub(crate) struct MockVMState {
+    pub storage: HashMap<U256, B256>,
+    pub msg_sender: Address,
+    pub contract_address: Address,
+    pub chain_id: u64,
+    pub reentrant: bool,
     // Add fields for enhanced testing
-    block_number: u64,
-    block_timestamp: u64,
-    tx_origin: Address,
-    balances: HashMap<Address, U256>,
-    code_storage: HashMap<Address, Vec<u8>>,
-    gas_left: u64,
-    ink_left: u64,
-    msg_value: U256,
-    block_gas_limit: u64,
-    coinbase: Address,
-    block_basefee: U256,
-    tx_gas_price: U256,
-    tx_ink_price: u32,
+    pub block_number: u64,
+    pub block_timestamp: u64,
+    pub tx_origin: Address,
+    pub balances: HashMap<Address, U256>,
+    pub code_storage: HashMap<Address, Vec<u8>>,
+    pub gas_left: u64,
+    pub ink_left: u64,
+    pub msg_value: U256,
+    pub block_gas_limit: u64,
+    pub coinbase: Address,
+    pub block_basefee: U256,
+    pub tx_gas_price: U256,
+    pub tx_ink_price: u32,
     // Add ways of mocking expected calls, deployments, and logs.
-    call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
-    emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
+    pub call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    pub delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    pub static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
+    pub deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
+    pub emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
+    pub provider: Option<Arc<Provider<Http>>>,
 }
 
 impl MockVMState {
@@ -64,6 +71,7 @@ impl MockVMState {
             static_call_returns: HashMap::new(),
             deploy_returns: HashMap::new(),
             emitted_logs: Vec::new(),
+            provider: None,
         }
     }
 }
@@ -76,6 +84,14 @@ pub struct TestVM {
 impl Default for TestVM {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<MockVMState> for TestVM {
+    fn from(state: MockVMState) -> Self {
+        Self {
+            state: Rc::new(RefCell::new(state)),
+        }
     }
 }
 
@@ -96,6 +112,9 @@ impl TestVM {
     }
     pub fn set_balance(&self, address: Address, balance: U256) {
         self.state.borrow_mut().balances.insert(address, balance);
+    }
+    pub fn set_contract_address(&self, address: Address) {
+        self.state.borrow_mut().contract_address = address;
     }
     pub fn set_code(&self, address: Address, code: Vec<u8>) {
         self.state.borrow_mut().code_storage.insert(address, code);
@@ -223,6 +242,20 @@ impl StorageAccess for TestVM {
 
     fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
+        if let Some(provider) = self.state.borrow().provider.clone() {
+            let rt = Runtime::new().expect("Failed to create runtime");
+
+            let slot_bytes: &[u8; 32] = &key.to_be_bytes();
+            let slot = H256::from_slice(&slot_bytes[..]);
+
+            let addr = NameOrAddress::Address(H160::from_slice(
+                &self.state.borrow().contract_address.as_slice(),
+            ));
+            let storage = rt
+                .block_on(async { provider.get_storage_at(addr, slot, None).await })
+                .unwrap_or_default();
+            return B256::from_slice(storage.as_bytes());
+        }
         self.state
             .borrow()
             .storage
@@ -540,8 +573,6 @@ impl LogAccess for TestVM {
         Ok(())
     }
 }
-
-impl TestVM {}
 
 #[cfg(test)]
 mod tests {
