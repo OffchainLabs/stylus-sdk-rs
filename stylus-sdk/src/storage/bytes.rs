@@ -96,7 +96,7 @@ impl StorageBytes {
         }
 
         // if shrinking, pull data in
-        if (len < 32) && (old > 32) {
+        if (len < 32) && (old >= 32) {
             let word = Storage::get_word(self.__stylus_host.clone(), *self.base());
             Storage::set_word(self.__stylus_host.clone(), self.root, word);
             return self.write_len(len);
