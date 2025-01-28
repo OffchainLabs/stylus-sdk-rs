@@ -248,6 +248,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
+
+[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -688,6 +694,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "cfg-if",
+ "dyn-clone",
 ]
 
 [[package]]
@@ -741,6 +748,7 @@ version = "0.7.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "rclite",
  "stylus-core",
 ]
 

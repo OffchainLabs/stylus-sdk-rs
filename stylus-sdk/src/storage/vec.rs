@@ -53,8 +53,27 @@ impl<S: StorageType> HostAccess for StorageVec<S> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                self.__stylus_host.host.as_ref()
             }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<S, T> From<&T> for StorageVec<S>
+where
+    S: StorageType,
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
         }
     }
 }
@@ -151,10 +170,8 @@ impl<S: StorageType> StorageVec<S> {
     /// use stylus_sdk::alloy_primitives::U256;
     /// use stylus_test::mock::*;
     ///
-    /// let vm = stylus_sdk::host::VM {
-    ///     host: rclite::Rc::new(Box::new(TestVM::new())),
-    /// };
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0, vm) };
+    /// let vm = stylus_sdk::testing::TestVM::default();
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::from(&vm);
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///
@@ -279,17 +296,15 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
 
 #[cfg(test)]
 mod test {
+    use stylus_test::mock::TestVM;
+
     #[test]
     fn test_storage_vec() {
         use super::super::StorageBool;
         use super::*;
-        use alloc::boxed::Box;
-        use stylus_test::mock::*;
 
-        let vm = super::VM {
-            host: rclite::Rc::new(Box::new(TestVM::new())),
-        };
-        let mut vec: StorageVec<StorageBool> = unsafe { StorageVec::new(U256::ZERO, 0, vm) };
+        let host = TestVM::new();
+        let mut vec: StorageVec<StorageBool> = StorageVec::from(&host);
         vec.push(true);
         vec.push(false);
         vec.push(true);

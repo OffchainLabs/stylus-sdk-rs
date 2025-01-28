@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use stylus_proc::{storage, Erase};
-use stylus_sdk::storage::{StorageU256, StorageVec};
+use stylus_sdk::storage::{StorageType, StorageU256, StorageVec};
 
 #[storage]
 #[derive(Erase)]

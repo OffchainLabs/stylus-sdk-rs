@@ -247,7 +247,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// ```
 /// use stylus_sdk::{call::{Call, Error}};
-/// use stylus_core::storage::TopLevelStorage;
+/// use stylus_sdk::stylus_core::storage::TopLevelStorage;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///
@@ -302,6 +302,7 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 /// ```
 /// extern crate alloc;
 /// # use stylus_proc::{Erase, sol_storage};
+/// # use stylus_sdk::prelude::*;
 /// sol_storage! {
 ///    #[derive(Erase)]
 ///    pub struct Contract {
@@ -403,7 +404,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// # use stylus_proc::entrypoint;
 /// # use stylus_sdk::prelude::*;
 /// #[entrypoint]
-/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_core::Host>) -> ArbResult {
+/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>) -> ArbResult {
 ///     // bytes-in, bytes-out programming
 /// #   Ok(Vec::new())
 /// }

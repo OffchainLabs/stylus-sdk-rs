@@ -54,8 +54,26 @@ impl HostAccess for StorageBytes {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                self.__stylus_host.host.as_ref()
             }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<T> From<&T> for StorageBytes
+where
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
         }
     }
 }
@@ -308,6 +326,36 @@ impl StorageType for StorageString {
 
     fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
         StorageGuardMut::new(self)
+    }
+}
+
+impl HostAccess for StorageString {
+    fn vm(&self) -> &dyn stylus_core::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.0.__stylus_host
+            } else {
+                self.0.__stylus_host.host.as_ref()
+            }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<T> From<&T> for StorageString
+where
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
+        }
     }
 }
 

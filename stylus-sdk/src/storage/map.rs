@@ -60,8 +60,28 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &**self.__stylus_host.host
+                self.__stylus_host.host.as_ref()
             }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<K, V, T> From<&T> for StorageMap<K, V>
+where
+    K: StorageKey,
+    V: StorageType,
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
         }
     }
 }

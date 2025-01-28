@@ -316,16 +316,14 @@ cfg_if::cfg_if! {
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
         pub struct VM {
-            /// A reference-counted host object that provides access to the VM
-            /// for use in non-native mode. Reference counting avoids the need for
-            /// unsafe code, explicit lifetimes, and other complexities.
-            pub host: rclite::Rc<alloc::boxed::Box<dyn Host>>,
+            /// A host object that provides access to the VM for use in native mode.
+            pub host: alloc::boxed::Box<dyn Host>,
         }
 
         impl Clone for VM {
             fn clone(&self) -> Self {
                 Self {
-                    host: rclite::Rc::clone(&self.host),
+                    host: self.host.clone(),
                 }
             }
         }
@@ -345,6 +343,7 @@ pub struct WasmVM {}
 
 impl Host for WasmVM {}
 
+#[allow(deprecated)]
 impl CryptographyAccess for WasmVM {
     fn native_keccak256(&self, input: &[u8]) -> B256 {
         let mut output = B256::ZERO;
@@ -355,6 +354,7 @@ impl CryptographyAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl CalldataAccess for WasmVM {
     fn read_args(&self, len: usize) -> Vec<u8> {
         let mut input = Vec::with_capacity(len);
@@ -387,6 +387,7 @@ impl CalldataAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 unsafe impl UnsafeDeploymentAccess for WasmVM {
     unsafe fn create1(
         &self,
@@ -411,6 +412,7 @@ unsafe impl UnsafeDeploymentAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl StorageAccess for WasmVM {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
@@ -428,6 +430,7 @@ impl StorageAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 unsafe impl UnsafeCallAccess for WasmVM {
     unsafe fn call_contract(
         &self,
@@ -462,6 +465,7 @@ unsafe impl UnsafeCallAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl BlockAccess for WasmVM {
     fn block_basefee(&self) -> U256 {
         block::basefee()
@@ -480,12 +484,14 @@ impl BlockAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl ChainAccess for WasmVM {
     fn chain_id(&self) -> u64 {
         block::chainid()
     }
 }
 
+#[allow(deprecated)]
 impl AccountAccess for WasmVM {
     fn balance(&self, account: Address) -> U256 {
         account.balance()
@@ -504,12 +510,14 @@ impl AccountAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl MemoryAccess for WasmVM {
     fn pay_for_memory_grow(&self, pages: u16) {
         evm::pay_for_memory_grow(pages)
     }
 }
 
+#[allow(deprecated)]
 impl MessageAccess for WasmVM {
     fn msg_reentrant(&self) -> bool {
         msg::reentrant()
@@ -525,6 +533,7 @@ impl MessageAccess for WasmVM {
     }
 }
 
+#[allow(deprecated)]
 impl MeteringAccess for WasmVM {
     fn evm_gas_left(&self) -> u64 {
         evm::gas_left()

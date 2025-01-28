@@ -20,7 +20,11 @@ use crate::storage::Storage;
 ///
 /// [`call`]: super::call
 #[cfg(feature = "reentrant")]
-#[allow(dead_code)]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
+#[allow(dead_code, deprecated)]
 pub fn transfer_eth(
     _storage: &mut impl TopLevelStorage,
     to: Address,
@@ -52,7 +56,11 @@ pub fn transfer_eth(
 /// # }
 /// ```
 #[cfg(not(feature = "reentrant"))]
-#[allow(dead_code)]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
+#[allow(dead_code, deprecated)]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
     RawCall::<WasmVM>::new_with_value(amount)
         .skip_return_data()

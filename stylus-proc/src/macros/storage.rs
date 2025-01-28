@@ -142,15 +142,41 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
-            impl #impl_generics stylus_core::HostAccess for #name #ty_generics #where_clause {
-                fn vm(&self) -> &dyn stylus_core::Host {
+            impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
+                fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
                     #[cfg(target_arch = "wasm32")]
                     {
                         &self.__stylus_host
                     }
                     #[cfg(not(target_arch = "wasm32"))]
                     {
-                        &**self.__stylus_host.host
+                        self.__stylus_host.host.as_ref()
+                    }
+                }
+            }
+        }
+    }
+    fn impl_from_vm(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (_, ty_generics, where_clause) = self.generics.split_for_impl();
+        let mut new_generics = self.generics.clone();
+        let host_param =
+            parse_quote!(__StylusHostType: stylus_sdk::stylus_core::Host + Clone + 'static);
+        new_generics.params.push(host_param);
+        let (impl_generics, _, _) = new_generics.split_for_impl();
+
+        parse_quote! {
+            #[cfg(not(target_arch = "wasm32"))]
+            impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
+                fn from(host: &__StylusHostType) -> Self {
+                    unsafe {
+                        Self::new(
+                            stylus_sdk::alloy_primitives::U256::ZERO,
+                            0,
+                            stylus_sdk::host::VM {
+                                host: alloc::boxed::Box::new(host.clone()),
+                            },
+                        )
                     }
                 }
             }
@@ -187,6 +213,7 @@ impl ToTokens for Storage {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
         self.impl_host_access().to_tokens(tokens);
+        self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);

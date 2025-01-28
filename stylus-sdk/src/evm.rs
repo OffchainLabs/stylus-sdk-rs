@@ -18,12 +18,20 @@ use alloy_primitives::B256;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 /// Emits an evm log from combined topics and data.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
 fn emit_log(bytes: &[u8], num_topics: usize) {
     unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), num_topics) }
 }
 
 /// Emits an EVM log from its raw topics and data.
 /// Most users should prefer the alloy-typed [`log`].
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
 pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     if topics.len() > 4 {
         return Err("too many topics");
@@ -31,11 +39,16 @@ pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
     let mut bytes: Vec<u8> = vec![];
     bytes.extend(topics.iter().flat_map(|x| x.0.iter()));
     bytes.extend(data);
+    #[allow(deprecated)]
     emit_log(&bytes, topics.len());
     Ok(())
 }
 
 /// Emits a typed alloy log.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
 pub fn log<T: SolEvent>(event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
 
@@ -48,11 +61,16 @@ pub fn log<T: SolEvent>(event: T) {
         bytes.extend_from_slice(topic.as_slice());
     }
     event.encode_data_to(&mut bytes);
+    #[allow(deprecated)]
     emit_log(&bytes, count);
 }
 
 /// This function exists to force the compiler to import this symbol.
 /// Calling it will unproductively consume gas.
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
 pub fn pay_for_memory_grow(pages: u16) {
     unsafe { hostio::pay_for_memory_grow(pages) }
 }

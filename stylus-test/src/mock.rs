@@ -1,6 +1,7 @@
 use alloy_primitives::{address, Address, B256, U256};
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
+use rclite::Rc;
 use std::{cell::RefCell, collections::HashMap};
 
 pub use stylus_core::*;
@@ -8,8 +9,9 @@ pub use stylus_core::*;
 /// Arbitrum's CHAID ID.
 pub const CHAIN_ID: u64 = 42161;
 
-pub struct TestVM {
-    storage: RefCell<HashMap<U256, B256>>,
+#[derive(Clone)]
+struct MockVMState {
+    storage: HashMap<U256, B256>,
     msg_sender: Address,
     contract_address: Address,
     chain_id: u64,
@@ -18,16 +20,16 @@ pub struct TestVM {
     block_number: u64,
     block_timestamp: u64,
     tx_origin: Address,
-    balances: RefCell<HashMap<Address, U256>>,
-    code_storage: RefCell<HashMap<Address, Vec<u8>>>,
+    balances: HashMap<Address, U256>,
+    code_storage: HashMap<Address, Vec<u8>>,
     gas_left: u64,
     ink_left: u64,
 }
 
-impl TestVM {
+impl MockVMState {
     pub fn new() -> Self {
         Self {
-            storage: RefCell::new(HashMap::new()),
+            storage: HashMap::new(),
             msg_sender: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
             contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
             chain_id: CHAIN_ID,
@@ -35,45 +37,57 @@ impl TestVM {
             block_number: 0,
             block_timestamp: 0,
             tx_origin: Address::ZERO,
-            balances: RefCell::new(HashMap::new()),
-            code_storage: RefCell::new(HashMap::new()),
+            balances: HashMap::new(),
+            code_storage: HashMap::new(),
             gas_left: 1_000_000,
             ink_left: 1_000_000,
         }
     }
+}
 
-    pub fn set_block_number(&mut self, block_number: u64) {
-        self.block_number = block_number;
-    }
-
-    pub fn set_block_timestamp(&mut self, timestamp: u64) {
-        self.block_timestamp = timestamp;
-    }
-
-    pub fn set_tx_origin(&mut self, origin: Address) {
-        self.tx_origin = origin;
-    }
-
-    pub fn set_balance(&mut self, address: Address, balance: U256) {
-        self.balances.borrow_mut().insert(address, balance);
-    }
-
-    pub fn set_code(&mut self, address: Address, code: Vec<u8>) {
-        self.code_storage.borrow_mut().insert(address, code);
-    }
-
-    pub fn set_gas_left(&mut self, gas: u64) {
-        self.gas_left = gas;
-    }
-
-    pub fn set_ink_left(&mut self, ink: u64) {
-        self.ink_left = ink;
-    }
+#[derive(Clone)]
+pub struct TestVM {
+    state: Rc<RefCell<MockVMState>>,
 }
 
 impl Default for TestVM {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl TestVM {
+    pub fn new() -> Self {
+        Self {
+            state: Rc::new(RefCell::new(MockVMState::new())),
+        }
+    }
+    pub fn set_block_number(&self, block_number: u64) {
+        self.state.borrow_mut().block_number = block_number;
+    }
+    pub fn set_block_timestamp(&self, _timestamp: u64) {}
+    pub fn set_tx_origin(&self, _origin: Address) {}
+    pub fn set_balance(&self, address: Address, balance: U256) {
+        self.state.borrow_mut().balances.insert(address, balance);
+    }
+    pub fn set_code(&self, address: Address, code: Vec<u8>) {
+        self.state.borrow_mut().code_storage.insert(address, code);
+    }
+    pub fn set_gas_left(&self, _gas: u64) {}
+    pub fn set_ink_left(&self, _ink: u64) {}
+    pub fn get_storage(&self, key: U256) -> B256 {
+        self.state
+            .borrow()
+            .storage
+            .get(&key)
+            .copied()
+            .unwrap_or_default()
+    }
+    pub fn set_storage(&self, key: U256, value: B256) {
+        self.state.borrow_mut().storage.insert(key, value);
+    }
+    pub fn clear_storage(&self) {
+        self.state.borrow_mut().storage.clear();
     }
 }
 
@@ -122,14 +136,15 @@ unsafe impl UnsafeDeploymentAccess for TestVM {
 
 impl StorageAccess for TestVM {
     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
-        self.storage.borrow_mut().insert(key, value);
+        self.state.borrow_mut().storage.insert(key, value);
     }
 
     fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
     fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
-        self.storage
+        self.state
             .borrow()
+            .storage
             .get(&key)
             .copied()
             .unwrap_or(B256::ZERO)
@@ -185,39 +200,41 @@ impl BlockAccess for TestVM {
     }
 
     fn block_number(&self) -> u64 {
-        self.block_number
+        self.state.borrow().block_number
     }
 
     fn block_timestamp(&self) -> u64 {
-        self.block_timestamp
+        self.state.borrow().block_timestamp
     }
 }
 
 impl ChainAccess for TestVM {
     fn chain_id(&self) -> u64 {
-        self.chain_id
+        self.state.borrow().chain_id
     }
 }
 
 impl AccountAccess for TestVM {
     fn balance(&self, account: Address) -> U256 {
-        self.balances
+        self.state
             .borrow()
+            .balances
             .get(&account)
             .copied()
             .unwrap_or_default()
     }
 
     fn code(&self, account: Address) -> Vec<u8> {
-        self.code_storage
+        self.state
             .borrow()
+            .code_storage
             .get(&account)
             .cloned()
             .unwrap_or_default()
     }
 
     fn code_hash(&self, account: Address) -> B256 {
-        if let Some(code) = self.code_storage.borrow().get(&account) {
+        if let Some(code) = self.state.borrow().code_storage.get(&account) {
             alloy_primitives::keccak256(code)
         } else {
             B256::ZERO
@@ -225,14 +242,15 @@ impl AccountAccess for TestVM {
     }
 
     fn code_size(&self, account: Address) -> usize {
-        self.code_storage
+        self.state
             .borrow()
+            .code_storage
             .get(&account)
             .map_or(0, |code| code.len())
     }
 
     fn contract_address(&self) -> Address {
-        self.contract_address
+        self.state.borrow().contract_address
     }
 }
 
@@ -242,11 +260,11 @@ impl MemoryAccess for TestVM {
 
 impl MessageAccess for TestVM {
     fn msg_reentrant(&self) -> bool {
-        self.reentrant
+        self.state.borrow().reentrant
     }
 
     fn msg_sender(&self) -> Address {
-        self.msg_sender
+        self.state.borrow().msg_sender
     }
 
     fn msg_value(&self) -> U256 {
@@ -254,17 +272,17 @@ impl MessageAccess for TestVM {
     }
 
     fn tx_origin(&self) -> Address {
-        self.tx_origin
+        self.state.borrow().tx_origin
     }
 }
 
 impl MeteringAccess for TestVM {
     fn evm_gas_left(&self) -> u64 {
-        self.gas_left
+        self.state.borrow().gas_left
     }
 
     fn evm_ink_left(&self) -> u64 {
-        self.ink_left
+        self.state.borrow().ink_left
     }
 
     fn tx_gas_price(&self) -> U256 {
@@ -342,19 +360,7 @@ impl DeploymentAccess for TestVM {
 }
 
 // Add test helpers
-impl TestVM {
-    pub fn get_storage(&self, key: U256) -> B256 {
-        self.storage.borrow().get(&key).copied().unwrap_or_default()
-    }
-
-    pub fn set_storage(&self, key: U256, value: B256) {
-        self.storage.borrow_mut().insert(key, value);
-    }
-
-    pub fn clear_storage(&self) {
-        self.storage.borrow_mut().clear();
-    }
-}
+impl TestVM {}
 
 #[cfg(test)]
 mod tests {
@@ -362,7 +368,7 @@ mod tests {
 
     #[test]
     fn test_basic_vm_operations() {
-        let mut vm = TestVM::new();
+        let vm = TestVM::new();
 
         vm.set_block_number(12345);
         assert_eq!(vm.block_number(), 12345);
