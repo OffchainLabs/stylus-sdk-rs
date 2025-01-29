@@ -139,7 +139,6 @@ impl StorageAccess for TestVM {
         self.state.borrow_mut().storage.insert(key, value);
     }
 
-    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
     fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
         self.state
@@ -356,6 +355,13 @@ impl DeploymentAccess for TestVM {
         _salt: Option<B256>,
     ) -> Result<Address, Vec<u8>> {
         Ok(Address::ZERO)
+    }
+}
+
+impl LogAccess for TestVM {
+    fn emit_log(&self, _input: &[u8], _num_topics: usize) {}
+    fn raw_log(&self, _topics: &[B256], _data: &[u8]) -> Result<(), &'static str> {
+        Ok(())
     }
 }
 
