@@ -16,6 +16,8 @@ use crate::hostio;
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
+        use stylus_core::calls::*;
+        use stylus_core::calls::errors::*;
         use stylus_core::deploy::*;
         use crate::{call::{RawCall}};
         use alloy_primitives::{Address};
@@ -122,6 +124,134 @@ cfg_if::cfg_if! {
                 outs_len: &mut usize,
             ) -> u8 {
                 self.0.static_call_contract(to, data, data_len, gas, outs_len)
+            }
+        }
+
+        macro_rules! unsafe_reentrant {
+            ($block:block) => {
+                #[cfg(feature = "reentrant")]
+                unsafe {
+                    $block
+                }
+
+                #[cfg(not(feature = "reentrant"))]
+                $block
+            };
+        }
+
+        impl CallAccess for VM {
+            /// Calls the contract at the given address.
+            fn call(
+                &self,
+                context: &dyn MutatingCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                }
+
+                unsafe_reentrant! {{
+                    RawCall::<WasmVM>::new_with_value(context.value())
+                        .gas(context.gas())
+                        .call(to, data)
+                        .map_err(Error::Revert)
+                }}
+            }
+            /// Delegate calls the contract at the given address.
+            ///
+            /// # Safety
+            ///
+            /// A delegate call must trust the other contract to uphold safety requirements.
+            /// Though this function clears any cached values, the other contract may arbitrarily change storage,
+            /// spend ether, and do other things one should never blindly allow other contracts to do.
+            unsafe fn delegate_call(
+                &self,
+                context: &dyn MutatingCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                }
+
+                RawCall::<WasmVM>::new_delegate()
+                    .gas(context.gas())
+                    .call(to, data)
+                    .map_err(Error::Revert)
+            }
+            /// Static calls the contract at the given address.
+            fn static_call(
+                &self,
+                context: &dyn StaticCallContext,
+                to: alloy_primitives::Address,
+                data: &[u8],
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
+                }
+
+                unsafe_reentrant! {{
+                    RawCall::<WasmVM>::new_static()
+                        .gas(context.gas())
+                        .call(to, data)
+                        .map_err(Error::Revert)
+                }}
+            }
+        }
+
+        impl ValueTransfer for VM {
+            /// Transfers an amount of ETH in wei to the given account.
+            /// Note that this method will call the other contract, which may in turn call others.
+            ///
+            /// All gas is supplied, which the recipient may burn.
+            /// If this is not desired, the [`call`] function may be used directly.
+            ///
+            /// [`call`]: super::call
+            #[cfg(feature = "reentrant")]
+            fn transfer_eth(
+                &self,
+                _storage: &mut dyn stylus_core::storage::TopLevelStorage,
+                to: Address,
+                amount: U256,
+            ) -> Result<(), Vec<u8>> {
+                use stylus_core::host::StorageAccess;
+                self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                unsafe {
+                    RawCall::<WasmVM>::new_with_value(amount)
+                        .skip_return_data()
+                        .call(to, &[])?;
+                }
+                Ok(())
+            }
+            /// Transfers an amount of ETH in wei to the given account.
+            /// Note that this method will call the other contract, which may in turn call others.
+            ///
+            /// All gas is supplied, which the recipient may burn.
+            /// If this is not desired, the [`call`] function may be used directly.
+            ///
+            /// ```
+            /// # use stylus_sdk::call::{call, Call, transfer_eth};
+            /// # fn wrap() -> Result<(), Vec<u8>> {
+            /// #   let value = alloy_primitives::U256::ZERO;
+            /// #   let recipient = alloy_primitives::Address::ZERO;
+            /// transfer_eth(recipient, value)?;                 // these two are equivalent
+            /// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
+            /// #     Ok(())
+            /// # }
+            /// ```
+            #[cfg(not(feature = "reentrant"))]
+            fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+                RawCall::<WasmVM>::new_with_value(amount)
+                    .skip_return_data()
+                    .call(to, &[])?;
+                Ok(())
             }
         }
 
