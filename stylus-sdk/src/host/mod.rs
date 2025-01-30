@@ -17,7 +17,7 @@ use crate::hostio;
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use stylus_core::deploy::*;
-        use crate::{block, msg, types::AddressVM, call::{RawCall}};
+        use crate::{call::{RawCall}};
         use alloy_primitives::{Address};
         use alloc::vec;
 
