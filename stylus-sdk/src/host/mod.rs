@@ -8,29 +8,19 @@
 //! other when the target is native.
 
 use alloc::vec::Vec;
-use alloy_primitives::{Address, B256, U256};
 
+use alloy_primitives::U256;
 use stylus_core::*;
 
-use crate::{
-    block, contract,
-    evm::{self},
-    hostio, msg, tx,
-    types::AddressVM,
-};
-
-/// Defines an implementation of traits for the VM struct that
-/// provides access to cross-contract calls.
-pub mod calls;
-
-/// Defines an implementation of traits for the VM struct
-/// that provide access to programmatic contract deployment.
-pub mod deploy;
+use crate::{contract, evm, hostio, tx};
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         use stylus_core::calls::*;
         use stylus_core::deploy::*;
+        use stylus_core::calls::errors::Error;
+        use crate::{block, msg, types::AddressVM, call::{RawCall}};
+        use alloy_primitives::{Address, B256};
 
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
@@ -40,33 +30,31 @@ cfg_if::cfg_if! {
         impl Host for VM {}
 
         impl CryptographyAccess for VM {
-            #[inline]
             fn native_keccak256(&self, input: &[u8]) -> B256 {
-                self.0.native_keccak256(input)
+                let mut output = B256::ZERO;
+                unsafe {
+                    hostio::native_keccak256(input.as_ptr(), input.len(), output.as_mut_ptr());
+                }
+                output
             }
         }
 
         impl CalldataAccess for VM {
-            #[inline]
             fn read_args(&self, len: usize) -> Vec<u8> {
                 self.0.read_args(len)
             }
-            #[inline]
             fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
                 self.0.read_return_data(offset, size)
             }
-            #[inline]
             fn return_data_size(&self) -> usize {
                 self.0.return_data_size()
             }
-            #[inline]
             fn write_result(&self, data: &[u8]) {
                 self.0.write_result(data)
             }
         }
 
         unsafe impl UnsafeDeploymentAccess for VM {
-            #[inline]
             unsafe fn create1(
                 &self,
                 code: *const u8,
@@ -75,9 +63,8 @@ cfg_if::cfg_if! {
                 contract: *mut u8,
                 revert_data_len: *mut usize,
             ) {
-                self.0.create1(code, code_len, endowment, contract, revert_data_len)
+                hostio::create1(code, code_len, endowment, contract, revert_data_len);
             }
-            #[inline]
             unsafe fn create2(
                 &self,
                 code: *const u8,
@@ -87,27 +74,25 @@ cfg_if::cfg_if! {
                 contract: *mut u8,
                 revert_data_len: *mut usize,
             ) {
-                self.0.create2(code, code_len, endowment, salt, contract, revert_data_len)
+                hostio::create2(code, code_len, endowment, salt, contract, revert_data_len);
             }
         }
 
         impl StorageAccess for VM {
-            #[inline]
             unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
-                self.0.storage_cache_bytes32(key, value)
+                hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
             }
-            #[inline]
             fn storage_load_bytes32(&self, key: U256) -> B256 {
-                self.0.storage_load_bytes32(key)
+                let mut data = B256::ZERO;
+                unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+                data
             }
-            #[inline]
             fn flush_cache(&self, clear: bool) {
-                self.0.flush_cache(clear)
+                unsafe { hostio::storage_flush_cache(clear) }
             }
         }
 
         unsafe impl UnsafeCallAccess for VM {
-            #[inline]
             unsafe fn call_contract(
                 &self,
                 to: *const u8,
@@ -119,7 +104,6 @@ cfg_if::cfg_if! {
             ) -> u8 {
                 self.0.call_contract(to, data, data_len, value, gas, outs_len)
             }
-            #[inline]
             unsafe fn delegate_call_contract(
                 &self,
                 to: *const u8,
@@ -130,7 +114,6 @@ cfg_if::cfg_if! {
             ) -> u8 {
                 self.0.delegate_call_contract(to, data, data_len, gas, outs_len)
             }
-            #[inline]
             unsafe fn static_call_contract(
                 &self,
                 to: *const u8,
@@ -144,165 +127,252 @@ cfg_if::cfg_if! {
         }
 
         impl BlockAccess for VM {
-            #[inline]
             fn block_basefee(&self) -> U256 {
-                self.0.block_basefee()
+                block::basefee()
             }
-            #[inline]
             fn block_coinbase(&self) -> Address {
-                self.0.block_coinbase()
+                block::coinbase()
             }
-            #[inline]
             fn block_gas_limit(&self) -> u64 {
-                self.0.block_gas_limit()
+                block::gas_limit()
             }
-            #[inline]
             fn block_number(&self) -> u64 {
-                self.0.block_number()
+                block::number()
             }
-            #[inline]
             fn block_timestamp(&self) -> u64 {
-                self.0.block_timestamp()
+                block::timestamp()
             }
         }
 
         impl ChainAccess for VM {
-            #[inline]
             fn chain_id(&self) -> u64 {
-                self.0.chain_id()
+                block::chainid()
             }
         }
 
         impl AccountAccess for VM {
-            #[inline]
             fn balance(&self, account: Address) -> U256 {
-                self.0.balance(account)
+                account.balance()
             }
-            #[inline]
             fn contract_address(&self) -> Address {
-                self.0.contract_address()
+                contract::address()
             }
-            #[inline]
             fn code(&self, account: Address) -> Vec<u8> {
-                self.0.code(account)
+                account.code()
             }
-            #[inline]
             fn code_size(&self, account: Address) -> usize {
-                self.0.code_size(account)
+                account.code_size()
             }
-            #[inline]
             fn code_hash(&self, account: Address) -> B256 {
-                self.0.code_hash(account)
+                account.code_hash()
             }
         }
 
         impl MemoryAccess for VM {
-            #[inline]
             fn pay_for_memory_grow(&self, pages: u16) {
-                self.0.pay_for_memory_grow(pages)
+                evm::pay_for_memory_grow(pages)
             }
         }
 
         impl MessageAccess for VM {
-            #[inline]
             fn msg_reentrant(&self) -> bool {
-                self.0.msg_reentrant()
+                msg::reentrant()
             }
-            #[inline]
             fn msg_sender(&self) -> Address {
-                self.0.msg_sender()
+                msg::sender()
             }
-            #[inline]
             fn msg_value(&self) -> U256 {
-                self.0.msg_value()
+                msg::value()
             }
-            #[inline]
             fn tx_origin(&self) -> Address {
-                self.0.tx_origin()
+                tx::origin()
             }
         }
 
         impl MeteringAccess for VM {
-            #[inline]
             fn evm_gas_left(&self) -> u64 {
                 self.0.evm_gas_left()
             }
-            #[inline]
             fn evm_ink_left(&self) -> u64 {
                 self.0.evm_ink_left()
             }
-            #[inline]
             fn tx_gas_price(&self) -> U256 {
                 self.0.tx_gas_price()
             }
-            #[inline]
             fn tx_ink_price(&self) -> u32 {
                 self.0.tx_ink_price()
             }
         }
+        macro_rules! unsafe_reentrant {
+            ($block:block) => {
+                #[cfg(feature = "reentrant")]
+                unsafe {
+                    $block
+                }
+
+                #[cfg(not(feature = "reentrant"))]
+                $block
+            };
+        }
         impl CallAccess for VM {
-            #[inline]
+           /// Calls the contract at the given address.
             fn call(
                 &self,
                 context: &dyn MutatingCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.call(context, to, data)
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                }
+
+                unsafe_reentrant! {{
+                    RawCall::<WasmVM>::new_with_value(context.value())
+                        .gas(context.gas())
+                        .call(to, data)
+                        .map_err(Error::Revert)
+                }}
             }
-            #[inline]
+            /// Delegate calls the contract at the given address.
+            ///
+            /// # Safety
+            ///
+            /// A delegate call must trust the other contract to uphold safety requirements.
+            /// Though this function clears any cached values, the other contract may arbitrarily change storage,
+            /// spend ether, and do other things one should never blindly allow other contracts to do.
             unsafe fn delegate_call(
                 &self,
                 context: &dyn MutatingCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.delegate_call(context, to, data)
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                }
+
+                RawCall::<WasmVM>::new_delegate()
+                    .gas(context.gas())
+                    .call(to, data)
+                    .map_err(Error::Revert)
             }
-            #[inline]
+            /// Static calls the contract at the given address.
             fn static_call(
                 &self,
                 context: &dyn StaticCallContext,
                 to: alloy_primitives::Address,
                 data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.static_call(context, to, data)
+            ) -> Result<Vec<u8>, Error> {
+                #[cfg(feature = "reentrant")]
+                {
+                    use stylus_core::host::StorageAccess;
+                    self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
+                }
+
+                unsafe_reentrant! {{
+                    RawCall::<WasmVM>::new_static()
+                        .gas(context.gas())
+                        .call(to, data)
+                        .map_err(Error::Revert)
+                }}
             }
         }
         impl ValueTransfer for VM {
-            #[inline]
+            /// Transfers an amount of ETH in wei to the given account.
+            /// Note that this method will call the other contract, which may in turn call others.
+            ///
+            /// All gas is supplied, which the recipient may burn.
+            /// If this is not desired, the [`call`] function may be used directly.
+            ///
+            /// [`call`]: super::call
             #[cfg(feature = "reentrant")]
             fn transfer_eth(
                 &self,
-                storage: &mut dyn stylus_core::storage::TopLevelStorage,
+                _storage: &mut dyn stylus_core::storage::TopLevelStorage,
                 to: Address,
                 amount: U256,
             ) -> Result<(), Vec<u8>> {
-                self.0.transfer_eth(to, storage, amount)
+                use stylus_core::host::StorageAccess;
+                self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+                unsafe {
+                    RawCall::<WasmVM>::new_with_value(amount)
+                        .skip_return_data()
+                        .call(to, &[])?;
+                }
+                Ok(())
             }
-            #[inline]
+            /// Transfers an amount of ETH in wei to the given account.
+            /// Note that this method will call the other contract, which may in turn call others.
+            ///
+            /// All gas is supplied, which the recipient may burn.
+            /// If this is not desired, the [`call`] function may be used directly.
+            ///
+            /// ```
+            /// # use stylus_sdk::call::{call, Call, transfer_eth};
+            /// # fn wrap() -> Result<(), Vec<u8>> {
+            /// #   let value = alloy_primitives::U256::ZERO;
+            /// #   let recipient = alloy_primitives::Address::ZERO;
+            /// transfer_eth(recipient, value)?;                 // these two are equivalent
+            /// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
+            /// #     Ok(())
+            /// # }
+            /// ```
             #[cfg(not(feature = "reentrant"))]
-            fn transfer_eth(
-                &self,
-                to: alloy_primitives::Address,
-                amount: alloy_primitives::U256,
-            ) -> Result<(), Vec<u8>> {
-                self.0.transfer_eth(to, amount)
+            fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+                RawCall::<WasmVM>::new_with_value(amount)
+                    .skip_return_data()
+                    .call(to, &[])?;
+                Ok(())
             }
         }
+
         impl DeploymentAccess for VM {
-            #[inline]
             #[cfg(feature = "reentrant")]
             unsafe fn deploy(
                 &self,
                 code: &[u8],
                 endowment: U256,
                 salt: Option<B256>,
-                cache_policy: CachePolicy,
+                cache_policy: stylus_core::deploy::CachePolicy,
             ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt, cache_policy)
+                use stylus_core::deploy::CachePolicy;
+                use stylus_core::host::StorageAccess;
+                match cache_policy {
+                    CachePolicy::Clear => self.flush_cache(true),
+                    CachePolicy::Flush => self.flush_cache(false),
+                    CachePolicy::DoNothing => {}
+                }
+
+                let mut contract = Address::default();
+                let mut revert_data_len: usize = 0;
+
+                let endowment: B256 = endowment.into();
+                if let Some(salt) = salt {
+                    self.create2(
+                        code.as_ptr(),
+                        code.len(),
+                        endowment.as_ptr(),
+                        salt.as_ptr(),
+                        contract.as_mut_ptr(),
+                        &mut revert_data_len as *mut _,
+                    );
+                } else {
+                    self.create1(
+                        code.as_ptr(),
+                        code.len(),
+                        endowment.as_ptr(),
+                        contract.as_mut_ptr(),
+                        &mut revert_data_len as *mut _,
+                    );
+                }
+                if contract.is_zero() {
+                    return Err(self.read_return_data(0, None));
+                }
+                Ok(contract)
             }
-            #[inline]
             #[cfg(not(feature = "reentrant"))]
             unsafe fn deploy(
                 &self,
@@ -310,19 +380,42 @@ cfg_if::cfg_if! {
                 endowment: U256,
                 salt: Option<B256>,
             ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt)
+                let mut contract = Address::default();
+                let mut revert_data_len: usize = 0;
+
+                let endowment: B256 = endowment.into();
+                if let Some(salt) = salt {
+                    self.create2(
+                        code.as_ptr(),
+                        code.len(),
+                        endowment.as_ptr(),
+                        salt.as_ptr(),
+                        contract.as_mut_ptr(),
+                        &mut revert_data_len as *mut _,
+                    );
+                } else {
+                    self.create1(
+                        code.as_ptr(),
+                        code.len(),
+                        endowment.as_ptr(),
+                        contract.as_mut_ptr(),
+                        &mut revert_data_len as *mut _,
+                    );
+                }
+                if contract.is_zero() {
+                    return Err(self.read_return_data(0, None));
+                }
+                Ok(contract)
             }
         }
         impl LogAccess for VM {
-            #[inline]
             fn emit_log(&self, input: &[u8], num_topics: usize) {
-                self.0.emit_log(input, num_topics)
+                unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
             }
-            #[inline]
             fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
-                self.0.raw_log(topics, data)
+                evm::raw_log(topics, data)
             }
-    }
+        }
     } else {
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
@@ -350,20 +443,7 @@ cfg_if::cfg_if! {
 /// Defines a struct that provides Stylus contracts access to a host VM
 /// environment via the HostAccessor trait defined in stylus_host.
 #[derive(Clone, Debug, Default)]
-pub struct WasmVM {}
-
-impl Host for WasmVM {}
-
-#[allow(deprecated)]
-impl CryptographyAccess for WasmVM {
-    fn native_keccak256(&self, input: &[u8]) -> B256 {
-        let mut output = B256::ZERO;
-        unsafe {
-            hostio::native_keccak256(input.as_ptr(), input.len(), output.as_mut_ptr());
-        }
-        output
-    }
-}
+pub struct WasmVM;
 
 #[allow(deprecated)]
 impl CalldataAccess for WasmVM {
@@ -399,56 +479,6 @@ impl CalldataAccess for WasmVM {
 }
 
 #[allow(deprecated)]
-unsafe impl UnsafeDeploymentAccess for WasmVM {
-    unsafe fn create1(
-        &self,
-        code: *const u8,
-        code_len: usize,
-        endowment: *const u8,
-        contract: *mut u8,
-        revert_data_len: *mut usize,
-    ) {
-        hostio::create1(code, code_len, endowment, contract, revert_data_len);
-    }
-    unsafe fn create2(
-        &self,
-        code: *const u8,
-        code_len: usize,
-        endowment: *const u8,
-        salt: *const u8,
-        contract: *mut u8,
-        revert_data_len: *mut usize,
-    ) {
-        hostio::create2(code, code_len, endowment, salt, contract, revert_data_len);
-    }
-}
-
-#[allow(deprecated)]
-impl StorageAccess for WasmVM {
-    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
-        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
-    }
-    fn storage_load_bytes32(&self, key: U256) -> B256 {
-        let mut data = B256::ZERO;
-        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-        data
-    }
-    fn flush_cache(&self, clear: bool) {
-        unsafe { hostio::storage_flush_cache(clear) }
-    }
-}
-
-#[allow(deprecated)]
-impl LogAccess for WasmVM {
-    fn emit_log(&self, input: &[u8], num_topics: usize) {
-        unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
-    }
-    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
-        evm::raw_log(topics, data)
-    }
-}
-
-#[allow(deprecated)]
 unsafe impl UnsafeCallAccess for WasmVM {
     unsafe fn call_contract(
         &self,
@@ -480,74 +510,6 @@ unsafe impl UnsafeCallAccess for WasmVM {
         outs_len: &mut usize,
     ) -> u8 {
         hostio::static_call_contract(to, data, data_len, gas, outs_len)
-    }
-}
-
-#[allow(deprecated)]
-impl BlockAccess for WasmVM {
-    fn block_basefee(&self) -> U256 {
-        block::basefee()
-    }
-    fn block_coinbase(&self) -> Address {
-        block::coinbase()
-    }
-    fn block_gas_limit(&self) -> u64 {
-        block::gas_limit()
-    }
-    fn block_number(&self) -> u64 {
-        block::number()
-    }
-    fn block_timestamp(&self) -> u64 {
-        block::timestamp()
-    }
-}
-
-#[allow(deprecated)]
-impl ChainAccess for WasmVM {
-    fn chain_id(&self) -> u64 {
-        block::chainid()
-    }
-}
-
-#[allow(deprecated)]
-impl AccountAccess for WasmVM {
-    fn balance(&self, account: Address) -> U256 {
-        account.balance()
-    }
-    fn contract_address(&self) -> Address {
-        contract::address()
-    }
-    fn code(&self, account: Address) -> Vec<u8> {
-        account.code()
-    }
-    fn code_size(&self, account: Address) -> usize {
-        account.code_size()
-    }
-    fn code_hash(&self, account: Address) -> B256 {
-        account.code_hash()
-    }
-}
-
-#[allow(deprecated)]
-impl MemoryAccess for WasmVM {
-    fn pay_for_memory_grow(&self, pages: u16) {
-        evm::pay_for_memory_grow(pages)
-    }
-}
-
-#[allow(deprecated)]
-impl MessageAccess for WasmVM {
-    fn msg_reentrant(&self) -> bool {
-        msg::reentrant()
-    }
-    fn msg_sender(&self) -> Address {
-        msg::sender()
-    }
-    fn msg_value(&self) -> U256 {
-        msg::value()
-    }
-    fn tx_origin(&self) -> Address {
-        tx::origin()
     }
 }
 

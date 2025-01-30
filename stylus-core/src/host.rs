@@ -40,6 +40,7 @@ pub trait Host:
 }
 
 // Enables cloning of a boxed, host trait object.
+#[cfg(not(target_arch = "wasm32"))]
 dyn_clone::clone_trait_object!(Host);
 
 /// Defines a trait that allows a Stylus contract to access its host safely.

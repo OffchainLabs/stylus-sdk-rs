@@ -4,7 +4,7 @@
 use crate::{host::WasmVM, ArbResult};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
-use stylus_core::Host;
+use stylus_core::{CalldataAccess, MeteringAccess, UnsafeCallAccess};
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
@@ -27,7 +27,7 @@ macro_rules! unsafe_reentrant {
 #[must_use]
 pub struct RawCall<H = WasmVM>
 where
-    H: Host + Default,
+    H: UnsafeCallAccess + CalldataAccess + MeteringAccess + Default,
 {
     kind: CallKind,
     callvalue: U256,
@@ -78,7 +78,7 @@ impl Default for RustVec {
 
 impl<H> RawCall<H>
 where
-    H: Host + Default,
+    H: UnsafeCallAccess + CalldataAccess + MeteringAccess + Default,
 {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
