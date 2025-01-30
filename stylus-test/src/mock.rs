@@ -1,5 +1,4 @@
 use alloy_primitives::{address, Address, B256, U256};
-use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
 use rclite::Rc;
 use std::{cell::RefCell, collections::HashMap};
@@ -290,49 +289,6 @@ impl MeteringAccess for TestVM {
 
     fn tx_ink_price(&self) -> u32 {
         1_000
-    }
-}
-
-impl CallAccess for TestVM {
-    fn call(
-        &self,
-        _context: &dyn MutatingCallContext,
-        _to: Address,
-        _data: &[u8],
-    ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
-    }
-    unsafe fn delegate_call(
-        &self,
-        _context: &dyn MutatingCallContext,
-        _to: Address,
-        _data: &[u8],
-    ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
-    }
-    fn static_call(
-        &self,
-        _context: &dyn StaticCallContext,
-        _to: Address,
-        _data: &[u8],
-    ) -> Result<Vec<u8>, Error> {
-        Ok(Vec::new())
-    }
-}
-
-impl ValueTransfer for TestVM {
-    #[cfg(feature = "reentrant")]
-    fn transfer_eth(
-        &self,
-        _storage: &mut dyn stylus_core::storage::TopLevelStorage,
-        _to: Address,
-        _amount: U256,
-    ) -> Result<(), Vec<u8>> {
-        Ok(())
-    }
-    #[cfg(not(feature = "reentrant"))]
-    fn transfer_eth(&self, _to: Address, _amount: U256) -> Result<(), Vec<u8>> {
-        Ok(())
     }
 }
 

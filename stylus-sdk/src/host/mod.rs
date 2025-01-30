@@ -9,18 +9,17 @@
 
 use alloc::vec::Vec;
 
-use alloy_primitives::U256;
+use alloy_primitives::{B256, U256};
 use stylus_core::*;
 
-use crate::{contract, evm, hostio, tx};
+use crate::hostio;
 
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
-        use stylus_core::calls::*;
         use stylus_core::deploy::*;
-        use stylus_core::calls::errors::Error;
         use crate::{block, msg, types::AddressVM, call::{RawCall}};
-        use alloy_primitives::{Address, B256};
+        use alloy_primitives::{Address};
+        use alloc::vec;
 
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
@@ -128,64 +127,86 @@ cfg_if::cfg_if! {
 
         impl BlockAccess for VM {
             fn block_basefee(&self) -> U256 {
-                block::basefee()
+                let mut data = B256::ZERO;
+                unsafe { hostio::block_basefee(data.as_mut_ptr()) };
+                data.into()
             }
             fn block_coinbase(&self) -> Address {
-                block::coinbase()
+                let mut data = Address::ZERO;
+                unsafe { hostio::block_coinbase(data.as_mut_ptr()) };
+                data.into()
             }
             fn block_gas_limit(&self) -> u64 {
-                block::gas_limit()
+                unsafe { hostio::block_gas_limit() }
             }
             fn block_number(&self) -> u64 {
-                block::number()
+                unsafe { hostio::block_number() }
             }
             fn block_timestamp(&self) -> u64 {
-                block::timestamp()
+                unsafe { hostio::block_timestamp() }
             }
         }
 
         impl ChainAccess for VM {
             fn chain_id(&self) -> u64 {
-                block::chainid()
+                unsafe { hostio::chainid() }
             }
         }
 
         impl AccountAccess for VM {
             fn balance(&self, account: Address) -> U256 {
-                account.balance()
+                let mut data = [0; 32];
+                unsafe { hostio::account_balance(account.as_ptr(), data.as_mut_ptr()) };
+                U256::from_be_bytes(data)
             }
             fn contract_address(&self) -> Address {
-                contract::address()
+                let mut data = Address::ZERO;
+                unsafe { hostio::contract_address(data.as_mut_ptr()) };
+                data.into()
             }
             fn code(&self, account: Address) -> Vec<u8> {
-                account.code()
+                let size = unsafe { hostio::account_code_size(account.as_ptr()) };
+                let mut dest = Vec::with_capacity(size);
+                unsafe {
+                    hostio::account_code(account.as_ptr(), 0, size, dest.as_mut_ptr());
+                    dest.set_len(size);
+                    dest
+                }
             }
             fn code_size(&self, account: Address) -> usize {
-                account.code_size()
+                unsafe { hostio::account_code_size(account.as_ptr()) }
             }
             fn code_hash(&self, account: Address) -> B256 {
-                account.code_hash()
+                let mut data = [0; 32];
+                unsafe { hostio::account_codehash(account.as_ptr(), data.as_mut_ptr()) };
+                data.into()
             }
         }
 
         impl MemoryAccess for VM {
             fn pay_for_memory_grow(&self, pages: u16) {
-                evm::pay_for_memory_grow(pages)
+                unsafe { hostio::pay_for_memory_grow(pages) }
             }
         }
 
         impl MessageAccess for VM {
             fn msg_reentrant(&self) -> bool {
-                msg::reentrant()
+                unsafe { hostio::msg_reentrant() }
             }
             fn msg_sender(&self) -> Address {
-                msg::sender()
+                let mut data = Address::ZERO;
+                unsafe { hostio::msg_sender(data.as_mut_ptr()) };
+                data.into()
             }
             fn msg_value(&self) -> U256 {
-                msg::value()
+                let mut data = B256::ZERO;
+                unsafe { hostio::msg_value(data.as_mut_ptr()) };
+                data.into()
             }
             fn tx_origin(&self) -> Address {
-                tx::origin()
+                let mut data = Address::ZERO;
+                unsafe { hostio::tx_origin(data.as_mut_ptr()) };
+                data.into()
             }
         }
 
@@ -214,121 +235,6 @@ cfg_if::cfg_if! {
                 $block
             };
         }
-        impl CallAccess for VM {
-           /// Calls the contract at the given address.
-            fn call(
-                &self,
-                context: &dyn MutatingCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, Error> {
-                #[cfg(feature = "reentrant")]
-                {
-                    use stylus_core::host::StorageAccess;
-                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-                }
-
-                unsafe_reentrant! {{
-                    RawCall::<WasmVM>::new_with_value(context.value())
-                        .gas(context.gas())
-                        .call(to, data)
-                        .map_err(Error::Revert)
-                }}
-            }
-            /// Delegate calls the contract at the given address.
-            ///
-            /// # Safety
-            ///
-            /// A delegate call must trust the other contract to uphold safety requirements.
-            /// Though this function clears any cached values, the other contract may arbitrarily change storage,
-            /// spend ether, and do other things one should never blindly allow other contracts to do.
-            unsafe fn delegate_call(
-                &self,
-                context: &dyn MutatingCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, Error> {
-                #[cfg(feature = "reentrant")]
-                {
-                    use stylus_core::host::StorageAccess;
-                    self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-                }
-
-                RawCall::<WasmVM>::new_delegate()
-                    .gas(context.gas())
-                    .call(to, data)
-                    .map_err(Error::Revert)
-            }
-            /// Static calls the contract at the given address.
-            fn static_call(
-                &self,
-                context: &dyn StaticCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, Error> {
-                #[cfg(feature = "reentrant")]
-                {
-                    use stylus_core::host::StorageAccess;
-                    self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
-                }
-
-                unsafe_reentrant! {{
-                    RawCall::<WasmVM>::new_static()
-                        .gas(context.gas())
-                        .call(to, data)
-                        .map_err(Error::Revert)
-                }}
-            }
-        }
-        impl ValueTransfer for VM {
-            /// Transfers an amount of ETH in wei to the given account.
-            /// Note that this method will call the other contract, which may in turn call others.
-            ///
-            /// All gas is supplied, which the recipient may burn.
-            /// If this is not desired, the [`call`] function may be used directly.
-            ///
-            /// [`call`]: super::call
-            #[cfg(feature = "reentrant")]
-            fn transfer_eth(
-                &self,
-                _storage: &mut dyn stylus_core::storage::TopLevelStorage,
-                to: Address,
-                amount: U256,
-            ) -> Result<(), Vec<u8>> {
-                use stylus_core::host::StorageAccess;
-                self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-                unsafe {
-                    RawCall::<WasmVM>::new_with_value(amount)
-                        .skip_return_data()
-                        .call(to, &[])?;
-                }
-                Ok(())
-            }
-            /// Transfers an amount of ETH in wei to the given account.
-            /// Note that this method will call the other contract, which may in turn call others.
-            ///
-            /// All gas is supplied, which the recipient may burn.
-            /// If this is not desired, the [`call`] function may be used directly.
-            ///
-            /// ```
-            /// # use stylus_sdk::call::{call, Call, transfer_eth};
-            /// # fn wrap() -> Result<(), Vec<u8>> {
-            /// #   let value = alloy_primitives::U256::ZERO;
-            /// #   let recipient = alloy_primitives::Address::ZERO;
-            /// transfer_eth(recipient, value)?;                 // these two are equivalent
-            /// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
-            /// #     Ok(())
-            /// # }
-            /// ```
-            #[cfg(not(feature = "reentrant"))]
-            fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-                RawCall::<WasmVM>::new_with_value(amount)
-                    .skip_return_data()
-                    .call(to, &[])?;
-                Ok(())
-            }
-        }
-
         impl DeploymentAccess for VM {
             #[cfg(feature = "reentrant")]
             unsafe fn deploy(
@@ -413,7 +319,14 @@ cfg_if::cfg_if! {
                 unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
             }
             fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
-                evm::raw_log(topics, data)
+                if topics.len() > 4 {
+                    return Err("too many topics");
+                }
+                let mut bytes: Vec<u8> = vec![];
+                bytes.extend(topics.iter().flat_map(|x| x.0.iter()));
+                bytes.extend(data);
+                unsafe { hostio::emit_log(bytes.as_ptr(), bytes.len(), topics.len()) }
+                Ok(())
             }
         }
     } else {
@@ -469,7 +382,7 @@ impl CalldataAccess for WasmVM {
         data
     }
     fn return_data_size(&self) -> usize {
-        contract::return_data_len()
+        unsafe { hostio::return_data_size() }
     }
     fn write_result(&self, data: &[u8]) {
         unsafe {
@@ -516,15 +429,17 @@ unsafe impl UnsafeCallAccess for WasmVM {
 #[allow(deprecated)]
 impl MeteringAccess for WasmVM {
     fn evm_gas_left(&self) -> u64 {
-        evm::gas_left()
+        unsafe { hostio::evm_gas_left() }
     }
     fn evm_ink_left(&self) -> u64 {
-        evm::ink_left()
+        unsafe { hostio::evm_ink_left() }
     }
     fn tx_gas_price(&self) -> U256 {
-        tx::gas_price()
+        let mut data = B256::ZERO;
+        unsafe { hostio::tx_gas_price(data.as_mut_ptr()) };
+        data.into()
     }
     fn tx_ink_price(&self) -> u32 {
-        tx::ink_price()
+        unsafe { hostio::tx_ink_price() }
     }
 }
