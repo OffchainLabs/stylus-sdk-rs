@@ -62,25 +62,7 @@ impl GlobalStorage for StorageCache {
     /// May alias storage.
     unsafe fn set_word(vm: VM, key: U256, value: B256) {
         vm.storage_cache_bytes32(key, value)
-        // hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
-        // cfg_if! {
-        //     if #[cfg(target_arch = "wasm32")] {
-        //     } else {
-        //         vm.host.storage_cache_bytes32(key, value)
-        //     }
-        // }
     }
-    //     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
-    //         hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
-    //     }
-    //     fn storage_load_bytes32(&self, key: U256) -> B256 {
-    //         let mut data = B256::ZERO;
-    //         unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-    //         data
-    //     }
-    //     fn flush_cache(&self, clear: bool) {
-    //         unsafe { hostio::storage_flush_cache(clear) }
-    //     }
 }
 
 impl StorageCache {
