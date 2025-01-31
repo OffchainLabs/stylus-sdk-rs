@@ -113,7 +113,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset, VM {}))
+        Some(S::new(slot, offset, self.__stylus_host.clone()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -123,7 +123,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset, VM {})
+        S::new(slot, offset, self.__stylus_host.clone())
     }
 
     /// Gets the element at the given index, if it exists.
