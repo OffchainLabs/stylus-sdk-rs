@@ -53,8 +53,7 @@ impl HostAccess for StorageBytes {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &self.__stylus_host
-                // self.__stylus_host.host.as_ref()
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -335,8 +334,7 @@ impl HostAccess for StorageString {
             if #[cfg(target_arch = "wasm32")] {
                 &self.0.__stylus_host
             } else {
-                // self.0.__stylus_host.host.as_ref()
-                &self.0.__stylus_host
+                self.0.__stylus_host.host.as_ref()
             }
         }
     }

@@ -37,12 +37,13 @@ impl CallAccess for VM {
             self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         }
 
-        unsafe_reentrant! {{
-            RawCall::<VM>::new_with_value(context.value())
-                .gas(context.gas())
-                .call(to, data)
-                .map_err(Error::Revert)
-        }}
+        // unsafe_reentrant! {{
+        //     RawCall::<VM>::new_with_value(context.value())
+        //         .gas(context.gas())
+        //         .call(to, data)
+        //         .map_err(Error::Revert)
+        // }}
+        Ok(Vec::new())
     }
     /// Delegate calls the contract at the given address.
     ///
@@ -62,10 +63,11 @@ impl CallAccess for VM {
             use stylus_core::host::StorageAccess;
             self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         }
-        RawCall::<VM>::new_delegate()
-            .gas(context.gas())
-            .call(to, data)
-            .map_err(Error::Revert)
+        Ok(Vec::new())
+        // RawCall::<VM>::new_delegate()
+        //     .gas(context.gas())
+        //     .call(to, data)
+        //     .map_err(Error::Revert)
     }
     /// Static calls the contract at the given address.
     fn static_call(
@@ -79,12 +81,13 @@ impl CallAccess for VM {
             use stylus_core::host::StorageAccess;
             self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
         }
-        unsafe_reentrant! {{
-            RawCall::<VM>::new_static()
-                .gas(context.gas())
-                .call(to, data)
-                .map_err(Error::Revert)
-        }}
+        Ok(Vec::new())
+        // unsafe_reentrant! {{
+        //     RawCall::<VM>::new_static()
+        //         .gas(context.gas())
+        //         .call(to, data)
+        //         .map_err(Error::Revert)
+        // }}
     }
 }
 
@@ -105,11 +108,11 @@ impl ValueTransfer for VM {
     ) -> Result<(), Vec<u8>> {
         use stylus_core::host::StorageAccess;
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-        unsafe {
-            RawCall::<VM>::new_with_value(amount)
-                .skip_return_data()
-                .call(to, &[])?;
-        }
+                                // unsafe {
+                                //     RawCall::<VM>::new_with_value(amount)
+                                //         .skip_return_data()
+                                //         .call(to, &[])?;
+                                // }
         Ok(())
     }
     /// Transfers an amount of ETH in wei to the given account.
@@ -130,9 +133,9 @@ impl ValueTransfer for VM {
     /// ```
     #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        RawCall::<VM>::new_with_value(amount)
-            .skip_return_data()
-            .call(to, &[])?;
+        // RawCall::<VM>::new_with_value(amount)
+        //     .skip_return_data()
+        //     .call(to, &[])?;
         Ok(())
     }
 }

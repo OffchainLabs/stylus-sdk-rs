@@ -55,12 +55,13 @@ pub fn static_call(
     #[cfg(feature = "reentrant")]
     Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
 
-    unsafe_reentrant! {{
-        RawCall::<VM>::new_static()
-            .gas(context.gas())
-            .call(to, data)
-            .map_err(Error::Revert)
-    }}
+    Ok(Vec::new())
+    // unsafe_reentrant! {{
+    //     RawCall::<VM>::new_static()
+    //         .gas(context.gas())
+    //         .call(to, data)
+    //         .map_err(Error::Revert)
+    // }}
 }
 
 /// Delegate calls the contract at the given address.
@@ -83,10 +84,11 @@ pub unsafe fn delegate_call(
     #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
-    RawCall::<VM>::new_delegate()
-        .gas(context.gas())
-        .call(to, data)
-        .map_err(Error::Revert)
+    Ok(Vec::new())
+    // RawCall::<VM>::new_delegate()
+    //     .gas(context.gas())
+    //     .call(to, data)
+    //     .map_err(Error::Revert)
 }
 
 /// Calls the contract at the given address.
@@ -99,10 +101,11 @@ pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Resu
     #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
-    unsafe_reentrant! {{
-        RawCall::<VM>::new_with_value(context.value())
-            .gas(context.gas())
-            .call(to, data)
-            .map_err(Error::Revert)
-    }}
+    Ok(Vec::new())
+    // unsafe_reentrant! {{
+    //     RawCall::<VM>::new_with_value(context.value())
+    //         .gas(context.gas())
+    //         .call(to, data)
+    //         .map_err(Error::Revert)
+    // }}
 }

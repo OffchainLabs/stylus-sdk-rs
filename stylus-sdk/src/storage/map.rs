@@ -59,8 +59,7 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }

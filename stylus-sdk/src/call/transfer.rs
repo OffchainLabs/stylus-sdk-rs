@@ -32,11 +32,11 @@ pub fn transfer_eth(
     amount: U256,
 ) -> Result<(), Vec<u8>> {
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
-    unsafe {
-        RawCall::<VM>::new_with_value(amount)
-            .skip_return_data()
-            .call(to, &[])?;
-    }
+                      // unsafe {
+                      //     RawCall::<VM>::new_with_value(amount)
+                      //         .skip_return_data()
+                      //         .call(to, &[])?;
+                      // }
     Ok(())
 }
 
@@ -63,8 +63,8 @@ pub fn transfer_eth(
 )]
 #[allow(dead_code, deprecated)]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
-    RawCall::<VM>::new_with_value(amount)
-        .skip_return_data()
-        .call(to, &[])?;
+    // RawCall::<VM>::new_with_value(amount)
+    //     .skip_return_data()
+    //     .call(to, &[])?;
     Ok(())
 }

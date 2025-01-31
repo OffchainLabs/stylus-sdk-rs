@@ -54,7 +54,14 @@ pub struct StorageCache;
 impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
     fn get_word(vm: VM, key: U256) -> B256 {
-        vm.storage_load_bytes32(key)
+        #[cfg(target_arch = "wasm32")]
+        {
+            vm.storage_load_bytes32(key)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            vm.host.storage_load_bytes32(key)
+        }
     }
 
     /// Stores a 32-byte EVM word to persistent storage.
@@ -63,7 +70,14 @@ impl GlobalStorage for StorageCache {
     ///
     /// May alias storage.
     unsafe fn set_word(vm: VM, key: U256, value: B256) {
-        vm.storage_cache_bytes32(key, value)
+        #[cfg(target_arch = "wasm32")]
+        {
+            vm.storage_cache_bytes32(key, value)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            vm.host.storage_cache_bytes32(key, value)
+        }
     }
 }
 
@@ -168,8 +182,7 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                &self.__stylus_host
-                // self.__stylus_host.host.as_ref()
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -310,8 +323,7 @@ where
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -441,8 +453,7 @@ impl<const N: usize> HostAccess for StorageFixedBytes<N> {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -563,8 +574,7 @@ impl HostAccess for StorageBool {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -676,8 +686,7 @@ impl HostAccess for StorageAddress {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -791,8 +800,7 @@ impl HostAccess for StorageBlockNumber {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }
@@ -907,8 +915,7 @@ impl HostAccess for StorageBlockHash {
             if #[cfg(target_arch = "wasm32")] {
                 &self.__stylus_host
             } else {
-                // self.__stylus_host.host.as_ref()
-                &self.__stylus_host
+                self.__stylus_host.host.as_ref()
             }
         }
     }

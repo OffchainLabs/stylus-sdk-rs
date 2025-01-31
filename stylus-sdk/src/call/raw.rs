@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{host::VM, ArbResult};
+use crate::ArbResult;
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 use stylus_core::host::Host;
@@ -25,7 +25,7 @@ macro_rules! unsafe_reentrant {
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone, Default)]
 #[must_use]
-pub struct RawCall<H = VM>
+pub struct RawCall<H>
 where
     H: Host + Default,
 {
