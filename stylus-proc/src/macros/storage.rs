@@ -156,6 +156,22 @@ impl Storage {
             }
         }
     }
+
+    fn impl_value_denier(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::stylus_core::host::ValueDenier for #name #ty_generics #where_clause {
+                fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>> {
+                    if self.vm().msg_value() == alloy_primitives::U256::ZERO {
+                        return Ok(());
+                    }
+                    // console!("method {method_name} not payable");
+                    Err(vec![])
+                }
+            }
+        }
+    }
     // fn impl_from_vm(&self) -> syn::ItemImpl {
     //     let name = &self.name;
     //     let (_, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -213,6 +229,7 @@ impl ToTokens for Storage {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
         self.impl_host_access().to_tokens(tokens);
+        self.impl_value_denier().to_tokens(tokens);
         // self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);

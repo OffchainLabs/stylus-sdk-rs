@@ -42,6 +42,10 @@ pub trait Host:
 
 dyn_clone::clone_trait_object!(Host);
 
+pub trait ValueDenier {
+    fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>>;
+}
+
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
     /// Provides access to the parametrized host of a contract, giving access

@@ -18,7 +18,10 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
-use stylus_core::{host::Host, storage::TopLevelStorage};
+use stylus_core::{
+    host::{Host, HostAccess, ValueDenier},
+    storage::TopLevelStorage,
+};
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
@@ -46,7 +49,7 @@ pub mod internal;
 /// Composition with other routers is possible via `#[inherit]`.
 pub trait Router<S>
 where
-    S: TopLevelStorage + BorrowMut<Self::Storage>,
+    S: TopLevelStorage + BorrowMut<Self::Storage> + ValueDenier,
 {
     /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;
@@ -96,7 +99,7 @@ where
 pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>, host: VM) -> ArbResult
 where
     R: Router<S>,
-    S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
+    S: StorageType + TopLevelStorage + BorrowMut<R::Storage> + ValueDenier,
 {
     let mut storage = unsafe { S::new(U256::ZERO, 0, host) };
 
