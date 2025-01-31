@@ -21,16 +21,31 @@
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
-use stylus_core::host::{CalldataAccess, Host, MemoryAccess, MessageAccess, StorageAccess};
+use stylus_core::host::{
+    AccountAccess, BlockAccess, CalldataAccess, ChainAccess, CryptographyAccess, Host, LogAccess,
+    MemoryAccess, MessageAccess, MeteringAccess, StorageAccess, UnsafeCallAccess,
+    UnsafeDeploymentAccess,
+};
 
-use crate::{contract, evm, hostio, msg, tx};
+use crate::{block, contract, evm, hostio, msg, tx, types::AddressVM};
+
+pub mod calls;
+pub mod deploy;
 
 /// VM does stuff.
 #[derive(Debug, Clone)]
 pub struct VM;
 
-impl Host for VM {
-    fn foo(&self) {}
+impl Host for VM {}
+
+impl CryptographyAccess for VM {
+    fn native_keccak256(&self, input: &[u8]) -> B256 {
+        let mut output = B256::ZERO;
+        unsafe {
+            hostio::native_keccak256(input.as_ptr(), input.len(), output.as_mut_ptr());
+        }
+        output
+    }
 }
 
 impl StorageAccess for VM {
@@ -94,9 +109,134 @@ impl CalldataAccess for VM {
     }
 }
 
+impl LogAccess for VM {
+    fn emit_log(&self, input: &[u8], num_topics: usize) {
+        unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
+    }
+    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
+        evm::raw_log(topics, data)
+    }
+}
+
+unsafe impl UnsafeCallAccess for VM {
+    unsafe fn call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        value: *const u8,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        hostio::call_contract(to, data, data_len, value, gas, outs_len)
+    }
+    unsafe fn delegate_call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        hostio::delegate_call_contract(to, data, data_len, gas, outs_len)
+    }
+    unsafe fn static_call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8 {
+        hostio::static_call_contract(to, data, data_len, gas, outs_len)
+    }
+}
+
+impl BlockAccess for VM {
+    fn block_basefee(&self) -> U256 {
+        block::basefee()
+    }
+    fn block_coinbase(&self) -> Address {
+        block::coinbase()
+    }
+    fn block_gas_limit(&self) -> u64 {
+        block::gas_limit()
+    }
+    fn block_number(&self) -> u64 {
+        block::number()
+    }
+    fn block_timestamp(&self) -> u64 {
+        block::timestamp()
+    }
+}
+
+impl ChainAccess for VM {
+    fn chain_id(&self) -> u64 {
+        block::chainid()
+    }
+}
+
+impl AccountAccess for VM {
+    fn balance(&self, account: Address) -> U256 {
+        account.balance()
+    }
+    fn contract_address(&self) -> Address {
+        contract::address()
+    }
+    fn code(&self, account: Address) -> Vec<u8> {
+        account.code()
+    }
+    fn code_size(&self, account: Address) -> usize {
+        account.code_size()
+    }
+    fn code_hash(&self, account: Address) -> B256 {
+        account.code_hash()
+    }
+}
+
 impl MemoryAccess for VM {
     fn pay_for_memory_grow(&self, pages: u16) {
         evm::pay_for_memory_grow(pages)
+    }
+}
+
+#[allow(deprecated)]
+impl MeteringAccess for VM {
+    fn evm_gas_left(&self) -> u64 {
+        evm::gas_left()
+    }
+    fn evm_ink_left(&self) -> u64 {
+        evm::ink_left()
+    }
+    fn tx_gas_price(&self) -> U256 {
+        tx::gas_price()
+    }
+    fn tx_ink_price(&self) -> u32 {
+        tx::ink_price()
+    }
+}
+
+unsafe impl UnsafeDeploymentAccess for VM {
+    unsafe fn create1(
+        &self,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    ) {
+        hostio::create1(code, code_len, endowment, contract, revert_data_len);
+    }
+    unsafe fn create2(
+        &self,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        salt: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    ) {
+        hostio::create2(code, code_len, endowment, salt, contract, revert_data_len);
     }
 }
 

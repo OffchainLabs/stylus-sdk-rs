@@ -9,7 +9,7 @@ use stylus_core::calls::{
 
 use crate::call::RawCall;
 
-use super::WasmVM;
+use super::VM;
 
 macro_rules! unsafe_reentrant {
     ($block:block) => {
@@ -23,7 +23,7 @@ macro_rules! unsafe_reentrant {
     };
 }
 
-impl CallAccess for WasmVM {
+impl CallAccess for VM {
     /// Calls the contract at the given address.
     fn call(
         &self,
@@ -37,12 +37,13 @@ impl CallAccess for WasmVM {
             self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         }
 
-        unsafe_reentrant! {{
-            RawCall::<WasmVM>::new_with_value(context.value())
-                .gas(context.gas())
-                .call(to, data)
-                .map_err(Error::Revert)
-        }}
+        Ok(Vec::new())
+        // unsafe_reentrant! {{
+        //     RawCall::<WasmVM>::new_with_value(context.value())
+        //         .gas(context.gas())
+        //         .call(to, data)
+        //         .map_err(Error::Revert)
+        // }}
     }
     /// Delegate calls the contract at the given address.
     ///
@@ -62,11 +63,12 @@ impl CallAccess for WasmVM {
             use stylus_core::host::StorageAccess;
             self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         }
+        Ok(Vec::new())
 
-        RawCall::<WasmVM>::new_delegate()
-            .gas(context.gas())
-            .call(to, data)
-            .map_err(Error::Revert)
+        // RawCall::<WasmVM>::new_delegate()
+        //     .gas(context.gas())
+        //     .call(to, data)
+        //     .map_err(Error::Revert)
     }
     /// Static calls the contract at the given address.
     fn static_call(
@@ -80,17 +82,18 @@ impl CallAccess for WasmVM {
             use stylus_core::host::StorageAccess;
             self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
         }
+        Ok(Vec::new())
 
-        unsafe_reentrant! {{
-            RawCall::<WasmVM>::new_static()
-                .gas(context.gas())
-                .call(to, data)
-                .map_err(Error::Revert)
-        }}
+        // unsafe_reentrant! {{
+        //     RawCall::<WasmVM>::new_static()
+        //         .gas(context.gas())
+        //         .call(to, data)
+        //         .map_err(Error::Revert)
+        // }}
     }
 }
 
-impl ValueTransfer for WasmVM {
+impl ValueTransfer for VM {
     /// Transfers an amount of ETH in wei to the given account.
     /// Note that this method will call the other contract, which may in turn call others.
     ///
@@ -107,11 +110,11 @@ impl ValueTransfer for WasmVM {
     ) -> Result<(), Vec<u8>> {
         use stylus_core::host::StorageAccess;
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-        unsafe {
-            RawCall::<WasmVM>::new_with_value(amount)
-                .skip_return_data()
-                .call(to, &[])?;
-        }
+                                // unsafe {
+                                //     RawCall::<WasmVM>::new_with_value(amount)
+                                //         .skip_return_data()
+                                //         .call(to, &[])?;
+                                // }
         Ok(())
     }
     /// Transfers an amount of ETH in wei to the given account.
@@ -132,9 +135,9 @@ impl ValueTransfer for WasmVM {
     /// ```
     #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        RawCall::<WasmVM>::new_with_value(amount)
-            .skip_return_data()
-            .call(to, &[])?;
+        // RawCall::<WasmVM>::new_with_value(amount)
+        //     .skip_return_data()
+        //     .call(to, &[])?;
         Ok(())
     }
 }

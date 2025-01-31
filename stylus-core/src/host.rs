@@ -4,46 +4,41 @@
 // //! Defines host environment methods Stylus SDK contracts have access to.
 // extern crate alloc;
 
-// use crate::{
-//     calls::{CallAccess, ValueTransfer},
-//     deploy::DeploymentAccess,
-// };
+use crate::{
+    calls::{CallAccess, ValueTransfer},
+    deploy::DeploymentAccess,
+};
 // use alloc::vec::Vec;
 // use alloy_primitives::{Address, B256, U256};
 // use dyn_clone::DynClone;
 
 use alloy_primitives::{Address, B256, U256};
 
-pub trait Host: StorageAccess + CalldataAccess + MessageAccess + MemoryAccess {
-    fn foo(&self);
+/// The host trait defines methods a Stylus contract can use to interact
+/// with a host environment, such as the EVM. It is a composition
+/// of traits with different access to host values and modifications.
+/// Stylus contracts in the SDK have access to a host via the HostAccessor trait for safe access
+/// to hostios without the need for global invocations. The host trait may be implemented
+/// by test frameworks as an easier way of mocking hostio invocations for testing
+/// Stylus contracts.
+pub trait Host:
+    CryptographyAccess
+    + CalldataAccess
+    + UnsafeDeploymentAccess
+    + StorageAccess
+    + UnsafeCallAccess
+    + BlockAccess
+    + ChainAccess
+    + AccountAccess
+    + MemoryAccess
+    + MessageAccess
+    + MeteringAccess
+    + CallAccess
+    + DeploymentAccess
+    + LogAccess
+    + ValueTransfer // + DynClone
+{
 }
-
-// /// The host trait defines methods a Stylus contract can use to interact
-// /// with a host environment, such as the EVM. It is a composition
-// /// of traits with different access to host values and modifications.
-// /// Stylus contracts in the SDK have access to a host via the HostAccessor trait for safe access
-// /// to hostios without the need for global invocations. The host trait may be implemented
-// /// by test frameworks as an easier way of mocking hostio invocations for testing
-// /// Stylus contracts.
-// pub trait Host:
-//     CryptographyAccess
-//     + CalldataAccess
-//     + UnsafeDeploymentAccess
-//     + StorageAccess
-//     + UnsafeCallAccess
-//     + BlockAccess
-//     + ChainAccess
-//     + AccountAccess
-//     + MemoryAccess
-//     + MessageAccess
-//     + MeteringAccess
-//     + CallAccess
-//     + DeploymentAccess
-//     + LogAccess
-//     + ValueTransfer
-//     + DynClone
-// {
-// }
 
 // // Enables cloning of a boxed, host trait object.
 // dyn_clone::clone_trait_object!(Host);
@@ -55,16 +50,16 @@ pub trait Host: StorageAccess + CalldataAccess + MessageAccess + MemoryAccess {
 //     fn vm(&self) -> &dyn Host;
 // }
 
-// /// Provides access to native cryptography extensions provided by
-// /// a Stylus contract host, such as keccak256.
-// pub trait CryptographyAccess {
-//     /// Efficiently computes the [`keccak256`] hash of the given preimage.
-//     /// The semantics are equivalent to that of the EVM's [`SHA3`] opcode.
-//     ///
-//     /// [`keccak256`]: https://en.wikipedia.org/wiki/SHA-3
-//     /// [`SHA3`]: https://www.evm.codes/#20
-//     fn native_keccak256(&self, input: &[u8]) -> B256;
-// }
+/// Provides access to native cryptography extensions provided by
+/// a Stylus contract host, such as keccak256.
+pub trait CryptographyAccess {
+    /// Efficiently computes the [`keccak256`] hash of the given preimage.
+    /// The semantics are equivalent to that of the EVM's [`SHA3`] opcode.
+    ///
+    /// [`keccak256`]: https://en.wikipedia.org/wiki/SHA-3
+    /// [`SHA3`]: https://www.evm.codes/#20
+    fn native_keccak256(&self, input: &[u8]) -> B256;
+}
 
 /// Provides access to host methods relating to the accessing the calldata
 /// of a Stylus contract transaction.
@@ -94,73 +89,73 @@ pub trait CalldataAccess {
     fn write_result(&self, data: &[u8]);
 }
 
-// /// Provides access to programmatic creation of contracts via the host environment's CREATE
-// /// and CREATE2 opcodes in the EVM.
-// ///
-// /// # Safety
-// /// These methods should only be used in advanced cases when lowest-level access
-// /// to create1 and create2 opcodes is needed. Using the methods by themselves will not protect
-// /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract deployment,
-// /// utilize a [`RawDeploy`] struct instead.
-// pub unsafe trait UnsafeDeploymentAccess {
-//     /// Deploys a new contract using the init code provided, which the EVM executes to construct
-//     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
-//     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
-//     /// WASM if it begins with the EOF-inspired header `0xEFF000`. Otherwise the code will be
-//     /// interpreted as that of a traditional EVM-style contract. See [`Deploying Stylus Programs`]
-//     /// for more information on writing init code.
-//     ///
-//     /// On success, this hostio returns the address of the newly created account whose address is
-//     /// a function of the sender and nonce. On failure the address will be `0`, `return_data_len`
-//     /// will store the length of the revert data, the bytes of which can be read via the
-//     /// `read_return_data` hostio. The semantics are equivalent to that of the EVM's [`CREATE`]
-//     /// opcode, which notably includes the exact address returned.
-//     ///
-//     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
-//     /// [`CREATE`]: https://www.evm.codes/#f0
-//     ///
-//     /// # Safety
-//     /// This method should only be used in advanced cases when lowest-level access to create1 is required.
-//     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-//     /// utilize a [`RawDeploy`] struct instead for safety.
-//     unsafe fn create1(
-//         &self,
-//         code: *const u8,
-//         code_len: usize,
-//         endowment: *const u8,
-//         contract: *mut u8,
-//         revert_data_len: *mut usize,
-//     );
-//     /// Deploys a new contract using the init code provided, which the EVM executes to construct
-//     /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
-//     /// the code it deploys can be that of a Stylus program. The code returned will be treated as
-//     /// WASM if it begins with the EOF-inspired header `0xEFF000`. Otherwise the code will be
-//     /// interpreted as that of a traditional EVM-style contract. See [`Deploying Stylus Programs`]
-//     /// for more information on writing init code.
-//     ///
-//     /// On success, this hostio returns the address of the newly created account whose address is a
-//     /// function of the sender, salt, and init code. On failure the address will be `0`,
-//     /// `return_data_len` will store the length of the revert data, the bytes of which can be read
-//     /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
-//     /// `[CREATE2`] opcode, which notably includes the exact address returned.
-//     ///
-//     /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
-//     /// [`CREATE2`]: https://www.evm.codes/#f5
-//     ///
-//     /// # Safety
-//     /// This method should only be used in advanced cases when lowest-level access to create2 is required.
-//     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-//     /// utilize a [`RawDeploy`] struct instead for safety.
-//     unsafe fn create2(
-//         &self,
-//         code: *const u8,
-//         code_len: usize,
-//         endowment: *const u8,
-//         salt: *const u8,
-//         contract: *mut u8,
-//         revert_data_len: *mut usize,
-//     );
-// }
+/// Provides access to programmatic creation of contracts via the host environment's CREATE
+/// and CREATE2 opcodes in the EVM.
+///
+/// # Safety
+/// These methods should only be used in advanced cases when lowest-level access
+/// to create1 and create2 opcodes is needed. Using the methods by themselves will not protect
+/// against reentrancy safety, storage aliasing, or cache flushing. For safe contract deployment,
+/// utilize a [`RawDeploy`] struct instead.
+pub unsafe trait UnsafeDeploymentAccess {
+    /// Deploys a new contract using the init code provided, which the EVM executes to construct
+    /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
+    /// the code it deploys can be that of a Stylus program. The code returned will be treated as
+    /// WASM if it begins with the EOF-inspired header `0xEFF000`. Otherwise the code will be
+    /// interpreted as that of a traditional EVM-style contract. See [`Deploying Stylus Programs`]
+    /// for more information on writing init code.
+    ///
+    /// On success, this hostio returns the address of the newly created account whose address is
+    /// a function of the sender and nonce. On failure the address will be `0`, `return_data_len`
+    /// will store the length of the revert data, the bytes of which can be read via the
+    /// `read_return_data` hostio. The semantics are equivalent to that of the EVM's [`CREATE`]
+    /// opcode, which notably includes the exact address returned.
+    ///
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
+    /// [`CREATE`]: https://www.evm.codes/#f0
+    ///
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to create1 is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawDeploy`] struct instead for safety.
+    unsafe fn create1(
+        &self,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    );
+    /// Deploys a new contract using the init code provided, which the EVM executes to construct
+    /// the code of the newly deployed contract. The init code must be written in EVM bytecode, but
+    /// the code it deploys can be that of a Stylus program. The code returned will be treated as
+    /// WASM if it begins with the EOF-inspired header `0xEFF000`. Otherwise the code will be
+    /// interpreted as that of a traditional EVM-style contract. See [`Deploying Stylus Programs`]
+    /// for more information on writing init code.
+    ///
+    /// On success, this hostio returns the address of the newly created account whose address is a
+    /// function of the sender, salt, and init code. On failure the address will be `0`,
+    /// `return_data_len` will store the length of the revert data, the bytes of which can be read
+    /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
+    /// `[CREATE2`] opcode, which notably includes the exact address returned.
+    ///
+    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
+    /// [`CREATE2`]: https://www.evm.codes/#f5
+    ///
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to create2 is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawDeploy`] struct instead for safety.
+    unsafe fn create2(
+        &self,
+        code: *const u8,
+        code_len: usize,
+        endowment: *const u8,
+        salt: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    );
+}
 
 /// Provides access to storage access and mutation via host methods.
 pub trait StorageAccess {
@@ -193,173 +188,173 @@ pub trait StorageAccess {
     fn flush_cache(&self, clear: bool);
 }
 
-// /// Provides access to calling other contracts using host semantics.
-// ///
-// /// # Safety
-// /// These methods should only be used in advanced cases when lowest-level access
-// /// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
-// /// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
-// /// utilize a [`RawCall`] struct instead.
-// pub unsafe trait UnsafeCallAccess {
-//     /// Calls the contract at the given address with options for passing value and to limit the
-//     /// amount of gas supplied. The return status indicates whether the call succeeded, and is
-//     /// nonzero on failure.
-//     ///
-//     /// In both cases `return_data_len` will store the length of the result, the bytes of which can
-//     /// be read via the `read_return_data` hostio. The bytes are not returned directly so that the
-//     /// programmer can potentially save gas by choosing which subset of the return result they'd
-//     /// like to copy.
-//     ///
-//     /// The semantics are equivalent to that of the EVM's [`CALL`] opcode, including callvalue
-//     /// stipends and the 63/64 gas rule. This means that supplying the `u64::MAX` gas can be used
-//     /// to send as much as possible.
-//     ///
-//     /// [`CALL`]: https://www.evm.codes/#f1
-//     ///
-//     /// # Safety
-//     /// This method should only be used in advanced cases when lowest-level access to calls is required.
-//     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-//     /// utilize a [`RawCall`] struct instead for safety.
-//     unsafe fn call_contract(
-//         &self,
-//         to: *const u8,
-//         data: *const u8,
-//         data_len: usize,
-//         value: *const u8,
-//         gas: u64,
-//         outs_len: &mut usize,
-//     ) -> u8;
-//     /// Static calls the contract at the given address, with the option to limit the amount of gas
-//     /// supplied. The return status indicates whether the call succeeded, and is nonzero on
-//     /// failure.
-//     ///
-//     /// In both cases `return_data_len` will store the length of the result, the bytes of which can
-//     /// be read via the `read_return_data` hostio. The bytes are not returned directly so that the
-//     /// programmer can potentially save gas by choosing which subset of the return result they'd
-//     /// like to copy.
-//     ///
-//     /// The semantics are equivalent to that of the EVM's [`STATIC_CALL`] opcode, including the
-//     /// 63/64 gas rule. This means that supplying `u64::MAX` gas can be used to send as much as
-//     /// possible.
-//     ///
-//     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
-//     ///
-//     /// # Safety
-//     /// This method should only be used in advanced cases when lowest-level access to calls is required.
-//     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-//     /// utilize a [`RawCall`] struct instead for safety.
-//     unsafe fn static_call_contract(
-//         &self,
-//         to: *const u8,
-//         data: *const u8,
-//         data_len: usize,
-//         gas: u64,
-//         outs_len: &mut usize,
-//     ) -> u8;
-//     /// Delegate calls the contract at the given address, with the option to limit the amount of
-//     /// gas supplied. The return status indicates whether the call succeeded, and is nonzero on
-//     /// failure.
-//     ///
-//     /// In both cases `return_data_len` will store the length of the result, the bytes of which
-//     /// can be read via the `read_return_data` hostio. The bytes are not returned directly so that
-//     /// the programmer can potentially save gas by choosing which subset of the return result
-//     /// they'd like to copy.
-//     ///
-//     /// The semantics are equivalent to that of the EVM's [`DELEGATE_CALL`] opcode, including the
-//     /// 63/64 gas rule. This means that supplying `u64::MAX` gas can be used to send as much as
-//     /// possible.
-//     ///
-//     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
-//     ///
-//     /// # Safety
-//     /// This method should only be used in advanced cases when lowest-level access to calls is required.
-//     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-//     /// utilize a [`RawCall`] struct instead for safety.
-//     unsafe fn delegate_call_contract(
-//         &self,
-//         to: *const u8,
-//         data: *const u8,
-//         data_len: usize,
-//         gas: u64,
-//         outs_len: &mut usize,
-//     ) -> u8;
-// }
+/// Provides access to calling other contracts using host semantics.
+///
+/// # Safety
+/// These methods should only be used in advanced cases when lowest-level access
+/// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
+/// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
+/// utilize a [`RawCall`] struct instead.
+pub unsafe trait UnsafeCallAccess {
+    /// Calls the contract at the given address with options for passing value and to limit the
+    /// amount of gas supplied. The return status indicates whether the call succeeded, and is
+    /// nonzero on failure.
+    ///
+    /// In both cases `return_data_len` will store the length of the result, the bytes of which can
+    /// be read via the `read_return_data` hostio. The bytes are not returned directly so that the
+    /// programmer can potentially save gas by choosing which subset of the return result they'd
+    /// like to copy.
+    ///
+    /// The semantics are equivalent to that of the EVM's [`CALL`] opcode, including callvalue
+    /// stipends and the 63/64 gas rule. This means that supplying the `u64::MAX` gas can be used
+    /// to send as much as possible.
+    ///
+    /// [`CALL`]: https://www.evm.codes/#f1
+    ///
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
+    unsafe fn call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        value: *const u8,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
+    /// Static calls the contract at the given address, with the option to limit the amount of gas
+    /// supplied. The return status indicates whether the call succeeded, and is nonzero on
+    /// failure.
+    ///
+    /// In both cases `return_data_len` will store the length of the result, the bytes of which can
+    /// be read via the `read_return_data` hostio. The bytes are not returned directly so that the
+    /// programmer can potentially save gas by choosing which subset of the return result they'd
+    /// like to copy.
+    ///
+    /// The semantics are equivalent to that of the EVM's [`STATIC_CALL`] opcode, including the
+    /// 63/64 gas rule. This means that supplying `u64::MAX` gas can be used to send as much as
+    /// possible.
+    ///
+    /// [`STATIC_CALL`]: https://www.evm.codes/#FA
+    ///
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
+    unsafe fn static_call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
+    /// Delegate calls the contract at the given address, with the option to limit the amount of
+    /// gas supplied. The return status indicates whether the call succeeded, and is nonzero on
+    /// failure.
+    ///
+    /// In both cases `return_data_len` will store the length of the result, the bytes of which
+    /// can be read via the `read_return_data` hostio. The bytes are not returned directly so that
+    /// the programmer can potentially save gas by choosing which subset of the return result
+    /// they'd like to copy.
+    ///
+    /// The semantics are equivalent to that of the EVM's [`DELEGATE_CALL`] opcode, including the
+    /// 63/64 gas rule. This means that supplying `u64::MAX` gas can be used to send as much as
+    /// possible.
+    ///
+    /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
+    ///
+    /// # Safety
+    /// This method should only be used in advanced cases when lowest-level access to calls is required.
+    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// utilize a [`RawCall`] struct instead for safety.
+    unsafe fn delegate_call_contract(
+        &self,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        gas: u64,
+        outs_len: &mut usize,
+    ) -> u8;
+}
 
-// /// Provides access to host methods relating to the block a transactions
-// /// to a Stylus contract is included in.
-// pub trait BlockAccess {
-//     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
-//     /// [`BASEFEE`] opcode.
-//     ///
-//     /// [`BASEFEE`]: https://www.evm.codes/#48
-//     fn block_basefee(&self) -> U256;
-//     /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
-//     /// address. This differs from Ethereum where the validator including the transaction
-//     /// determines the coinbase.
-//     fn block_coinbase(&self) -> Address;
-//     /// Gets a bounded estimate of the L1 block number at which the Sequencer sequenced the
-//     /// transaction. See [`Block Numbers and Time`] for more information on how this value is
-//     /// determined.
-//     ///
-//     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-//     fn block_number(&self) -> u64;
-//     /// Gets a bounded estimate of the Unix timestamp at which the Sequencer sequenced the
-//     /// transaction. See [`Block Numbers and Time`] for more information on how this value is
-//     /// determined.
-//     ///
-//     /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
-//     fn block_timestamp(&self) -> u64;
-//     /// Gets the gas limit of the current block. The semantics are equivalent to that of the EVM's
-//     /// [`GAS_LIMIT`] opcode. Note that as of the time of this writing, `evm.codes` incorrectly
-//     /// implies that the opcode returns the gas limit of the current transaction.  When in doubt,
-//     /// consult [`The Ethereum Yellow Paper`].
-//     ///
-//     /// [`GAS_LIMIT`]: https://www.evm.codes/#45
-//     /// [`The Ethereum Yellow Paper`]: https://ethereum.github.io/yellowpaper/paper.pdf
-//     fn block_gas_limit(&self) -> u64;
-// }
+/// Provides access to host methods relating to the block a transactions
+/// to a Stylus contract is included in.
+pub trait BlockAccess {
+    /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
+    /// [`BASEFEE`] opcode.
+    ///
+    /// [`BASEFEE`]: https://www.evm.codes/#48
+    fn block_basefee(&self) -> U256;
+    /// Gets the coinbase of the current block, which on Arbitrum chains is the L1 batch poster's
+    /// address. This differs from Ethereum where the validator including the transaction
+    /// determines the coinbase.
+    fn block_coinbase(&self) -> Address;
+    /// Gets a bounded estimate of the L1 block number at which the Sequencer sequenced the
+    /// transaction. See [`Block Numbers and Time`] for more information on how this value is
+    /// determined.
+    ///
+    /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
+    fn block_number(&self) -> u64;
+    /// Gets a bounded estimate of the Unix timestamp at which the Sequencer sequenced the
+    /// transaction. See [`Block Numbers and Time`] for more information on how this value is
+    /// determined.
+    ///
+    /// [`Block Numbers and Time`]: https://developer.arbitrum.io/time
+    fn block_timestamp(&self) -> u64;
+    /// Gets the gas limit of the current block. The semantics are equivalent to that of the EVM's
+    /// [`GAS_LIMIT`] opcode. Note that as of the time of this writing, `evm.codes` incorrectly
+    /// implies that the opcode returns the gas limit of the current transaction.  When in doubt,
+    /// consult [`The Ethereum Yellow Paper`].
+    ///
+    /// [`GAS_LIMIT`]: https://www.evm.codes/#45
+    /// [`The Ethereum Yellow Paper`]: https://ethereum.github.io/yellowpaper/paper.pdf
+    fn block_gas_limit(&self) -> u64;
+}
 
-// /// Provides access to the chain details of the host environment.
-// pub trait ChainAccess {
-//     /// Gets the unique chain identifier of the Arbitrum chain. The semantics are equivalent to
-//     /// that of the EVM's [`CHAIN_ID`] opcode.
-//     ///
-//     /// [`CHAIN_ID`]: https://www.evm.codes/#46
-//     fn chain_id(&self) -> u64;
-// }
+/// Provides access to the chain details of the host environment.
+pub trait ChainAccess {
+    /// Gets the unique chain identifier of the Arbitrum chain. The semantics are equivalent to
+    /// that of the EVM's [`CHAIN_ID`] opcode.
+    ///
+    /// [`CHAIN_ID`]: https://www.evm.codes/#46
+    fn chain_id(&self) -> u64;
+}
 
-// /// Provides access to account details of addresses of the host environment.
-// pub trait AccountAccess {
-//     /// Gets the ETH balance in wei of the account at the given address.
-//     /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
-//     ///
-//     /// [`BALANCE`]: https://www.evm.codes/#31
-//     fn balance(&self, account: Address) -> U256;
-//     /// Gets the address of the current program. The semantics are equivalent to that of the EVM's
-//     /// [`ADDRESS`] opcode.
-//     ///
-//     /// [`ADDRESS`]: https://www.evm.codes/#30
-//     fn contract_address(&self) -> Address;
-//     /// Gets a subset of the code from the account at the given address. The semantics are identical to that
-//     /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
-//     /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-//     /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
-//     ///
-//     /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
-//     fn code(&self, account: Address) -> Vec<u8>;
-//     /// Gets the size of the code in bytes at the given address. The semantics are equivalent
-//     /// to that of the EVM's [`EXT_CODESIZE`].
-//     ///
-//     /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
-//     fn code_size(&self, account: Address) -> usize;
-//     /// Gets the code hash of the account at the given address. The semantics are equivalent
-//     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
-//     /// code will be the empty hash
-//     /// `keccak("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`.
-//     ///
-//     /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
-//     fn code_hash(&self, account: Address) -> B256;
-// }
+/// Provides access to account details of addresses of the host environment.
+pub trait AccountAccess {
+    /// Gets the ETH balance in wei of the account at the given address.
+    /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
+    ///
+    /// [`BALANCE`]: https://www.evm.codes/#31
+    fn balance(&self, account: Address) -> U256;
+    /// Gets the address of the current program. The semantics are equivalent to that of the EVM's
+    /// [`ADDRESS`] opcode.
+    ///
+    /// [`ADDRESS`]: https://www.evm.codes/#30
+    fn contract_address(&self) -> Address;
+    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
+    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
+    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
+    /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
+    ///
+    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
+    fn code(&self, account: Address) -> Vec<u8>;
+    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODESIZE`].
+    ///
+    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    fn code_size(&self, account: Address) -> usize;
+    /// Gets the code hash of the account at the given address. The semantics are equivalent
+    /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
+    /// code will be the empty hash
+    /// `keccak("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`.
+    ///
+    /// [`EXT_CODEHASH`]: https://www.evm.codes/#3F
+    fn code_hash(&self, account: Address) -> B256;
+}
 
 /// Provides the ability to pay for memory growth of a Stylus contract.
 pub trait MemoryAccess {
@@ -397,56 +392,56 @@ pub trait MessageAccess {
     fn tx_origin(&self) -> Address;
 }
 
-// /// Provides access to metering values such as EVM gas and Stylus ink used and remaining,
-// /// as well as details of their prices based on the host environment.
-// pub trait MeteringAccess {
-//     /// Gets the amount of gas left after paying for the cost of this hostio. The semantics are
-//     /// equivalent to that of the EVM's [`GAS`] opcode.
-//     ///
-//     /// [`GAS`]: https://www.evm.codes/#5a
-//     fn evm_gas_left(&self) -> u64;
-//     /// Gets the amount of ink remaining after paying for the cost of this hostio. The semantics
-//     /// are equivalent to that of the EVM's [`GAS`] opcode, except the units are in ink. See
-//     /// [`Ink and Gas`] for more information on Stylus's compute pricing.
-//     ///
-//     /// [`GAS`]: https://www.evm.codes/#5a
-//     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
-//     fn evm_ink_left(&self) -> u64;
-//     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee. The
-//     /// semantics are equivalent to that of the EVM's [`GAS_PRICE`] opcode.
-//     ///
-//     /// [`GAS_PRICE`]: https://www.evm.codes/#3A
-//     fn tx_gas_price(&self) -> U256;
-//     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
-//     /// Stylus's compute-pricing model.
-//     ///
-//     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
-//     fn tx_ink_price(&self) -> u32;
+/// Provides access to metering values such as EVM gas and Stylus ink used and remaining,
+/// as well as details of their prices based on the host environment.
+pub trait MeteringAccess {
+    /// Gets the amount of gas left after paying for the cost of this hostio. The semantics are
+    /// equivalent to that of the EVM's [`GAS`] opcode.
+    ///
+    /// [`GAS`]: https://www.evm.codes/#5a
+    fn evm_gas_left(&self) -> u64;
+    /// Gets the amount of ink remaining after paying for the cost of this hostio. The semantics
+    /// are equivalent to that of the EVM's [`GAS`] opcode, except the units are in ink. See
+    /// [`Ink and Gas`] for more information on Stylus's compute pricing.
+    ///
+    /// [`GAS`]: https://www.evm.codes/#5a
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+    fn evm_ink_left(&self) -> u64;
+    /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee. The
+    /// semantics are equivalent to that of the EVM's [`GAS_PRICE`] opcode.
+    ///
+    /// [`GAS_PRICE`]: https://www.evm.codes/#3A
+    fn tx_gas_price(&self) -> U256;
+    /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
+    /// Stylus's compute-pricing model.
+    ///
+    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+    fn tx_ink_price(&self) -> u32;
 
-//     /// Computes the units of gas per a specified amount of ink.
-//     fn ink_to_gas(&self, ink: u64) -> u64 {
-//         ink / self.tx_ink_price() as u64
-//     }
+    /// Computes the units of gas per a specified amount of ink.
+    fn ink_to_gas(&self, ink: u64) -> u64 {
+        ink / self.tx_ink_price() as u64
+    }
 
-//     /// Computes the units of ink per a specified amount of gas.
-//     fn gas_to_ink(&self, gas: u64) -> u64 {
-//         gas.saturating_mul(self.tx_ink_price().into())
-//     }
-// }
+    /// Computes the units of ink per a specified amount of gas.
+    fn gas_to_ink(&self, gas: u64) -> u64 {
+        gas.saturating_mul(self.tx_ink_price().into())
+    }
+}
 
-// /// Provides access to the ability to emit logs from a Stylus contract.
-// pub trait LogAccess {
-//     /// Emits an EVM log with the given number of topics and data, the first bytes of which should
-//     /// be the 32-byte-aligned topic data. The semantics are equivalent to that of the EVM's
-//     /// [`LOG0`], [`LOG1`], [`LOG2`], [`LOG3`], and [`LOG4`] opcodes based on the number of topics
-//     /// specified. Requesting more than `4` topics will induce a revert.
-//     ///
-//     /// [`LOG0`]: https://www.evm.codes/#a0
-//     /// [`LOG1`]: https://www.evm.codes/#a1
-//     /// [`LOG2`]: https://www.evm.codes/#a2
-//     /// [`LOG3`]: https://www.evm.codes/#a3
-//     /// [`LOG4`]: https://www.evm.codes/#a4
-//     fn emit_log(&self, input: &[u8], num_topics: usize);
-//     /// Emits a raw log from topics and data.
-//     fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str>;
-// }
+/// Provides access to the ability to emit logs from a Stylus contract.
+pub trait LogAccess {
+    /// Emits an EVM log with the given number of topics and data, the first bytes of which should
+    /// be the 32-byte-aligned topic data. The semantics are equivalent to that of the EVM's
+    /// [`LOG0`], [`LOG1`], [`LOG2`], [`LOG3`], and [`LOG4`] opcodes based on the number of topics
+    /// specified. Requesting more than `4` topics will induce a revert.
+    ///
+    /// [`LOG0`]: https://www.evm.codes/#a0
+    /// [`LOG1`]: https://www.evm.codes/#a1
+    /// [`LOG2`]: https://www.evm.codes/#a2
+    /// [`LOG3`]: https://www.evm.codes/#a3
+    /// [`LOG4`]: https://www.evm.codes/#a4
+    fn emit_log(&self, input: &[u8], num_topics: usize);
+    /// Emits a raw log from topics and data.
+    fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str>;
+}

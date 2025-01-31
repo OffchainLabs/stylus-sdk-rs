@@ -3,9 +3,9 @@ use alloy_primitives::{Address, B256, U256};
 use stylus_core::deploy::DeploymentAccess;
 use stylus_core::host::{CalldataAccess, UnsafeDeploymentAccess};
 
-use super::WasmVM;
+use super::VM;
 
-impl DeploymentAccess for WasmVM {
+impl DeploymentAccess for VM {
     #[cfg(feature = "reentrant")]
     unsafe fn deploy(
         &self,
