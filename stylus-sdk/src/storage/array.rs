@@ -1,6 +1,8 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::host::VM;
+
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 
 use alloy_primitives::U256;
@@ -25,7 +27,7 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -111,7 +113,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, VM {}))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -121,7 +123,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, VM {})
     }
 
     /// Gets the element at the given index, if it exists.

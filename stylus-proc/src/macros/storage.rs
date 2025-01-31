@@ -114,13 +114,14 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: stylus_sdk::host::VM) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
+                        #STYLUS_HOST_FIELD: host.clone(),
                         #init
                     };
                     accessor
@@ -267,7 +268,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType>::new(root, space as u8);
+                let field = <#ty as storage::StorageType>::new(root, space as u8, stylus_sdk::host::VM{});
                 if words > 0 {
                     slot += words;
                     space = 32;

@@ -22,7 +22,7 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::hostio;
+use crate::{host::VM, hostio};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
@@ -242,7 +242,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
@@ -375,7 +375,7 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -475,7 +475,7 @@ where
 
     const SLOT_BYTES: usize = N;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -603,7 +603,7 @@ impl StorageType for StorageBool {
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -708,7 +708,7 @@ impl StorageType for StorageAddress {
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -815,7 +815,7 @@ impl StorageType for StorageBlockNumber {
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         Self {
             slot,
             offset,
@@ -920,7 +920,7 @@ impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    unsafe fn new(slot: U256, _offset: u8) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, _host: VM) -> Self {
         let cached = OnceCell::new();
         Self {
             slot,
@@ -978,7 +978,7 @@ impl<T> StorageType for PhantomData<T> {
     const REQUIRED_SLOTS: usize = 0;
     const SLOT_BYTES: usize = 0;
 
-    unsafe fn new(_slot: U256, _offset: u8) -> Self {
+    unsafe fn new(_slot: U256, _offset: u8, _host: VM) -> Self {
         Self
     }
 

@@ -53,7 +53,7 @@ pub trait StorageType: Sized {
     /// Aliases storage if two calls to the same slot and offset occur within the same lifetime.
     ///
     /// [`generic_const_exprs`]: https://github.com/rust-lang/rust/issues/76560
-    unsafe fn new(slot: U256, offset: u8) -> Self;
+    unsafe fn new(slot: U256, offset: u8, host: crate::host::VM) -> Self;
 
     /// Load the wrapped type, consuming the accessor.
     /// Note: most types have a `get` and/or `getter`, which don't consume `Self`.

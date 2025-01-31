@@ -4,7 +4,7 @@
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::crypto;
+use crate::{crypto, host::VM};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData};
@@ -27,7 +27,7 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -128,7 +128,7 @@ impl<S: StorageType> StorageVec<S> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, VM {}))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -138,7 +138,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, VM {})
     }
 
     /// Gets the element at the given index, if it exists.
@@ -180,7 +180,7 @@ impl<S: StorageType> StorageVec<S> {
         unsafe { self.set_len(index + 1) };
 
         let (slot, offset) = self.index_slot(index);
-        let store = unsafe { S::new(slot, offset) };
+        let store = unsafe { S::new(slot, offset, VM {}) };
         StorageGuardMut::new(store)
     }
 

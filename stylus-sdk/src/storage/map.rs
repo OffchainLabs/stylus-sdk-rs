@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::crypto;
+use crate::{crypto, host::VM};
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloc::{string::String, vec::Vec};
@@ -29,7 +29,7 @@ where
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
@@ -96,7 +96,7 @@ where
     /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, VM {})) }
     }
 
     /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
@@ -104,7 +104,7 @@ where
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET)) }
+        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, VM {})) }
     }
 
     /// Gets the element at the given key, or the zero value if none is there.
@@ -131,8 +131,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, VM {});
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, VM {});
             let prior = store.load();
             alias.set_by_wrapped(value);
             prior
@@ -145,8 +145,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET);
-            let mut alias = V::new(slot, Self::CHILD_OFFSET);
+            let store = V::new(slot, Self::CHILD_OFFSET, VM {});
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, VM {});
             let value = store.load();
             alias.erase();
             value

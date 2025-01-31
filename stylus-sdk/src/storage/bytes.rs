@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
-use crate::crypto;
+use crate::{crypto, host::VM};
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -27,7 +27,7 @@ impl StorageType for StorageBytes {
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8) -> Self {
+    unsafe fn new(root: U256, offset: u8, _host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
@@ -218,7 +218,7 @@ impl StorageBytes {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        let value = unsafe { StorageB8::new(slot, offset) };
+        let value = unsafe { StorageB8::new(slot, offset, VM {}) };
         Some(StorageGuardMut::new(value))
     }
 
@@ -309,8 +309,8 @@ impl StorageType for StorageString {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
-        Self(StorageBytes::new(slot, offset))
+    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+        Self(StorageBytes::new(slot, offset, VM {}))
     }
 
     fn load<'s>(self) -> Self::Wraps<'s> {
