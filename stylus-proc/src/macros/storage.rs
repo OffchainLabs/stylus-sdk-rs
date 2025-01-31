@@ -23,50 +23,50 @@ pub fn storage(
         );
     }
 
-    let mut item = parse_macro_input!(input as ItemStruct);
-    // let ItemStruct {
-    //     attrs,
-    //     vis,
-    //     ident,
-    //     generics,
-    //     fields,
-    //     ..
-    // } = item;
+    let item = parse_macro_input!(input as ItemStruct);
+    let ItemStruct {
+        attrs,
+        vis,
+        ident,
+        generics,
+        fields,
+        ..
+    } = item;
 
     // Handle fields based on their type (named or unnamed)
-    // let expanded_fields = match fields {
-    //     syn::Fields::Named(named_fields) => {
-    //         // Extract the original fields.
-    //         let original_fields = named_fields.named;
-    //         quote! {
-    //             #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
-    //             #original_fields
-    //         }
-    //     }
-    //     syn::Fields::Unnamed(_) => {
-    //         // Handle tuple structs if needed.
-    //         emit_error!(
-    //             fields.span(),
-    //             "Tuple structs are not supported by #[storage]"
-    //         );
-    //         return fields.to_token_stream().into();
-    //     }
-    //     syn::Fields::Unit => {
-    //         // Handle unit structs if needed.
-    //         quote! {
-    //             #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
-    //         }
-    //     }
-    // };
+    let expanded_fields = match fields {
+        syn::Fields::Named(named_fields) => {
+            // Extract the original fields.
+            let original_fields = named_fields.named;
+            quote! {
+                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
+                #original_fields
+            }
+        }
+        syn::Fields::Unnamed(_) => {
+            // Handle tuple structs if needed.
+            emit_error!(
+                fields.span(),
+                "Tuple structs are not supported by #[storage]"
+            );
+            return fields.to_token_stream().into();
+        }
+        syn::Fields::Unit => {
+            // Handle unit structs if needed.
+            quote! {
+                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
+            }
+        }
+    };
     // Inject the host trait generic into the item struct if not defined.
-    // let mut host_injected_item: syn::ItemStruct = parse_quote! {
-    //     #(#attrs)*
-    //     #vis struct #ident #generics {
-    //         #fields
-    //     }
-    // };
-    let storage = Storage::from(&mut item);
-    let mut output = item.into_token_stream();
+    let mut host_injected_item: syn::ItemStruct = parse_quote! {
+        #(#attrs)*
+        #vis struct #ident #generics {
+            #expanded_fields
+        }
+    };
+    let storage = Storage::from(&mut host_injected_item);
+    let mut output = host_injected_item.into_token_stream();
     storage.to_tokens(&mut output);
     output.into()
 }

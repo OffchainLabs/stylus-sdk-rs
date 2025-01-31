@@ -19,6 +19,15 @@
 //     types::AddressVM,
 // };
 
+use stylus_core::host::Host;
+
+/// VM does stuff.
+pub struct VM;
+
+impl Host for VM {
+    fn foo(&self) {}
+}
+
 // /// Defines an implementation of traits for the VM struct that
 // /// provides access to cross-contract calls.
 // pub mod calls;

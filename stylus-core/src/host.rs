@@ -12,6 +12,12 @@
 // use alloy_primitives::{Address, B256, U256};
 // use dyn_clone::DynClone;
 
+use alloy_primitives::B256;
+
+pub trait Host {
+    fn foo(&self);
+}
+
 // /// The host trait defines methods a Stylus contract can use to interact
 // /// with a host environment, such as the EVM. It is a composition
 // /// of traits with different access to host values and modifications.
