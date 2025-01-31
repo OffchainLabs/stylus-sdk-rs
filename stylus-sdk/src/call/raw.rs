@@ -1,10 +1,11 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+extern crate alloc;
 
-use crate::{host::WasmVM, ArbResult};
+use crate::ArbResult;
+use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
-use stylus_core::Host;
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
@@ -25,16 +26,12 @@ macro_rules! unsafe_reentrant {
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone, Default)]
 #[must_use]
-pub struct RawCall<H = WasmVM>
-where
-    H: Host + Default,
-{
+pub struct RawCall {
     kind: CallKind,
     callvalue: U256,
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
-    host: H,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
@@ -76,10 +73,7 @@ impl Default for RustVec {
     }
 }
 
-impl<H> RawCall<H>
-where
-    H: Host + Default,
-{
+impl RawCall {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
@@ -132,13 +126,6 @@ where
         }
     }
 
-    /// Sets the host VM environment for the call, overriding
-    /// the default value.
-    pub fn vm(mut self, vm: H) -> Self {
-        self.host = vm;
-        self
-    }
-
     /// Configures the amount of gas to supply.
     /// Note: large values are clipped to the amount of gas remaining.
     pub fn gas(mut self, gas: u64) -> Self {
@@ -152,7 +139,7 @@ where
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn ink(mut self, ink: u64) -> Self {
-        self.gas = Some(self.host.ink_to_gas(ink));
+        // self.gas = Some(self.host.ink_to_gas(ink));
         self
     }
 
@@ -198,53 +185,54 @@ where
         /// [`flush_storage_cache`]: RawCall::flush_storage_cache
         /// [`clear_storage_cache`]: RawCall::clear_storage_cache
         pub fn call(self, contract: Address, calldata: &[u8]) -> ArbResult {
-            let mut outs_len: usize = 0;
-            let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
-            let value = B256::from(self.callvalue);
-            let status = unsafe {
-                #[cfg(feature = "reentrant")]
-                match self.cache_policy {
-                    CachePolicy::Clear => self.host.flush_cache(true /* clear */),
-                    CachePolicy::Flush => self.host.flush_cache(false /* do not clear */),
-                    CachePolicy::DoNothing => {}
-                }
-                match self.kind {
-                    CallKind::Basic => self.host.call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        value.as_ptr(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                    CallKind::Delegate => self.host.delegate_call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                    CallKind::Static => self.host.static_call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                }
-            };
+            Ok(Vec::new())
+            // let mut outs_len: usize = 0;
+            // let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
+            // let value = B256::from(self.callvalue);
+            // let status = unsafe {
+            //     #[cfg(feature = "reentrant")]
+            //     match self.cache_policy {
+            //         CachePolicy::Clear => self.host.flush_cache(true /* clear */),
+            //         CachePolicy::Flush => self.host.flush_cache(false /* do not clear */),
+            //         CachePolicy::DoNothing => {}
+            //     }
+            //     match self.kind {
+            //         CallKind::Basic => self.host.call_contract(
+            //             contract.as_ptr(),
+            //             calldata.as_ptr(),
+            //             calldata.len(),
+            //             value.as_ptr(),
+            //             gas,
+            //             &mut outs_len,
+            //         ),
+            //         CallKind::Delegate => self.host.delegate_call_contract(
+            //             contract.as_ptr(),
+            //             calldata.as_ptr(),
+            //             calldata.len(),
+            //             gas,
+            //             &mut outs_len,
+            //         ),
+            //         CallKind::Static => self.host.static_call_contract(
+            //             contract.as_ptr(),
+            //             calldata.as_ptr(),
+            //             calldata.len(),
+            //             gas,
+            //             &mut outs_len,
+            //         ),
+            //     }
+            // };
 
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "hostio-caching")] {
-                    crate::contract::RETURN_DATA_LEN.set(outs_len);
-                }
-            }
+            // cfg_if::cfg_if! {
+            //     if #[cfg(feature = "hostio-caching")] {
+            //         crate::contract::RETURN_DATA_LEN.set(outs_len);
+            //     }
+            // }
 
-            let outs = self.host.read_return_data(self.offset, self.size);
-            match status {
-                0 => Ok(outs),
-                _ => Err(outs),
-            }
+            // let outs = self.host.read_return_data(self.offset, self.size);
+            // match status {
+            //     0 => Ok(outs),
+            //     _ => Err(outs),
+            // }
         }
     }
 }

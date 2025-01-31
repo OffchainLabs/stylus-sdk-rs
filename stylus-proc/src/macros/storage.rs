@@ -23,50 +23,50 @@ pub fn storage(
         );
     }
 
-    let item = parse_macro_input!(input as ItemStruct);
-    let ItemStruct {
-        attrs,
-        vis,
-        ident,
-        generics,
-        fields,
-        ..
-    } = item;
+    let mut item = parse_macro_input!(input as ItemStruct);
+    // let ItemStruct {
+    //     attrs,
+    //     vis,
+    //     ident,
+    //     generics,
+    //     fields,
+    //     ..
+    // } = item;
 
     // Handle fields based on their type (named or unnamed)
-    let expanded_fields = match fields {
-        syn::Fields::Named(named_fields) => {
-            // Extract the original fields.
-            let original_fields = named_fields.named;
-            quote! {
-                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
-                #original_fields
-            }
-        }
-        syn::Fields::Unnamed(_) => {
-            // Handle tuple structs if needed.
-            emit_error!(
-                fields.span(),
-                "Tuple structs are not supported by #[storage]"
-            );
-            return fields.to_token_stream().into();
-        }
-        syn::Fields::Unit => {
-            // Handle unit structs if needed.
-            quote! {
-                #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
-            }
-        }
-    };
+    // let expanded_fields = match fields {
+    //     syn::Fields::Named(named_fields) => {
+    //         // Extract the original fields.
+    //         let original_fields = named_fields.named;
+    //         quote! {
+    //             #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
+    //             #original_fields
+    //         }
+    //     }
+    //     syn::Fields::Unnamed(_) => {
+    //         // Handle tuple structs if needed.
+    //         emit_error!(
+    //             fields.span(),
+    //             "Tuple structs are not supported by #[storage]"
+    //         );
+    //         return fields.to_token_stream().into();
+    //     }
+    //     syn::Fields::Unit => {
+    //         // Handle unit structs if needed.
+    //         quote! {
+    //             #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
+    //         }
+    //     }
+    // };
     // Inject the host trait generic into the item struct if not defined.
-    let mut host_injected_item: syn::ItemStruct = parse_quote! {
-        #(#attrs)*
-        #vis struct #ident #generics {
-            #expanded_fields
-        }
-    };
-    let storage = Storage::from(&mut host_injected_item);
-    let mut output = host_injected_item.into_token_stream();
+    // let mut host_injected_item: syn::ItemStruct = parse_quote! {
+    //     #(#attrs)*
+    //     #vis struct #ident #generics {
+    //         #fields
+    //     }
+    // };
+    let storage = Storage::from(&mut item);
+    let mut output = item.into_token_stream();
     storage.to_tokens(&mut output);
     output.into()
 }
@@ -114,14 +114,13 @@ impl Storage {
                 const SLOT_BYTES: usize = 32;
                 const REQUIRED_SLOTS: usize = Self::required_slots();
 
-                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8, host: stylus_sdk::host::VM) -> Self {
+                unsafe fn new(mut root: stylus_sdk::alloy_primitives::U256, offset: u8) -> Self {
                     use stylus_sdk::{storage, alloy_primitives};
                     debug_assert!(offset == 0);
 
                     let mut space: usize = 32;
                     let mut slot: usize = 0;
                     let accessor = Self {
-                        #STYLUS_HOST_FIELD: host.clone(),
                         #init
                     };
                     accessor
@@ -138,50 +137,50 @@ impl Storage {
         }
     }
 
-    fn impl_host_access(&self) -> syn::ItemImpl {
-        let name = &self.name;
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
-        parse_quote! {
-            impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-                fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        &self.__stylus_host
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        self.__stylus_host.host.as_ref()
-                    }
-                }
-            }
-        }
-    }
-    fn impl_from_vm(&self) -> syn::ItemImpl {
-        let name = &self.name;
-        let (_, ty_generics, where_clause) = self.generics.split_for_impl();
-        let mut new_generics = self.generics.clone();
-        let host_param =
-            parse_quote!(__StylusHostType: stylus_sdk::stylus_core::Host + Clone + 'static);
-        new_generics.params.push(host_param);
-        let (impl_generics, _, _) = new_generics.split_for_impl();
+    // fn impl_host_access(&self) -> syn::ItemImpl {
+    //     let name = &self.name;
+    //     let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+    //     parse_quote! {
+    //         impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
+    //             fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
+    //                 #[cfg(target_arch = "wasm32")]
+    //                 {
+    //                     &self.__stylus_host
+    //                 }
+    //                 #[cfg(not(target_arch = "wasm32"))]
+    //                 {
+    //                     self.__stylus_host.host.as_ref()
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // fn impl_from_vm(&self) -> syn::ItemImpl {
+    //     let name = &self.name;
+    //     let (_, ty_generics, where_clause) = self.generics.split_for_impl();
+    //     let mut new_generics = self.generics.clone();
+    //     let host_param =
+    //         parse_quote!(__StylusHostType: stylus_sdk::stylus_core::Host + Clone + 'static);
+    //     new_generics.params.push(host_param);
+    //     let (impl_generics, _, _) = new_generics.split_for_impl();
 
-        parse_quote! {
-            #[cfg(not(target_arch = "wasm32"))]
-            impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
-                fn from(host: &__StylusHostType) -> Self {
-                    unsafe {
-                        Self::new(
-                            stylus_sdk::alloy_primitives::U256::ZERO,
-                            0,
-                            stylus_sdk::host::VM {
-                                host: alloc::boxed::Box::new(host.clone()),
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
+    //     parse_quote! {
+    //         #[cfg(not(target_arch = "wasm32"))]
+    //         impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
+    //             fn from(host: &__StylusHostType) -> Self {
+    //                 unsafe {
+    //                     Self::new(
+    //                         stylus_sdk::alloy_primitives::U256::ZERO,
+    //                         0,
+    //                         stylus_sdk::host::VM {
+    //                             host: alloc::boxed::Box::new(host.clone()),
+    //                         },
+    //                     )
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 impl From<&mut syn::ItemStruct> for Storage {
@@ -212,8 +211,8 @@ impl ToTokens for Storage {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
-        self.impl_host_access().to_tokens(tokens);
-        self.impl_from_vm().to_tokens(tokens);
+        // self.impl_host_access().to_tokens(tokens);
+        // self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);
@@ -268,7 +267,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType>::new(root, space as u8, host.clone());
+                let field = <#ty as storage::StorageType>::new(root, space as u8);
                 if words > 0 {
                     slot += words;
                     space = 32;

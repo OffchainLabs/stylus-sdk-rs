@@ -126,8 +126,8 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
-            stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
+        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
+            stylus_sdk::abi::router_entrypoint::<#name, #name>(input)
         }
     }
 }
@@ -145,8 +145,8 @@ fn mark_used_fn() -> syn::ItemFn {
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub unsafe fn mark_used() {
-            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
-            host.pay_for_memory_grow(0);
+            // let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+            stylus_sdk::evm::pay_for_memory_grow(0);
             panic!();
         }
     }
@@ -158,17 +158,19 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+            // let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
             #deny_reentrant
-            host.pay_for_memory_grow(0);
+            stylus_sdk::evm::pay_for_memory_grow(0);
 
-            let input = host.read_args(len);
-            let (data, status) = match #user_fn(input, host.clone()) {
+            let input = stylus_sdk::contract::args(len);
+            let (data, status) = match #user_fn(input) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
-            host.flush_cache(false /* do not clear */);
-            host.write_result(&data);
+            // host.flush_cache(false /* do not clear */);
+            // host.write_result(&data);
+            unsafe { stylus_sdk::storage::StorageCache::flush() };
+            stylus_sdk::contract::output(&data);
             status
         }
     }
@@ -181,7 +183,7 @@ fn deny_reentrant() -> Option<syn::ExprIf> {
             None
         } else {
             Some(parse_quote! {
-                if host.msg_reentrant() {
+                if stylus_sdk::msg::reentrant() {
                     return 1; // revert
                 }
             })

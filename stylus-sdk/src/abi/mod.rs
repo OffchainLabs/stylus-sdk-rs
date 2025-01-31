@@ -18,11 +18,11 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
-use stylus_core::{storage::TopLevelStorage, HostAccess};
+use stylus_core::storage::TopLevelStorage;
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
-use crate::{console, host::VM, storage::StorageType, ArbResult};
+use crate::{console, storage::StorageType, ArbResult};
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
@@ -46,7 +46,7 @@ pub mod internal;
 /// Composition with other routers is possible via `#[inherit]`.
 pub trait Router<S>
 where
-    S: TopLevelStorage + BorrowMut<Self::Storage> + HostAccess,
+    S: TopLevelStorage + BorrowMut<Self::Storage>,
 {
     /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;
@@ -93,12 +93,12 @@ where
 //    if no value is received in the transaction. It is implicitly payable.
 //  - Fallback is called when no other function matches a selector. If a receive function is not
 //    defined, then calls with no input calldata will be routed to the fallback function.
-pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>, host: VM) -> ArbResult
+pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>) -> ArbResult
 where
     R: Router<S>,
-    S: StorageType + TopLevelStorage + BorrowMut<R::Storage> + HostAccess,
+    S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
 {
-    let mut storage = unsafe { S::new(U256::ZERO, 0, host) };
+    let mut storage = unsafe { S::new(U256::ZERO, 0) };
 
     if input.is_empty() {
         console!("no calldata provided");
