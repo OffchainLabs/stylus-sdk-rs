@@ -49,8 +49,8 @@ pub const fn digest_to_selector(digest: [u8; 32]) -> [u8; 4] {
 }
 
 #[allow(unused)]
-pub fn deny_value(method_name: &str) -> Result<(), Vec<u8>> {
-    if msg::value() == U256::ZERO {
+pub fn deny_value(vm: &dyn stylus_core::host::Host, method_name: &str) -> Result<(), Vec<u8>> {
+    if vm.msg_value() == U256::ZERO {
         return Ok(());
     }
     console!("method {method_name} not payable");

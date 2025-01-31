@@ -64,7 +64,7 @@ impl PublicImpl {
         let fallback_deny: Option<syn::ExprIf> = match fallback_purity {
             Purity::Payable => None,
             _ => Some(parse_quote! {
-                if let Err(err) = stylus_sdk::abi::internal::deny_value("fallback") {
+                if let Err(err) = stylus_sdk::abi::internal::deny_value(storage.vm(), "fallback") {
                     return Some(Err(err));
                 }
             }),
@@ -82,7 +82,7 @@ impl PublicImpl {
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
-                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self>
+                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::host::HostAccess,
                 #(
                     S: core::borrow::BorrowMut<#inheritance>,
                 )*
@@ -320,7 +320,7 @@ impl<E: FnExtension> PublicFn<E> {
         } else {
             let name = self.name.to_string();
             Some(parse_quote! {
-                if let Err(err) = internal::deny_value(#name) {
+                if let Err(err) = internal::deny_value(storage.vm(), #name) {
                     return Some(Err(err));
                 }
             })
