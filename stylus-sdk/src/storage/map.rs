@@ -96,7 +96,7 @@ where
     /// to that of `&self`.
     pub fn getter(&self, key: K) -> StorageGuard<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, VM {})) }
+        unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone())) }
     }
 
     /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
@@ -104,7 +104,9 @@ where
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
         let slot = key.to_slot(self.slot.into());
-        unsafe { StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, VM {})) }
+        unsafe {
+            StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone()))
+        }
     }
 
     /// Gets the element at the given key, or the zero value if none is there.
@@ -131,8 +133,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET, VM {});
-            let mut alias = V::new(slot, Self::CHILD_OFFSET, VM {});
+            let store = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
             let prior = store.load();
             alias.set_by_wrapped(value);
             prior
@@ -145,8 +147,8 @@ where
         let slot = key.to_slot(self.slot.into());
         // intentionally alias so that we can erase after load
         unsafe {
-            let store = V::new(slot, Self::CHILD_OFFSET, VM {});
-            let mut alias = V::new(slot, Self::CHILD_OFFSET, VM {});
+            let store = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
+            let mut alias = V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone());
             let value = store.load();
             alias.erase();
             value
