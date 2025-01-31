@@ -25,7 +25,9 @@
 use crate::{host::VM, hostio};
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
+use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
+use stylus_core::host::HostAccess;
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
@@ -157,20 +159,21 @@ where
     __stylus_host: VM,
 }
 
-// impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
-// where
-//     IntBitCount<B>: SupportedInt,
-// {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &self.__stylus_host
+                // self.__stylus_host.host.as_ref()
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<const B: usize, const L: usize, T> From<&T> for StorageUint<B, L>
@@ -298,20 +301,21 @@ where
     __stylus_host: VM,
 }
 
-// impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
-// where
-//     IntBitCount<B>: SupportedInt,
-// {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<const B: usize, const L: usize, T> From<&T> for StorageSigned<B, L>
@@ -431,17 +435,18 @@ pub struct StorageFixedBytes<const N: usize> {
     __stylus_host: VM,
 }
 
-// impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl<const N: usize> HostAccess for StorageFixedBytes<N> {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
@@ -552,17 +557,18 @@ pub struct StorageBool {
     __stylus_host: VM,
 }
 
-// impl HostAccess for StorageBool {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageBool {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageBool
@@ -664,17 +670,18 @@ pub struct StorageAddress {
     __stylus_host: VM,
 }
 
-// impl HostAccess for StorageAddress {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageAddress {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageAddress
@@ -778,17 +785,18 @@ pub struct StorageBlockNumber {
     __stylus_host: VM,
 }
 
-// impl HostAccess for StorageBlockNumber {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageBlockNumber {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageBlockNumber
@@ -893,17 +901,18 @@ pub struct StorageBlockHash {
     __stylus_host: VM,
 }
 
-// impl HostAccess for StorageBlockHash {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageBlockHash {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                // self.__stylus_host.host.as_ref()
+                &self.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageBlockHash

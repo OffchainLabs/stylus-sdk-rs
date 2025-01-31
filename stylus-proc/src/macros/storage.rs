@@ -138,24 +138,25 @@ impl Storage {
         }
     }
 
-    // fn impl_host_access(&self) -> syn::ItemImpl {
-    //     let name = &self.name;
-    //     let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
-    //     parse_quote! {
-    //         impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-    //             fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
-    //                 #[cfg(target_arch = "wasm32")]
-    //                 {
-    //                     &self.__stylus_host
-    //                 }
-    //                 #[cfg(not(target_arch = "wasm32"))]
-    //                 {
-    //                     self.__stylus_host.host.as_ref()
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    fn impl_host_access(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::stylus_core::host::HostAccess for #name #ty_generics #where_clause {
+                fn vm(&self) -> &dyn stylus_sdk::stylus_core::host::Host {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        &self.__stylus_host
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        // self.__stylus_host.host.as_ref()
+                        &self.__stylus_host
+                    }
+                }
+            }
+        }
+    }
     // fn impl_from_vm(&self) -> syn::ItemImpl {
     //     let name = &self.name;
     //     let (_, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -212,7 +213,7 @@ impl ToTokens for Storage {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.item_impl().to_tokens(tokens);
         self.impl_storage_type().to_tokens(tokens);
-        // self.impl_host_access().to_tokens(tokens);
+        self.impl_host_access().to_tokens(tokens);
         // self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);

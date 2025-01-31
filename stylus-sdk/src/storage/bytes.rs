@@ -8,7 +8,9 @@ use alloc::{
     vec::Vec,
 };
 use alloy_primitives::{U256, U8};
+use cfg_if::cfg_if;
 use core::cell::OnceCell;
+use stylus_core::host::HostAccess;
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {
@@ -45,17 +47,18 @@ impl StorageType for StorageBytes {
     }
 }
 
-// impl HostAccess for StorageBytes {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.__stylus_host
-//             } else {
-//                 self.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageBytes {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                &self.__stylus_host
+                // self.__stylus_host.host.as_ref()
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageBytes
@@ -326,17 +329,18 @@ impl StorageType for StorageString {
     }
 }
 
-// impl HostAccess for StorageString {
-//     fn vm(&self) -> &dyn stylus_core::Host {
-//         cfg_if! {
-//             if #[cfg(target_arch = "wasm32")] {
-//                 &self.0.__stylus_host
-//             } else {
-//                 self.0.__stylus_host.host.as_ref()
-//             }
-//         }
-//     }
-// }
+impl HostAccess for StorageString {
+    fn vm(&self) -> &dyn stylus_core::host::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.0.__stylus_host
+            } else {
+                // self.0.__stylus_host.host.as_ref()
+                &self.0.__stylus_host
+            }
+        }
+    }
+}
 
 // #[cfg(not(target_arch = "wasm32"))]
 // impl<T> From<&T> for StorageString
