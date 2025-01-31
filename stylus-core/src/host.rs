@@ -10,7 +10,6 @@ use crate::{
 };
 // use alloc::vec::Vec;
 // use alloy_primitives::{Address, B256, U256};
-// use dyn_clone::DynClone;
 
 use alloy_primitives::{Address, B256, U256};
 
@@ -36,12 +35,12 @@ pub trait Host:
     + CallAccess
     + DeploymentAccess
     + LogAccess
-    + ValueTransfer // + DynClone
+    + ValueTransfer
+    + dyn_clone::DynClone
 {
 }
 
-// // Enables cloning of a boxed, host trait object.
-// dyn_clone::clone_trait_object!(Host);
+dyn_clone::clone_trait_object!(Host);
 
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
