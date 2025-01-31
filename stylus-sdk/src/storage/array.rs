@@ -12,7 +12,7 @@ use core::marker::PhantomData;
 pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
@@ -27,12 +27,12 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 

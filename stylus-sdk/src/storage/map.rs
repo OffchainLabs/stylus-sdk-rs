@@ -12,7 +12,7 @@ use core::marker::PhantomData;
 pub struct StorageMap<K: StorageKey, V: StorageType> {
     slot: U256,
     marker: PhantomData<(K, V)>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 impl<K, V> StorageType for StorageMap<K, V>
@@ -29,12 +29,12 @@ where
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 

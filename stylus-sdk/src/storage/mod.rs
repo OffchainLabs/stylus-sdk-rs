@@ -180,7 +180,7 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Uint<B, L>>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
@@ -242,13 +242,13 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(B <= 256);
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -313,7 +313,7 @@ where
     slot: U256,
     offset: u8,
     cached: OnceCell<Signed<B, L>>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
@@ -375,12 +375,12 @@ where
 
     const SLOT_BYTES: usize = (B / 8);
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -438,7 +438,7 @@ pub struct StorageFixedBytes<const N: usize> {
     slot: U256,
     offset: u8,
     cached: OnceCell<FixedBytes<N>>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl<const N: usize> HostAccess for StorageFixedBytes<N> {
@@ -475,12 +475,12 @@ where
 
     const SLOT_BYTES: usize = N;
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -551,7 +551,7 @@ pub struct StorageBool {
     slot: U256,
     offset: u8,
     cached: OnceCell<bool>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl HostAccess for StorageBool {
@@ -603,12 +603,12 @@ impl StorageType for StorageBool {
 
     const SLOT_BYTES: usize = 1;
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -656,7 +656,7 @@ pub struct StorageAddress {
     slot: U256,
     offset: u8,
     cached: OnceCell<Address>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl HostAccess for StorageAddress {
@@ -708,12 +708,12 @@ impl StorageType for StorageAddress {
 
     const SLOT_BYTES: usize = 20;
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -762,7 +762,7 @@ pub struct StorageBlockNumber {
     slot: U256,
     offset: u8,
     cached: OnceCell<BlockNumber>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl HostAccess for StorageBlockNumber {
@@ -815,12 +815,12 @@ impl StorageType for StorageBlockNumber {
 
     const SLOT_BYTES: usize = 8;
 
-    unsafe fn new(slot: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         Self {
             slot,
             offset,
             cached: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 
@@ -870,7 +870,7 @@ impl From<StorageBlockNumber> for BlockNumber {
 pub struct StorageBlockHash {
     slot: U256,
     cached: OnceCell<BlockHash>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 // impl HostAccess for StorageBlockHash {
@@ -920,12 +920,12 @@ impl StorageType for StorageBlockHash {
     type Wraps<'a> = BlockHash;
     type WrapsMut<'a> = StorageGuardMut<'a, Self>;
 
-    unsafe fn new(slot: U256, _offset: u8, _host: VM) -> Self {
+    unsafe fn new(slot: U256, _offset: u8, host: VM) -> Self {
         let cached = OnceCell::new();
         Self {
             slot,
             cached,
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 

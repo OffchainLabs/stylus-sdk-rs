@@ -14,7 +14,7 @@ use core::cell::OnceCell;
 pub struct StorageBytes {
     root: U256,
     base: OnceCell<U256>,
-    // __stylus_host: VM,
+    __stylus_host: VM,
 }
 
 impl StorageType for StorageBytes {
@@ -27,12 +27,12 @@ impl StorageType for StorageBytes {
     where
         Self: 'a;
 
-    unsafe fn new(root: U256, offset: u8, _host: VM) -> Self {
+    unsafe fn new(root: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             root,
             base: OnceCell::new(),
-            // __stylus_host: host,
+            __stylus_host: host,
         }
     }
 

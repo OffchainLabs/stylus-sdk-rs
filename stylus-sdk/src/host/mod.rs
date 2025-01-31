@@ -22,7 +22,7 @@
 use stylus_core::host::Host;
 
 /// VM does stuff.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct VM;
 
 impl Host for VM {
