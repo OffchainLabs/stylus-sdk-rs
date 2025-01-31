@@ -31,7 +31,7 @@ pub fn transfer_eth(
 ) -> Result<(), Vec<u8>> {
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
     unsafe {
-        RawCall::new_with_value(amount)
+        RawCall::<VM>::new_with_value(amount)
             .skip_return_data()
             .call(to, &[])?;
     }
@@ -61,7 +61,9 @@ pub fn transfer_eth(
 )]
 #[allow(dead_code, deprecated)]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
-    RawCall::new_with_value(amount)
+    use crate::host::VM;
+
+    RawCall::<VM>::new_with_value(amount)
         .skip_return_data()
         .call(to, &[])?;
     Ok(())

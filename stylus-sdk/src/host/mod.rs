@@ -33,7 +33,7 @@ pub mod calls;
 pub mod deploy;
 
 /// VM does stuff.
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct VM;
 
 impl Host for VM {}
