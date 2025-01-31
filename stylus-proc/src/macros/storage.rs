@@ -269,7 +269,7 @@ impl StorageField {
                 space -= bytes;
 
                 let root = root + alloy_primitives::U256::from(slot);
-                let field = <#ty as storage::StorageType>::new(root, space as u8, host);
+                let field = <#ty as storage::StorageType>::new(root, space as u8, host.clone());
                 if words > 0 {
                     slot += words;
                     space = 32;
