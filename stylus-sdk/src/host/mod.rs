@@ -19,7 +19,10 @@
 //     types::AddressVM,
 // };
 
-use stylus_core::host::Host;
+use alloy_primitives::{B256, U256};
+use stylus_core::host::{Host, StorageAccess};
+
+use crate::hostio;
 
 /// VM does stuff.
 #[derive(Debug, Clone)]
@@ -27,6 +30,20 @@ pub struct VM;
 
 impl Host for VM {
     fn foo(&self) {}
+}
+
+impl StorageAccess for VM {
+    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256) {
+        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
+    }
+    fn storage_load_bytes32(&self, key: U256) -> B256 {
+        let mut data = B256::ZERO;
+        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
+        data
+    }
+    fn flush_cache(&self, clear: bool) {
+        unsafe { hostio::storage_flush_cache(clear) }
+    }
 }
 
 // /// Defines an implementation of traits for the VM struct that

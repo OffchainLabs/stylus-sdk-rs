@@ -30,6 +30,7 @@ use core::{cell::OnceCell, marker::PhantomData, ops::Deref};
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
 pub use map::{StorageKey, StorageMap};
+pub use stylus_core::host::StorageAccess;
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
 };
@@ -50,17 +51,8 @@ pub struct StorageCache;
 
 impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
-    fn get_word(key: U256) -> B256 {
-        // cfg_if! {
-        //     if #[cfg(target_arch = "wasm32")] {
-        //         vm.storage_load_bytes32(key)
-        //     } else {
-        //         vm.host.storage_load_bytes32(key)
-        //     }
-        // }
-        let mut data = B256::ZERO;
-        unsafe { hostio::storage_load_bytes32(B256::from(key).as_ptr(), data.as_mut_ptr()) };
-        data
+    fn get_word(vm: VM, key: U256) -> B256 {
+        vm.storage_load_bytes32(key)
     }
 
     /// Stores a 32-byte EVM word to persistent storage.
@@ -68,11 +60,11 @@ impl GlobalStorage for StorageCache {
     /// # Safety
     ///
     /// May alias storage.
-    unsafe fn set_word(key: U256, value: B256) {
-        hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
+    unsafe fn set_word(vm: VM, key: U256, value: B256) {
+        vm.storage_cache_bytes32(key, value)
+        // hostio::storage_cache_bytes32(B256::from(key).as_ptr(), value.as_ptr());
         // cfg_if! {
         //     if #[cfg(target_arch = "wasm32")] {
-        //         vm.storage_cache_bytes32(key, value)
         //     } else {
         //         vm.host.storage_cache_bytes32(key, value)
         //     }
@@ -229,7 +221,14 @@ where
     /// Sets the underlying [`alloy_primitives::Uint`] in persistent storage.
     pub fn set(&mut self, value: Uint<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_uint(self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set_uint(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -286,8 +285,9 @@ where
     type Target = Uint<B, L>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get_uint(self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get_uint(self.__stylus_host.clone(), self.slot, self.offset.into())
+        })
     }
 }
 
@@ -362,7 +362,14 @@ where
     /// Gets the underlying [`Signed`] in persistent storage.
     pub fn set(&mut self, value: Signed<B, L>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_signed(self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set_signed(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -418,8 +425,9 @@ where
     type Target = Signed<B, L>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get_signed(self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get_signed(self.__stylus_host.clone(), self.slot, self.offset.into())
+        })
     }
 }
 
@@ -462,7 +470,14 @@ impl<const N: usize> StorageFixedBytes<N> {
     /// Gets the underlying [`FixedBytes`] in persistent storage.
     pub fn set(&mut self, value: FixedBytes<N>) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set(self.slot, self.offset.into(), value) }
+        unsafe {
+            Storage::set(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        }
     }
 }
 
@@ -534,8 +549,9 @@ impl<const N: usize> Deref for StorageFixedBytes<N> {
     type Target = FixedBytes<N>;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get(self.slot, self.offset.into()) })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get(self.__stylus_host.clone(), self.slot, self.offset.into())
+        })
     }
 }
 
@@ -593,7 +609,14 @@ impl StorageBool {
     /// Gets the underlying [`bool`] in persistent storage.
     pub fn set(&mut self, value: bool) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_byte(self.slot, self.offset.into(), value as u8) }
+        unsafe {
+            Storage::set_byte(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value as u8,
+            )
+        }
     }
 }
 
@@ -638,7 +661,7 @@ impl Deref for StorageBool {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get_byte(self.slot, self.offset.into());
+            let data = Storage::get_byte(self.__stylus_host.clone(), self.slot, self.offset.into());
             data != 0
         })
     }
@@ -698,7 +721,14 @@ impl StorageAddress {
     /// Gets the underlying [`Address`] in persistent storage.
     pub fn set(&mut self, value: Address) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set::<20>(self.slot, self.offset.into(), value.into()) }
+        unsafe {
+            Storage::set::<20>(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value.into(),
+            )
+        }
     }
 }
 
@@ -742,8 +772,9 @@ impl Deref for StorageAddress {
     type Target = Address;
 
     fn deref(&self) -> &Self::Target {
-        self.cached
-            .get_or_init(|| unsafe { Storage::get::<20>(self.slot, self.offset.into()).into() })
+        self.cached.get_or_init(|| unsafe {
+            Storage::get::<20>(self.__stylus_host.clone(), self.slot, self.offset.into()).into()
+        })
     }
 }
 
@@ -805,7 +836,14 @@ impl StorageBlockNumber {
     pub fn set(&mut self, value: BlockNumber) {
         overwrite_cell(&mut self.cached, value);
         let value = FixedBytes::from(value.to_be_bytes());
-        unsafe { Storage::set::<8>(self.slot, self.offset.into(), value) };
+        unsafe {
+            Storage::set::<8>(
+                self.__stylus_host.clone(),
+                self.slot,
+                self.offset.into(),
+                value,
+            )
+        };
     }
 }
 
@@ -850,7 +888,7 @@ impl Deref for StorageBlockNumber {
 
     fn deref(&self) -> &Self::Target {
         self.cached.get_or_init(|| unsafe {
-            let data = Storage::get::<8>(self.slot, self.offset.into());
+            let data = Storage::get::<8>(self.__stylus_host.clone(), self.slot, self.offset.into());
             u64::from_be_bytes(data.0)
         })
     }
@@ -912,7 +950,7 @@ impl StorageBlockHash {
     /// Sets the underlying [`BlockHash`] in persistent storage.
     pub fn set(&mut self, value: BlockHash) {
         overwrite_cell(&mut self.cached, value);
-        unsafe { Storage::set_word(self.slot, value) }
+        unsafe { Storage::set_word(self.__stylus_host.clone(), self.slot, value) }
     }
 }
 
@@ -954,7 +992,8 @@ impl Deref for StorageBlockHash {
     type Target = BlockHash;
 
     fn deref(&self) -> &Self::Target {
-        self.cached.get_or_init(|| Storage::get_word(self.slot))
+        self.cached
+            .get_or_init(|| Storage::get_word(self.__stylus_host.clone(), self.slot))
     }
 }
 
