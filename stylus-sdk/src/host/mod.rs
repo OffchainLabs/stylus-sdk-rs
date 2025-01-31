@@ -19,10 +19,11 @@
 //     types::AddressVM,
 // };
 
-use alloy_primitives::{B256, U256};
-use stylus_core::host::{Host, StorageAccess};
+use alloc::vec::Vec;
+use alloy_primitives::{Address, B256, U256};
+use stylus_core::host::{CalldataAccess, Host, MemoryAccess, MessageAccess, StorageAccess};
 
-use crate::hostio;
+use crate::{contract, evm, hostio, msg, tx};
 
 /// VM does stuff.
 #[derive(Debug, Clone)]
@@ -43,6 +44,59 @@ impl StorageAccess for VM {
     }
     fn flush_cache(&self, clear: bool) {
         unsafe { hostio::storage_flush_cache(clear) }
+    }
+}
+
+impl MessageAccess for VM {
+    fn msg_reentrant(&self) -> bool {
+        msg::reentrant()
+    }
+    fn msg_sender(&self) -> Address {
+        msg::sender()
+    }
+    fn msg_value(&self) -> U256 {
+        msg::value()
+    }
+    fn tx_origin(&self) -> Address {
+        tx::origin()
+    }
+}
+
+impl CalldataAccess for VM {
+    fn read_args(&self, len: usize) -> Vec<u8> {
+        let mut input = Vec::with_capacity(len);
+        unsafe {
+            hostio::read_args(input.as_mut_ptr());
+            input.set_len(len);
+        }
+        input
+    }
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
+        let size = size.unwrap_or_else(|| self.return_data_size().saturating_sub(offset));
+
+        let mut data = Vec::with_capacity(size);
+        if size > 0 {
+            unsafe {
+                let bytes_written = hostio::read_return_data(data.as_mut_ptr(), offset, size);
+                debug_assert!(bytes_written <= size);
+                data.set_len(bytes_written);
+            }
+        };
+        data
+    }
+    fn return_data_size(&self) -> usize {
+        contract::return_data_len()
+    }
+    fn write_result(&self, data: &[u8]) {
+        unsafe {
+            hostio::write_result(data.as_ptr(), data.len());
+        }
+    }
+}
+
+impl MemoryAccess for VM {
+    fn pay_for_memory_grow(&self, pages: u16) {
+        evm::pay_for_memory_grow(pages)
     }
 }
 

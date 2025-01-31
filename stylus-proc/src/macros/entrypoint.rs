@@ -146,7 +146,7 @@ fn mark_used_fn() -> syn::ItemFn {
         #[no_mangle]
         pub unsafe fn mark_used() {
             let host = stylus_sdk::host::VM {};
-            stylus_sdk::evm::pay_for_memory_grow(0);
+            host.pay_for_memory_grow(0);
             panic!();
         }
     }
@@ -160,16 +160,15 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
             let host = stylus_sdk::host::VM {};
             #deny_reentrant
-            stylus_sdk::evm::pay_for_memory_grow(0);
+            host.pay_for_memory_grow(0);
 
-            let input = stylus_sdk::contract::args(len);
+            let input = host.read_args(len);
             let (data, status) = match #user_fn(input, host.clone()) {
                 Ok(data) => (data, 0),
                 Err(data) => (data, 1),
             };
             host.flush_cache(false /* do not clear */);
-            // host.write_result(&data);
-            stylus_sdk::contract::output(&data);
+            host.write_result(&data);
             status
         }
     }
@@ -182,7 +181,7 @@ fn deny_reentrant() -> Option<syn::ExprIf> {
             None
         } else {
             Some(parse_quote! {
-                if stylus_sdk::msg::reentrant() {
+                if host.msg_reentrant() {
                     return 1; // revert
                 }
             })

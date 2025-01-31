@@ -12,40 +12,10 @@
 // use alloy_primitives::{Address, B256, U256};
 // use dyn_clone::DynClone;
 
-use alloy_primitives::{B256, U256};
+use alloy_primitives::{Address, B256, U256};
 
-pub trait Host: StorageAccess {
+pub trait Host: StorageAccess + CalldataAccess + MessageAccess + MemoryAccess {
     fn foo(&self);
-}
-
-pub trait StorageAccess {
-    /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
-    /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
-    /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
-    /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
-    ///
-    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
-    /// will cost less than in the EVM.
-    ///
-    /// [`SLOAD`]: https://www.evm.codes/#54
-    fn storage_load_bytes32(&self, key: U256) -> B256;
-    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
-    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
-    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
-    ///
-    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
-    ///
-    /// [`SSTORE`]: https://www.evm.codes/#55
-    ///
-    /// # Safety
-    /// May alias storage.
-    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256);
-    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
-    /// Analogous to repeated invocations of [`SSTORE`].
-    ///
-    /// [`SSTORE`]: https://www.evm.codes/#55
-    fn flush_cache(&self, clear: bool);
 }
 
 // /// The host trait defines methods a Stylus contract can use to interact
@@ -96,33 +66,33 @@ pub trait StorageAccess {
 //     fn native_keccak256(&self, input: &[u8]) -> B256;
 // }
 
-// /// Provides access to host methods relating to the accessing the calldata
-// /// of a Stylus contract transaction.
-// pub trait CalldataAccess {
-//     /// Reads the program calldata. The semantics are equivalent to that of the EVM's
-//     /// [`CALLDATA_COPY`] opcode when requesting the entirety of the current call's calldata.
-//     ///
-//     /// [`CALLDATA_COPY`]: https://www.evm.codes/#37
-//     fn read_args(&self, len: usize) -> Vec<u8>;
-//     /// Copies the bytes of the last EVM call or deployment return result. Does not revert if out of
-//     /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
-//     /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
-//     ///
-//     /// Returns the number of bytes written.
-//     ///
-//     /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
-//     fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8>;
-//     /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
-//     /// happened during the program's execution. The semantics are equivalent to that of the EVM's
-//     /// [`RETURN_DATA_SIZE`] opcode.
-//     ///
-//     /// [`RETURN_DATA_SIZE`]: https://www.evm.codes/#3d
-//     fn return_data_size(&self) -> usize;
-//     /// Writes the final return data. If not called before the program exists, the return data will
-//     /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
-//     /// naturally when `user_entrypoint` returns.
-//     fn write_result(&self, data: &[u8]);
-// }
+/// Provides access to host methods relating to the accessing the calldata
+/// of a Stylus contract transaction.
+pub trait CalldataAccess {
+    /// Reads the program calldata. The semantics are equivalent to that of the EVM's
+    /// [`CALLDATA_COPY`] opcode when requesting the entirety of the current call's calldata.
+    ///
+    /// [`CALLDATA_COPY`]: https://www.evm.codes/#37
+    fn read_args(&self, len: usize) -> Vec<u8>;
+    /// Copies the bytes of the last EVM call or deployment return result. Does not revert if out of
+    /// bounds, but rather copies the overlapping portion. The semantics are otherwise equivalent
+    /// to that of the EVM's [`RETURN_DATA_COPY`] opcode.
+    ///
+    /// Returns the number of bytes written.
+    ///
+    /// [`RETURN_DATA_COPY`]: https://www.evm.codes/#3e
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8>;
+    /// Returns the length of the last EVM call or deployment return result, or `0` if neither have
+    /// happened during the program's execution. The semantics are equivalent to that of the EVM's
+    /// [`RETURN_DATA_SIZE`] opcode.
+    ///
+    /// [`RETURN_DATA_SIZE`]: https://www.evm.codes/#3d
+    fn return_data_size(&self) -> usize;
+    /// Writes the final return data. If not called before the program exists, the return data will
+    /// be 0 bytes long. Note that this hostio does not cause the program to exit, which happens
+    /// naturally when `user_entrypoint` returns.
+    fn write_result(&self, data: &[u8]);
+}
 
 // /// Provides access to programmatic creation of contracts via the host environment's CREATE
 // /// and CREATE2 opcodes in the EVM.
@@ -192,36 +162,36 @@ pub trait StorageAccess {
 //     );
 // }
 
-// /// Provides access to storage access and mutation via host methods.
-// pub trait StorageAccess {
-//     /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
-//     /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
-//     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
-//     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
-//     ///
-//     /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
-//     /// will cost less than in the EVM.
-//     ///
-//     /// [`SLOAD`]: https://www.evm.codes/#54
-//     fn storage_load_bytes32(&self, key: U256) -> B256;
-//     /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
-//     /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-//     /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
-//     /// are equivalent to that of the EVM's [`SSTORE`] opcode.
-//     ///
-//     /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
-//     ///
-//     /// [`SSTORE`]: https://www.evm.codes/#55
-//     ///
-//     /// # Safety
-//     /// May alias storage.
-//     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256);
-//     /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
-//     /// Analogous to repeated invocations of [`SSTORE`].
-//     ///
-//     /// [`SSTORE`]: https://www.evm.codes/#55
-//     fn flush_cache(&self, clear: bool);
-// }
+/// Provides access to storage access and mutation via host methods.
+pub trait StorageAccess {
+    /// Reads a 32-byte value from permanent storage. Stylus's storage format is identical to
+    /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
+    /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
+    /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
+    ///
+    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
+    /// will cost less than in the EVM.
+    ///
+    /// [`SLOAD`]: https://www.evm.codes/#54
+    fn storage_load_bytes32(&self, key: U256) -> B256;
+    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
+    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
+    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
+    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
+    ///
+    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
+    ///
+    /// # Safety
+    /// May alias storage.
+    unsafe fn storage_cache_bytes32(&self, key: U256, value: B256);
+    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
+    /// Analogous to repeated invocations of [`SSTORE`].
+    ///
+    /// [`SSTORE`]: https://www.evm.codes/#55
+    fn flush_cache(&self, clear: bool);
+}
 
 // /// Provides access to calling other contracts using host semantics.
 // ///
@@ -391,41 +361,41 @@ pub trait StorageAccess {
 //     fn code_hash(&self, account: Address) -> B256;
 // }
 
-// /// Provides the ability to pay for memory growth of a Stylus contract.
-// pub trait MemoryAccess {
-//     /// The `entrypoint!` macro handles importing this hostio, which is required if the
-//     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
-//     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
-//     /// Calls made voluntarily will unproductively consume gas.
-//     fn pay_for_memory_grow(&self, pages: u16);
-// }
+/// Provides the ability to pay for memory growth of a Stylus contract.
+pub trait MemoryAccess {
+    /// The `entrypoint!` macro handles importing this hostio, which is required if the
+    /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
+    /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
+    /// Calls made voluntarily will unproductively consume gas.
+    fn pay_for_memory_grow(&self, pages: u16);
+}
 
-// /// Provides access to transaction details of a Stylus contract.
-// pub trait MessageAccess {
-//     /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
-//     /// the semantics are equivalent to that of the EVM's [`CALLER`] opcode, including in cases
-//     /// arising from [`DELEGATE_CALL`].
-//     ///
-//     /// For L1-to-L2 retryable ticket transactions, the top-level sender's address will be aliased.
-//     /// See [`Retryable Ticket Address Aliasing`] for more information on how this works.
-//     ///
-//     /// [`CALLER`]: https://www.evm.codes/#33
-//     /// [`DELEGATE_CALL`]: https://www.evm.codes/#f4
-//     /// [`Retryable Ticket Address Aliasing`]: https://developer.arbitrum.io/arbos/l1-to-l2-messaging#address-aliasing
-//     fn msg_sender(&self) -> Address;
-//     /// Whether the current call is reentrant.
-//     fn msg_reentrant(&self) -> bool;
-//     /// Get the ETH value in wei sent to the program. The semantics are equivalent to that of the
-//     /// EVM's [`CALLVALUE`] opcode.
-//     ///
-//     /// [`CALLVALUE`]: https://www.evm.codes/#34
-//     fn msg_value(&self) -> U256;
-//     /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
-//     /// EVM's [`ORIGIN`] opcode.
-//     ///
-//     /// [`ORIGIN`]: https://www.evm.codes/#32
-//     fn tx_origin(&self) -> Address;
-// }
+/// Provides access to transaction details of a Stylus contract.
+pub trait MessageAccess {
+    /// Gets the address of the account that called the program. For normal L2-to-L2 transactions
+    /// the semantics are equivalent to that of the EVM's [`CALLER`] opcode, including in cases
+    /// arising from [`DELEGATE_CALL`].
+    ///
+    /// For L1-to-L2 retryable ticket transactions, the top-level sender's address will be aliased.
+    /// See [`Retryable Ticket Address Aliasing`] for more information on how this works.
+    ///
+    /// [`CALLER`]: https://www.evm.codes/#33
+    /// [`DELEGATE_CALL`]: https://www.evm.codes/#f4
+    /// [`Retryable Ticket Address Aliasing`]: https://developer.arbitrum.io/arbos/l1-to-l2-messaging#address-aliasing
+    fn msg_sender(&self) -> Address;
+    /// Whether the current call is reentrant.
+    fn msg_reentrant(&self) -> bool;
+    /// Get the ETH value in wei sent to the program. The semantics are equivalent to that of the
+    /// EVM's [`CALLVALUE`] opcode.
+    ///
+    /// [`CALLVALUE`]: https://www.evm.codes/#34
+    fn msg_value(&self) -> U256;
+    /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
+    /// EVM's [`ORIGIN`] opcode.
+    ///
+    /// [`ORIGIN`]: https://www.evm.codes/#32
+    fn tx_origin(&self) -> Address;
+}
 
 // /// Provides access to metering values such as EVM gas and Stylus ink used and remaining,
 // /// as well as details of their prices based on the host environment.
