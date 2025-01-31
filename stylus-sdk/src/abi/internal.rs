@@ -5,8 +5,7 @@
 //! Most users shouldn't call these.
 
 use crate::{abi::AbiType, console, ArbResult};
-use alloc::{vec, vec::Vec};
-use alloy_primitives::U256;
+use alloc::vec::Vec;
 use alloy_sol_types::SolType;
 use core::fmt;
 
@@ -46,15 +45,6 @@ pub const fn digest_to_selector(digest: [u8; 32]) -> [u8; 4] {
     selector[2] = digest[2];
     selector[3] = digest[3];
     selector
-}
-
-#[allow(unused)]
-pub fn deny_value(vm: &dyn stylus_core::Host, method_name: &str) -> Result<(), Vec<u8>> {
-    if vm.msg_value() == U256::ZERO {
-        return Ok(());
-    }
-    console!("method {method_name} not payable");
-    Err(vec![])
 }
 
 #[allow(unused)]
