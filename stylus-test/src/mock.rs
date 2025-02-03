@@ -1,11 +1,7 @@
 use alloy_primitives::{address, Address, B256, U256};
+use alloy_provider::{network::Ethereum, Provider, RootProvider};
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
-use ethers::middleware::Middleware;
-use ethers::{
-    providers::{Http, Provider},
-    types::{NameOrAddress, H160, H256},
-};
 use rclite::Rc;
 use std::{cell::RefCell, collections::HashMap, sync::Arc};
 use tokio::runtime::Runtime;
@@ -40,7 +36,7 @@ pub(crate) struct MockVMState {
     pub static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
     pub deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
     pub emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
-    pub provider: Option<Arc<Provider<Http>>>,
+    pub provider: Option<Arc<RootProvider<Ethereum>>>,
 }
 
 impl MockVMState {
@@ -242,17 +238,11 @@ impl StorageAccess for TestVM {
     fn storage_load_bytes32(&self, key: U256) -> B256 {
         if let Some(provider) = self.state.borrow().provider.clone() {
             let rt = Runtime::new().expect("Failed to create runtime");
-
-            let slot_bytes: &[u8; 32] = &key.to_be_bytes();
-            let slot = H256::from_slice(&slot_bytes[..]);
-
-            let addr = NameOrAddress::Address(H160::from_slice(
-                &self.state.borrow().contract_address.as_slice(),
-            ));
+            let addr = self.state.borrow().contract_address.clone();
             let storage = rt
-                .block_on(async { provider.get_storage_at(addr, slot, None).await })
+                .block_on(async { provider.get_storage_at(addr, key).await })
                 .unwrap_or_default();
-            return B256::from_slice(storage.as_bytes());
+            return B256::from(storage);
         }
         self.state
             .borrow()

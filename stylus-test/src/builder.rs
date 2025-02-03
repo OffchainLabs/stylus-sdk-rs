@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use alloy_primitives::{Address, B256, U256};
-use ethers::providers::{Http, Provider};
+use alloy_provider::{network::Ethereum, RootProvider};
+use url::Url;
 
 use crate::{MockVMState, TestVM};
 
@@ -12,7 +13,7 @@ pub struct MockHostBuilder {
     contract_address: Option<Address>,
     rpc_url: Option<String>,
     storage: Option<HashMap<U256, B256>>,
-    provider: Option<Arc<Provider<Http>>>,
+    provider: Option<Arc<RootProvider<Ethereum>>>,
     block_num: Option<u64>,
 }
 
@@ -36,9 +37,8 @@ impl MockHostBuilder {
         self.rpc_url = Some(url);
         self.block_num = block_num;
         if let Some(url) = &self.rpc_url {
-            if let Ok(provider) = Provider::<Http>::try_from(url.as_str()) {
-                self.provider = Some(Arc::new(provider));
-            }
+            let url = Url::parse(url).unwrap();
+            self.provider = Some(Arc::new(RootProvider::new_http(url)));
         }
         self
     }
