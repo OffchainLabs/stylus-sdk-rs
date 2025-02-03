@@ -22,7 +22,6 @@ pub(crate) struct MockVMState {
     pub contract_address: Address,
     pub chain_id: u64,
     pub reentrant: bool,
-    // Add fields for enhanced testing
     pub block_number: u64,
     pub block_timestamp: u64,
     pub tx_origin: Address,
@@ -36,7 +35,6 @@ pub(crate) struct MockVMState {
     pub block_basefee: U256,
     pub tx_gas_price: U256,
     pub tx_ink_price: u32,
-    // Add ways of mocking expected calls, deployments, and logs.
     pub call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
     pub delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
     pub static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
@@ -574,7 +572,7 @@ impl LogAccess for TestVM {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "reentrant")))]
 mod tests {
     use super::*;
 
