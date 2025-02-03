@@ -165,7 +165,7 @@ impl Storage {
                     if self.vm().msg_value() == alloy_primitives::U256::ZERO {
                         return Ok(());
                     }
-                    // console!("method {method_name} not payable");
+                    stylus_sdk::console!("method {method_name} not payable");
                     Err(vec![])
                 }
             }
