@@ -310,15 +310,17 @@ impl CryptographyAccess for TestVM {
 
 impl CalldataAccess for TestVM {
     fn read_args(&self, _len: usize) -> Vec<u8> {
-        Vec::new()
+        unimplemented!("read_args not yet implemented for TestVM")
     }
     fn read_return_data(&self, _offset: usize, _size: Option<usize>) -> Vec<u8> {
-        Vec::new()
+        unimplemented!("read_return_data not yet implemented for TestVM")
     }
     fn return_data_size(&self) -> usize {
-        0
+        unimplemented!("return_data_size not yet implemented for TestVM")
     }
-    fn write_result(&self, _data: &[u8]) {}
+    fn write_result(&self, _data: &[u8]) {
+        unimplemented!("write_result not yet implemented for TestVM")
+    }
 }
 
 unsafe impl UnsafeDeploymentAccess for TestVM {
@@ -330,6 +332,7 @@ unsafe impl UnsafeDeploymentAccess for TestVM {
         _contract: *mut u8,
         _revert_data_len: *mut usize,
     ) {
+        unimplemented!("unsafe create1 not yet implemented for TestVM")
     }
     unsafe fn create2(
         &self,
@@ -340,6 +343,7 @@ unsafe impl UnsafeDeploymentAccess for TestVM {
         _contract: *mut u8,
         _revert_data_len: *mut usize,
     ) {
+        unimplemented!("unsafe create2 not yet implemented for TestVM")
     }
 }
 
@@ -377,7 +381,7 @@ unsafe impl UnsafeCallAccess for TestVM {
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {
-        0
+        unimplemented!("unsafe call_contract not yet implemented for TestVM")
     }
     unsafe fn delegate_call_contract(
         &self,
@@ -387,7 +391,7 @@ unsafe impl UnsafeCallAccess for TestVM {
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {
-        0
+        unimplemented!("unsafe delegate_call_contract not yet implemented for TestVM")
     }
     unsafe fn static_call_contract(
         &self,
@@ -397,7 +401,7 @@ unsafe impl UnsafeCallAccess for TestVM {
         _gas: u64,
         _outs_len: &mut usize,
     ) -> u8 {
-        0
+        unimplemented!("unsafe static_call_contract not yet implemented for TestVM")
     }
 }
 
