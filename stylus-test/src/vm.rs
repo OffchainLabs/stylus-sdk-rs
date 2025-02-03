@@ -5,7 +5,7 @@
 //! Allows for mocking of all host methods defined on the [`stylus_core::host::Host`] trait, such
 //! as access to storage, messages, block values, and more.
 //!
-//! ```no_run
+//! ```ignore
 //! use stylus_sdk::{alloy_primitives::U256, prelude::*};
 //!
 //! #[entrypoint]

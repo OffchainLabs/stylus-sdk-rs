@@ -19,16 +19,15 @@ use crate::{state::VMState, TestVM};
 ///
 /// # Example
 /// ```
-/// use stylus_sdk::testing::TestVMBuilder;
-/// use alloy_primitives::{Address, U256};
+/// use stylus_test::{TestVM, TestVMBuilder};
+/// use alloy_primitives::{address, Address, U256};
 ///
 /// let vm: TestVM = TestVMBuilder::new()
 ///     .sender(address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"))
 ///     .contract_address(address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"))
 ///     .value(U256::from(1))
 ///     .rpc_url("http://localhost:8547")
-///     .build()
-///     .unwrap();
+///     .build();
 /// ```
 #[derive(Default)]
 pub struct TestVMBuilder {

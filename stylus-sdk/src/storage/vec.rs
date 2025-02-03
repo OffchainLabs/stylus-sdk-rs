@@ -168,9 +168,9 @@ impl<S: StorageType> StorageVec<S> {
     /// extern crate alloc;
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
-    /// use stylus_test::mock::*;
+    /// use stylus_sdk::testing::*;
     ///
-    /// let vm = stylus_sdk::testing::TestVM::default();
+    /// let vm = TestVM::default();
     /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::from(&vm);
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
