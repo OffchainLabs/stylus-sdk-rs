@@ -410,7 +410,7 @@ impl Extend<char> for StorageString {
 mod tests {
     use super::*;
     use alloy_primitives::B256;
-    use stylus_test::mock::*;
+    use stylus_test::vm::*;
 
     #[test]
     fn test_storage_bytes_is_empty() {

@@ -2794,7 +2794,6 @@ dependencies = [
  "alloy-primitives",
  "alloy-provider",
  "alloy-sol-types",
- "rclite",
  "stylus-core",
  "tokio",
  "url",

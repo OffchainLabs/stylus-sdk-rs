@@ -1,78 +1,80 @@
-use alloy_primitives::{address, Address, B256, U256};
-use alloy_provider::{network::Ethereum, Provider, RootProvider};
+// Copyright 2025-2026, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
+//! Defines a test VM environment for unit testing Stylus contracts.
+//! Allows for mocking of all host methods defined on the [`stylus_core::host::Host`] trait, such
+//! as access to storage, messages, block values, and more.
+//!
+//! ```no_run
+//! use stylus_sdk::{alloy_primitives::U256, prelude::*};
+//!
+//! #[entrypoint]
+//! #[storage]
+//! pub struct MyContract;
+//!
+//! #[public]
+//! impl MyContract {
+//!     pub fn check_msg_value(&self) -> U256 {
+//!        self.vm().msg_value()
+//!     }
+//! }
+//!
+//! #[cfg(test)]
+//! mod test {
+//!     use super::*;
+//!     use stylus_sdk::testing::*;
+//!
+//!     #[test]
+//!     fn test_my_contract() {
+//!         let vm = TestVM::default();
+//!         let contract = MyContract::from(&vm);
+//!
+//!         let want = U256::from(100);
+//!         vm.set_value(want);
+//!         let got = contract.check_msg_value();
+//!
+//!         assert_eq!(want, got);
+//!     }
+//! }
+//! ```
+
+use alloy_primitives::{Address, B256, U256};
+use alloy_provider::Provider;
 use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
-use rclite::Rc;
-use std::{cell::RefCell, collections::HashMap, sync::Arc};
+use std::cell::RefCell;
+use std::rc::Rc;
 use tokio::runtime::Runtime;
 
 pub use stylus_core::*;
 
-/// Arbitrum One's chain id.
-pub const CHAIN_ID: u64 = 42161;
+use crate::state::VMState;
 
-#[derive(Clone)]
-pub(crate) struct MockVMState {
-    pub storage: HashMap<U256, B256>,
-    pub msg_sender: Address,
-    pub contract_address: Address,
-    pub chain_id: u64,
-    pub reentrant: bool,
-    pub block_number: u64,
-    pub block_timestamp: u64,
-    pub tx_origin: Address,
-    pub balances: HashMap<Address, U256>,
-    pub code_storage: HashMap<Address, Vec<u8>>,
-    pub gas_left: u64,
-    pub ink_left: u64,
-    pub msg_value: U256,
-    pub block_gas_limit: u64,
-    pub coinbase: Address,
-    pub block_basefee: U256,
-    pub tx_gas_price: U256,
-    pub tx_ink_price: u32,
-    pub call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
-    pub emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
-    pub provider: Option<Arc<RootProvider<Ethereum>>>,
-}
-
-impl MockVMState {
-    pub fn new() -> Self {
-        Self {
-            storage: HashMap::new(),
-            msg_sender: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
-            contract_address: address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"),
-            chain_id: CHAIN_ID,
-            reentrant: false,
-            block_number: 0,
-            block_timestamp: 0,
-            tx_origin: Address::ZERO,
-            balances: HashMap::new(),
-            code_storage: HashMap::new(),
-            gas_left: 1_000_000,
-            ink_left: 1_000_000,
-            msg_value: U256::ZERO,
-            block_basefee: U256::from(1_000_000),
-            block_gas_limit: 30_000_000,
-            coinbase: address!("DeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"),
-            tx_gas_price: U256::from(1),
-            tx_ink_price: 1,
-            call_returns: HashMap::new(),
-            delegate_call_returns: HashMap::new(),
-            static_call_returns: HashMap::new(),
-            deploy_returns: HashMap::new(),
-            emitted_logs: Vec::new(),
-            provider: None,
-        }
-    }
-}
-
+/// A mock implementation of the [`stylus_core::host::Host`] trait for unit testing Stylus contracts.
+///
+/// # Examples
+/// ```
+/// use stylus_test::TestVM;
+/// use alloy_primitives::{Address, U256};
+///
+/// let vm = TestVM::new();
+///
+/// // Configure transaction state.
+/// vm.set_block_number(100);
+/// vm.set_sender(Address::from([1u8; 20]));
+/// vm.set_value(U256::from(1000));
+///
+/// // Mock contract calls.
+/// let contract = Address::from([2u8; 20]);
+/// let data = vec![0x01, 0x02, 0x03];
+/// vm.mock_call(contract, data.clone(), Ok(vec![0x04]));
+///
+/// // Get emitted logs after execution
+/// let logs = vm.get_emitted_logs();
+/// ```
 #[derive(Clone)]
 pub struct TestVM {
-    state: Rc<RefCell<MockVMState>>,
+    state: Rc<RefCell<VMState>>,
 }
 
 impl Default for TestVM {
@@ -81,8 +83,8 @@ impl Default for TestVM {
     }
 }
 
-impl From<MockVMState> for TestVM {
-    fn from(state: MockVMState) -> Self {
+impl From<VMState> for TestVM {
+    fn from(state: VMState) -> Self {
         Self {
             state: Rc::new(RefCell::new(state)),
         }
@@ -90,41 +92,110 @@ impl From<MockVMState> for TestVM {
 }
 
 impl TestVM {
+    /// Creates a new TestVM instance.
+    ///
+    /// # Examples
+    /// ```
+    /// use stylus_test::TestVM;
+    /// let vm = TestVM::new();
+    /// ```
     pub fn new() -> Self {
         Self {
-            state: Rc::new(RefCell::new(MockVMState::new())),
+            state: Rc::new(RefCell::new(VMState::default())),
         }
     }
+
+    /// Returns a cloned snapshot of the internal test VM state,
+    /// which contains storage, balances, and other mocked values
+    /// in HashMaps and other simple data structures for inspection.
+    pub fn snapshot(&self) -> VMState {
+        self.state.borrow().clone()
+    }
+
+    /// Sets the current block number.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// let vm = TestVM::new();
+    /// vm.set_block_number(15_000_000);
+    /// ```
     pub fn set_block_number(&self, block_number: u64) {
         self.state.borrow_mut().block_number = block_number;
     }
+
+    /// Sets the current block timestamp.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// let vm = TestVM::new();
+    /// vm.set_block_timestamp(1677654321);
+    /// ```
     pub fn set_block_timestamp(&self, timestamp: u64) {
         self.state.borrow_mut().block_timestamp = timestamp;
     }
+
+    /// Sets the transaction origin address.
     pub fn set_tx_origin(&self, origin: Address) {
         self.state.borrow_mut().tx_origin = origin;
     }
+
+    /// Sets the balance for an address.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// # use alloy_primitives::{Address, U256};
+    /// let vm = TestVM::new();
+    /// let addr = Address::from([1u8; 20]);
+    /// vm.set_balance(addr, U256::from(1000));
+    /// ```
     pub fn set_balance(&self, address: Address, balance: U256) {
         self.state.borrow_mut().balances.insert(address, balance);
     }
+
+    /// Sets the contract address.
     pub fn set_contract_address(&self, address: Address) {
         self.state.borrow_mut().contract_address = address;
     }
+
+    /// Sets contract bytecode at an address.
     pub fn set_code(&self, address: Address, code: Vec<u8>) {
         self.state.borrow_mut().code_storage.insert(address, code);
     }
+
+    /// Sets remaining gas.
     pub fn set_gas_left(&self, gas: u64) {
         self.state.borrow_mut().gas_left = gas;
     }
+
+    /// Sets remaining ink.
     pub fn set_ink_left(&self, ink: u64) {
         self.state.borrow_mut().ink_left = ink;
     }
+
+    /// Sets the transaction sender.
     pub fn set_sender(&self, sender: Address) {
         self.state.borrow_mut().msg_sender = sender;
     }
+
+    /// Sets the transaction value.
     pub fn set_value(&self, value: U256) {
         self.state.borrow_mut().msg_value = value;
     }
+
+    /// Gets a storage value by key.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// # use alloy_primitives::{B256, U256};
+    /// let vm = TestVM::new();
+    /// let key = U256::from(1);
+    /// let value = vm.get_storage(key);
+    /// assert_eq!(value, B256::ZERO);
+    /// ```
     pub fn get_storage(&self, key: U256) -> B256 {
         self.state
             .borrow()
@@ -133,18 +204,41 @@ impl TestVM {
             .copied()
             .unwrap_or_default()
     }
+
+    /// Sets a storage value.
     pub fn set_storage(&self, key: U256, value: B256) {
         self.state.borrow_mut().storage.insert(key, value);
     }
+
+    /// Clears all storage.
     pub fn clear_storage(&self) {
         self.state.borrow_mut().storage.clear();
     }
+
+    /// Mocks a contract call.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// # use alloy_primitives::Address;
+    /// let vm = TestVM::new();
+    /// let contract = Address::from([1u8; 20]);
+    /// let data = vec![0x01, 0x02, 0x03];
+    ///
+    /// // Mock successful call
+    /// vm.mock_call(contract, data.clone(), Ok(vec![0x04]));
+    ///
+    /// // Mock reverted call
+    /// vm.mock_call(contract, data, Err(vec![0xff]));
+    /// ```
     pub fn mock_call(&self, to: Address, data: Vec<u8>, return_data: Result<Vec<u8>, Vec<u8>>) {
         self.state
             .borrow_mut()
             .call_returns
             .insert((to, data), return_data);
     }
+
+    /// Mocks a delegate call.
     pub fn mock_delegate_call(
         &self,
         to: Address,
@@ -156,6 +250,8 @@ impl TestVM {
             .delegate_call_returns
             .insert((to, data), return_data);
     }
+
+    /// Mocks a static call.
     pub fn mock_static_call(
         &self,
         to: Address,
@@ -167,15 +263,33 @@ impl TestVM {
             .static_call_returns
             .insert((to, data), return_data);
     }
+
+    /// Mocks contract deployment.
+    ///
+    /// # Examples
+    /// ```
+    /// # use stylus_test::TestVM;
+    /// # use alloy_primitives::{Address, B256};
+    /// let vm = TestVM::new();
+    /// let code = vec![0x60, 0x80, 0x60, 0x40];
+    /// let salt = Some(B256::with_last_byte(1));
+    /// let deployed_address = Address::from([2u8; 20]);
+    ///
+    /// vm.mock_deploy(code, salt, Ok(deployed_address));
+    /// ```
     pub fn mock_deploy(&self, code: Vec<u8>, salt: Option<B256>, result: Result<Address, Vec<u8>>) {
         self.state
             .borrow_mut()
             .deploy_returns
             .insert((code, salt), result);
     }
+
+    /// Gets all emitted logs.
     pub fn get_emitted_logs(&self) -> Vec<(Vec<B256>, Vec<u8>)> {
         self.state.borrow().emitted_logs.clone()
     }
+
+    /// Clears all mocks and logs.
     pub fn clear_mocks(&self) {
         let mut state = self.state.borrow_mut();
         state.call_returns.clear();

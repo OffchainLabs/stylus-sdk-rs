@@ -296,7 +296,7 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
 
 #[cfg(test)]
 mod test {
-    use stylus_test::mock::TestVM;
+    use stylus_test::vm::TestVM;
 
     #[test]
     fn test_storage_vec() {
