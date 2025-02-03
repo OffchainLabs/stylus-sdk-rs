@@ -49,6 +49,12 @@ pub trait HostAccess {
     fn vm(&self) -> &dyn Host;
 }
 
+/// Defines a trait that can deny access to a contract router method if a message value is
+/// passed in while the method is non-payable.
+pub trait ValueDenier {
+    fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>>;
+}
+
 /// Provides access to native cryptography extensions provided by
 /// a Stylus contract host, such as keccak256.
 pub trait CryptographyAccess {
