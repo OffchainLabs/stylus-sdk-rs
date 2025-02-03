@@ -8,7 +8,7 @@ use tokio::runtime::Runtime;
 
 pub use stylus_core::*;
 
-/// Arbitrum's CHAIN ID.
+/// Arbitrum One's chain id.
 pub const CHAIN_ID: u64 = 42161;
 
 #[derive(Clone)]
@@ -287,7 +287,6 @@ unsafe impl UnsafeCallAccess for TestVM {
     }
 }
 
-// Update existing trait implementations with new functionality
 impl BlockAccess for TestVM {
     fn block_basefee(&self) -> U256 {
         self.state.borrow().block_basefee
@@ -679,7 +678,7 @@ mod tests {
         let result = vm.transfer_eth(to, transfer_amount);
         assert!(result.is_err());
 
-        // Check that balances remain unchanged
+        // Check that balances remain unchanged.
         assert_eq!(vm.balance(from), initial_balance);
         assert_eq!(vm.balance(to), U256::ZERO);
     }
