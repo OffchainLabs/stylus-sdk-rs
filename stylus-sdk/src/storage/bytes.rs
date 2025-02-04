@@ -142,9 +142,14 @@ impl StorageBytes {
 
         // already long representation
         // add the new byte and update length
-        let slot = root.storage.base() + U256::from(index / 32);
+        let (slot, offset) = root.index_slot(index);
         unsafe {
-            Storage::set_uint(root.storage.clone_vm(), slot, index % 32, U8::from(value));
+            Storage::set_uint(
+                root.storage.clone_vm(),
+                slot,
+                offset as usize,
+                U8::from(value),
+            );
             root.write_len(index + 1);
         }
     }
@@ -310,13 +315,11 @@ impl Extend<u8> for StorageBytes {
         }
         // we want to work with word-aligned chunks, fill in first chunk to get there
         else if len % 32 != 0 {
-            let (slot, offset) = root.index_slot(len - 1);
-            let stored_word = Storage::get_word(root.storage.clone_vm(), slot);
-            let mut chunk = Vec::with_capacity(32);
-            chunk.extend_from_slice(&stored_word[..offset as usize + 1]);
-            while chunk.len() < 32 {
+            let (slot, _) = root.index_slot(len - 1);
+            let mut word = Storage::get_word(root.storage.clone_vm(), slot);
+            while len % 32 != 0 {
                 if let Some(byte) = iter.next() {
-                    chunk.push(byte);
+                    word[len % 32] = byte;
                     len += 1;
                 } else {
                     break;
@@ -324,14 +327,10 @@ impl Extend<u8> for StorageBytes {
             }
             // write the word we just filled in
             unsafe {
-                Storage::set_word(
-                    root.storage.clone_vm(),
-                    slot,
-                    B256::right_padding_from(&chunk),
-                );
+                Storage::set_word(root.storage.clone_vm(), slot, word);
             }
             // stop if iter is complete.
-            if chunk.len() < 32 {
+            if len % 32 != 0 {
                 unsafe {
                     return root.write_len(len);
                 }
