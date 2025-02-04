@@ -288,7 +288,11 @@ impl Erase for StorageBytes {
 
 impl Extend<u8> for StorageBytes {
     fn extend<T: IntoIterator<Item = u8>>(&mut self, iter: T) {
-        let mut iter = iter.into_iter();
+        let mut iter = iter.into_iter().peekable();
+        if iter.peek().is_none() {
+            return;
+        }
+
         let mut root = BytesRoot::new_mut(self);
         let mut len = root.len();
 
