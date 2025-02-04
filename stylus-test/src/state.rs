@@ -5,9 +5,18 @@
 
 use alloy_primitives::{Address, B256, U256};
 use alloy_provider::{network::Ethereum, RootProvider};
-use std::{collections::HashMap, sync::Arc, u64};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::constants::{DEFAULT_CHAIN_ID, DEFAULT_CONTRACT_ADDRESS, DEFAULT_SENDER};
+
+/// Type aliases for the return values of mocked calls and deployments.
+type CallReturn = Result<Vec<u8>, Vec<u8>>;
+type DeploymentReturn = Result<Address, Vec<u8>>;
+type MockCallWithAddress = (Address, Vec<u8>);
+type DeploymentWithSalt = (Vec<u8>, Option<B256>);
+
+/// Type alias for the RPC provider used in the test VM.
+type RPCProvider = Arc<RootProvider<Ethereum>>;
 
 /// Defines the internal state of the Stylus test VM for unit testing.
 /// Internally, it tracks information such as mocked calls and their return values,
@@ -32,12 +41,12 @@ pub struct VMState {
     pub block_basefee: U256,
     pub tx_gas_price: U256,
     pub tx_ink_price: u32,
-    pub call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub delegate_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub static_call_returns: HashMap<(Address, Vec<u8>), Result<Vec<u8>, Vec<u8>>>,
-    pub deploy_returns: HashMap<(Vec<u8>, Option<B256>), Result<Address, Vec<u8>>>,
+    pub call_returns: HashMap<MockCallWithAddress, CallReturn>,
+    pub delegate_call_returns: HashMap<MockCallWithAddress, CallReturn>,
+    pub static_call_returns: HashMap<MockCallWithAddress, CallReturn>,
+    pub deploy_returns: HashMap<DeploymentWithSalt, DeploymentReturn>,
     pub emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
-    pub provider: Option<Arc<RootProvider<Ethereum>>>,
+    pub provider: Option<RPCProvider>,
 }
 
 impl Default for VMState {

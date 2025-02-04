@@ -72,13 +72,14 @@ impl TestVMBuilder {
     }
     /// Returns and TestVM instance from the builder with the specified parameters.
     pub fn build(self) -> TestVM {
-        let mut state = VMState::default();
-        state.msg_sender = self.sender.unwrap_or(Address::ZERO);
-        state.msg_value = self.value.unwrap_or_default();
-        state.storage = self.storage.unwrap_or_default();
-        state.block_number = self.block_num.unwrap_or_default();
-        state.contract_address = self.contract_address.unwrap_or(Address::ZERO);
-        state.provider = self.provider;
-        TestVM::from(state)
+        TestVM::from(VMState {
+            msg_sender: self.sender.unwrap_or(Address::ZERO),
+            msg_value: self.value.unwrap_or_default(),
+            storage: self.storage.unwrap_or_default(),
+            block_number: self.block_num.unwrap_or_default(),
+            contract_address: self.contract_address.unwrap_or(Address::ZERO),
+            provider: self.provider,
+            ..Default::default()
+        })
     }
 }
