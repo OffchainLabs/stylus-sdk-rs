@@ -9,6 +9,7 @@ pub mod storage;
 
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 pub use host::*;
+pub use storage::TopLevelStorage;
 
 /// Emits a typed, Alloy log.
 pub fn log<T: SolEvent>(vm: &dyn Host, event: T) {
