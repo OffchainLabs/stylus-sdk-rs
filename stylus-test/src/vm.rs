@@ -40,7 +40,7 @@
 
 use alloy_primitives::{Address, B256, U256};
 use alloy_provider::Provider;
-use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
+pub use calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer};
 use deploy::DeploymentAccess;
 use std::cell::RefCell;
 use std::rc::Rc;
