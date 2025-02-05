@@ -55,6 +55,11 @@ pub trait ValueDenier {
     fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>>;
 }
 
+/// Defines a trait that guards whether the constructor was already called.
+pub trait ConstructorGuard {
+    fn check_constructor_slot(&self) -> Result<(), Vec<u8>>;
+}
+
 /// Provides access to native cryptography extensions provided by
 /// a Stylus contract host, such as keccak256.
 pub trait CryptographyAccess {

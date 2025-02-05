@@ -110,7 +110,7 @@ impl PublicImpl {
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
-                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier,
+                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
                 #(
                     S: core::borrow::BorrowMut<#inheritance>,
                 )*
@@ -352,7 +352,7 @@ impl<E: FnExtension> PublicFn<E> {
         parse_quote!({
             use stylus_sdk::abi::{internal, internal::EncodableReturnType};
             #deny_value
-            if let Err(e) = internal::constructor_guard() {
+            if let Err(e) = storage.check_constructor_slot() {
                 return Some(Err(e));
             }
             let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {

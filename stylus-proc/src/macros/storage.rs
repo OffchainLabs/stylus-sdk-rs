@@ -171,6 +171,29 @@ impl Storage {
             }
         }
     }
+    fn impl_constructor_guard(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::stylus_core::host::ConstructorGuard for #name #ty_generics #where_clause {
+                fn check_constructor_slot(&self) -> Result<(), Vec<u8>> {
+                    let mut slot = unsafe {
+                        stylus_sdk::storage::StorageBool::new(
+                            stylus_sdk::abi::internal::CONSTRUCTOR_EXECUTED_SLOT,
+                            0,
+                            self.__stylus_host.clone()
+                        )
+                    };
+                    if slot.get() {
+                        stylus_sdk::console!("constructor already called");
+                        return Err(alloc::vec![]);
+                    }
+                    slot.set(true);
+                    Ok(())
+                }
+            }
+        }
+    }
     fn impl_from_vm(&self) -> syn::ItemImpl {
         let name = &self.name;
         let (_, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -229,6 +252,7 @@ impl ToTokens for Storage {
         self.impl_storage_type().to_tokens(tokens);
         self.impl_host_access().to_tokens(tokens);
         self.impl_value_denier().to_tokens(tokens);
+        self.impl_constructor_guard().to_tokens(tokens);
         self.impl_from_vm().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
