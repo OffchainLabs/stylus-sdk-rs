@@ -626,7 +626,7 @@ mod tests {
             storage.set_len(4);
         }
 
-        let mut want = value.clone();
+        let mut want = value;
         want[31] = 4 * 2;
         assert_eq!(test_vm.get_storage(U256::ZERO), want);
     }
@@ -1000,7 +1000,7 @@ mod tests {
     fn test_storage_bytes_base() {
         let test_vm = TestVM::new();
         let storage = StorageBytes::from(&test_vm);
-        let want: U256 = crypto::keccak(&[0; 32]).into();
+        let want: U256 = crypto::keccak([0; 32]).into();
         assert_eq!(*storage.base(), want);
     }
 

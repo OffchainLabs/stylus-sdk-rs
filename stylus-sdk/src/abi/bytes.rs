@@ -144,7 +144,9 @@ mod tests {
     fn bytes_abi() {
         assert_eq!(Bytes::SOL_NAME, "bytes");
         assert_eq!(Bytes::ENCODED_SIZE, None);
-        assert!(Bytes::DYNAMIC);
+        if !Bytes::DYNAMIC {
+            panic!();
+        }
         assert_eq!(
             <Bytes as SolType>::abi_encoded_size(&Bytes(vec![1, 2, 3, 4])),
             64

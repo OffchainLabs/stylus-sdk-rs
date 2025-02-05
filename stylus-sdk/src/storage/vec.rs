@@ -308,8 +308,8 @@ mod test {
         vec.push(true);
         vec.push(false);
         vec.push(true);
-        assert_eq!(true, vec.get(0).unwrap());
-        assert_eq!(false, vec.get(1).unwrap());
-        assert_eq!(true, vec.get(2).unwrap());
+        assert!(vec.get(0).unwrap());
+        assert!(!vec.get(1).unwrap());
+        assert!(vec.get(2).unwrap());
     }
 }
