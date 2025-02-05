@@ -110,7 +110,7 @@ impl PublicImpl {
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
-                S: stylus_sdk::storage::TopLevelStorage + core::borrow::BorrowMut<Self>,
+                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier,
                 #(
                     S: core::borrow::BorrowMut<#inheritance>,
                 )*
@@ -302,7 +302,7 @@ impl<E: FnExtension> PublicFn<E> {
         } else {
             let name = self.name.to_string();
             Some(parse_quote! {
-                if let Err(err) = stylus_sdk::abi::internal::deny_value(#name) {
+                if let Err(err) = storage.deny_value(#name) {
                     return Some(Err(err));
                 }
             })

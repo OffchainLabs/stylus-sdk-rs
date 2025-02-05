@@ -1,12 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{contract::read_return_data, hostio, tx, ArbResult};
+use crate::{host::WasmVM, ArbResult};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
-
-#[cfg(feature = "reentrant")]
-use crate::storage::StorageCache;
+use stylus_core::Host;
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
@@ -27,12 +25,16 @@ macro_rules! unsafe_reentrant {
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone, Default)]
 #[must_use]
-pub struct RawCall {
+pub struct RawCall<H = WasmVM>
+where
+    H: Host + Default,
+{
     kind: CallKind,
     callvalue: U256,
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
+    host: H,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
@@ -74,18 +76,22 @@ impl Default for RustVec {
     }
 }
 
-impl RawCall {
+impl<H> RawCall<H>
+where
+    H: Host + Default,
+{
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
     /// use stylus_sdk::call::RawCall;
     /// use stylus_sdk::{alloy_primitives::address, hex};
+    /// use stylus_sdk::host::WasmVM;
     ///
     /// let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
     /// let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
     ///
     /// unsafe {
-    ///     let result = RawCall::new()       // configure a call
+    ///     let result = RawCall::<WasmVM>::new()       // configure a call
     ///         .gas(2100)                    // supply 2100 gas
     ///         .limit_return_data(0, 32)     // only read the first 32 bytes back
     ///     //  .flush_storage_cache()        // flush the storage cache before the call (available in `reentrant`)
@@ -126,6 +132,13 @@ impl RawCall {
         }
     }
 
+    /// Sets the host VM environment for the call, overriding
+    /// the default value.
+    pub fn vm(mut self, vm: H) -> Self {
+        self.host = vm;
+        self
+    }
+
     /// Configures the amount of gas to supply.
     /// Note: large values are clipped to the amount of gas remaining.
     pub fn gas(mut self, gas: u64) -> Self {
@@ -139,7 +152,7 @@ impl RawCall {
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn ink(mut self, ink: u64) -> Self {
-        self.gas = Some(tx::ink_to_gas(ink));
+        self.gas = Some(self.host.ink_to_gas(ink));
         self
     }
 
@@ -191,12 +204,12 @@ impl RawCall {
             let status = unsafe {
                 #[cfg(feature = "reentrant")]
                 match self.cache_policy {
-                    CachePolicy::Clear => StorageCache::clear(),
-                    CachePolicy::Flush => StorageCache::flush(),
+                    CachePolicy::Clear => self.host.flush_cache(true /* clear */),
+                    CachePolicy::Flush => self.host.flush_cache(false /* do not clear */),
                     CachePolicy::DoNothing => {}
                 }
                 match self.kind {
-                    CallKind::Basic => hostio::call_contract(
+                    CallKind::Basic => self.host.call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -204,14 +217,14 @@ impl RawCall {
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Delegate => hostio::delegate_call_contract(
+                    CallKind::Delegate => self.host.delegate_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Static => hostio::static_call_contract(
+                    CallKind::Static => self.host.static_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -227,7 +240,7 @@ impl RawCall {
                 }
             }
 
-            let outs = read_return_data(self.offset, self.size);
+            let outs = self.host.read_return_data(self.offset, self.size);
             match status {
                 0 => Ok(outs),
                 _ => Err(outs),

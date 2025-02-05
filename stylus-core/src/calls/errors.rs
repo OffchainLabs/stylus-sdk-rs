@@ -1,15 +1,13 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+//
+extern crate alloc;
 
 use alloc::vec::Vec;
 use alloy_sol_types::{Panic, PanicKind, SolError};
 
 /// Represents error data when a call fails.
 #[derive(Debug, PartialEq)]
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the Error struct defined in stylus_core::calls::errors instead"
-)]
 pub enum Error {
     /// Revert data returned by the other contract.
     Revert(Vec<u8>),
@@ -17,7 +15,6 @@ pub enum Error {
     AbiDecodingFailed(alloy_sol_types::Error),
 }
 
-#[allow(deprecated)]
 impl From<alloy_sol_types::Error> for Error {
     fn from(err: alloy_sol_types::Error) -> Self {
         Error::AbiDecodingFailed(err)
@@ -33,7 +30,6 @@ pub trait MethodError {
     fn encode(self) -> Vec<u8>;
 }
 
-#[allow(deprecated)]
 impl MethodError for Error {
     #[inline]
     fn encode(self) -> Vec<u8> {
@@ -48,16 +44,12 @@ impl<T: SolError> MethodError for T {
     }
 }
 
-#[allow(deprecated)]
 impl From<Error> for Vec<u8> {
     #[allow(unused)]
     fn from(err: Error) -> Vec<u8> {
         match err {
             Error::Revert(data) => data,
-            Error::AbiDecodingFailed(err) => {
-                console!("failed to decode return data from external call: {err}");
-                Panic::from(PanicKind::Generic).abi_encode()
-            }
+            Error::AbiDecodingFailed(err) => Panic::from(PanicKind::Generic).abi_encode(),
         }
     }
 }

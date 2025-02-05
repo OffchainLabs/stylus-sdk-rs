@@ -1,20 +1,24 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::storage::TopLevelStorage;
-
 use super::{CallContext, MutatingCallContext, NonPayableCallContext, StaticCallContext};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
+use stylus_core::storage::TopLevelStorage;
 
 /// Enables configurable calls to other contracts.
 #[derive(Debug, Clone)]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the Call struct defined in stylus_core::calls::context instead"
+)]
 pub struct Call<S, const HAS_VALUE: bool = false> {
     gas: u64,
     value: Option<U256>,
     storage: S,
 }
 
+#[allow(deprecated)]
 impl<'a, S: TopLevelStorage> Call<&'a mut S, false>
 where
     S: TopLevelStorage + 'a,
@@ -32,6 +36,7 @@ where
     /// ```
     /// use stylus_sdk::call::{Call, Error};
     /// use stylus_sdk::{prelude::*, evm, msg, alloy_primitives::Address};
+    /// use stylus_core::storage::TopLevelStorage;
     /// extern crate alloc;
     ///
     /// sol_interface! {
@@ -68,6 +73,7 @@ where
     }
 }
 
+#[allow(deprecated)]
 impl<S, const HAS_VALUE: bool> Call<S, HAS_VALUE> {
     /// Amount of gas to supply the call.
     /// Values greater than the amount provided will be clipped to all gas left.
@@ -86,6 +92,7 @@ impl<S, const HAS_VALUE: bool> Call<S, HAS_VALUE> {
     }
 }
 
+#[allow(deprecated)]
 impl<S, const HAS_VALUE: bool> CallContext for Call<S, HAS_VALUE> {
     fn gas(&self) -> u64 {
         self.gas
@@ -135,12 +142,16 @@ cfg_if! {
     if #[cfg(feature = "reentrant")] {
         // The following impls safeguard state during reentrancy scenarios
 
+        #[allow(deprecated)]
         impl<S: TopLevelStorage> StaticCallContext for Call<&S, false> {}
 
+        #[allow(deprecated)]
         impl<S: TopLevelStorage> StaticCallContext for Call<&mut S, false> {}
 
+        #[allow(deprecated)]
         impl<S: TopLevelStorage> NonPayableCallContext for Call<&mut S, false> {}
 
+        #[allow(deprecated)]
         unsafe impl<S: TopLevelStorage, const HAS_VALUE: bool> MutatingCallContext
             for Call<&mut S, HAS_VALUE>
         {
@@ -151,10 +162,13 @@ cfg_if! {
     } else {
         // If there's no reentrancy, all calls are storage safe
 
+        #[allow(deprecated)]
         impl<S> StaticCallContext for Call<S, false> {}
 
+        #[allow(deprecated)]
         impl<S> NonPayableCallContext for Call<S, false> {}
 
+        #[allow(deprecated)]
         unsafe impl<S, const HAS_VALUE: bool> MutatingCallContext for Call<S, HAS_VALUE> {
             fn value(&self) -> U256 {
                 self.value.unwrap_or_default()
@@ -165,12 +179,13 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(any(not(feature = "reentrant"), feature = "docs"))] {
+        #[allow(deprecated)]
         impl Default for Call<(), false> {
             fn default() -> Self {
                 Self::new()
             }
         }
-
+        #[allow(deprecated)]
         impl Call<(), false> {
             /// Begin configuring a call, similar to how [`RawCall`](super::RawCall) and
             /// [`std::fs::OpenOptions`][OpenOptions] work.

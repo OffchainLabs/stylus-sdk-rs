@@ -2,13 +2,19 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
+
 use alloy_primitives::U256;
+use cfg_if::cfg_if;
 use core::marker::PhantomData;
+use stylus_core::HostAccess;
+
+use crate::host::VM;
 
 /// Accessor for a storage-backed array.
 pub struct StorageArray<S: StorageType, const N: usize> {
     slot: U256,
     marker: PhantomData<S>,
+    __stylus_host: VM,
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
@@ -23,11 +29,12 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             marker: PhantomData,
+            __stylus_host: host,
         }
     }
 
@@ -37,6 +44,37 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 
     fn load_mut<'s>(self) -> Self::WrapsMut<'s> {
         StorageGuardMut::new(self)
+    }
+}
+
+impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
+    fn vm(&self) -> &dyn stylus_core::Host {
+        cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                &self.__stylus_host
+            } else {
+                self.__stylus_host.host.as_ref()
+            }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<const N: usize, S, T> From<&T> for StorageArray<S, N>
+where
+    T: stylus_core::Host + Clone + 'static,
+    S: StorageType,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
+        }
     }
 }
 
@@ -77,7 +115,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, self.__stylus_host.clone()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -87,7 +125,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, self.__stylus_host.clone())
     }
 
     /// Gets the element at the given index, if it exists.

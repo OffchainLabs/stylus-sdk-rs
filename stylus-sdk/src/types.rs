@@ -20,22 +20,38 @@ use alloy_primitives::{b256, Address, B256, U256};
 /// Trait that allows the [`Address`] type to inspect the corresponding account's balance and codehash.
 pub trait AddressVM {
     /// The balance in wei of the account.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    )]
     fn balance(&self) -> U256;
 
     /// Gets the code at the given address. The semantics are equivalent to that of the EVM's [`EXT_CODESIZE`].
     ///
     /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    )]
     fn code(&self) -> Vec<u8>;
 
     /// Gets the size of the code in bytes at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODESIZE`].
     ///
     /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    )]
     fn code_size(&self) -> usize;
 
     /// The codehash of the contract or [`EOA`] at the given address.
     ///
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    )]
     fn code_hash(&self) -> B256;
 
     /// Determines if an account has code. Note that this is insufficient to determine if an address is an
@@ -43,6 +59,10 @@ pub trait AddressVM {
     /// this method will return `false` while the constructor is executing.
     ///
     /// [`EOA`]: https://ethereum.org/en/developers/docs/accounts/#types-of-account
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+    )]
     fn has_code(&self) -> bool;
 }
 
@@ -54,6 +74,7 @@ impl AddressVM for Address {
     }
 
     fn code(&self) -> Vec<u8> {
+        #[allow(deprecated)]
         let size = self.code_size();
         let mut dest = Vec::with_capacity(size);
         unsafe {
@@ -74,6 +95,7 @@ impl AddressVM for Address {
     }
 
     fn has_code(&self) -> bool {
+        #[allow(deprecated)]
         let hash = self.code_hash();
         !hash.is_zero()
             && hash != b256!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")

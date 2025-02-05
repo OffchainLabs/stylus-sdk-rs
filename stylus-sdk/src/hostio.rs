@@ -105,6 +105,7 @@ vm_hooks! {
     /// will cost less than in the EVM.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
+    #[allow(dead_code)]
     pub fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
     /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
@@ -115,6 +116,7 @@ vm_hooks! {
     /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
+    #[allow(dead_code)]
     pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
 
     /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
@@ -438,6 +440,10 @@ macro_rules! wrap_hostio {
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
+        #[deprecated(
+            since = "0.8.0",
+            note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+        )]
         pub fn $name() -> $ty {
             unsafe { $ty::from(hostio::$hostio()) }
         }
@@ -446,6 +452,10 @@ macro_rules! wrap_hostio {
         cfg_if::cfg_if! {
             if #[cfg(feature = "hostio-caching")] {
                 $(#[$meta])*
+                #[deprecated(
+                    since = "0.8.0",
+                    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+                )]
                 pub fn $name() -> $ty {
                     $cache.get()
                 }
@@ -457,6 +467,10 @@ macro_rules! wrap_hostio {
     };
     (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
         $(#[$meta])*
+        #[deprecated(
+            since = "0.8.0",
+            note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+        )]
         pub fn $name() -> $ty {
             let mut data = $from::ZERO;
             unsafe { hostio::$hostio(data.as_mut_ptr()) };
@@ -467,6 +481,10 @@ macro_rules! wrap_hostio {
         cfg_if::cfg_if! {
             if #[cfg(feature = "hostio-caching")] {
                 $(#[$meta])*
+                #[deprecated(
+                    since = "0.8.0",
+                    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+                )]
                 pub fn $name() -> $ty {
                     $cache.get()
                 }

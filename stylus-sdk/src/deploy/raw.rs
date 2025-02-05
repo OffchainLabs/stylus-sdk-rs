@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{call::CachePolicy, contract::read_return_data, hostio};
+use crate::{call::CachePolicy, hostio};
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 
@@ -11,12 +11,17 @@ use crate::storage::StorageCache;
 /// Mechanism for performing raw deploys of other contracts.
 #[derive(Clone, Default)]
 #[must_use]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
 pub struct RawDeploy {
     salt: Option<B256>,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
 
+#[allow(deprecated)]
 impl RawDeploy {
     /// Begin configuring the raw deploy.
     pub fn new() -> Self {
@@ -106,7 +111,8 @@ impl RawDeploy {
         }
 
         if contract.is_zero() {
-            return Err(read_return_data(0, None));
+            #[allow(deprecated)]
+            return Err(crate::contract::read_return_data(0, None));
         }
         Ok(contract)
     }

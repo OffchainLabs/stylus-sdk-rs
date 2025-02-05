@@ -6,7 +6,7 @@
 
 use crate::{
     abi::AbiType,
-    console, msg,
+    console,
     storage::{StorageBool, StorageType},
     ArbResult,
 };
@@ -61,15 +61,6 @@ pub const fn digest_to_selector(digest: [u8; 32]) -> [u8; 4] {
     selector[2] = digest[2];
     selector[3] = digest[3];
     selector
-}
-
-#[allow(unused)]
-pub fn deny_value(method_name: &str) -> Result<(), Vec<u8>> {
-    if msg::value() == U256::ZERO {
-        return Ok(());
-    }
-    console!("method {method_name} not payable");
-    Err(vec![])
 }
 
 #[allow(unused)]
