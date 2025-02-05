@@ -15,7 +15,10 @@ use alloc::vec::Vec;
 use alloy_primitives::Address;
 
 #[allow(deprecated)]
-pub use self::{context::Call, error::Error, error::MethodError, raw::RawCall, traits::*};
+pub use self::{
+    context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
+    transfer::transfer_eth,
+};
 
 pub(crate) use raw::CachePolicy;
 

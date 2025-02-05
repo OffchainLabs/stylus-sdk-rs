@@ -121,13 +121,15 @@ impl ValueTransfer for WasmVM {
     /// If this is not desired, the [`call`] function may be used directly.
     ///
     /// ```
-    /// # use stylus_sdk::call::{call, Call, transfer_eth};
+    /// # use stylus_sdk::stylus_core::calls::{ValueTransfer, context::Call};
+    /// # use stylus_test::*;
     /// # fn wrap() -> Result<(), Vec<u8>> {
+    /// #   let vm = TestVM::default();
     /// #   let value = alloy_primitives::U256::ZERO;
     /// #   let recipient = alloy_primitives::Address::ZERO;
-    /// transfer_eth(recipient, value)?;                 // these two are equivalent
-    /// call(Call::new().value(value), recipient, &[])?; // these two are equivalent
-    /// #     Ok(())
+    /// vm.transfer_eth(recipient, value)?;                 // these two are equivalent
+    /// vm.call(&Call::new().value(value), recipient, &[])?; // these two are equivalent
+    /// #   Ok(())
     /// # }
     /// ```
     #[cfg(not(feature = "reentrant"))]
