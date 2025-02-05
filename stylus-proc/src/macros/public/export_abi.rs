@@ -112,8 +112,8 @@ impl InterfaceExtension for InterfaceAbi {
                         }
                     });
                     let sol_purity = match func.purity {
-                        Purity::Payable => format!(" payable"),
-                        _ => String::new(),
+                        Purity::Payable => " payable",
+                        _ => "",
                     };
                     Some(quote! {
                         use stylus_sdk::abi::AbiType;
