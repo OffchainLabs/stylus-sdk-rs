@@ -1,10 +1,15 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{host::WasmVM, ArbResult};
+use crate::{
+    hostio::{call_contract, delegate_call_contract, static_call_contract},
+    ArbResult,
+};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
-use stylus_core::Host;
+
+#[cfg(feature = "reentrant")]
+use crate::storage::StorageCache;
 
 macro_rules! unsafe_reentrant {
     ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
@@ -25,16 +30,12 @@ macro_rules! unsafe_reentrant {
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone, Default)]
 #[must_use]
-pub struct RawCall<H = WasmVM>
-where
-    H: Host + Default,
-{
+pub struct RawCall {
     kind: CallKind,
     callvalue: U256,
     gas: Option<u64>,
     offset: usize,
     size: Option<usize>,
-    host: H,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
@@ -76,10 +77,8 @@ impl Default for RustVec {
     }
 }
 
-impl<H> RawCall<H>
-where
-    H: Host + Default,
-{
+#[allow(deprecated)]
+impl RawCall {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
@@ -91,7 +90,7 @@ where
     /// let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
     ///
     /// unsafe {
-    ///     let result = RawCall::<WasmVM>::new()       // configure a call
+    ///     let result = RawCall::new()       // configure a call
     ///         .gas(2100)                    // supply 2100 gas
     ///         .limit_return_data(0, 32)     // only read the first 32 bytes back
     ///     //  .flush_storage_cache()        // flush the storage cache before the call (available in `reentrant`)
@@ -132,13 +131,6 @@ where
         }
     }
 
-    /// Sets the host VM environment for the call, overriding
-    /// the default value.
-    pub fn vm(mut self, vm: H) -> Self {
-        self.host = vm;
-        self
-    }
-
     /// Configures the amount of gas to supply.
     /// Note: large values are clipped to the amount of gas remaining.
     pub fn gas(mut self, gas: u64) -> Self {
@@ -152,7 +144,7 @@ where
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn ink(mut self, ink: u64) -> Self {
-        self.gas = Some(self.host.ink_to_gas(ink));
+        self.gas = Some(crate::tx::ink_to_gas(ink));
         self
     }
 
@@ -204,12 +196,12 @@ where
             let status = unsafe {
                 #[cfg(feature = "reentrant")]
                 match self.cache_policy {
-                    CachePolicy::Clear => self.host.flush_cache(true /* clear */),
-                    CachePolicy::Flush => self.host.flush_cache(false /* do not clear */),
+                    CachePolicy::Clear => StorageCache::clear(),
+                    CachePolicy::Flush => StorageCache::flush(),
                     CachePolicy::DoNothing => {}
                 }
                 match self.kind {
-                    CallKind::Basic => self.host.call_contract(
+                    CallKind::Basic => call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -217,14 +209,14 @@ where
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Delegate => self.host.delegate_call_contract(
+                    CallKind::Delegate => delegate_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Static => self.host.static_call_contract(
+                    CallKind::Static => static_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -240,7 +232,7 @@ where
                 }
             }
 
-            let outs = self.host.read_return_data(self.offset, self.size);
+            let outs = crate::contract::read_return_data(self.offset, self.size);
             match status {
                 0 => Ok(outs),
                 _ => Err(outs),

@@ -278,7 +278,7 @@ cfg_if::cfg_if! {
                 to: Address,
                 amount: U256,
             ) -> Result<(), Vec<u8>> {
-                self.0.transfer_eth(to, storage, amount)
+                self.0.transfer_eth(storage, to, amount)
             }
             #[inline]
             #[cfg(not(feature = "reentrant"))]
