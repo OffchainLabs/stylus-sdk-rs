@@ -22,7 +22,7 @@
 //! #[cfg(test)]
 //! mod test {
 //!     use super::*;
-//!     use stylus_sdk::testing::*;
+//!     use stylus_test::*;
 //!
 //!     #[test]
 //!     fn test_my_contract() {

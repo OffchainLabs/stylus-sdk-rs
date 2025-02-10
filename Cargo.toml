@@ -42,5 +42,5 @@ trybuild = "1.0"
 mini-alloc = { path = "mini-alloc", version = "0.8.0" }
 stylus-sdk = { path = "stylus-sdk" }
 stylus-core = { path = "stylus-core" }
-stylus-test = { path = "stylus-test" }
+stylus-test = { path = "stylus-test", version = "0.8.0" }
 stylus-proc = { path = "stylus-proc", version = "0.8.0" }

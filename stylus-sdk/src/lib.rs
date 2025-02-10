@@ -48,8 +48,6 @@ pub use stylus_proc;
 // for Stylus SDK consumers, to be used as a test framework.
 #[cfg(all(not(target_arch = "wasm32"), test))]
 pub use rclite as rc;
-#[cfg(not(target_arch = "wasm32"))]
-pub use stylus_test as testing;
 
 #[macro_use]
 pub mod abi;

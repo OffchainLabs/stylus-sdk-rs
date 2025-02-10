@@ -18,7 +18,6 @@ derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
 lazy_static.workspace = true
-stylus-test.workspace = true
 
 # export-abi
 regex = { workspace = true, optional = true }
@@ -32,6 +31,7 @@ stylus-core.workspace = true
 paste.workspace = true
 sha3.workspace = true
 alloy-primitives = { workspace = true, default-features = false, features=["tiny-keccak"] }
+stylus-test.workspace = true
 rclite.workspace = true
 
 [package.metadata.docs.rs]
