@@ -38,7 +38,7 @@ impl CallAccess for WasmVM {
         }
 
         unsafe_reentrant! {{
-            RawCall::<WasmVM>::new_with_value(context.value())
+            RawCall::new_with_value(context.value())
                 .gas(context.gas())
                 .call(to, data)
                 .map_err(Error::Revert)
@@ -63,7 +63,7 @@ impl CallAccess for WasmVM {
             self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         }
 
-        RawCall::<WasmVM>::new_delegate()
+        RawCall::new_delegate()
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
@@ -82,7 +82,7 @@ impl CallAccess for WasmVM {
         }
 
         unsafe_reentrant! {{
-            RawCall::<WasmVM>::new_static()
+            RawCall::new_static()
                 .gas(context.gas())
                 .call(to, data)
                 .map_err(Error::Revert)
@@ -108,7 +108,7 @@ impl ValueTransfer for WasmVM {
         use stylus_core::host::StorageAccess;
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         unsafe {
-            RawCall::<WasmVM>::new_with_value(amount)
+            RawCall::new_with_value(amount)
                 .skip_return_data()
                 .call(to, &[])?;
         }
@@ -134,7 +134,7 @@ impl ValueTransfer for WasmVM {
     /// ```
     #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        RawCall::<WasmVM>::new_with_value(amount)
+        RawCall::new_with_value(amount)
             .skip_return_data()
             .call(to, &[])?;
         Ok(())
