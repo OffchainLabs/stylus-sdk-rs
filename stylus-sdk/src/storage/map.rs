@@ -19,8 +19,14 @@ where
     K: StorageKey,
     V: StorageType,
 {
-    type Wraps<'a> = StorageGuard<'a, StorageMap<K, V>> where Self: 'a;
-    type WrapsMut<'a> = StorageGuardMut<'a, StorageMap<K, V>> where Self: 'a;
+    type Wraps<'a>
+        = StorageGuard<'a, StorageMap<K, V>>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, StorageMap<K, V>>
+    where
+        Self: 'a;
 
     unsafe fn new(slot: U256, offset: u8) -> Self {
         debug_assert!(offset == 0);

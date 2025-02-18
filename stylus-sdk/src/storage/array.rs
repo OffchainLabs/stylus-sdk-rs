@@ -12,8 +12,14 @@ pub struct StorageArray<S: StorageType, const N: usize> {
 }
 
 impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
-    type Wraps<'a> = StorageGuard<'a, StorageArray<S, N>> where Self: 'a;
-    type WrapsMut<'a> = StorageGuardMut<'a, StorageArray<S, N>> where Self: 'a;
+    type Wraps<'a>
+        = StorageGuard<'a, StorageArray<S, N>>
+    where
+        Self: 'a;
+    type WrapsMut<'a>
+        = StorageGuardMut<'a, StorageArray<S, N>>
+    where
+        Self: 'a;
 
     const REQUIRED_SLOTS: usize = Self::required_slots();
 
