@@ -18,6 +18,34 @@ use crate::{
 
 use super::Extension;
 
+/// Generate the code to call the special function (fallback, receive, or constructor) from the
+/// public impl block. Emits an error if there are multiple implementations.
+macro_rules! call_special {
+    ($self:expr, $kind:pat, $kind_name:literal, $func:expr) => {{
+        let specials: Vec<syn::Stmt> = $self
+            .funcs
+            .iter()
+            .filter(|&func| matches!(func.kind, $kind))
+            .map($func)
+            .collect();
+        if specials.is_empty() {
+            None
+        } else {
+            if specials.len() > 1 {
+                emit_error!(
+                    concat!("multiple ", $kind_name),
+                    concat!(
+                        "contract can only have one #[",
+                        $kind_name,
+                        "] method defined"
+                    )
+                );
+            }
+            specials.first().cloned()
+        }
+    }};
+}
+
 pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub self_ty: syn::Type,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
@@ -47,30 +75,22 @@ impl PublicImpl {
             .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
 
-        let call_fallback = self.call_fallback();
+        let call_fallback = call_special!(
+            self,
+            FnKind::Fallback { .. },
+            "fallback",
+            PublicFn::call_fallback
+        );
         let inheritance_fallback = self.inheritance_fallback();
-
-        let (fallback, fallback_purity) = call_fallback.unwrap_or_else(|| {
+        let fallback = call_fallback.unwrap_or_else(|| {
             // If there is no fallback function specified, we rely on any inherited fallback.
-            (
-                parse_quote!({
-                    #(#inheritance_fallback)*
-                    None
-                }),
-                Purity::Payable, // Let the inherited fallback deal with purity.
-            )
+            parse_quote!({
+                #(#inheritance_fallback)*
+                None
+            })
         });
 
-        let fallback_deny: Option<syn::ExprIf> = match fallback_purity {
-            Purity::Payable => None,
-            _ => Some(parse_quote! {
-                if let Err(err) = storage.deny_value("fallback") {
-                    return Some(Err(err));
-                }
-            }),
-        };
-
-        let call_receive = self.call_receive();
+        let call_receive = call_special!(self, FnKind::Receive, "receive", PublicFn::call_receive);
         let inheritance_receive = self.inheritance_receive();
         let receive = call_receive.unwrap_or_else(|| {
             parse_quote!({
@@ -79,10 +99,18 @@ impl PublicImpl {
             })
         });
 
+        let call_constructor = call_special!(
+            self,
+            FnKind::Constructor,
+            "constructor",
+            PublicFn::call_constructor
+        );
+        let constructor = call_constructor.unwrap_or_else(|| parse_quote!({ None }));
+
         parse_quote! {
             impl<S, #generic_params> #Router<S> for #self_ty
             where
-                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier,
+                S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
                 #(
                     S: core::borrow::BorrowMut<#inheritance>,
                 )*
@@ -109,13 +137,17 @@ impl PublicImpl {
 
                 #[inline(always)]
                 fn fallback(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
-                    #fallback_deny
                     #fallback
                 }
 
                 #[inline(always)]
                 fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>> {
                     #receive
+                }
+
+                #[inline(always)]
+                fn constructor(storage: &mut S, input: &[u8]) -> Option<stylus_sdk::ArbResult> {
+                    #constructor
                 }
             }
         }
@@ -131,37 +163,6 @@ impl PublicImpl {
         })
     }
 
-    fn call_fallback(&self) -> Option<(syn::Stmt, Purity)> {
-        let mut fallback_purity = Purity::View;
-        let fallbacks: Vec<syn::Stmt> = self
-            .funcs
-            .iter()
-            .filter(|&func| {
-                if matches!(func.kind, FnKind::FallbackWithArgs)
-                    || matches!(func.kind, FnKind::FallbackNoArgs)
-                {
-                    fallback_purity = func.purity;
-                    return true;
-                }
-                false
-            })
-            .map(PublicFn::call_fallback)
-            .collect();
-        if fallbacks.is_empty() {
-            return None;
-        }
-        if fallbacks.len() > 1 {
-            emit_error!(
-                "multiple fallbacks",
-                "contract can only have one #[fallback] method defined"
-            );
-        }
-        fallbacks
-            .first()
-            .cloned()
-            .map(|func| (func, fallback_purity))
-    }
-
     fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
         self.inheritance.iter().map(|ty| {
             parse_quote! {
@@ -170,25 +171,6 @@ impl PublicImpl {
                 }
             }
         })
-    }
-
-    fn call_receive(&self) -> Option<syn::Stmt> {
-        let receives: Vec<syn::Stmt> = self
-            .funcs
-            .iter()
-            .filter(|&func| matches!(func.kind, FnKind::Receive))
-            .map(PublicFn::call_receive)
-            .collect();
-        if receives.is_empty() {
-            return None;
-        }
-        if receives.len() > 1 {
-            emit_error!(
-                "multiple receives",
-                "contract can only have one #[receive] method defined"
-            );
-        }
-        receives.first().cloned()
     }
 
     fn inheritance_receive(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
@@ -205,9 +187,9 @@ impl PublicImpl {
 #[derive(Debug)]
 pub enum FnKind {
     Function,
-    FallbackWithArgs,
-    FallbackNoArgs,
+    Fallback { with_args: bool },
     Receive,
+    Constructor,
 }
 
 pub struct PublicFn<E: FnExtension> {
@@ -328,22 +310,28 @@ impl<E: FnExtension> PublicFn<E> {
     }
 
     fn call_fallback(&self) -> syn::Stmt {
+        let deny_value = self.deny_value();
         let name = &self.name;
         let storage_arg = self.storage_arg();
-        if matches!(self.kind, FnKind::FallbackNoArgs) {
-            return parse_quote! {
+        let call: syn::Stmt = if matches!(self.kind, FnKind::Fallback { with_args: false }) {
+            parse_quote! {
                 return Some({
                     if let Err(err) = Self::#name(#storage_arg) {
-                       Err(err)
+                        Err(err)
                     } else {
                         Ok(Vec::new())
                     }
                 });
-            };
-        }
-        parse_quote! {
-            return Some(Self::#name(#storage_arg input));
-        }
+            }
+        } else {
+            parse_quote! {
+                return Some(Self::#name(#storage_arg input));
+            }
+        };
+        parse_quote!({
+            #deny_value
+            #call
+        })
     }
 
     fn call_receive(&self) -> syn::Stmt {
@@ -352,6 +340,31 @@ impl<E: FnExtension> PublicFn<E> {
         parse_quote! {
             return Some(Self::#name(#storage_arg));
         }
+    }
+
+    fn call_constructor(&self) -> syn::Stmt {
+        let deny_value = self.deny_value();
+        let name = &self.name;
+        let decode_inputs = self.decode_inputs();
+        let storage_arg = self.storage_arg();
+        let expand_args = self.expand_args();
+        let encode_output = self.encode_output();
+        parse_quote!({
+            use stylus_sdk::abi::{internal, internal::EncodableReturnType};
+            #deny_value
+            if let Err(e) = storage.check_constructor_slot() {
+                return Some(Err(e));
+            }
+            let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
+                Ok(args) => args,
+                Err(err) => {
+                    internal::failed_to_decode_arguments(err);
+                    return Some(Err(Vec::new()));
+                }
+            };
+            let result = Self::#name(#storage_arg #(#expand_args, )* );
+            Some(#encode_output)
+        })
     }
 }
 

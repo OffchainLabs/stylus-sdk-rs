@@ -73,6 +73,16 @@ where
     /// A fallback function can be declared as payable. If not payable, then any transactions
     /// that trigger a fallback with value attached will revert.
     fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
+
+    /// The router_entrypoint calls the constructor when the selector is CONSTRUCTOR_SELECTOR.
+    /// The implementation should: decode the calldata and pass the parameters to the user-defined
+    /// constructor; and call internal::constructor_guard to ensure it is only executed once.
+    /// Since each constructor has its own set of parameters, this function won't call the
+    /// constructors for inherited structs automatically. Instead, the user-defined function should
+    /// call the base classes constructors.
+    /// A constructor function can be declared as payable. If not payable, then any transactions
+    /// that trigger the constructor with value attached will revert.
+    fn constructor(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
@@ -115,7 +125,11 @@ where
 
     if input.len() >= 4 {
         let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-        if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+        if selector == CONSTRUCTOR_SELECTOR {
+            if let Some(res) = R::constructor(&mut storage, &input[4..]) {
+                return res;
+            }
+        } else if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
             return res;
         } else {
             console!("unknown method selector: {selector:08x}");
@@ -154,7 +168,7 @@ pub trait AbiType {
 /// Generates a function selector for the given method and its args.
 #[macro_export]
 macro_rules! function_selector {
-    ($name:literal $(,)?) => {{
+    ($name:expr $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"()")
@@ -162,7 +176,7 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 
-    ($name:literal, $first:ty $(, $ty:ty)* $(,)?) => {{
+    ($name:expr, $first:ty $(, $ty:ty)* $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"(")
@@ -176,6 +190,10 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 }
+
+/// The function selector for Stylus constructors.
+pub const CONSTRUCTOR_SELECTOR: u32 =
+    u32::from_be_bytes(function_selector!(internal::CONSTRUCTOR_BASE_NAME));
 
 /// ABI decode a tuple of parameters
 pub fn decode_params<T>(data: &[u8]) -> alloy_sol_types::Result<T>

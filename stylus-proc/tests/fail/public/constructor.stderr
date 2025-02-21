@@ -1,0 +1,17 @@
+error: function can be only one of fallback, receive or constructor
+  --> tests/fail/public/constructor.rs:15:5
+   |
+15 |     fn init() {}
+   |     ^^
+
+error: fallback, receive, and constructor can't have custom selector
+  --> tests/fail/public/constructor.rs:15:5
+   |
+15 |     fn init() {}
+   |     ^^
+
+error: constructor function can only be defined using the #[constructor] attribute
+  --> tests/fail/public/constructor.rs:18:5
+   |
+18 |     fn constructor() {}
+   |     ^^
