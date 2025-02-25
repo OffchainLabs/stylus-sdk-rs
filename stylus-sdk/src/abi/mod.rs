@@ -44,9 +44,10 @@ pub mod internal;
 /// Executes a method given a selector and calldata.
 /// This trait can be automatically implemented via `#[public]`.
 /// Composition with other routers is possible via `#[inherit]`.
-pub trait Router<S>
+pub trait Router<S, I = Self>
 where
     S: TopLevelStorage + BorrowMut<Self::Storage> + ValueDenier,
+    I: ?Sized,
 {
     /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;

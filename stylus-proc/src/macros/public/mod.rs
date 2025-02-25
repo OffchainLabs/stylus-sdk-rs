@@ -51,8 +51,10 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
 impl ToTokens for PublicImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.impl_router().to_tokens(tokens);
-        self.impl_override_checks().to_tokens(tokens);
-        Extension::codegen(self).to_tokens(tokens);
+        if self.trait_.is_none() {
+            self.impl_override_checks().to_tokens(tokens);
+            Extension::codegen(self).to_tokens(tokens);
+        }
     }
 }
 
@@ -62,6 +64,12 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
         let mut inheritance = Vec::new();
         if let Some(inherits) = consume_attr::<attrs::Inherit>(&mut node.attrs, "inherit") {
             inheritance.extend(inherits.types);
+        }
+
+        // parse traits from #[implements(...)] attribute
+        let mut implements = Vec::new();
+        if let Some(attr) = consume_attr::<attrs::Implements>(&mut node.attrs, "implements") {
+            implements.extend(attr.types);
         }
 
         // collect public functions
@@ -82,13 +90,20 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             .collect();
 
         let (generic_params, self_ty, where_clause) = split_item_impl_for_impl(node);
+        let trait_ = match &node.trait_ {
+            Some((_, trait_, _)) => Some(trait_.clone()),
+            _ => None,
+        };
+
         #[allow(clippy::let_unit_value)]
         let extension = <Extension as InterfaceExtension>::build(node);
         Self {
             self_ty,
             generic_params,
             where_clause,
+            trait_,
             inheritance,
+            implements,
             funcs,
             extension,
         }
