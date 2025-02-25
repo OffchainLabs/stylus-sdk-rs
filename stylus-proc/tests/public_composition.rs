@@ -5,6 +5,9 @@
 //!
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 extern crate alloc;
 
 use stylus_sdk::{
