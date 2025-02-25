@@ -22,6 +22,23 @@ impl Parse for Inherit {
     }
 }
 
+/// Implement parent trait routes.
+///
+/// Used for the `#[implements(Parent1, Parent2]` attribute.
+///
+/// The contract must implement whatever traits are specified.
+pub struct Implements {
+    pub types: Punctuated<syn::Type, Token![,]>,
+}
+
+impl Parse for Implements {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            types: Punctuated::parse_terminated(input)?,
+        })
+    }
+}
+
 /// Selector name overloading for public functions.
 ///
 /// Used for the `#[selector(name = "...")]` attribute.

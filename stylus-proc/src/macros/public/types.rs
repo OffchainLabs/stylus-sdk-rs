@@ -50,7 +50,9 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub self_ty: syn::Type,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
+    pub trait_: Option<syn::Path>,
     pub inheritance: Vec<syn::Type>,
+    pub implements: Vec<syn::Type>,
     pub funcs: Vec<PublicFn<E::FnExt>>,
     #[allow(dead_code)]
     pub extension: E,
@@ -107,8 +109,15 @@ impl PublicImpl {
         );
         let constructor = call_constructor.unwrap_or_else(|| parse_quote!({ None }));
 
+        let implements_routes = self.implements_routes();
+
+        let iface = match &self.trait_ {
+            Some(trait_) => &parse_quote! { dyn #trait_ },
+            None => self_ty,
+        };
+
         parse_quote! {
-            impl<S, #generic_params> #Router<S> for #self_ty
+            impl<S, #generic_params> #Router<S, #iface> for #self_ty
             where
                 S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
                 #(
@@ -129,6 +138,7 @@ impl PublicImpl {
                     match selector {
                         #(#selector_arms)*
                         _ => {
+                            #(#implements_routes)*
                             #(#inheritance_routes)*
                             None
                         }
@@ -151,6 +161,17 @@ impl PublicImpl {
                 }
             }
         }
+    }
+
+    fn implements_routes(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
+        let self_ty = self.self_ty.clone();
+        self.implements.iter().map(move |ty| {
+            parse_quote! {
+                if let Some(result) = <#self_ty as #Router<S, dyn #ty>>::route(storage, selector, input) {
+                    return Some(result);
+                }
+            }
+        })
     }
 
     fn inheritance_routes(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
