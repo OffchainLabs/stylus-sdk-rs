@@ -144,11 +144,11 @@ impl Storage {
         parse_quote! {
             impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
                 fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
-                    #[cfg(target_arch = "wasm32")]
+                    #[cfg(not(feature = "stylus-test"))]
                     {
                         &self.__stylus_host
                     }
-                    #[cfg(not(target_arch = "wasm32"))]
+                    #[cfg(feature = "stylus-test")]
                     {
                         self.__stylus_host.host.as_ref()
                     }
@@ -204,7 +204,7 @@ impl Storage {
         let (impl_generics, _, _) = new_generics.split_for_impl();
 
         parse_quote! {
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(feature = "stylus-test")]
             impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
                 fn from(host: &__StylusHostType) -> Self {
                     unsafe {

@@ -46,9 +46,9 @@ pub use stylus_proc;
 
 // If the target is a testing environment, we export the stylus test module as the `testing` crate
 // for Stylus SDK consumers, to be used as a test framework.
-#[cfg(all(not(target_arch = "wasm32"), test))]
+#[cfg(feature = "stylus-test")]
 pub use rclite as rc;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 pub use stylus_test as testing;
 
 #[macro_use]

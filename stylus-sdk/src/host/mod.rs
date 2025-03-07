@@ -4,8 +4,8 @@
 //! Defines a struct that provides Stylus contracts access to a host VM
 //! environment via the HostAccessor trait defined in stylus_host. Makes contracts
 //! a lot more testable, as the VM can be mocked and injected upon initialization
-//! of a storage type. Defines two implementations, one when the target arch is wasm32 and the
-//! other when the target is native.
+//! of a storage type. Defines two implementations, one when the stylus-test feature 
+//! is enabled and another that calls the actual HostIOs.
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
@@ -28,7 +28,7 @@ pub mod calls;
 pub mod deploy;
 
 cfg_if::cfg_if! {
-    if #[cfg(target_arch = "wasm32")] {
+    if #[cfg(not(feature = "stylus-test"))] {
         use stylus_core::calls::*;
         use stylus_core::deploy::*;
 
