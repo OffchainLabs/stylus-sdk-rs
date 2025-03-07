@@ -142,7 +142,7 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
 
 fn mark_used_fn() -> syn::ItemFn {
     parse_quote! {
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(not(feature = "stylus-test"))]
         #[no_mangle]
         pub unsafe fn mark_used() {
             let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
@@ -155,7 +155,7 @@ fn mark_used_fn() -> syn::ItemFn {
 fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
     let deny_reentrant = deny_reentrant();
     parse_quote! {
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(not(feature = "stylus-test"))]
         #[no_mangle]
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
             let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});

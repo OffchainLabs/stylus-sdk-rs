@@ -2784,6 +2784,7 @@ dependencies = [
  "sha3",
  "stylus-core",
  "stylus-proc",
+ "stylus-sdk",
  "stylus-test",
 ]
 
