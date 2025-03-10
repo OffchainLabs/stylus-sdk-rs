@@ -160,7 +160,6 @@ fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
         pub extern "C" fn user_entrypoint(len: usize) -> usize {
             let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
             #deny_reentrant
-            host.pay_for_memory_grow(0);
 
             let input = host.read_args(len);
             let (data, status) = match #user_fn(input, host.clone()) {
