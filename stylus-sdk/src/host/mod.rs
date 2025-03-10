@@ -4,7 +4,7 @@
 //! Defines a struct that provides Stylus contracts access to a host VM
 //! environment via the HostAccessor trait defined in stylus_host. Makes contracts
 //! a lot more testable, as the VM can be mocked and injected upon initialization
-//! of a storage type. Defines two implementations, one when the stylus-test feature 
+//! of a storage type. Defines two implementations, one when the stylus-test feature
 //! is enabled and another that calls the actual HostIOs.
 
 use alloc::vec::Vec;
