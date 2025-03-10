@@ -33,9 +33,10 @@ stylus-sdk.workspace = true
 stylus-core.workspace = true
 
 [features]
-default = []
+default = ["stylus-test"]
 export-abi = ["stylus-sdk/export-abi"]
 reentrant = []
+stylus-test = ["stylus-sdk/stylus-test"]
 
 [package.metadata.docs.rs]
 features = ["export-abi"]

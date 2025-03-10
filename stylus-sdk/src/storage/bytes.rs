@@ -51,7 +51,7 @@ impl StorageType for StorageBytes {
 impl HostAccess for StorageBytes {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -60,7 +60,7 @@ impl HostAccess for StorageBytes {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageBytes
 where
     T: stylus_core::Host + Clone + 'static,
@@ -482,7 +482,7 @@ impl StorageType for StorageString {
 impl HostAccess for StorageString {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.0.__stylus_host
             } else {
                 self.0.__stylus_host.host.as_ref()
@@ -491,7 +491,7 @@ impl HostAccess for StorageString {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageString
 where
     T: stylus_core::Host + Clone + 'static,

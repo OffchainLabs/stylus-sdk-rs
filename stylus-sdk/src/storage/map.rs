@@ -57,7 +57,7 @@ where
 {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -66,7 +66,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<K, V, T> From<&T> for StorageMap<K, V>
 where
     K: StorageKey,
