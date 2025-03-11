@@ -54,7 +54,7 @@ impl GlobalStorage for StorageCache {
     /// Retrieves a 32-byte EVM word from persistent storage.
     fn get_word(vm: VM, key: U256) -> B256 {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 vm.storage_load_bytes32(key)
             } else {
                 vm.host.storage_load_bytes32(key)
@@ -69,7 +69,7 @@ impl GlobalStorage for StorageCache {
     /// May alias storage.
     unsafe fn set_word(vm: VM, key: U256, value: B256) {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 vm.storage_cache_bytes32(key, value)
             } else {
                 vm.host.storage_cache_bytes32(key, value)
@@ -176,7 +176,7 @@ where
 {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -185,7 +185,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<const B: usize, const L: usize, T> From<&T> for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
@@ -317,7 +317,7 @@ where
 {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -326,7 +326,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<const B: usize, const L: usize, T> From<&T> for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
@@ -447,7 +447,7 @@ pub struct StorageFixedBytes<const N: usize> {
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -503,7 +503,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<const N: usize, T> From<&T> for StorageFixedBytes<N>
 where
     ByteCount<N>: SupportedFixedBytes,
@@ -568,7 +568,7 @@ pub struct StorageBool {
 impl HostAccess for StorageBool {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -577,7 +577,7 @@ impl HostAccess for StorageBool {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageBool
 where
     T: stylus_core::Host + Clone + 'static,
@@ -680,7 +680,7 @@ pub struct StorageAddress {
 impl HostAccess for StorageAddress {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -689,7 +689,7 @@ impl HostAccess for StorageAddress {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageAddress
 where
     T: stylus_core::Host + Clone + 'static,
@@ -794,7 +794,7 @@ pub struct StorageBlockNumber {
 impl HostAccess for StorageBlockNumber {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -803,7 +803,7 @@ impl HostAccess for StorageBlockNumber {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageBlockNumber
 where
     T: stylus_core::Host + Clone + 'static,
@@ -909,7 +909,7 @@ pub struct StorageBlockHash {
 impl HostAccess for StorageBlockHash {
     fn vm(&self) -> &dyn stylus_core::Host {
         cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
+            if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
                 self.__stylus_host.host.as_ref()
@@ -918,7 +918,7 @@ impl HostAccess for StorageBlockHash {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "stylus-test")]
 impl<T> From<&T> for StorageBlockHash
 where
     T: stylus_core::Host + Clone + 'static,
