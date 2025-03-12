@@ -17,7 +17,7 @@ These crates follow [semver](https://semver.org).
 
 ### Fixed
 
-- Fix cargo stylus replay [#226](https://github.com/OffchainLabs/stylus-sdk-rs/pull/226)
+- Fix cargo stylus replay [#226](https://github.com/OffchainLabs/stylus-sdk-rs/pull/225)
 
 ## [0.8.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.1) - 2025-02-21
 
