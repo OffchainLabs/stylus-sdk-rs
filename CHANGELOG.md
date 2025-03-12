@@ -3,7 +3,30 @@
 These crates follow [semver](https://semver.org).
 
 
-## [0.7.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.7.0) - 2024-01-06
+## [0.8.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.0) - TBD
+
+### Added
+
+- Support for contract constructors
+- New composition/trait based inheritance model
+
+### Fixed
+
+- Cargo stylus replay now working again
+
+
+## [0.8.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.0) - 2025-02-12
+
+### Added
+
+- New Host abstraction for hostios, and corresponding test framework
+
+### Deprecated
+
+- Old Calls to hostios
+
+
+## [0.7.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.7.0) - 2025-01-06
 
 ### Added
 
