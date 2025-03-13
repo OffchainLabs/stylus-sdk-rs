@@ -27,8 +27,8 @@ pub fn entrypoint(
 
 struct Entrypoint {
     kind: EntrypointKind,
-    mark_used_fn: syn::ItemFn,
-    user_entrypoint_fn: syn::ItemFn,
+    mark_used_fn: Option<syn::ItemFn>,
+    user_entrypoint_fn: Option<syn::ItemFn>,
 }
 impl Parse for Entrypoint {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -143,35 +143,45 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     }
 }
 
-fn mark_used_fn() -> syn::ItemFn {
-    parse_quote! {
-        #[cfg(not(feature = "stylus-test"))]
-        #[no_mangle]
-        pub unsafe fn mark_used() {
-            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
-            host.pay_for_memory_grow(0);
-            panic!();
+fn mark_used_fn() -> Option<syn::ItemFn> {
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stylus-test")] {
+            None
+        } else {
+            Some(parse_quote! {
+                #[no_mangle]
+                pub unsafe fn mark_used() {
+                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+                    host.pay_for_memory_grow(0);
+                    panic!();
+                }
+            })
         }
     }
 }
 
-fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
-    let deny_reentrant = deny_reentrant();
-    parse_quote! {
-        #[cfg(not(feature = "stylus-test"))]
-        #[no_mangle]
-        pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
-            #deny_reentrant
+fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stylus-test")] {
+            None
+        } else {
+            let deny_reentrant = deny_reentrant();
+            Some(parse_quote! {
+                #[no_mangle]
+                pub extern "C" fn user_entrypoint(len: usize) -> usize {
+                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+                    #deny_reentrant
 
-            let input = host.read_args(len);
-            let (data, status) = match #user_fn(input, host.clone()) {
-                Ok(data) => (data, 0),
-                Err(data) => (data, 1),
-            };
-            host.flush_cache(false /* do not clear */);
-            host.write_result(&data);
-            status
+                    let input = host.read_args(len);
+                    let (data, status) = match #user_fn(input, host.clone()) {
+                        Ok(data) => (data, 0),
+                        Err(data) => (data, 1),
+                    };
+                    host.flush_cache(false /* do not clear */);
+                    host.write_result(&data);
+                    status
+                }
+            })
         }
     }
 }
