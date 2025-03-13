@@ -158,6 +158,7 @@ fn mark_used_fn() -> Option<syn::ItemFn> {
 }
 
 fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
+    let _ = user_fn;
     cfg_if::cfg_if! {
         if #[cfg(feature = "stylus-test")] {
             None
@@ -184,6 +185,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
 }
 
 /// Revert on reentrancy unless explicitly enabled
+#[cfg(not(feature = "stylus-test"))]
 fn deny_reentrant() -> Option<syn::ExprIf> {
     cfg_if! {
         if #[cfg(feature = "reentrant")] {
