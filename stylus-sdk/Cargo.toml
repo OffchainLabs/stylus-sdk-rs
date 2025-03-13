@@ -19,16 +19,19 @@ derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
 lazy_static.workspace = true
-rclite = { workspace = true, optional = true }
 
 # export-abi
 regex = { workspace = true, optional = true }
 
 # local deps
 mini-alloc = { workspace = true, optional = true }
-stylus-test = { workspace = true, optional = true }
 stylus-proc.workspace = true
 stylus-core.workspace = true
+
+# Ensure these dependencies won't be included in wasm32 target
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rclite = { workspace = true, optional = true }
+stylus-test = { workspace = true, optional = true }
 
 [dev-dependencies]
 paste.workspace = true
