@@ -44,6 +44,9 @@ pub use keccak_const;
 pub use stylus_core;
 pub use stylus_proc;
 
+#[cfg(all(feature = "stylus-test", target_arch = "wasm32"))]
+compile_error!("The `stylus-test` feature should not be enabled for wasm32 targets");
+
 // If the target is a testing environment, we export the stylus test module as the `testing` crate
 // for Stylus SDK consumers, to be used as a test framework.
 #[cfg(feature = "stylus-test")]
