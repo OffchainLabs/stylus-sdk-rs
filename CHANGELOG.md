@@ -2,11 +2,22 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.9.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.0) - TBD
+
+### Added
+
+- Support for contract constructors
+- New composition/trait based inheritance model
+
+### Fixed
+
+- Cargo stylus replay now working again
+
 ## [0.8.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.2) - 2025-03-11
 
 ### Fixed
 
-- Fix cargo stylus replay [#226](https://github.com/OffchainLabs/stylus-sdk-rs/pull/226)
+- Fix cargo stylus replay [#226](https://github.com/OffchainLabs/stylus-sdk-rs/pull/225)
 
 ## [0.8.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.1) - 2025-02-21
 
