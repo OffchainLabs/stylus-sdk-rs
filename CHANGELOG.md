@@ -2,7 +2,7 @@
 
 These crates follow [semver](https://semver.org).
 
-## [0.8.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.3) - 2025-03-17
+## [0.8.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.3) - 2025-03-18
 
 ### Fixed
 
