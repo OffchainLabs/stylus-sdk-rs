@@ -27,7 +27,6 @@ pub fn entrypoint(
 
 struct Entrypoint {
     kind: EntrypointKind,
-    mark_used_fn: Option<syn::ItemFn>,
     user_entrypoint_fn: Option<syn::ItemFn>,
 }
 impl Parse for Entrypoint {
@@ -48,7 +47,6 @@ impl Parse for Entrypoint {
 
         Ok(Self {
             user_entrypoint_fn: user_entrypoint_fn(kind.entrypoint_fn_name()),
-            mark_used_fn: mark_used_fn(),
             kind,
         })
     }
@@ -57,7 +55,6 @@ impl Parse for Entrypoint {
 impl ToTokens for Entrypoint {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.kind.to_tokens(tokens);
-        self.mark_used_fn.to_tokens(tokens);
         self.user_entrypoint_fn.to_tokens(tokens);
     }
 }
@@ -143,23 +140,6 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     }
 }
 
-fn mark_used_fn() -> Option<syn::ItemFn> {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "stylus-test")] {
-            None
-        } else {
-            Some(parse_quote! {
-                #[no_mangle]
-                pub unsafe fn mark_used() {
-                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
-                    host.pay_for_memory_grow(0);
-                    panic!();
-                }
-            })
-        }
-    }
-}
-
 fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
     let _ = user_fn;
     cfg_if::cfg_if! {
@@ -172,6 +152,14 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
                 pub extern "C" fn user_entrypoint(len: usize) -> usize {
                     let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
                     #deny_reentrant
+
+                    // The following call is a noop to ensure that pay_for_memory_grow is
+                    // referenced by the Stylus contract. Later, when the contract is activated,
+                    // Nitro will automatically add the calls pay_for_memory_grow when memory is
+                    // dynamically allocated. If we do not add this call here, the calls added by
+                    // Nitro will not work and activation will fail. This call costs 8700 Ink,
+                    // which is less than 1 Gas.
+                    host.pay_for_memory_grow(0);
 
                     let input = host.read_args(len);
                     let (data, status) = match #user_fn(input, host.clone()) {
