@@ -2,6 +2,13 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.8.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.3) - 2025-03-18
+
+### Fixed
+
+- Fix stylus SDK dependencies in wasm32
+- Do not require contract crate to define stylus-test feature
+
 ## [0.8.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.2) - 2025-03-11
 
 ### Fixed

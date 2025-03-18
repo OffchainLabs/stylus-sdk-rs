@@ -27,7 +27,7 @@ pub fn entrypoint(
 
 struct Entrypoint {
     kind: EntrypointKind,
-    user_entrypoint_fn: syn::ItemFn,
+    user_entrypoint_fn: Option<syn::ItemFn>,
 }
 impl Parse for Entrypoint {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -140,36 +140,43 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     }
 }
 
-fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
-    let deny_reentrant = deny_reentrant();
-    parse_quote! {
-        #[cfg(not(feature = "stylus-test"))]
-        #[no_mangle]
-        pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
-            #deny_reentrant
+fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
+    let _ = user_fn;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stylus-test")] {
+            None
+        } else {
+            let deny_reentrant = deny_reentrant();
+            Some(parse_quote! {
+                #[no_mangle]
+                pub extern "C" fn user_entrypoint(len: usize) -> usize {
+                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+                    #deny_reentrant
 
-            // The following call is a noop to ensure that pay_for_memory_grow is
-            // referenced by the Stylus contract. Later, when the contract is activated,
-            // Nitro will automatically add the calls pay_for_memory_grow when memory is
-            // dynamically allocated. If we do not add this call here, the calls added by
-            // Nitro will not work and activation will fail. This call costs 8700 Ink,
-            // which is less than 1 Gas.
-            host.pay_for_memory_grow(0);
+                    // The following call is a noop to ensure that pay_for_memory_grow is
+                    // referenced by the Stylus contract. Later, when the contract is activated,
+                    // Nitro will automatically add the calls pay_for_memory_grow when memory is
+                    // dynamically allocated. If we do not add this call here, the calls added by
+                    // Nitro will not work and activation will fail. This call costs 8700 Ink,
+                    // which is less than 1 Gas.
+                    host.pay_for_memory_grow(0);
 
-            let input = host.read_args(len);
-            let (data, status) = match #user_fn(input, host.clone()) {
-                Ok(data) => (data, 0),
-                Err(data) => (data, 1),
-            };
-            host.flush_cache(false /* do not clear */);
-            host.write_result(&data);
-            status
+                    let input = host.read_args(len);
+                    let (data, status) = match #user_fn(input, host.clone()) {
+                        Ok(data) => (data, 0),
+                        Err(data) => (data, 1),
+                    };
+                    host.flush_cache(false /* do not clear */);
+                    host.write_result(&data);
+                    status
+                }
+            })
         }
     }
 }
 
 /// Revert on reentrancy unless explicitly enabled
+#[cfg(not(feature = "stylus-test"))]
 fn deny_reentrant() -> Option<syn::ExprIf> {
     cfg_if! {
         if #[cfg(feature = "reentrant")] {
