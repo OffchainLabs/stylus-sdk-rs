@@ -228,7 +228,7 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
 }
 
 fn check_fallback_signature(sig: Signature) {
-    let has_input_args = sig.inputs.len() > 0;
+    let has_input_args = !sig.inputs.is_empty();
     let has_output = !matches!(sig.output, ReturnType::Default);
 
     if has_input_args {
