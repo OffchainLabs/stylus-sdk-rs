@@ -417,26 +417,23 @@ vm_hooks! {
 }
 
 macro_rules! wrap_hostio {
+    ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
+    };
+    ($(#[$meta:meta])* $name:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u32);
+    };
     ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64); // uncached
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64);
     };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident bool) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, bool);
+    ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
     };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u32) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u32);
+    ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $hostio, Address, Address);
     };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u64) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u64);
-    };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident usize) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, usize);
-    };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident Address) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, Address, Address);
-    };
-    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident U256) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, B256, U256);
+    ($(#[$meta:meta])* $name:ident $hostio:ident U256) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $hostio, B256, U256);
     };
     (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
         $(#[$meta])*
@@ -446,23 +443,6 @@ macro_rules! wrap_hostio {
         )]
         pub fn $name() -> $ty {
             unsafe { $ty::from(hostio::$hostio()) }
-        }
-    };
-    (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "hostio-caching")] {
-                $(#[$meta])*
-                #[deprecated(
-                    since = "0.8.0",
-                    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-                )]
-                pub fn $name() -> $ty {
-                    $cache.get()
-                }
-                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
-            } else {
-                wrap_hostio!(@simple $(#[$meta])* $name, $hostio, $ty); // uncached
-            }
         }
     };
     (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
@@ -477,75 +457,6 @@ macro_rules! wrap_hostio {
             data.into()
         }
     };
-    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "hostio-caching")] {
-                $(#[$meta])*
-                #[deprecated(
-                    since = "0.8.0",
-                    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-                )]
-                pub fn $name() -> $ty {
-                    $cache.get()
-                }
-                pub(crate) static $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
-                    let mut data = $from::ZERO;
-                    unsafe { hostio::$hostio(data.as_mut_ptr()) };
-                    data.into()
-                });
-            } else {
-                wrap_hostio!(@convert $(#[$meta])* $name, $hostio, $from, $ty); // uncached
-            }
-        }
-    };
 }
 
 pub(crate) use wrap_hostio;
-
-use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
-
-/// Caches a value to avoid paying for hostio invocations.
-pub(crate) struct CachedOption<T: Copy> {
-    value: UnsafeCell<MaybeUninit<T>>,
-    initialized: UnsafeCell<bool>,
-    loader: fn() -> T,
-}
-
-impl<T: Copy> CachedOption<T> {
-    /// Creates a new [`CachedOption`], which will use the `loader` during `get`.
-    pub const fn new(loader: fn() -> T) -> Self {
-        Self {
-            value: UnsafeCell::new(MaybeUninit::uninit()),
-            initialized: UnsafeCell::new(false),
-            loader,
-        }
-    }
-
-    /// # Safety
-    /// Must only be called from a single-threaded context.
-    pub fn get(&self) -> T {
-        unsafe {
-            if !*self.initialized.get() {
-                let value = (self.loader)();
-                (*self.value.get()).write(value);
-                *self.initialized.get() = true;
-                value
-            } else {
-                (*self.value.get()).assume_init()
-            }
-        }
-    }
-
-    /// # Safety
-    /// Must only be called from a single-threaded context.
-    pub fn set(&self, value: T) {
-        unsafe {
-            (*self.value.get()).write(value);
-            *self.initialized.get() = true;
-        }
-    }
-}
-
-// Required to use in statics even in single-threaded context.
-unsafe impl<T: Copy> Sync for CachedOption<T> {}

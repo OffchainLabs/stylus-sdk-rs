@@ -104,11 +104,6 @@ impl RawDeploy {
                 &mut revert_data_len as *mut _,
             );
         }
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "hostio-caching")] {
-                crate::contract::RETURN_DATA_LEN.set(revert_data_len);
-            }
-        }
 
         if contract.is_zero() {
             #[allow(deprecated)]
