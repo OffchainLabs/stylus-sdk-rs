@@ -41,7 +41,18 @@ pub use alloy_primitives;
 pub use alloy_sol_types;
 pub use hex;
 pub use keccak_const;
+pub use stylus_core;
 pub use stylus_proc;
+
+#[cfg(all(feature = "stylus-test", target_arch = "wasm32"))]
+compile_error!("The `stylus-test` feature should not be enabled for wasm32 targets");
+
+// If the target is a testing environment, we export the stylus test module as the `testing` crate
+// for Stylus SDK consumers, to be used as a test framework.
+#[cfg(feature = "stylus-test")]
+pub use rclite as rc;
+#[cfg(feature = "stylus-test")]
+pub use stylus_test as testing;
 
 #[macro_use]
 pub mod abi;
@@ -55,6 +66,7 @@ pub mod contract;
 pub mod crypto;
 pub mod deploy;
 pub mod evm;
+pub mod host;
 pub mod methods;
 pub mod msg;
 pub mod prelude;

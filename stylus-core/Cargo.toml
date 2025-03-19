@@ -1,0 +1,23 @@
+[package]
+name = "stylus-core"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Core definitions of Stylus SDK traits and types that are used by multiple crates in the workspace"
+readme = "../README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+cfg-if.workspace = true
+dyn-clone = "1.0.17"
+
+[dev-dependencies]
+
+[features]
+default = []
+reentrant = []

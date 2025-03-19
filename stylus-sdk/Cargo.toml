@@ -14,6 +14,7 @@ version.workspace = true
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 cfg-if.workspace = true
+clap.workspace = true
 derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
@@ -25,13 +26,21 @@ regex = { workspace = true, optional = true }
 # local deps
 mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
+stylus-core.workspace = true
+
+# Ensure these dependencies won't be included in wasm32 target
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rclite = { workspace = true, optional = true }
+stylus-test = { workspace = true, optional = true }
 
 [dev-dependencies]
 paste.workspace = true
 sha3.workspace = true
+alloy-primitives = { workspace = true, default-features = false, features=["tiny-keccak"] }
+stylus-sdk = { workspace = true, features = ["stylus-test"] }
 
 [package.metadata.docs.rs]
-features = ["default", "docs", "debug", "export-abi"]
+features = ["default", "docs", "debug", "export-abi", "stylus-test"]
 
 [features]
 default = ["mini-alloc", "hostio-caching"]
@@ -40,5 +49,6 @@ debug = []
 docs = []
 hostio = []
 mini-alloc = ["dep:mini-alloc"]
-reentrant = ["stylus-proc/reentrant"]
+stylus-test = ["dep:stylus-test", "dep:rclite", "stylus-proc/stylus-test"]
+reentrant = ["stylus-proc/reentrant", "stylus-core/reentrant", "stylus-test/reentrant"]
 hostio-caching = []

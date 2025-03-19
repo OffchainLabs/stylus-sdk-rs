@@ -8,31 +8,76 @@
 //!
 //! [cargo]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
 
-use core::{fmt, marker::PhantomData};
+use clap::{Parser, Subcommand};
+use core::fmt;
 use lazy_static::lazy_static;
 use regex::Regex;
 
 #[doc(hidden)]
 pub mod internal;
 
+const DEFAULT_LICENSE: &str = "MIT-OR-APACHE-2.0";
+const DEFAULT_PRAGMA: &str = "pragma solidity ^0.8.23;";
+
+/// Export information about the Stylus contract.
+#[derive(Parser)]
+struct ExportCLI {
+    #[command(subcommand)]
+    commands: Option<ExportCommands>,
+}
+
+#[derive(Subcommand)]
+enum ExportCommands {
+    /// Export the Stylus contract ABI as a Solidity interface.
+    Abi {
+        /// Lisense of the generated ABI file.
+        #[arg(long, default_value = DEFAULT_LICENSE)]
+        license: String,
+        /// Solidity pragma line on the generated ABI file.
+        #[arg(long, default_value = DEFAULT_PRAGMA)]
+        pragma: String,
+    },
+    /// Export the constructor signature.
+    Constructor,
+}
+
+/// Prints the ABI given the CLI options.
+pub fn print_from_args<T: GenerateAbi>() {
+    let args = ExportCLI::parse();
+    match args.commands {
+        None => {
+            print_abi::<T>(DEFAULT_LICENSE, DEFAULT_PRAGMA);
+        }
+        Some(ExportCommands::Abi { license, pragma }) => {
+            print_abi::<T>(&license, &pragma);
+        }
+        Some(ExportCommands::Constructor) => {
+            print_constructor_signature::<T>();
+        }
+    }
+}
+
 /// Trait for storage types so that users can print a Solidity interface to the console.
-/// This is auto-derived via the [`external`] macro when the `export-abi` feature is enabled.
+/// This is auto-derived via the [`public`] macro when the `export-abi` feature is enabled.
 ///
-/// [`external`]: stylus-proc::external
+/// [`public`]: stylus-proc::public
 pub trait GenerateAbi {
     /// The interface's name.
     const NAME: &'static str;
 
     /// How to format the ABI. Analogous to [`Display`](std::fmt::Display).
     fn fmt_abi(f: &mut fmt::Formatter<'_>) -> fmt::Result;
+
+    /// How to format the constructor signature. Analogous to [`Display`](std::fmt::Display).
+    fn fmt_constructor_signature(f: &mut fmt::Formatter<'_>) -> fmt::Result;
 }
 
 /// Type that makes an ABI printable.
-struct AbiPrinter<T: GenerateAbi>(PhantomData<T>);
+struct AbiPrinter(fn(&mut fmt::Formatter<'_>) -> fmt::Result);
 
-impl<T: GenerateAbi> fmt::Display for AbiPrinter<T> {
+impl fmt::Display for AbiPrinter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        T::fmt_abi(f)
+        self.0(f)
     }
 }
 
@@ -46,7 +91,11 @@ pub fn print_abi<T: GenerateAbi>(license: &str, pragma: &str) {
     println!("// SPDX-License-Identifier: {license}");
     println!("{pragma}");
     println!();
-    print!("{}", AbiPrinter::<T>(PhantomData));
+    print!("{}", AbiPrinter(T::fmt_abi));
+}
+
+fn print_constructor_signature<T: GenerateAbi>() {
+    print!("{}", AbiPrinter(T::fmt_constructor_signature));
 }
 
 lazy_static! {

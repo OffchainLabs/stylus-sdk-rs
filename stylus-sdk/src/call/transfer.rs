@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 
 #[cfg(feature = "reentrant")]
-use crate::storage::TopLevelStorage;
+use stylus_core::storage::TopLevelStorage;
 
 #[cfg(feature = "reentrant")]
 use crate::storage::Storage;
@@ -19,6 +19,11 @@ use crate::storage::Storage;
 ///
 /// [`call`]: super::call
 #[cfg(feature = "reentrant")]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
+#[allow(dead_code, deprecated)]
 pub fn transfer_eth(
     _storage: &mut impl TopLevelStorage,
     to: Address,
@@ -50,6 +55,11 @@ pub fn transfer_eth(
 /// # }
 /// ```
 #[cfg(not(feature = "reentrant"))]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
+)]
+#[allow(dead_code, deprecated)]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
     RawCall::new_with_value(amount)
         .skip_return_data()

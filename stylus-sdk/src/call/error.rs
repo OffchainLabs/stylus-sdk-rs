@@ -6,6 +6,10 @@ use alloy_sol_types::{Panic, PanicKind, SolError};
 
 /// Represents error data when a call fails.
 #[derive(Debug, PartialEq)]
+#[deprecated(
+    since = "0.8.0",
+    note = "Use the Error struct defined in stylus_core::calls::errors instead"
+)]
 pub enum Error {
     /// Revert data returned by the other contract.
     Revert(Vec<u8>),
@@ -13,6 +17,7 @@ pub enum Error {
     AbiDecodingFailed(alloy_sol_types::Error),
 }
 
+#[allow(deprecated)]
 impl From<alloy_sol_types::Error> for Error {
     fn from(err: alloy_sol_types::Error) -> Self {
         Error::AbiDecodingFailed(err)
@@ -28,6 +33,7 @@ pub trait MethodError {
     fn encode(self) -> Vec<u8>;
 }
 
+#[allow(deprecated)]
 impl MethodError for Error {
     #[inline]
     fn encode(self) -> Vec<u8> {
@@ -42,6 +48,7 @@ impl<T: SolError> MethodError for T {
     }
 }
 
+#[allow(deprecated)]
 impl From<Error> for Vec<u8> {
     #[allow(unused)]
     fn from(err: Error) -> Vec<u8> {

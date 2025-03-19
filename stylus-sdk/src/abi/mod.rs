@@ -18,14 +18,11 @@
 use alloc::vec::Vec;
 use alloy_primitives::U256;
 use core::borrow::BorrowMut;
+use stylus_core::{storage::TopLevelStorage, ValueDenier};
 
 use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
-use crate::{
-    console,
-    storage::{StorageType, TopLevelStorage},
-    ArbResult,
-};
+use crate::{console, host::VM, storage::StorageType, ArbResult};
 
 pub use bytes::{Bytes, BytesSolType};
 pub use const_string::ConstString;
@@ -47,9 +44,10 @@ pub mod internal;
 /// Executes a method given a selector and calldata.
 /// This trait can be automatically implemented via `#[public]`.
 /// Composition with other routers is possible via `#[inherit]`.
-pub trait Router<S>
+pub trait Router<S, I = Self>
 where
-    S: TopLevelStorage + BorrowMut<Self::Storage>,
+    S: TopLevelStorage + BorrowMut<Self::Storage> + ValueDenier,
+    I: ?Sized,
 {
     /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;
@@ -76,6 +74,16 @@ where
     /// A fallback function can be declared as payable. If not payable, then any transactions
     /// that trigger a fallback with value attached will revert.
     fn fallback(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
+
+    /// The router_entrypoint calls the constructor when the selector is CONSTRUCTOR_SELECTOR.
+    /// The implementation should: decode the calldata and pass the parameters to the user-defined
+    /// constructor; and call internal::constructor_guard to ensure it is only executed once.
+    /// Since each constructor has its own set of parameters, this function won't call the
+    /// constructors for inherited structs automatically. Instead, the user-defined function should
+    /// call the base classes constructors.
+    /// A constructor function can be declared as payable. If not payable, then any transactions
+    /// that trigger the constructor with value attached will revert.
+    fn constructor(storage: &mut S, calldata: &[u8]) -> Option<ArbResult>;
 }
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
@@ -96,12 +104,12 @@ where
 //    if no value is received in the transaction. It is implicitly payable.
 //  - Fallback is called when no other function matches a selector. If a receive function is not
 //    defined, then calls with no input calldata will be routed to the fallback function.
-pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>) -> ArbResult
+pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>, host: VM) -> ArbResult
 where
     R: Router<S>,
-    S: StorageType + TopLevelStorage + BorrowMut<R::Storage>,
+    S: StorageType + TopLevelStorage + BorrowMut<R::Storage> + ValueDenier,
 {
-    let mut storage = unsafe { S::new(U256::ZERO, 0) };
+    let mut storage = unsafe { S::new(U256::ZERO, 0, host) };
 
     if input.is_empty() {
         console!("no calldata provided");
@@ -118,7 +126,11 @@ where
 
     if input.len() >= 4 {
         let selector = u32::from_be_bytes(TryInto::try_into(&input[..4]).unwrap());
-        if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
+        if selector == CONSTRUCTOR_SELECTOR {
+            if let Some(res) = R::constructor(&mut storage, &input[4..]) {
+                return res;
+            }
+        } else if let Some(res) = R::route(&mut storage, selector, &input[4..]) {
             return res;
         } else {
             console!("unknown method selector: {selector:08x}");
@@ -157,7 +169,7 @@ pub trait AbiType {
 /// Generates a function selector for the given method and its args.
 #[macro_export]
 macro_rules! function_selector {
-    ($name:literal $(,)?) => {{
+    ($name:expr $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"()")
@@ -165,7 +177,7 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 
-    ($name:literal, $first:ty $(, $ty:ty)* $(,)?) => {{
+    ($name:expr, $first:ty $(, $ty:ty)* $(,)?) => {{
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"(")
@@ -179,6 +191,10 @@ macro_rules! function_selector {
         $crate::abi::internal::digest_to_selector(DIGEST)
     }};
 }
+
+/// The function selector for Stylus constructors.
+pub const CONSTRUCTOR_SELECTOR: u32 =
+    u32::from_be_bytes(function_selector!(internal::CONSTRUCTOR_BASE_NAME));
 
 /// ABI decode a tuple of parameters
 pub fn decode_params<T>(data: &[u8]) -> alloy_sol_types::Result<T>

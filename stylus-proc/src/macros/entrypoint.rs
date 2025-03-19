@@ -27,8 +27,7 @@ pub fn entrypoint(
 
 struct Entrypoint {
     kind: EntrypointKind,
-    mark_used_fn: syn::ItemFn,
-    user_entrypoint_fn: syn::ItemFn,
+    user_entrypoint_fn: Option<syn::ItemFn>,
 }
 impl Parse for Entrypoint {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -40,6 +39,7 @@ impl Parse for Entrypoint {
                 struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
                 assert_overrides_const: assert_overrides_const(&item.ident),
                 print_abi_fn: print_abi_fn(&item.ident),
+                print_from_args_fn: print_from_args_fn(&item.ident),
                 item,
             }),
             _ => abort!(item, "not a struct or fn"),
@@ -47,7 +47,6 @@ impl Parse for Entrypoint {
 
         Ok(Self {
             user_entrypoint_fn: user_entrypoint_fn(kind.entrypoint_fn_name()),
-            mark_used_fn: mark_used_fn(),
             kind,
         })
     }
@@ -56,7 +55,6 @@ impl Parse for Entrypoint {
 impl ToTokens for Entrypoint {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.kind.to_tokens(tokens);
-        self.mark_used_fn.to_tokens(tokens);
         self.user_entrypoint_fn.to_tokens(tokens);
     }
 }
@@ -104,6 +102,7 @@ struct EntrypointStruct {
     struct_entrypoint_fn: syn::ItemFn,
     assert_overrides_const: syn::ItemConst,
     print_abi_fn: Option<syn::ItemFn>,
+    print_from_args_fn: Option<syn::ItemFn>,
 }
 
 impl ToTokens for EntrypointStruct {
@@ -113,6 +112,7 @@ impl ToTokens for EntrypointStruct {
         self.struct_entrypoint_fn.to_tokens(tokens);
         self.assert_overrides_const.to_tokens(tokens);
         self.print_abi_fn.to_tokens(tokens);
+        self.print_from_args_fn.to_tokens(tokens);
     }
 }
 
@@ -120,14 +120,14 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
     let name = &item.ident;
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
     parse_quote! {
-        unsafe impl #impl_generics stylus_sdk::storage::TopLevelStorage for #name #ty_generics #where_clause {}
+        unsafe impl #impl_generics stylus_sdk::stylus_core::storage::TopLevelStorage for #name #ty_generics #where_clause {}
     }
 }
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
-        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>) -> stylus_sdk::ArbResult {
-            stylus_sdk::abi::router_entrypoint::<#name, #name>(input)
+        fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
+            stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
     }
 }
@@ -140,43 +140,50 @@ fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
     }
 }
 
-fn mark_used_fn() -> syn::ItemFn {
-    parse_quote! {
-        #[no_mangle]
-        pub unsafe fn mark_used() {
-            stylus_sdk::evm::pay_for_memory_grow(0);
-            panic!();
-        }
-    }
-}
+fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
+    let _ = user_fn;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stylus-test")] {
+            None
+        } else {
+            let deny_reentrant = deny_reentrant();
+            Some(parse_quote! {
+                #[no_mangle]
+                pub extern "C" fn user_entrypoint(len: usize) -> usize {
+                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+                    #deny_reentrant
 
-fn user_entrypoint_fn(user_fn: Ident) -> syn::ItemFn {
-    let deny_reentrant = deny_reentrant();
-    parse_quote! {
-        #[no_mangle]
-        pub extern "C" fn user_entrypoint(len: usize) -> usize {
-            #deny_reentrant
+                    // The following call is a noop to ensure that pay_for_memory_grow is
+                    // referenced by the Stylus contract. Later, when the contract is activated,
+                    // Nitro will automatically add the calls pay_for_memory_grow when memory is
+                    // dynamically allocated. If we do not add this call here, the calls added by
+                    // Nitro will not work and activation will fail. This call costs 8700 Ink,
+                    // which is less than 1 Gas.
+                    host.pay_for_memory_grow(0);
 
-            let input = stylus_sdk::contract::args(len);
-            let (data, status) = match #user_fn(input) {
-                Ok(data) => (data, 0),
-                Err(data) => (data, 1),
-            };
-            unsafe { stylus_sdk::storage::StorageCache::flush() };
-            stylus_sdk::contract::output(&data);
-            status
+                    let input = host.read_args(len);
+                    let (data, status) = match #user_fn(input, host.clone()) {
+                        Ok(data) => (data, 0),
+                        Err(data) => (data, 1),
+                    };
+                    host.flush_cache(false /* do not clear */);
+                    host.write_result(&data);
+                    status
+                }
+            })
         }
     }
 }
 
 /// Revert on reentrancy unless explicitly enabled
+#[cfg(not(feature = "stylus-test"))]
 fn deny_reentrant() -> Option<syn::ExprIf> {
     cfg_if! {
         if #[cfg(feature = "reentrant")] {
             None
         } else {
             Some(parse_quote! {
-                if stylus_sdk::msg::reentrant() {
+                if host.msg_reentrant() {
                     return 1; // revert
                 }
             })
@@ -189,8 +196,24 @@ fn print_abi_fn(ident: &syn::Ident) -> Option<syn::ItemFn> {
     cfg_if! {
         if #[cfg(feature = "export-abi")] {
             Some(parse_quote! {
+                #[deprecated = "use print_from_args() instead"]
                 pub fn print_abi(license: &str, pragma: &str) {
                     stylus_sdk::abi::export::print_abi::<#ident>(license, pragma);
+                }
+            })
+        } else {
+            None
+        }
+    }
+}
+
+fn print_from_args_fn(ident: &syn::Ident) -> Option<syn::ItemFn> {
+    let _ = ident;
+    cfg_if! {
+        if #[cfg(feature = "export-abi")] {
+            Some(parse_quote! {
+                pub fn print_from_args() {
+                    stylus_sdk::abi::export::print_from_args::<#ident>();
                 }
             })
         } else {

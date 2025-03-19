@@ -139,6 +139,7 @@ impl Interface {
 
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
+            #[allow(deprecated)]
             pub fn #rust_name(&self, context: impl #context #(, #rust_args)*) ->
                 Result<<#return_type as #SolType>::RustType, stylus_sdk::call::Error>
             {
@@ -160,7 +161,7 @@ impl From<&syn_solidity::ItemContract> for Interface {
         let mut iface = Self {
             item_struct: parse_quote! {
                 #(#attrs)*
-                struct #name {
+                pub struct #name {
                     pub address: #AlloyAddress,
                 }
             },
@@ -333,7 +334,7 @@ mod tests {
             &visitor.interfaces[0].item_struct,
             &parse_quote! {
                 #[interface_attr]
-                struct IService {
+                pub struct IService {
                     pub address: stylus_sdk::alloy_primitives::Address,
                 }
             },
@@ -347,6 +348,7 @@ mod tests {
                     }
 
                     #[function_attr]
+                    #[allow(deprecated)]
                     pub fn make_payment(
                         &self,
                         context: impl stylus_sdk::call::MutatingCallContext,
@@ -365,6 +367,7 @@ mod tests {
                         ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
+                    #[allow(deprecated)]
                     pub fn get_constant(
                         &self,
                         context: impl stylus_sdk::call::StaticCallContext,
@@ -378,6 +381,7 @@ mod tests {
                         Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
+                    #[allow(deprecated)]
                     pub fn get_foo(
                         &self,
                         context: impl stylus_sdk::call::StaticCallContext,

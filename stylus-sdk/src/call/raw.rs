@@ -1,7 +1,10 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{contract::read_return_data, hostio, tx, ArbResult};
+use crate::{
+    hostio::{call_contract, delegate_call_contract, static_call_contract},
+    ArbResult,
+};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 
@@ -74,12 +77,14 @@ impl Default for RustVec {
     }
 }
 
+#[allow(deprecated)]
 impl RawCall {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
     /// use stylus_sdk::call::RawCall;
     /// use stylus_sdk::{alloy_primitives::address, hex};
+    /// use stylus_sdk::host::WasmVM;
     ///
     /// let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
     /// let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
@@ -139,7 +144,7 @@ impl RawCall {
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     pub fn ink(mut self, ink: u64) -> Self {
-        self.gas = Some(tx::ink_to_gas(ink));
+        self.gas = Some(crate::tx::ink_to_gas(ink));
         self
     }
 
@@ -196,7 +201,7 @@ impl RawCall {
                     CachePolicy::DoNothing => {}
                 }
                 match self.kind {
-                    CallKind::Basic => hostio::call_contract(
+                    CallKind::Basic => call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -204,14 +209,14 @@ impl RawCall {
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Delegate => hostio::delegate_call_contract(
+                    CallKind::Delegate => delegate_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
                         gas,
                         &mut outs_len,
                     ),
-                    CallKind::Static => hostio::static_call_contract(
+                    CallKind::Static => static_call_contract(
                         contract.as_ptr(),
                         calldata.as_ptr(),
                         calldata.len(),
@@ -227,7 +232,7 @@ impl RawCall {
                 }
             }
 
-            let outs = read_return_data(self.offset, self.size);
+            let outs = crate::contract::read_return_data(self.offset, self.size);
             match status {
                 0 => Ok(outs),
                 _ => Err(outs),

@@ -4,15 +4,18 @@
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
-use crate::crypto;
+use crate::{crypto, host::VM};
 use alloy_primitives::U256;
+use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData};
+use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {
     slot: U256,
     base: OnceCell<U256>,
     marker: PhantomData<S>,
+    __stylus_host: VM,
 }
 
 impl<S: StorageType> StorageType for StorageVec<S> {
@@ -25,12 +28,13 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     where
         Self: 'a;
 
-    unsafe fn new(slot: U256, offset: u8) -> Self {
+    unsafe fn new(slot: U256, offset: u8, host: VM) -> Self {
         debug_assert!(offset == 0);
         Self {
             slot,
             base: OnceCell::new(),
             marker: PhantomData,
+            __stylus_host: host,
         }
     }
 
@@ -43,6 +47,37 @@ impl<S: StorageType> StorageType for StorageVec<S> {
     }
 }
 
+impl<S: StorageType> HostAccess for StorageVec<S> {
+    fn vm(&self) -> &dyn stylus_core::Host {
+        cfg_if! {
+            if #[cfg(not(feature = "stylus-test"))] {
+                &self.__stylus_host
+            } else {
+                self.__stylus_host.host.as_ref()
+            }
+        }
+    }
+}
+
+#[cfg(feature = "stylus-test")]
+impl<S, T> From<&T> for StorageVec<S>
+where
+    S: StorageType,
+    T: stylus_core::Host + Clone + 'static,
+{
+    fn from(host: &T) -> Self {
+        unsafe {
+            Self::new(
+                U256::ZERO,
+                0,
+                crate::host::VM {
+                    host: alloc::boxed::Box::new(host.clone()),
+                },
+            )
+        }
+    }
+}
+
 impl<S: StorageType> StorageVec<S> {
     /// Returns `true` if the collection contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -51,7 +86,7 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Gets the number of elements stored.
     pub fn len(&self) -> usize {
-        let word: U256 = Storage::get_word(self.slot).into();
+        let word: U256 = Storage::get_word(self.__stylus_host.clone(), self.slot).into();
         word.try_into().unwrap()
     }
 
@@ -63,7 +98,11 @@ impl<S: StorageType> StorageVec<S> {
     /// or any junk data left over from prior dirty operations.
     /// Note that [`StorageVec`] has unlimited capacity, so all lengths are valid.
     pub unsafe fn set_len(&mut self, len: usize) {
-        Storage::set_word(self.slot, U256::from(len).into())
+        Storage::set_word(
+            self.__stylus_host.clone(),
+            self.slot,
+            U256::from(len).into(),
+        )
     }
 
     /// Gets an accessor to the element at a given index, if it exists.
@@ -95,7 +134,7 @@ impl<S: StorageType> StorageVec<S> {
             return None;
         }
         let (slot, offset) = self.index_slot(index);
-        Some(S::new(slot, offset))
+        Some(S::new(slot, offset, self.__stylus_host.clone()))
     }
 
     /// Gets the underlying accessor to the element at a given index, even if out of bounds.
@@ -105,7 +144,7 @@ impl<S: StorageType> StorageVec<S> {
     /// Enables aliasing. UB if out of bounds.
     unsafe fn accessor_unchecked(&self, index: usize) -> S {
         let (slot, offset) = self.index_slot(index);
-        S::new(slot, offset)
+        S::new(slot, offset, self.__stylus_host.clone())
     }
 
     /// Gets the element at the given index, if it exists.
@@ -126,10 +165,13 @@ impl<S: StorageType> StorageVec<S> {
     /// # Example
     ///
     /// ```no_run
+    /// extern crate alloc;
     /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
     /// use stylus_sdk::alloy_primitives::U256;
+    /// use stylus_test::*;
     ///
-    /// let mut vec: StorageVec<StorageVec<StorageU256>> = unsafe { StorageVec::new(U256::ZERO, 0) };
+    /// let vm = TestVM::default();
+    /// let mut vec: StorageVec<StorageVec<StorageU256>> = StorageVec::from(&vm);
     /// let mut inner_vec = vec.grow();
     /// inner_vec.push(U256::from(8));
     ///
@@ -144,7 +186,7 @@ impl<S: StorageType> StorageVec<S> {
         unsafe { self.set_len(index + 1) };
 
         let (slot, offset) = self.index_slot(index);
-        let store = unsafe { S::new(slot, offset) };
+        let store = unsafe { S::new(slot, offset, self.__stylus_host.clone()) };
         StorageGuardMut::new(store)
     }
 
@@ -213,7 +255,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
             let slot = self.index_slot(index).0;
             let words = S::REQUIRED_SLOTS.max(1);
             for i in 0..words {
-                unsafe { Storage::clear_word(slot + U256::from(i)) };
+                unsafe { Storage::clear_word(self.__stylus_host.clone(), slot + U256::from(i)) };
             }
         }
         Some(value)
@@ -249,5 +291,25 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
         for elem in iter {
             self.push(elem);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use stylus_test::vm::TestVM;
+
+    #[test]
+    fn test_storage_vec() {
+        use super::super::StorageBool;
+        use super::*;
+
+        let host = TestVM::new();
+        let mut vec: StorageVec<StorageBool> = StorageVec::from(&host);
+        vec.push(true);
+        vec.push(false);
+        vec.push(true);
+        assert!(vec.get(0).unwrap());
+        assert!(!vec.get(1).unwrap());
+        assert!(vec.get(2).unwrap());
     }
 }

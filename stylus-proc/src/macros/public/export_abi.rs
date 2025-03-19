@@ -99,6 +99,35 @@ impl InterfaceExtension for InterfaceAbi {
             });
         }
 
+        let constructor_signature: Option<TokenStream> = funcs
+            .iter()
+            .filter_map(|func| match func.kind {
+                FnKind::Constructor => {
+                    let sol_args = func.inputs.iter().enumerate().map(|(i, arg)| {
+                        let comma = (i > 0).then_some(", ").unwrap_or_default();
+                        let name = arg.extension.pattern_ident.as_ref().map(ToString::to_string).unwrap_or_default();
+                        let ty = &arg.ty;
+                        quote! {
+                            write!(f, "{}{}{}", #comma, <#ty as AbiType>::EXPORT_ABI_ARG, underscore_if_sol(#name))?;
+                        }
+                    });
+                    let sol_purity = match func.purity {
+                        Purity::Payable => " payable",
+                        _ => "",
+                    };
+                    Some(quote! {
+                        use stylus_sdk::abi::AbiType;
+                        use stylus_sdk::abi::export::underscore_if_sol;
+                        write!(f, "constructor(")?;
+                        #(#sol_args)*
+                        write!(f, ")")?;
+                        writeln!(f, #sol_purity)?;
+                    })
+                }
+                _ => None,
+            })
+            .next();
+
         parse_quote! {
             impl<#generic_params> stylus_sdk::abi::GenerateAbi for #self_ty where #where_clause {
                 const NAME: &'static str = #name;
@@ -118,6 +147,11 @@ impl InterfaceExtension for InterfaceAbi {
                     #abi
                     #type_decls
                     writeln!(f, "}}")?;
+                    Ok(())
+                }
+
+                fn fmt_constructor_signature(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    #constructor_signature
                     Ok(())
                 }
             }

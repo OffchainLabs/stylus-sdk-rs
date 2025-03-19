@@ -1,5 +1,4 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
-// use crate::consts::{ALLOW_OVERRIDE_FN, ASSERT_OVERRIDES_FN};
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Ensure that public functions follow safe override rules.

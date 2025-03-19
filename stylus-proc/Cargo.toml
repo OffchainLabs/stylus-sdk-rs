@@ -29,12 +29,14 @@ trybuild.workspace = true
 paste.workspace = true
 pretty_assertions.workspace = true
 prettyplease.workspace = true
-stylus-sdk.workspace = true
+stylus-sdk = { workspace = true, features = ["stylus-test"] }
+stylus-core.workspace = true
 
 [features]
 default = []
 export-abi = ["stylus-sdk/export-abi"]
 reentrant = []
+stylus-test = ["stylus-sdk/stylus-test"]
 
 [package.metadata.docs.rs]
 features = ["export-abi"]
