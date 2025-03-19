@@ -135,6 +135,7 @@ alias_ints! {
     StorageU16, StorageI16, 16, 1;
     StorageU32, StorageI32, 32, 1;
     StorageU64, StorageI64, 64, 1;
+    StorageU96, StorageI96, 96, 2;
     StorageU128, StorageI128, 128, 2;
     StorageU160, StorageI160, 160, 3;
     StorageU192, StorageI192, 192, 3;
