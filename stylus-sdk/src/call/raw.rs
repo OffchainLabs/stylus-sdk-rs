@@ -226,12 +226,6 @@ impl RawCall {
                 }
             };
 
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "hostio-caching")] {
-                    crate::contract::RETURN_DATA_LEN.set(outs_len);
-                }
-            }
-
             let outs = crate::contract::read_return_data(self.offset, self.size);
             match status {
                 0 => Ok(outs),

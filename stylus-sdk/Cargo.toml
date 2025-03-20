@@ -43,7 +43,7 @@ stylus-sdk = { workspace = true, features = ["stylus-test"] }
 features = ["default", "docs", "debug", "export-abi", "stylus-test"]
 
 [features]
-default = ["mini-alloc", "hostio-caching"]
+default = ["mini-alloc"]
 export-abi = ["debug", "regex", "stylus-proc/export-abi", "alloy-primitives/tiny-keccak"]
 debug = []
 docs = []
@@ -51,4 +51,3 @@ hostio = []
 mini-alloc = ["dep:mini-alloc"]
 stylus-test = ["dep:stylus-test", "dep:rclite", "stylus-proc/stylus-test"]
 reentrant = ["stylus-proc/reentrant", "stylus-core/reentrant", "stylus-test/reentrant"]
-hostio-caching = []

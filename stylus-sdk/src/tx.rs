@@ -20,7 +20,7 @@ wrap_hostio! {
     /// Stylus's compute-pricing model.
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
-    ink_price INK_PRICE tx_ink_price u32
+    ink_price tx_ink_price u32
 }
 
 /// Converts evm gas to ink. See [`Ink and Gas`] for more information on
@@ -51,7 +51,7 @@ pub fn ink_to_gas(ink: u64) -> u64 {
 
 wrap_hostio!(
     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee.
-    gas_price GAS_PRICE tx_gas_price U256
+    gas_price tx_gas_price U256
 );
 
 wrap_hostio!(
@@ -59,5 +59,5 @@ wrap_hostio!(
     /// EVM's [`ORIGIN`] opcode.
     ///
     /// [`ORIGIN`]: https://www.evm.codes/#32
-    origin ORIGIN tx_origin Address
+    origin tx_origin Address
 );
