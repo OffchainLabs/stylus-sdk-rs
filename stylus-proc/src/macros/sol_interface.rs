@@ -147,7 +147,7 @@ impl Interface {
                 let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                 calldata.extend(args);
                 let returned = #call(context, self.address, &calldata)?;
-                Ok(<(#return_type,) as #SolType>::abi_decode_params(&returned, true)?.0)
+                Ok(<(#return_type,) as #SolType>::abi_decode_params(&returned)?.0)
             }
         });
     }
@@ -364,7 +364,7 @@ mod tests {
                         let returned = stylus_sdk::call::call(context, self.address, &calldata)?;
                         Ok(<(
                             stylus_sdk::alloy_sol_types::sol_data::String,
-                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
                     }
 
                     #[allow(deprecated)]
@@ -378,7 +378,7 @@ mod tests {
                         let mut calldata = vec![241u8, 58u8, 56u8, 166u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
-                        Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
+                        Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
                     }
 
                     #[allow(deprecated)]
@@ -392,7 +392,7 @@ mod tests {
                         let mut calldata = vec![36u8, 61u8, 200u8, 218u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
-                        Ok(<(inner::Foo,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
+                        Ok(<(inner::Foo,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
                     }
                 }
             },

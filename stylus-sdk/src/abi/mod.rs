@@ -202,7 +202,7 @@ where
     T: AbiType + SolTypeValue<<T as AbiType>::SolType>,
     for<'a> <<T as AbiType>::SolType as SolType>::Token<'a>: TokenSeq<'a>,
 {
-    T::SolType::abi_decode_params(data, true)
+    T::SolType::abi_decode_params(data)
 }
 
 /// ABI encode a value
