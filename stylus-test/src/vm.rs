@@ -698,15 +698,51 @@ mod tests {
         vm.set_block_number(12345);
         assert_eq!(vm.block_number(), 12345);
 
-        let address = Address::from([1u8; 20]);
+        vm.set_block_timestamp(10);
+        assert_eq!(vm.block_timestamp(), 10);
+
+        let sender = Address::from([2u8; 20]);
+        vm.set_sender(sender);
+        assert_eq!(vm.msg_sender(), sender);
+        vm.set_tx_origin(sender);
+        assert_eq!(vm.tx_origin(), sender);
+
         let balance = U256::from(1000);
-        vm.set_balance(address, balance);
-        assert_eq!(vm.balance(address), balance);
+        vm.set_balance(sender, balance);
+        assert_eq!(vm.balance(sender), balance);
+
+        let contract = Address::from([3u8; 20]);
+        vm.set_contract_address(contract);
+        assert_eq!(vm.contract_address(), contract);
+
+        let code = vec![1u8, 2u8, 3u8];
+        vm.set_code(contract, code.clone());
+        assert_eq!(vm.code(contract), code);
+
+        let gas_left = 5;
+        vm.set_gas_left(gas_left);
+        assert_eq!(vm.evm_gas_left(), gas_left);
+
+        let ink_left = 6;
+        vm.set_ink_left(ink_left);
+        assert_eq!(vm.evm_ink_left(), ink_left);
+
+        let chain_id = 777;
+        vm.set_chain_id(chain_id);
+        assert_eq!(vm.chain_id(), chain_id);
 
         let key = U256::from(1);
         let value = B256::new([1u8; 32]);
         vm.set_storage(key, value);
         assert_eq!(vm.get_storage(key), value);
+
+        vm.clear_storage();
+
+        assert_eq!(vm.get_storage(key), B256::ZERO);
+
+        let value = U256::from(2);
+        vm.set_value(value);
+        assert_eq!(vm.msg_value(), value);
     }
 
     #[test]
