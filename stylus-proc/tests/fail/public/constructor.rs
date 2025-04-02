@@ -9,13 +9,34 @@ struct Contract {}
 
 #[public]
 impl Contract {
+    // error: function can be only one of fallback, receive or constructor
+    #[fallback]
+    #[receive]
+    #[constructor]
+    fn init() {}
+    
+    // error: fallback, receive, and constructor can't have custom selector
     #[constructor]
     #[selector(name = "foo")]
-    #[fallback]
-    fn init() {}
+    fn constr() {}
 
-    // constructor without annotation
+    // error: constructor function can only be defined using the corresponding attribute
     fn constructor() {}
+
+    // error: constructor function can only be defined using the corresponding attribute
+    #[receive]
+    fn constructor() {}
+
+    // error: stylusConstructor function can only be defined using the corresponding attribute
+    fn stylus_constructor() {}
+
+    // error: stylusConstructor function can only be defined using the corresponding attribute
+    #[selector(name = "stylus_constructor")]
+    fn foo() {}
+
+    // error: stylusConstructor function can only be defined using the corresponding attribute
+    #[selector(name = "stylusConstructor")]
+    fn foo() {}
 }
 
 fn main() {}
