@@ -138,7 +138,7 @@ impl TestVM {
 
     /// Sets the transaction origin address.
     pub fn set_tx_origin(&self, origin: Address) {
-        self.state.borrow_mut().tx_origin = origin;
+        self.state.borrow_mut().tx_origin = Some(origin);
     }
 
     /// Sets the balance for an address.
@@ -173,6 +173,11 @@ impl TestVM {
     /// Sets remaining ink.
     pub fn set_ink_left(&self, ink: u64) {
         self.state.borrow_mut().ink_left = ink;
+    }
+
+    /// Sets the chain id.
+    pub fn set_chain_id(&self, id: u64) {
+        self.state.borrow_mut().chain_id = id;
     }
 
     /// Sets the transaction sender.
@@ -491,7 +496,10 @@ impl MessageAccess for TestVM {
     }
 
     fn tx_origin(&self) -> Address {
-        self.state.borrow().tx_origin
+        if let Some(origin) = self.state.borrow().tx_origin {
+            return origin;
+        }
+        self.msg_sender()
     }
 }
 
@@ -634,7 +642,7 @@ impl DeploymentAccess for TestVM {
             .deploy_returns
             .get(&(code.to_vec(), salt))
             .cloned()
-            .unwrap_or(Ok(Address::ZERO))
+            .unwrap()
     }
 
     #[cfg(not(feature = "reentrant"))]
@@ -649,7 +657,7 @@ impl DeploymentAccess for TestVM {
             .deploy_returns
             .get(&(code.to_vec(), salt))
             .cloned()
-            .unwrap_or(Ok(Address::ZERO))
+            .unwrap()
     }
 }
 
