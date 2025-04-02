@@ -151,7 +151,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
         for special_name in ["receive", "fallback", "constructor"] {
-            if matches!(kind, FnKind::Function) && name == special_name {
+            if matches!(kind, FnKind::Function) && name.to_string().to_lowercase() == special_name {
                 emit_error!(
                     node.span(),
                     format!("{special_name} function can only be defined using the #[{special_name}] attribute")

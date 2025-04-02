@@ -184,7 +184,7 @@ pub trait StorageAccess {
     /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
     /// are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
-    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
+    /// Note: because the value is cached, one must call `flush_cache` to persist it.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     ///
@@ -423,14 +423,19 @@ pub trait MeteringAccess {
     /// [`GAS_PRICE`]: https://www.evm.codes/#3A
     fn tx_gas_price(&self) -> U256;
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
-    /// Stylus's compute-pricing model.
+    /// Stylus's compute-pricing model. Arbitrum enforces a minimum gas price floor, so tx ink
+    /// price should always return a value greater than zero.
     ///
     /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
     fn tx_ink_price(&self) -> u32;
 
     /// Computes the units of gas per a specified amount of ink.
     fn ink_to_gas(&self, ink: u64) -> u64 {
-        ink / self.tx_ink_price() as u64
+        let price = self.tx_ink_price();
+        if price == 0 {
+            return 0;
+        }
+        ink / price as u64
     }
 
     /// Computes the units of ink per a specified amount of gas.
