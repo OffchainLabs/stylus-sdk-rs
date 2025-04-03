@@ -18,11 +18,9 @@ pub use self::{
     context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
     transfer::transfer_eth,
 };
+use crate::storage::Storage;
 
 pub(crate) use raw::CachePolicy;
-
-#[cfg(feature = "reentrant")]
-use crate::storage::Storage;
 
 mod context;
 mod error;
@@ -48,7 +46,6 @@ pub fn static_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
 
     unsafe_reentrant! {{
@@ -71,7 +68,6 @@ pub unsafe fn delegate_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
     RawCall::new_delegate()
@@ -82,7 +78,6 @@ pub unsafe fn delegate_call(
 
 /// Calls the contract at the given address.
 pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     Storage::clear(); // clear the storage to persist changes, invalidating the cache
 
     unsafe_reentrant! {{
