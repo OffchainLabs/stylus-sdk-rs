@@ -1,0 +1,13 @@
+[package]
+name = "stylus-tools"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "Tools to compile, deploy and verify Arbitrum Stylus contracts"
+readme = "../README.md"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
