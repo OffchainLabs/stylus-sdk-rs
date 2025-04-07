@@ -5,7 +5,7 @@ use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
     parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
-    Token,
+    Token, Type,
 };
 
 use crate::{
@@ -77,11 +77,20 @@ impl PublicImpl {
             .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
 
+        // Prepares the statement that invokes a fallback function if it exists.
+        // If it doesn't exist, we rely on the inherited fallback function.
+        // Also, a fallback could be defined in a trait our type implements, so we pass
+        // the trait_ option to the token builder method below. For instance, if
+        // our type `MyContract` implements `MyTrait`, and `MyTrait` has a fallback function, while
+        // MyContract does NOT have a fallback function, we need to call the fallback function from `MyTrait`.
+        // We need to call `<MyContract as MyTrait>::fallback` instead of `MyContract::fallback`.
+        let fallback_tokens_builder =
+            |fn_: &PublicFn<Extension>| PublicFn::call_fallback(fn_, self.trait_.clone());
         let call_fallback = call_special!(
             self,
             FnKind::Fallback { .. },
             "fallback",
-            PublicFn::call_fallback
+            fallback_tokens_builder
         );
         let inheritance_fallback = self.inheritance_fallback();
         let fallback = call_fallback.unwrap_or_else(|| {
@@ -330,28 +339,36 @@ impl<E: FnExtension> PublicFn<E> {
         }
     }
 
-    fn call_fallback(&self) -> syn::Stmt {
+    fn call_fallback(&self, trait_: Option<syn::Path>) -> syn::Stmt {
         let deny_value = self.deny_value();
         let name = &self.name;
         let storage_arg = self.storage_arg();
-        let call: syn::Stmt = if matches!(self.kind, FnKind::Fallback { with_args: false }) {
-            parse_quote! {
-                return Some({
-                    if let Err(err) = Self::#name(#storage_arg) {
-                        Err(err)
-                    } else {
-                        Ok(Vec::new())
-                    }
-                });
+        let is_no_args = matches!(self.kind, FnKind::Fallback { with_args: false });
+
+        // Determine if we're calling through a trait or directly.
+        let method_call = if let Some(trait_) = trait_ {
+            quote!(<Self as #trait_>::#name)
+        } else {
+            quote!(Self::#name)
+        };
+
+        // Build the appropriate call based on whether we have arguments.
+        let return_expr = if is_no_args {
+            quote! {
+                if let Err(err) = #method_call(#storage_arg) {
+                    Err(err)
+                } else {
+                    Ok(Vec::new())
+                }
             }
         } else {
-            parse_quote! {
-                return Some(Self::#name(#storage_arg input));
-            }
+            quote!(#method_call(#storage_arg input))
         };
+
+        // Assemble the final statement.
         parse_quote!({
             #deny_value
-            #call
+            return Some(#return_expr);
         })
     }
 
