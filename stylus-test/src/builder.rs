@@ -79,11 +79,14 @@ impl TestVMBuilder {
     /// If specified, any calls to load storage will be made to the RPC URL at the TestVM's specified
     /// contract address.
     pub fn rpc_url(mut self, url: &str) -> Self {
+        let url = match Url::parse(url) {
+            Ok(url) => url,
+            Err(e) => {
+                panic!("Invalid RPC URL specified: {}", e);
+            }
+        };
         self.rpc_url = Some(url.to_string());
-        if let Some(url) = &self.rpc_url {
-            let url = Url::parse(url).unwrap();
-            self.provider = Some(Arc::new(RootProvider::new_http(url)));
-        }
+        self.provider = Some(Arc::new(RootProvider::new_http(url)));
         self
     }
     /// Returns and TestVM instance from the builder with the specified parameters.

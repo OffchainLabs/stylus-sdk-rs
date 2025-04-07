@@ -359,20 +359,16 @@ impl StorageAccess for TestVM {
 
     fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
-        if let Some(provider) = self.state.borrow().provider.clone() {
+        let curr_state = self.state.borrow();
+        if let Some(provider) = &curr_state.provider {
             let rt = Runtime::new().expect("Failed to create runtime");
-            let addr = self.state.borrow().contract_address;
+            let addr = curr_state.contract_address;
             let storage = rt
                 .block_on(async { provider.get_storage_at(addr, key).await })
                 .unwrap_or_default();
             return B256::from(storage);
         }
-        self.state
-            .borrow()
-            .storage
-            .get(&key)
-            .copied()
-            .unwrap_or(B256::ZERO)
+        curr_state.storage.get(&key).copied().unwrap_or(B256::ZERO)
     }
 }
 

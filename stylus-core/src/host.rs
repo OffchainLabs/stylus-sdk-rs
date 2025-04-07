@@ -127,7 +127,7 @@ pub unsafe trait UnsafeDeploymentAccess {
     /// # Safety
     /// This method should only be used in advanced cases when lowest-level access to create1 is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-    /// utilize a [`RawDeploy`] struct instead for safety.
+    /// Utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create1(
         &self,
         code: *const u8,
@@ -155,7 +155,7 @@ pub unsafe trait UnsafeDeploymentAccess {
     /// # Safety
     /// This method should only be used in advanced cases when lowest-level access to create2 is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-    /// utilize a [`RawDeploy`] struct instead for safety.
+    /// Utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create2(
         &self,
         code: *const u8,
@@ -224,7 +224,7 @@ pub unsafe trait UnsafeCallAccess {
     /// # Safety
     /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-    /// utilize a [`RawCall`] struct instead for safety.
+    /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn call_contract(
         &self,
         to: *const u8,
@@ -252,7 +252,7 @@ pub unsafe trait UnsafeCallAccess {
     /// # Safety
     /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-    /// utilize a [`RawCall`] struct instead for safety.
+    /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn static_call_contract(
         &self,
         to: *const u8,
@@ -279,7 +279,7 @@ pub unsafe trait UnsafeCallAccess {
     /// # Safety
     /// This method should only be used in advanced cases when lowest-level access to calls is required.
     /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
-    /// utilize a [`RawCall`] struct instead for safety.
+    /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn delegate_call_contract(
         &self,
         to: *const u8,
@@ -290,7 +290,7 @@ pub unsafe trait UnsafeCallAccess {
     ) -> u8;
 }
 
-/// Provides access to host methods relating to the block a transactions
+/// Provides access to host methods relating to the block a transaction
 /// to a Stylus contract is included in.
 pub trait BlockAccess {
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
