@@ -5,7 +5,7 @@ use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
     parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
-    Token, Type,
+    Token,
 };
 
 use crate::{

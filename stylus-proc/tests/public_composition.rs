@@ -40,7 +40,7 @@ trait IErc20 {
     fn total_supply(&self) -> U256;
     fn balance_of(&self, _account: Address) -> U256;
     fn transfer(&mut self, _to: Address, _value: U256) -> bool;
-    fn fallback(&self) -> ArbResult;
+    fn fallback(&self) -> stylus_sdk::ArbResult;
     // fn transfer_from(&mut self, from: Address, to: Address, value: U256) -> bool;
     // fn approve(&mut self, spender: Address, value: U256) -> bool;
     // fn allowance(&self, owner: Address, spender: Address) -> U256;
@@ -66,6 +66,10 @@ impl IErc20 for Contract {
     fn transfer(&mut self, _to: Address, _value: U256) -> bool {
         todo!()
     }
+    #[fallback]
+    fn fallback(&self) -> stylus_sdk::ArbResult {
+        todo!()
+    }
 }
 
 #[storage]
@@ -88,10 +92,6 @@ impl IOwnable for Contract {
         todo!()
     }
     fn renounce_ownership(&mut self) -> bool {
-        todo!()
-    }
-    #[fallback]
-    fn fallback(&self) -> ArbResult {
         todo!()
     }
 }
