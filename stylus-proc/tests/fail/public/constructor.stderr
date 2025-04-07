@@ -1,17 +1,41 @@
 error: function can be only one of fallback, receive or constructor
-  --> tests/fail/public/constructor.rs:15:5
+  --> tests/fail/public/constructor.rs:16:5
    |
-15 |     fn init() {}
+16 |     fn init() {}
    |     ^^
 
 error: fallback, receive, and constructor can't have custom selector
-  --> tests/fail/public/constructor.rs:15:5
+  --> tests/fail/public/constructor.rs:21:5
    |
-15 |     fn init() {}
+21 |     fn constr() {}
    |     ^^
 
-error: constructor function can only be defined using the #[constructor] attribute
-  --> tests/fail/public/constructor.rs:18:5
+error: constructor function can only be defined using the corresponding attribute
+  --> tests/fail/public/constructor.rs:24:5
    |
-18 |     fn constructor() {}
+24 |     fn constructor() {}
+   |     ^^
+
+error: constructor function can only be defined using the corresponding attribute
+  --> tests/fail/public/constructor.rs:28:5
+   |
+28 |     fn constructor() {}
+   |     ^^
+
+error: stylusConstructor function can only be defined using the corresponding attribute
+  --> tests/fail/public/constructor.rs:31:5
+   |
+31 |     fn stylus_constructor() {}
+   |     ^^
+
+error: stylusConstructor function can only be defined using the corresponding attribute
+  --> tests/fail/public/constructor.rs:35:5
+   |
+35 |     fn foo() {}
+   |     ^^
+
+error: stylusConstructor function can only be defined using the corresponding attribute
+  --> tests/fail/public/constructor.rs:39:5
+   |
+39 |     fn foo() {}
    |     ^^

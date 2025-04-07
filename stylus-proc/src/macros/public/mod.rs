@@ -32,6 +32,20 @@ cfg_if! {
     }
 }
 
+/// Check whether the function has a special name that matches its kind.
+macro_rules! check_special_name {
+    ($node:expr, $name:expr, $kind:expr, $( ($special_name:literal, $expected_kind:pat) ),* $(,)? ) => {
+        $(
+            if $name == $special_name && !matches!($kind, $expected_kind) {
+                emit_error!(
+                    $node.span(),
+                    concat!($special_name, " function can only be defined using the corresponding attribute")
+                );
+            }
+        )*
+    };
+}
+
 /// Implementation of the [`#[public]`][crate::public] macro.
 ///
 /// This implementation performs the following steps:
@@ -150,18 +164,20 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
-        for special_name in ["receive", "fallback", "constructor"] {
-            if matches!(kind, FnKind::Function) && name.to_string().to_lowercase() == special_name {
-                emit_error!(
-                    node.span(),
-                    format!("{special_name} function can only be defined using the #[{special_name}] attribute")
-                );
-            }
-        }
-
-        let sol_name = syn_solidity::SolIdent::new(
-            &selector_override.unwrap_or(name.to_string().to_case(Case::Camel)),
+        let sol_name = selector_override
+            .unwrap_or(name.to_string())
+            .to_case(Case::Camel);
+        check_special_name!(
+            node,
+            sol_name,
+            kind,
+            ("receive", FnKind::Receive),
+            ("fallback", FnKind::Fallback { .. }),
+            ("constructor", FnKind::Constructor),
+            ("stylusConstructor", FnKind::Constructor),
         );
+
+        let sol_name = syn_solidity::SolIdent::new(&sol_name);
 
         // determine state mutability
         let (inferred_purity, has_self) = Purity::infer(node);
