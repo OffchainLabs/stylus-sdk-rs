@@ -1,15 +1,12 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::call::RawCall;
+use crate::{call::RawCall, storage::Storage};
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 
 #[cfg(feature = "reentrant")]
 use crate::storage::TopLevelStorage;
-
-#[cfg(feature = "reentrant")]
-use crate::storage::Storage;
 
 /// Transfers an amount of ETH in wei to the given account.
 /// Note that this method will call the other contract, which may in turn call others.
@@ -45,8 +42,11 @@ pub fn transfer_eth(
 /// ```
 #[cfg(not(feature = "reentrant"))]
 pub fn transfer_eth(to: Address, amount: U256) -> Result<(), Vec<u8>> {
-    RawCall::new_with_value(amount)
-        .skip_return_data()
-        .call(to, &[])?;
+    Storage::clear(); // clear the storage to persist changes, invalidating the cache
+    unsafe {
+        RawCall::new_with_value(amount)
+            .skip_return_data()
+            .call(to, &[])?;
+    }
     Ok(())
 }
