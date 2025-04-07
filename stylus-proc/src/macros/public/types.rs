@@ -46,6 +46,23 @@ macro_rules! call_special {
     }};
 }
 
+// Creates a token builder callback for determining a type's fallback function.
+// This is required because functions are parametrized over a generic named FnExtension,
+// so a normal inline closure will not work as generic parameters are needed.
+struct FallbackTokenBuilder {
+    trait_: Option<syn::Path>,
+}
+
+impl FallbackTokenBuilder {
+    fn create<E>(&self) -> impl Fn(&PublicFn<E>) -> syn::Stmt
+    where
+        E: FnExtension,
+    {
+        let trait_clone = self.trait_.clone();
+        move |fn_: &PublicFn<E>| PublicFn::call_fallback(fn_, trait_clone.clone())
+    }
+}
+
 pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub self_ty: syn::Type,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
@@ -84,13 +101,14 @@ impl PublicImpl {
         // our type `MyContract` implements `MyTrait`, and `MyTrait` has a fallback function, while
         // MyContract does NOT have a fallback function, we need to call the fallback function from `MyTrait`.
         // We need to call `<MyContract as MyTrait>::fallback` instead of `MyContract::fallback`.
-        let fallback_tokens_builder =
-            |fn_: &PublicFn<Extension>| PublicFn::call_fallback(fn_, self.trait_.clone());
+        let fallback_tokens_builder = FallbackTokenBuilder {
+            trait_: self.trait_.clone(),
+        };
         let call_fallback = call_special!(
             self,
             FnKind::Fallback { .. },
             "fallback",
-            fallback_tokens_builder
+            fallback_tokens_builder.create()
         );
         let inheritance_fallback = self.inheritance_fallback();
         let fallback = call_fallback.unwrap_or_else(|| {
