@@ -45,10 +45,10 @@ impl<T: SolError> MethodError for T {
 }
 
 impl From<Error> for Vec<u8> {
-    #[allow(unused)]
     fn from(err: Error) -> Vec<u8> {
         match err {
             Error::Revert(data) => data,
+            #[allow(unused)]
             Error::AbiDecodingFailed(err) => Panic::from(PanicKind::Generic).abi_encode(),
         }
     }

@@ -102,7 +102,7 @@ where
         unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone())) }
     }
 
-    /// Gets a mutable accessor to the element at the given key, or the zero-value is none is there.
+    /// Gets a mutable accessor to the element at the given key, or the zero-value if none is there.
     /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts its lifetime
     /// to that of `&mut self`.
     pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
