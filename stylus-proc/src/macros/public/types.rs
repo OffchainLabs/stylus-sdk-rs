@@ -46,23 +46,6 @@ macro_rules! call_special {
     }};
 }
 
-// Creates a token builder callback for determining a type's fallback function.
-// This is required because functions are parametrized over a generic named FnExtension,
-// so a normal inline closure will not work as generic parameters are needed.
-struct FallbackTokenBuilder {
-    trait_: Option<syn::Path>,
-}
-
-impl FallbackTokenBuilder {
-    fn create<E>(&self) -> impl Fn(&PublicFn<E>) -> syn::Stmt
-    where
-        E: FnExtension,
-    {
-        let trait_clone = self.trait_.clone();
-        move |fn_: &PublicFn<E>| PublicFn::call_fallback(fn_, trait_clone.clone())
-    }
-}
-
 pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub self_ty: syn::Type,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
@@ -101,14 +84,13 @@ impl PublicImpl {
         // our type `MyContract` implements `MyTrait`, and `MyTrait` has a fallback function, while
         // MyContract does NOT have a fallback function, we need to call the fallback function from `MyTrait`.
         // We need to call `<MyContract as MyTrait>::fallback` instead of `MyContract::fallback`.
-        let fallback_tokens_builder = FallbackTokenBuilder {
-            trait_: self.trait_.clone(),
-        };
+        let fallback_tokens_builder = move |fn_| PublicFn::call_fallback(fn_, self.trait_.clone());
+
         let call_fallback = call_special!(
             self,
             FnKind::Fallback { .. },
             "fallback",
-            fallback_tokens_builder.create()
+            fallback_tokens_builder
         );
         let inheritance_fallback = self.inheritance_fallback();
         let fallback = call_fallback.unwrap_or_else(|| {
@@ -119,7 +101,8 @@ impl PublicImpl {
             })
         });
 
-        let call_receive = call_special!(self, FnKind::Receive, "receive", PublicFn::call_receive);
+        let receive_tokens_builder = move |fn_| PublicFn::call_receive(fn_, self.trait_.clone());
+        let call_receive = call_special!(self, FnKind::Receive, "receive", receive_tokens_builder);
         let inheritance_receive = self.inheritance_receive();
         let receive = call_receive.unwrap_or_else(|| {
             parse_quote!({
@@ -390,11 +373,16 @@ impl<E: FnExtension> PublicFn<E> {
         })
     }
 
-    fn call_receive(&self) -> syn::Stmt {
+    fn call_receive(&self, trait_: Option<syn::Path>) -> syn::Stmt {
         let name = &self.name;
         let storage_arg = self.storage_arg();
+        let method_call = if let Some(trait_) = trait_ {
+            quote!(<Self as #trait_>::#name)
+        } else {
+            quote!(Self::#name)
+        };
         parse_quote! {
-            return Some(Self::#name(#storage_arg));
+            return Some(#method_call(#storage_arg));
         }
     }
 
