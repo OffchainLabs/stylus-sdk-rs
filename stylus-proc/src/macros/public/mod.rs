@@ -36,7 +36,7 @@ cfg_if! {
 macro_rules! check_special_name {
     ($node:expr, $name:expr, $kind:expr, $( ($special_name:literal, $expected_kind:pat) ),* $(,)? ) => {
         $(
-            if $name == $special_name && !matches!($kind, $expected_kind) {
+            if $name.to_lowercase() == $special_name.to_lowercase() && !matches!($kind, $expected_kind) {
                 emit_error!(
                     $node.span(),
                     concat!($special_name, " function can only be defined using the corresponding attribute")
