@@ -83,8 +83,10 @@ impl PublicImpl {
             "fallback",
             PublicFn::call_fallback
         );
+        let fallback = fallback.unwrap_or_else(|| parse_quote!({ None }));
 
         let receive = call_special!(self, FnKind::Receive, "receive", PublicFn::call_receive);
+        let receive = receive.unwrap_or_else(|| parse_quote!({ None }));
 
         let call_constructor = call_special!(
             self,
