@@ -3,6 +3,8 @@
 
 use alloy_primitives::{Address, U256};
 
+use alloc::vec::Vec;
+
 pub mod context;
 pub mod errors;
 
@@ -70,7 +72,7 @@ pub trait CallContext {
     fn gas(&self) -> u64;
 }
 
-/// Trait for calling the `view` methods of other contracts.
+/// Trait for calling the `view` or `pure` methods of other contracts.
 /// Users should rarely implement this trait outside of proc macros.
 pub trait StaticCallContext: CallContext {}
 

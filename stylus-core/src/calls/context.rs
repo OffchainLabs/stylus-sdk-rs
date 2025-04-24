@@ -125,7 +125,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(not(feature = "reentrant")))] {
+    if #[cfg(not(feature = "reentrant"))] {
         impl Default for Call<(), false> {
             fn default() -> Self {
                 Self::new()

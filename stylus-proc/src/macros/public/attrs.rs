@@ -24,7 +24,7 @@ impl Parse for Inherit {
 
 /// Implement parent trait routes.
 ///
-/// Used for the `#[implements(Parent1, Parent2]` attribute.
+/// Used for the `#[implements(Parent1, Parent2)` attribute.
 ///
 /// The contract must implement whatever traits are specified.
 pub struct Implements {

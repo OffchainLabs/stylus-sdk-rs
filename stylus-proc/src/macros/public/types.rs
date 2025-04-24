@@ -77,29 +77,16 @@ impl PublicImpl {
             .collect::<Vec<_>>();
         let inheritance_routes = self.inheritance_routes();
 
-        let call_fallback = call_special!(
+        let fallback = call_special!(
             self,
             FnKind::Fallback { .. },
             "fallback",
             PublicFn::call_fallback
         );
-        let inheritance_fallback = self.inheritance_fallback();
-        let fallback = call_fallback.unwrap_or_else(|| {
-            // If there is no fallback function specified, we rely on any inherited fallback.
-            parse_quote!({
-                #(#inheritance_fallback)*
-                None
-            })
-        });
+        let fallback = fallback.unwrap_or_else(|| parse_quote!({ None }));
 
-        let call_receive = call_special!(self, FnKind::Receive, "receive", PublicFn::call_receive);
-        let inheritance_receive = self.inheritance_receive();
-        let receive = call_receive.unwrap_or_else(|| {
-            parse_quote!({
-                #(#inheritance_receive)*
-                None
-            })
-        });
+        let receive = call_special!(self, FnKind::Receive, "receive", PublicFn::call_receive);
+        let receive = receive.unwrap_or_else(|| parse_quote!({ None }));
 
         let call_constructor = call_special!(
             self,
@@ -179,26 +166,6 @@ impl PublicImpl {
             parse_quote! {
                 if let Some(result) = <#ty as #Router<S>>::route(storage, selector, input) {
                     return Some(result);
-                }
-            }
-        })
-    }
-
-    fn inheritance_fallback(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
-        self.inheritance.iter().map(|ty| {
-            parse_quote! {
-                if let Some(res) = <#ty as #Router<S>>::fallback(storage, input) {
-                    return Some(res);
-                }
-            }
-        })
-    }
-
-    fn inheritance_receive(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
-        self.inheritance.iter().map(|ty| {
-            parse_quote! {
-                if let Some(res) = <#ty as #Router<S>>::receive(storage) {
-                    return Some(res);
                 }
             }
         })

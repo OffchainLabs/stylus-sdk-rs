@@ -138,7 +138,7 @@ impl TestVM {
 
     /// Sets the transaction origin address.
     pub fn set_tx_origin(&self, origin: Address) {
-        self.state.borrow_mut().tx_origin = origin;
+        self.state.borrow_mut().tx_origin = Some(origin);
     }
 
     /// Sets the balance for an address.
@@ -173,6 +173,11 @@ impl TestVM {
     /// Sets remaining ink.
     pub fn set_ink_left(&self, ink: u64) {
         self.state.borrow_mut().ink_left = ink;
+    }
+
+    /// Sets the chain id.
+    pub fn set_chain_id(&self, id: u64) {
+        self.state.borrow_mut().chain_id = id;
     }
 
     /// Sets the transaction sender.
@@ -354,20 +359,16 @@ impl StorageAccess for TestVM {
 
     fn flush_cache(&self, _clear: bool) {}
     fn storage_load_bytes32(&self, key: U256) -> B256 {
-        if let Some(provider) = self.state.borrow().provider.clone() {
+        let curr_state = self.state.borrow();
+        if let Some(provider) = &curr_state.provider {
             let rt = Runtime::new().expect("Failed to create runtime");
-            let addr = self.state.borrow().contract_address;
+            let addr = curr_state.contract_address;
             let storage = rt
                 .block_on(async { provider.get_storage_at(addr, key).await })
                 .unwrap_or_default();
             return B256::from(storage);
         }
-        self.state
-            .borrow()
-            .storage
-            .get(&key)
-            .copied()
-            .unwrap_or(B256::ZERO)
+        curr_state.storage.get(&key).copied().unwrap_or(B256::ZERO)
     }
 }
 
@@ -491,7 +492,10 @@ impl MessageAccess for TestVM {
     }
 
     fn tx_origin(&self) -> Address {
-        self.state.borrow().tx_origin
+        if let Some(origin) = self.state.borrow().tx_origin {
+            return origin;
+        }
+        self.msg_sender()
     }
 }
 
@@ -634,7 +638,7 @@ impl DeploymentAccess for TestVM {
             .deploy_returns
             .get(&(code.to_vec(), salt))
             .cloned()
-            .unwrap_or(Ok(Address::ZERO))
+            .unwrap()
     }
 
     #[cfg(not(feature = "reentrant"))]
@@ -649,7 +653,7 @@ impl DeploymentAccess for TestVM {
             .deploy_returns
             .get(&(code.to_vec(), salt))
             .cloned()
-            .unwrap_or(Ok(Address::ZERO))
+            .unwrap()
     }
 }
 
@@ -690,15 +694,51 @@ mod tests {
         vm.set_block_number(12345);
         assert_eq!(vm.block_number(), 12345);
 
-        let address = Address::from([1u8; 20]);
+        vm.set_block_timestamp(10);
+        assert_eq!(vm.block_timestamp(), 10);
+
+        let sender = Address::from([2u8; 20]);
+        vm.set_sender(sender);
+        assert_eq!(vm.msg_sender(), sender);
+        vm.set_tx_origin(sender);
+        assert_eq!(vm.tx_origin(), sender);
+
         let balance = U256::from(1000);
-        vm.set_balance(address, balance);
-        assert_eq!(vm.balance(address), balance);
+        vm.set_balance(sender, balance);
+        assert_eq!(vm.balance(sender), balance);
+
+        let contract = Address::from([3u8; 20]);
+        vm.set_contract_address(contract);
+        assert_eq!(vm.contract_address(), contract);
+
+        let code = vec![1u8, 2u8, 3u8];
+        vm.set_code(contract, code.clone());
+        assert_eq!(vm.code(contract), code);
+
+        let gas_left = 5;
+        vm.set_gas_left(gas_left);
+        assert_eq!(vm.evm_gas_left(), gas_left);
+
+        let ink_left = 6;
+        vm.set_ink_left(ink_left);
+        assert_eq!(vm.evm_ink_left(), ink_left);
+
+        let chain_id = 777;
+        vm.set_chain_id(chain_id);
+        assert_eq!(vm.chain_id(), chain_id);
 
         let key = U256::from(1);
         let value = B256::new([1u8; 32]);
         vm.set_storage(key, value);
         assert_eq!(vm.get_storage(key), value);
+
+        vm.clear_storage();
+
+        assert_eq!(vm.get_storage(key), B256::ZERO);
+
+        let value = U256::from(2);
+        vm.set_value(value);
+        assert_eq!(vm.msg_value(), value);
     }
 
     #[test]

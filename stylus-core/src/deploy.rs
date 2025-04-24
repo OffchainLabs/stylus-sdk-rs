@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+use alloc::vec::Vec;
+
 use alloy_primitives::{Address, B256, U256};
 
 /// How to manage the storage cache, if enabled.
