@@ -3010,6 +3010,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylus-tools"
+version = "0.8.3"
+
+[[package]]
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -517,6 +517,55 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// with [`#[payable]`][payable], or else calls to it will revert. This is required as a safety measure
 /// to prevent users losing funds to methods that didn't intend to accept ether.
 ///
+/// # Constructor
+///
+/// Constructors provide a standard way to deploy, activate, and initialize a stylus contract atomically. Without
+/// them, it isn’t possible to guarantee that the Stylus contract initialization code will be executed before
+/// other methods. When using Stylus constructors, cargo-stylus sends a transaction to a proxy-contract called
+/// StylusDeployer that performs all necessary steps.
+///
+/// The constructor function must be annotated with the `#[constructor]` attribute. It can have any name, but it
+/// is advisable to call it `constructor`. There must be no constructor definition or a single constructor for a
+/// contract. Like Solidity, function overloading for constructors is not supported. Constructors may be
+/// annotated with the [`#[payable]`][payable] attribute if they are supposed to receive Ether.
+///
+/// The SDK does not automatically call the constructor of inherited contracts. You must explicitly call them in
+/// the child contract constructor. If the child contract doesn't define a constructor, the SDK won't attempt to
+/// call the parent contract constructor.
+///
+/// The constructor must receive the self parameter, and it can have any number of other parameters. The values
+/// for these parameters will be passed to the constructor when deploying the contract. The constructor should
+/// return no value or a result value with a unit type and a vector of bytes (`Result<(), Vec<u8>>`). If the
+/// constructor returns an error, the deployment will revert.
+///
+/// The SDK will ensure the constructor is called only once. To do so, it will wrap the constructor with a
+/// function that reads and writes to a specific slot in storage. When called, the constructor wrapper will check
+/// the contents of the specific slot and revert if it is different from zero. Then, after executing the
+/// constructor method, the wrapper will write a value to the specific slot, ensuring the next call to the
+/// constructor will revert.
+///
+/// ```
+/// # extern crate alloc;
+/// # use stylus_sdk::storage::StorageAddress;
+/// # use stylus_proc::public;
+/// # use alloy_primitives::Address;
+/// # struct Contract {
+/// #     owner: StorageAddress,
+/// # }
+/// #[public]
+/// impl Contract {
+///     #[constructor]
+///     pub fn constructor(&mut self, owner: Address) -> Result<(), Vec<u8>> {
+///         self.owner.set(owner);
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// In the example above, the constructor receives a single parameter: the address of the contract's owner. Note
+/// that we shouldn't use `self.vm().msg_sender()` because that will return the address of StylusDeployer.
+/// Instead, we explicitly pass the address of the contract's owner.
+///
 /// # [`pure`][pure] [`view`][view], and `write`
 ///
 /// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you based

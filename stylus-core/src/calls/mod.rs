@@ -3,6 +3,8 @@
 
 use alloy_primitives::{Address, U256};
 
+use alloc::vec::Vec;
+
 pub mod context;
 pub mod errors;
 

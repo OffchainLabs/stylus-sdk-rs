@@ -50,6 +50,15 @@ macro_rules! vm_hooks {
                     )*
                 }
                 pub use $stub::*;
+            } else if #[cfg(feature = "stylus-test")] {
+                $(#[$block_meta])*
+                $(
+                    $(#[$meta])*
+                    #[allow(unused, unused_variables, clippy::missing_safety_doc)]
+                    $vis unsafe fn $func($($arg : $arg_type),*) $(-> $return_type)? {
+                        panic!("HostIO functions are not available in stylus-test. Use TestVM functions instead.");
+                    }
+                )*
             } else {
                 // Generate a wasm import for each function.
                 $(#[$block_meta])*
@@ -460,3 +469,17 @@ macro_rules! wrap_hostio {
 }
 
 pub(crate) use wrap_hostio;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn test_hostio_panics_in_test() {
+        // The test environment does not support mocking HostIO functions
+        unsafe {
+            _ = chainid();
+        }
+    }
+}
