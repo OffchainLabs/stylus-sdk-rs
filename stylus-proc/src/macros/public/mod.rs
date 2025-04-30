@@ -109,6 +109,14 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             _ => None,
         };
 
+        // Extract associated types from the impl items
+        let mut associated_types = Vec::new();
+        for item in &node.items {
+            if let syn::ImplItem::Type(type_item) = item {
+                associated_types.push((type_item.ident.clone(), type_item.ty.clone()));
+            }
+        }
+
         #[allow(clippy::let_unit_value)]
         let extension = <Extension as InterfaceExtension>::build(node);
         Self {
@@ -119,6 +127,7 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             inheritance,
             implements,
             funcs,
+            associated_types,
             extension,
         }
     }
