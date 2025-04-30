@@ -44,6 +44,7 @@ eyre = "0.6"
 reqwest = "0.12"
 testcontainers = { version = "0.23", features = ["http_wait"] }
 tokio = "1.44"
+toml = "0.8"
 
 # members
 mini-alloc = { path = "mini-alloc", version = "0.8.3" }

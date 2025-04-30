@@ -2,3 +2,4 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 pub mod devnet;
+pub mod project;

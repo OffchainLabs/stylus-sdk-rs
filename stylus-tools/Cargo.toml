@@ -17,4 +17,5 @@ reqwest.workspace = true
 testcontainers.workspace = true
 trybuild.workspace = true
 tokio.workspace = true
+toml.workspace = true
 regex.workspace = true
