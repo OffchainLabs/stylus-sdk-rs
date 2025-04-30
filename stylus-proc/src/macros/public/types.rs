@@ -54,7 +54,7 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub inheritance: Vec<syn::Type>,
     pub implements: Vec<syn::Type>,
     pub funcs: Vec<PublicFn<E::FnExt>>,
-    pub associated_types: Vec<(syn::Ident, syn::Type)>,
+    pub associated_types: Vec<(syn::Ident, syn::Type)>, // New field to store associated types
     #[allow(dead_code)]
     pub extension: E,
 }
@@ -102,6 +102,7 @@ impl PublicImpl {
         // Determine trait dynamic interface with associated types
         let iface = match &self.trait_ {
             Some(trait_) => {
+                // Use the stored associated types
                 if !self.associated_types.is_empty() {
                     let assoc_types_formatted = self
                         .associated_types
