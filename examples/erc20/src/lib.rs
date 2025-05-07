@@ -7,7 +7,7 @@ mod erc20;
 
 use crate::erc20::{Erc20, Erc20Error, Erc20Params};
 use alloy_primitives::{Address, U256};
-use stylus_sdk::{msg, prelude::*};
+use stylus_sdk::prelude::*;
 
 /// Immutable definitions
 struct StylusTestTokenParams;
@@ -34,7 +34,7 @@ sol_storage! {
 impl StylusTestToken {
     /// Mints tokens
     pub fn mint(&mut self, value: U256) -> Result<(), Erc20Error> {
-        self.erc20.mint(msg::sender(), value)?;
+        self.erc20.mint(self.vm().msg_sender(), value)?;
         Ok(())
     }
 
@@ -46,8 +46,7 @@ impl StylusTestToken {
 
     /// Burns tokens
     pub fn burn(&mut self, value: U256) -> Result<(), Erc20Error> {
-        self.erc20.burn(msg::sender(), value)?;
+        self.erc20.burn(self.vm().msg_sender(), value)?;
         Ok(())
     }
 }
-

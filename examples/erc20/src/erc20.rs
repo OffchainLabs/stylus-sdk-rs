@@ -12,7 +12,7 @@
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
 use core::marker::PhantomData;
-use stylus_sdk::{evm, msg, prelude::*};
+use stylus_sdk::{prelude::*, stylus_core};
 
 pub trait Erc20Params {
     /// Immutable token name
@@ -80,7 +80,7 @@ impl<T: Erc20Params> Erc20<T> {
         to_balance.set(new_to_balance);
 
         // Emitting the transfer event
-        evm::log(Transfer { from, to, value });
+        stylus_core::log(self.vm(), Transfer { from, to, value });
         Ok(())
     }
 
@@ -95,11 +95,14 @@ impl<T: Erc20Params> Erc20<T> {
         self.total_supply.set(self.total_supply.get() + value);
 
         // Emitting the transfer event
-        evm::log(Transfer {
-            from: Address::ZERO,
-            to: address,
-            value,
-        });
+        stylus_core::log(
+            self.vm(),
+            Transfer {
+                from: Address::ZERO,
+                to: address,
+                value,
+            },
+        );
 
         Ok(())
     }
@@ -122,11 +125,14 @@ impl<T: Erc20Params> Erc20<T> {
         self.total_supply.set(self.total_supply.get() - value);
 
         // Emitting the transfer event
-        evm::log(Transfer {
-            from: address,
-            to: Address::ZERO,
-            value,
-        });
+        stylus_core::log(
+            self.vm(),
+            Transfer {
+                from: address,
+                to: Address::ZERO,
+                value,
+            },
+        );
 
         Ok(())
     }
@@ -163,7 +169,7 @@ impl<T: Erc20Params> Erc20<T> {
 
     /// Transfers `value` tokens from msg::sender() to `to`
     pub fn transfer(&mut self, to: Address, value: U256) -> Result<bool, Erc20Error> {
-        self._transfer(msg::sender(), to, value)?;
+        self._transfer(self.vm().msg_sender(), to, value)?;
         Ok(true)
     }
 
@@ -176,13 +182,14 @@ impl<T: Erc20Params> Erc20<T> {
         value: U256,
     ) -> Result<bool, Erc20Error> {
         // Check msg::sender() allowance
+        let msg_sender = self.vm().msg_sender();
         let mut sender_allowances = self.allowances.setter(from);
-        let mut allowance = sender_allowances.setter(msg::sender());
+        let mut allowance = sender_allowances.setter(msg_sender);
         let old_allowance = allowance.get();
         if old_allowance < value {
             return Err(Erc20Error::InsufficientAllowance(InsufficientAllowance {
                 owner: from,
-                spender: msg::sender(),
+                spender: msg_sender,
                 have: old_allowance,
                 want: value,
             }));
@@ -199,12 +206,16 @@ impl<T: Erc20Params> Erc20<T> {
 
     /// Approves the spenditure of `value` tokens of msg::sender() to `spender`
     pub fn approve(&mut self, spender: Address, value: U256) -> bool {
-        self.allowances.setter(msg::sender()).insert(spender, value);
-        evm::log(Approval {
-            owner: msg::sender(),
-            spender,
-            value,
-        });
+        let msg_sender = self.vm().msg_sender();
+        self.allowances.setter(msg_sender).insert(spender, value);
+        stylus_core::log(
+            self.vm(),
+            Approval {
+                owner: msg_sender,
+                spender,
+                value,
+            },
+        );
         true
     }
 
