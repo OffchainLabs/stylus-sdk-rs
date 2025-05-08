@@ -32,20 +32,6 @@ cfg_if! {
     }
 }
 
-/// Check whether the function has a special name that matches its kind.
-macro_rules! check_special_name {
-    ($node:expr, $name:expr, $kind:expr, $( ($special_name:literal, $expected_kind:pat) ),* $(,)? ) => {
-        $(
-            if $name.to_lowercase() == $special_name.to_lowercase() && !matches!($kind, $expected_kind) {
-                emit_error!(
-                    $node.span(),
-                    concat!($special_name, " function can only be defined using the corresponding attribute")
-                );
-            }
-        )*
-    };
-}
-
 /// Implementation of the [`#[public]`][crate::public] macro.
 ///
 /// This implementation performs the following steps:
@@ -164,19 +150,10 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 
         // name for generated rust, and solidity abi
         let name = node.sig.ident.clone();
-        let sol_name = selector_override
-            .unwrap_or(name.to_string())
-            .to_case(Case::Camel);
-        check_special_name!(
-            node,
-            sol_name,
-            kind,
-            ("receive", FnKind::Receive),
-            ("fallback", FnKind::Fallback { .. }),
-            ("constructor", FnKind::Constructor),
-            ("stylusConstructor", FnKind::Constructor),
-        );
-
+        let (sol_name, name_err) = verify_sol_name(&kind, name.to_string(), selector_override);
+        if let Some(err) = name_err {
+            emit_error!(node.span(), err);
+        }
         let sol_name = syn_solidity::SolIdent::new(&sol_name);
 
         // determine state mutability
@@ -240,11 +217,39 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
     }
 }
 
+/// Returns the Solidity name used for routing and an error string if the name doesn't match the function kind.
+fn verify_sol_name(
+    kind: &FnKind,
+    name: String,
+    selector_override: Option<String>,
+) -> (String, Option<String>) {
+    let name = selector_override.unwrap_or(name.to_case(Case::Camel));
+    let name_low = name.to_lowercase();
+    let err_kind = if name_low == "receive" && !matches!(kind, FnKind::Receive) {
+        Some("receive")
+    } else if name_low == "fallback" && !matches!(kind, FnKind::Fallback { .. }) {
+        Some("fallback")
+    } else if (name_low == "constructor" || name_low == "stylusconstructor")
+        && !matches!(kind, FnKind::Constructor)
+    {
+        Some("constructor")
+    } else {
+        None
+    };
+    let err = err_kind.map(|kind_name| {
+        format!("{kind_name} function can only be defined using the corresponding attribute")
+    });
+    (name, err)
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
 
-    use super::types::{FnKind, PublicImpl};
+    use super::{
+        types::{FnKind, PublicImpl},
+        verify_sol_name,
+    };
 
     #[test]
     fn test_public_consumes_inherit() {
@@ -290,5 +295,25 @@ mod tests {
             unreachable!();
         };
         assert!(attrs.is_empty());
+    }
+
+    #[test]
+    fn test_verify_sol_name() {
+        let cases = vec![
+            ("foo", None, "foo", false),
+            ("foo_bar", None, "fooBar", false),
+            ("foo_baz", Some("fooBar"), "fooBar", false),
+            ("foo_baz", Some("fooBAR"), "fooBAR", false),
+            ("receive", None, "receive", true),
+            ("re_ceive", None, "reCeive", true),
+            ("foo", Some("RECEIVE"), "RECEIVE", true),
+        ];
+        for (name, selector_override, expected_sol_name, has_err) in cases {
+            let kind = FnKind::Function;
+            let (sol_name, err) =
+                verify_sol_name(&kind, name.to_owned(), selector_override.map(String::from));
+            assert_eq!(sol_name, expected_sol_name);
+            assert_eq!(err.is_some(), has_err);
+        }
     }
 }
