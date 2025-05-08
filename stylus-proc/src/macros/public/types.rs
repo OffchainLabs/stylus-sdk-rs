@@ -304,10 +304,9 @@ impl<E: FnExtension> PublicFn<E> {
         let call: syn::Stmt = if matches!(self.kind, FnKind::Fallback { with_args: false }) {
             parse_quote! {
                 return Some({
-                    if let Err(err) = Self::#name(#storage_arg) {
-                        Err(err)
-                    } else {
-                        Ok(Vec::new())
+                    match Self::#name(#storage_arg) {
+                        Ok(()) => Ok(Vec::new()),
+                        Err(err) => Err(err),
                     }
                 });
             }

@@ -6,7 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
 use quote::ToTokens;
-use syn::{parse_macro_input, spanned::Spanned};
+use syn::{parse_macro_input, parse_quote, spanned::Spanned, ReturnType, Signature, Type};
 
 use crate::{
     types::Purity,
@@ -137,6 +137,9 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         let kind = if fallback {
             // Fallback functions may have two signatures, either
             // with input calldata and output bytes, or no input and output.
+            // We check if the signature is correct for these two cases
+            // early and emit a proc macro error if it is not the case.
+            check_fallback_signature(node.sig.clone());
             FnKind::Fallback {
                 with_args: node.sig.inputs.len() > 1,
             }
@@ -236,6 +239,41 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
                 }
             }
             _ => unreachable!(),
+        }
+    }
+}
+
+fn check_fallback_signature(sig: Signature) {
+    let has_input_args = !sig.inputs.is_empty();
+    let has_output = !matches!(sig.output, ReturnType::Default);
+
+    if has_input_args {
+        // Fallback functions with input args must return Result<Vec<u8>, Vec<u8>>
+        let expected: Type = parse_quote! { Result<Vec<u8>, Vec<u8>> };
+
+        match &sig.output {
+            ReturnType::Default => {
+                emit_error!(
+                    sig.output.span(),
+                    "fallback function with input args must have output args"
+                );
+            }
+            ReturnType::Type(_, ty) => {
+                if **ty != expected {
+                    emit_error!(
+                        ty.span(),
+                        "fallback function with input args must output Result<Vec<u8>, Vec<u8>>"
+                    );
+                }
+            }
+        }
+    } else {
+        // Fallback functions without input args must not have output
+        if has_output {
+            emit_error!(
+                sig.output.span(),
+                "fallback function without input args must have no output args"
+            );
         }
     }
 }
