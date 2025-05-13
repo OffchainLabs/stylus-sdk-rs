@@ -16,6 +16,7 @@ use crate::hostio::{self, wrap_hostio};
 use alloc::{vec, vec::Vec};
 use alloy_primitives::B256;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
+use stylus_core::Host;
 
 /// Emits an evm log from combined topics and data.
 #[deprecated(
@@ -45,11 +46,7 @@ pub fn raw_log(topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
 }
 
 /// Emits a typed alloy log.
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the log method available under stylus_sdk::stylus_core::log, or provided by stylus_sdk::prelude::*"
-)]
-pub fn log<T: SolEvent>(event: T) {
+pub fn log<T: SolEvent>(host: &dyn Host, event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
 
     let mut topics = [WordToken::default(); 4];
@@ -62,7 +59,7 @@ pub fn log<T: SolEvent>(event: T) {
     }
     event.encode_data_to(&mut bytes);
     #[allow(deprecated)]
-    emit_log(&bytes, count);
+    host.emit_log(&bytes, count);
 }
 
 /// This function exists to force the compiler to import this symbol.
