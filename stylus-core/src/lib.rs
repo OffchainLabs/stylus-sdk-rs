@@ -15,6 +15,7 @@ use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 
 use alloc::vec::Vec;
 
+pub use calls::*;
 pub use host::*;
 pub use storage::TopLevelStorage;
 

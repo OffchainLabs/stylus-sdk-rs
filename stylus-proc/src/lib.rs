@@ -166,7 +166,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// error. Additionally, each function must be marked `external`. Inheritance is not supported.
 ///
 /// ```
-/// use stylus_sdk::call::{Call, Error};
+/// use stylus_sdk::prelude::*;
+/// use stylus_sdk::stylus_core::host::*;
+/// use stylus_sdk::stylus_core::calls::errors::*;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///
@@ -177,12 +179,12 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # }
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
-/// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
+/// pub fn do_call(host: &dyn Host, account: IService, user: Address) -> Result<String, Error> {
 ///     let config = Call::new()
 ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
 ///         .value(msg::value());           // set the callvalue
 ///
-///     account.make_payment(config, user)  // note the snake case
+///     account.make_payment(host, config, user)  // note the snake case
 /// }
 /// ```
 ///
@@ -201,15 +203,12 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// ```
 /// # extern crate alloc;
-/// # use stylus_sdk::call::Call;
 /// # use stylus_sdk::prelude::*;
 /// # use stylus_proc::{entrypoint, public, sol_interface, storage};
 /// sol_interface! {
 ///     interface IMethods {
 ///         function pureFoo() external pure;
 ///         function viewFoo() external view;
-///         function writeFoo() external;
-///         function payableFoo() external payable;
 ///     }
 /// }
 ///
@@ -217,22 +216,11 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         Ok(methods.pure_foo(self)?)    // `pure` methods might lie about not being `view`
+///         Ok(methods.pure_foo(self.vm(), self)?)    // `pure` methods might lie about not being `view`
 ///     }
 ///
 ///     pub fn call_view(&self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         Ok(methods.view_foo(self)?)
-///     }
-///
-///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         methods.view_foo(&mut *self)?;       // allows `pure` and `view` methods too
-///         Ok(methods.write_foo(self)?)
-///     }
-///
-///     #[payable]
-///     pub fn call_payable(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         methods.write_foo(Call::new_in(self))?;   // these are the same
-///         Ok(methods.payable_foo(self)?)            // ------------------
+///         Ok(methods.view_foo(self.vm().clone(), self)?)
 ///     }
 /// }
 /// ```
@@ -246,7 +234,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// `&self` or `&mut self` won't work. Building a [`Call`] from a generic parameter is the usual solution.
 ///
 /// ```
-/// use stylus_sdk::{call::{Call, Error}};
+/// use stylus_sdk::prelude::*;
+/// use stylus_sdk::stylus_core::calls::errors::*;
+/// use stylus_sdk::stylus_core::host::*;
 /// use stylus_sdk::stylus_core::storage::TopLevelStorage;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
@@ -259,6 +249,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
 /// pub fn do_call(
+///     host: &dyn Host,
 ///     storage: &mut impl TopLevelStorage,  // can be generic, but often just &mut self
 ///     account: IService,                   // serializes as an Address
 ///     user: Address,
@@ -268,7 +259,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///         .gas(evm::gas_left() / 2)        // limit to half the gas left
 ///         .value(msg::value());            // set the callvalue
 ///
-///     account.make_payment(config, user)   // note the snake case
+///     account.make_payment(host, config, user)   // note the snake case
 /// }
 /// ```
 ///

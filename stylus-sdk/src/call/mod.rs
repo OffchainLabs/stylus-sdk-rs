@@ -14,22 +14,20 @@
 use alloc::vec::Vec;
 use alloy_primitives::Address;
 
-#[allow(deprecated)]
-pub use self::{
-    context::Call, error::Error, error::MethodError, raw::RawCall, traits::*,
-    transfer::transfer_eth,
-};
-
 pub(crate) use raw::CachePolicy;
+pub use raw::RawCall;
+use stylus_core::{
+    calls::{errors::Error, MutatingCallContext, StaticCallContext},
+    Host,
+};
 
 #[cfg(feature = "reentrant")]
 use crate::storage::Storage;
 
-mod context;
-mod error;
 mod raw;
-mod traits;
-mod transfer;
+
+/// Provides a convenience method to transfer ETH to a given address.
+pub mod transfer;
 
 macro_rules! unsafe_reentrant {
     ($block:block) => {
@@ -44,21 +42,17 @@ macro_rules! unsafe_reentrant {
 }
 
 /// Static calls the contract at the given address.
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-)]
-#[allow(deprecated)]
 pub fn static_call(
+    host: &dyn Host,
     context: impl StaticCallContext,
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
     #[cfg(feature = "reentrant")]
-    Storage::flush(); // flush storage to persist changes, but don't invalidate the cache
+    host.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
 
     unsafe_reentrant! {{
-        RawCall::new_static()
+        RawCall::new_static(host)
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
@@ -72,37 +66,33 @@ pub fn static_call(
 /// A delegate call must trust the other contract to uphold safety requirements.
 /// Though this function clears any cached values, the other contract may arbitrarily change storage,
 /// spend ether, and do other things one should never blindly allow other contracts to do.
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-)]
-#[allow(deprecated)]
 pub unsafe fn delegate_call(
+    host: &dyn Host,
     context: impl MutatingCallContext,
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
     #[cfg(feature = "reentrant")]
-    Storage::clear(); // clear the storage to persist changes, invalidating the cache
+    host.flush_cache(true); // clear storage to persist changes, invalidating the cache
 
-    RawCall::new_delegate()
+    RawCall::new_delegate(host)
         .gas(context.gas())
         .call(to, data)
         .map_err(Error::Revert)
 }
 
 /// Calls the contract at the given address.
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-)]
-#[allow(deprecated)]
-pub fn call(context: impl MutatingCallContext, to: Address, data: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn call(
+    host: &dyn Host,
+    context: impl MutatingCallContext,
+    to: Address,
+    data: &[u8],
+) -> Result<Vec<u8>, Error> {
     #[cfg(feature = "reentrant")]
-    Storage::clear(); // clear the storage to persist changes, invalidating the cache
+    host.flush_cache(true); // clear storage to persist changes, invalidating the cache
 
     unsafe_reentrant! {{
-        RawCall::new_with_value(context.value())
+        RawCall::new_with_value(host, context.value())
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)

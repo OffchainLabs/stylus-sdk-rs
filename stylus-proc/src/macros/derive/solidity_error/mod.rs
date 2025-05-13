@@ -51,7 +51,7 @@ impl DeriveSolidityError {
             }
         });
         self.match_arms.push(parse_quote! {
-            #self_name::#name(e) => stylus_sdk::call::MethodError::encode(e),
+            #self_name::#name(e) => stylus_sdk::stylus_core::errors::MethodError::encode(e),
         });
         #[allow(clippy::unit_arg)]
         self._ext.add_variant(field);
@@ -153,8 +153,8 @@ mod tests {
                 impl From<MyError> for alloc::vec::Vec<u8> {
                     fn from(err: MyError) -> Self {
                         match err {
-                            MyError::Foo(e) => stylus_sdk::call::MethodError::encode(e),
-                            MyError::Bar(e) => stylus_sdk::call::MethodError::encode(e),
+                            MyError::Foo(e) => stylus_sdk::stylus_core::errors::MethodError::encode(e),
+                            MyError::Bar(e) => stylus_sdk::stylus_core::errors::MethodError::encode(e),
                         }
                     }
                 }

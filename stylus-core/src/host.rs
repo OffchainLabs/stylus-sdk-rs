@@ -4,10 +4,7 @@
 //! Defines host environment methods Stylus SDK contracts have access to.
 extern crate alloc;
 
-use crate::{
-    calls::{CallAccess, ValueTransfer},
-    deploy::DeploymentAccess,
-};
+use crate::deploy::DeploymentAccess;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 use dyn_clone::DynClone;
@@ -31,10 +28,8 @@ pub trait Host:
     + MemoryAccess
     + MessageAccess
     + MeteringAccess
-    + CallAccess
     + DeploymentAccess
     + LogAccess
-    + ValueTransfer
     + DynClone
 {
 }

@@ -110,15 +110,15 @@ impl Interface {
         // determine which context and kind of call to use
         let (context, call) = match purity {
             Purity::Pure | Purity::View => (
-                quote!(stylus_sdk::call::StaticCallContext),
+                quote!(stylus_sdk::stylus_core::calls::StaticCallContext),
                 quote!(stylus_sdk::call::static_call),
             ),
             Purity::Write => (
-                quote!(stylus_sdk::call::NonPayableCallContext),
+                quote!(stylus_sdk::stylus_core::calls::NonPayableCallContext),
                 quote!(stylus_sdk::call::call),
             ),
             Purity::Payable => (
-                quote!(stylus_sdk::call::MutatingCallContext),
+                quote!(stylus_sdk::stylus_core::calls::MutatingCallContext),
                 quote!(stylus_sdk::call::call),
             ),
         };
@@ -140,13 +140,13 @@ impl Interface {
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
             #[allow(deprecated)]
-            pub fn #rust_name(&self, context: impl #context #(, #rust_args)*) ->
-                Result<<#return_type as #SolType>::RustType, stylus_sdk::call::Error>
+            pub fn #rust_name(&self, host: &dyn stylus_sdk::stylus_core::host::Host, context: impl #context #(, #rust_args)*) ->
+                Result<<#return_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
             {
                 let args = <(#(#sol_args,)*) as #SolType>::abi_encode_params(&(#(#rust_arg_names,)*));
                 let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                 calldata.extend(args);
-                let returned = #call(context, self.address, &calldata)?;
+                let returned = #call(host, context, self.address, &calldata)?;
                 Ok(<(#return_type,) as #SolType>::abi_decode_params(&returned, true)?.0)
             }
         });
@@ -351,17 +351,18 @@ mod tests {
                     #[allow(deprecated)]
                     pub fn make_payment(
                         &self,
-                        context: impl stylus_sdk::call::MutatingCallContext,
+                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        context: impl stylus_sdk::stylus_core::calls::MutatingCallContext,
                         user: <stylus_sdk::alloy_sol_types::sol_data::Address as stylus_sdk::alloy_sol_types::SolType>::RustType,
                     ) ->
-                        Result<<stylus_sdk::alloy_sol_types::sol_data::String as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::call::Error>
+                        Result<<stylus_sdk::alloy_sol_types::sol_data::String as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
                     {
                         let args = <(
                             stylus_sdk::alloy_sol_types::sol_data::Address,
                         ) as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&(user,));
                         let mut calldata = vec![48u8, 11u8, 228u8, 252u8];
                         calldata.extend(args);
-                        let returned = stylus_sdk::call::call(context, self.address, &calldata)?;
+                        let returned = stylus_sdk::call::call(host, context, self.address, &calldata)?;
                         Ok(<(
                             stylus_sdk::alloy_sol_types::sol_data::String,
                         ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
@@ -370,28 +371,30 @@ mod tests {
                     #[allow(deprecated)]
                     pub fn get_constant(
                         &self,
-                        context: impl stylus_sdk::call::StaticCallContext,
+                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
-                        Result<<stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32> as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::call::Error>
+                        Result<<stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32> as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
                     {
                         let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
                         let mut calldata = vec![241u8, 58u8, 56u8, 166u8];
                         calldata.extend(args);
-                        let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
+                        let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
                         Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
                     #[allow(deprecated)]
                     pub fn get_foo(
                         &self,
-                        context: impl stylus_sdk::call::StaticCallContext,
+                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
-                        Result<<inner::Foo as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::call::Error>
+                        Result<<inner::Foo as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
                     {
                         let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
                         let mut calldata = vec![36u8, 61u8, 200u8, 218u8];
                         calldata.extend(args);
-                        let returned = stylus_sdk::call::static_call(context, self.address, &calldata)?;
+                        let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
                         Ok(<(inner::Foo,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
                 }
