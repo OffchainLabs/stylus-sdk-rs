@@ -139,7 +139,6 @@ impl Interface {
 
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
-            #[allow(deprecated)]
             pub fn #rust_name(&self, host: &dyn stylus_sdk::stylus_core::host::Host, context: impl #context #(, #rust_args)*) ->
                 Result<<#return_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
             {
@@ -348,7 +347,6 @@ mod tests {
                     }
 
                     #[function_attr]
-                    #[allow(deprecated)]
                     pub fn make_payment(
                         &self,
                         host: &dyn stylus_sdk::stylus_core::host::Host,
@@ -368,7 +366,6 @@ mod tests {
                         ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
-                    #[allow(deprecated)]
                     pub fn get_constant(
                         &self,
                         host: &dyn stylus_sdk::stylus_core::host::Host,
@@ -383,7 +380,6 @@ mod tests {
                         Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned, true)?.0)
                     }
 
-                    #[allow(deprecated)]
                     pub fn get_foo(
                         &self,
                         host: &dyn stylus_sdk::stylus_core::host::Host,

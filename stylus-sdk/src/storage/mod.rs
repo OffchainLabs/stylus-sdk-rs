@@ -78,30 +78,6 @@ impl GlobalStorage for StorageCache {
     }
 }
 
-impl StorageCache {
-    /// Flushes the VM cache, persisting all values to the EVM state trie.
-    /// Note: this is used at the end of the [`entrypoint`] macro and is not typically called by user code.
-    ///
-    /// [`entrypoint`]: macro@stylus_proc::entrypoint
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-    )]
-    pub fn flush() {
-        unsafe { hostio::storage_flush_cache(false) }
-    }
-
-    /// Flushes and clears the VM cache, persisting all values to the EVM state trie.
-    /// This is useful in cases of reentrancy to ensure cached values from one call context show up in another.
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-    )]
-    pub fn clear() {
-        unsafe { hostio::storage_flush_cache(true) }
-    }
-}
-
 /// Overwrites the value in a cell.
 #[inline]
 fn overwrite_cell<T>(cell: &mut OnceCell<T>, value: T) {

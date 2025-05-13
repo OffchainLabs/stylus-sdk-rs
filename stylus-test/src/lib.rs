@@ -13,9 +13,7 @@
 //! contract behavior.
 //!
 //! To be able to unit test Stylus contracts, contracts must access host methods through the [`stylus_core::host:HostAccessor`] trait,
-//! which gives all contracts access to a `.vm()` method. That is, instead of calling `stylus_sdk::msg::value()` directly, contracts
-//! should do `self.vm().msg_value()`. Global host function invocations are deprecated as of Stylus SDK 0.8.0, and contracts
-//! should upgrade to the new host accessor pattern in preparation for 1.0.0.
+//! which gives all contracts access to a `.vm()` method.
 
 pub mod builder;
 pub mod constants;
