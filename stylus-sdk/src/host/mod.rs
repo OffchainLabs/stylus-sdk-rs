@@ -12,12 +12,7 @@ use alloy_primitives::{Address, B256, U256};
 
 use stylus_core::*;
 
-use crate::{
-    block, contract,
-    evm::{self},
-    hostio, msg, tx,
-    types::AddressVM,
-};
+use crate::hostio;
 
 /// Defines an implementation of traits for the VM struct
 /// that provide access to programmatic contract deployment.
@@ -334,7 +329,7 @@ impl CalldataAccess for WasmVM {
         data
     }
     fn return_data_size(&self) -> usize {
-        contract::return_data_len()
+        unsafe { hostio::return_data_size() }
     }
     fn write_result(&self, data: &[u8]) {
         unsafe {
@@ -389,7 +384,14 @@ impl LogAccess for WasmVM {
         unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
     }
     fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str> {
-        evm::raw_log(topics, data)
+        if topics.len() > 4 {
+            return Err("too many topics");
+        }
+        let mut bytes: Vec<u8> = Vec::new();
+        bytes.extend(topics.iter().flat_map(|x| x.0.iter()));
+        bytes.extend(data);
+        self.emit_log(&bytes, topics.len());
+        Ok(())
     }
 }
 
@@ -431,83 +433,111 @@ unsafe impl UnsafeCallAccess for WasmVM {
 #[allow(deprecated)]
 impl BlockAccess for WasmVM {
     fn block_basefee(&self) -> U256 {
-        block::basefee()
+        unsafe {
+            let mut data = B256::ZERO;
+            hostio::block_basefee(data.as_mut_ptr());
+            data.into()
+        }
     }
     fn block_coinbase(&self) -> Address {
-        block::coinbase()
+        unsafe {
+            let mut data = Address::ZERO;
+            hostio::block_coinbase(data.as_mut_ptr());
+            data.into()
+        }
     }
     fn block_gas_limit(&self) -> u64 {
-        block::gas_limit()
+        unsafe { hostio::block_gas_limit() }
     }
     fn block_number(&self) -> u64 {
-        block::number()
+        unsafe { hostio::block_number() }
     }
     fn block_timestamp(&self) -> u64 {
-        block::timestamp()
+        unsafe { hostio::block_timestamp() }
     }
 }
 
 #[allow(deprecated)]
 impl ChainAccess for WasmVM {
     fn chain_id(&self) -> u64 {
-        block::chainid()
+        unsafe { hostio::chainid() }
     }
 }
 
 #[allow(deprecated)]
 impl AccountAccess for WasmVM {
     fn balance(&self, account: Address) -> U256 {
-        account.balance()
+        let mut data = [0; 32];
+        unsafe { hostio::account_balance(account.as_ptr(), data.as_mut_ptr()) };
+        U256::from_be_bytes(data)
     }
     fn contract_address(&self) -> Address {
-        contract::address()
+        let mut data = Address::ZERO;
+        unsafe { hostio::contract_address(data.as_mut_ptr()) };
+        data.into()
     }
     fn code(&self, account: Address) -> Vec<u8> {
-        account.code()
+        let size = self.code_size(account);
+        let mut dest = Vec::with_capacity(size);
+        unsafe {
+            hostio::account_code(account.as_ptr(), 0, size, dest.as_mut_ptr());
+            dest.set_len(size);
+            dest
+        }
     }
     fn code_size(&self, account: Address) -> usize {
-        account.code_size()
+        unsafe { hostio::account_code_size(account.as_ptr()) }
     }
     fn code_hash(&self, account: Address) -> B256 {
-        account.code_hash()
+        let mut data = [0; 32];
+        unsafe { hostio::account_codehash(account.as_ptr(), data.as_mut_ptr()) };
+        data.into()
     }
 }
 
 #[allow(deprecated)]
 impl MemoryAccess for WasmVM {
     fn pay_for_memory_grow(&self, pages: u16) {
-        evm::pay_for_memory_grow(pages)
+        unsafe { hostio::pay_for_memory_grow(pages) }
     }
 }
 
 #[allow(deprecated)]
 impl MessageAccess for WasmVM {
     fn msg_reentrant(&self) -> bool {
-        msg::reentrant()
+        unsafe { hostio::msg_reentrant() }
     }
     fn msg_sender(&self) -> Address {
-        msg::sender()
+        let mut data = Address::ZERO;
+        unsafe { hostio::msg_sender(data.as_mut_ptr()) };
+        data.into()
     }
     fn msg_value(&self) -> U256 {
-        msg::value()
+        let mut data = B256::ZERO;
+        unsafe { hostio::msg_value(data.as_mut_ptr()) };
+        data.into()
     }
     fn tx_origin(&self) -> Address {
-        tx::origin()
+        let mut data = Address::ZERO;
+        unsafe { hostio::tx_origin(data.as_mut_ptr()) };
+        data.into()
     }
 }
 
 #[allow(deprecated)]
 impl MeteringAccess for WasmVM {
     fn evm_gas_left(&self) -> u64 {
-        evm::gas_left()
+        unsafe { hostio::evm_gas_left() }
     }
     fn evm_ink_left(&self) -> u64 {
-        evm::ink_left()
+        unsafe { hostio::evm_ink_left() }
     }
     fn tx_gas_price(&self) -> U256 {
-        tx::gas_price()
+        let mut data = B256::ZERO;
+        unsafe { hostio::tx_gas_price(data.as_mut_ptr()) };
+        data.into()
     }
     fn tx_ink_price(&self) -> u32 {
-        tx::ink_price()
+        unsafe { hostio::tx_ink_price() }
     }
 }
