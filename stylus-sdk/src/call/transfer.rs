@@ -10,9 +10,6 @@ use crate::call::raw::RawCall;
 #[cfg(feature = "reentrant")]
 use stylus_core::storage::TopLevelStorage;
 
-#[cfg(feature = "reentrant")]
-use crate::storage::Storage;
-
 /// Transfers an amount of ETH in wei to the given account.
 /// Note that this method will call the other contract, which may in turn call others.
 ///
@@ -23,14 +20,15 @@ use crate::storage::Storage;
 #[cfg(feature = "reentrant")]
 #[allow(dead_code)]
 pub fn transfer_eth(
-    vm: VM,
+    host: &dyn Host,
     _storage: &mut impl TopLevelStorage,
     to: Address,
     amount: U256,
 ) -> Result<(), Vec<u8>> {
-    vm.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+    use crate::storage::Storage;
+    host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
     unsafe {
-        RawCall::new_with_value(amount)
+        RawCall::new_with_value(host, amount)
             .skip_return_data()
             .call(to, &[])?;
     }
@@ -55,6 +53,7 @@ pub fn transfer_eth(
 /// #     Ok(())
 /// # }
 /// ```
+#[cfg(not(feature = "reentrant"))]
 #[allow(dead_code)]
 pub fn transfer_eth(host: &dyn Host, to: Address, amount: U256) -> Result<(), Vec<u8>> {
     RawCall::new_with_value(host, amount)
