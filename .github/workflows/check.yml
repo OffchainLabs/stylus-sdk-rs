@@ -14,7 +14,7 @@ jobs:
         with:
           submodules: true
       - name: Install stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.87
         with:
           components: rustfmt
       - name: cargo fmt --check
