@@ -21,6 +21,7 @@ use stylus_core::{
     Host,
 };
 
+#[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::Storage;
 

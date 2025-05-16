@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 use stylus_core::Host;
 
+#[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
