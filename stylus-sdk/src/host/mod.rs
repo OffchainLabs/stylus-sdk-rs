@@ -21,8 +21,6 @@ use crate::{
 
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "stylus-test"))] {
-        use stylus_core::deploy::*;
-
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
         #[derive(Clone, Debug, Default)]
