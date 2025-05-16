@@ -67,7 +67,7 @@ use crate::state::VMState;
 /// // Mock contract calls.
 /// let contract = Address::from([2u8; 20]);
 /// let data = vec![0x01, 0x02, 0x03];
-/// vm.mock_call(contract, data.clone(), Ok(vec![0x04]));
+/// vm.mock_call(contract, data.clone(), U256::from(1000), Ok(vec![0x04]));
 ///
 /// // Get emitted logs after execution
 /// let logs = vm.get_emitted_logs();
@@ -225,7 +225,7 @@ impl TestVM {
     /// # Examples
     /// ```
     /// # use stylus_test::TestVM;
-    /// # use alloy_primitives::Address;
+    /// # use alloy_primitives::{Address, U256};
     /// let vm = TestVM::new();
     /// let contract = Address::from([1u8; 20]);
     /// let data = vec![0x01, 0x02, 0x03];
