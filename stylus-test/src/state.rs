@@ -13,6 +13,7 @@ use crate::constants::{DEFAULT_CHAIN_ID, DEFAULT_CONTRACT_ADDRESS, DEFAULT_SENDE
 type CallReturn = Result<Vec<u8>, Vec<u8>>;
 type DeploymentReturn = Result<Address, Vec<u8>>;
 type MockCallWithAddress = (Address, Vec<u8>);
+type MockCallWithAddressAndValue = (Address, Vec<u8>, U256);
 type DeploymentWithSalt = (Vec<u8>, Option<B256>);
 
 /// Type alias for the RPC provider used in the test VM.
@@ -41,12 +42,13 @@ pub struct VMState {
     pub block_basefee: U256,
     pub tx_gas_price: U256,
     pub tx_ink_price: u32,
-    pub call_returns: HashMap<MockCallWithAddress, CallReturn>,
+    pub call_returns: HashMap<MockCallWithAddressAndValue, CallReturn>,
     pub delegate_call_returns: HashMap<MockCallWithAddress, CallReturn>,
     pub static_call_returns: HashMap<MockCallWithAddress, CallReturn>,
     pub deploy_returns: HashMap<DeploymentWithSalt, DeploymentReturn>,
     pub emitted_logs: Vec<(Vec<B256>, Vec<u8>)>,
     pub provider: Option<RPCProvider>,
+    pub return_data: Vec<u8>,
 }
 
 impl Default for VMState {
@@ -76,6 +78,7 @@ impl Default for VMState {
             deploy_returns: HashMap::new(),
             emitted_logs: Vec::new(),
             provider: None,
+            return_data: Vec::new(),
         }
     }
 }

@@ -176,7 +176,7 @@ impl TryFrom<Path> for Primitive {
 
         if let Some(caps) = UINT_REGEX.captures(name) {
             let bits: usize = caps[1].parse().unwrap();
-            let limbs = (63 + bits) / 64;
+            let limbs = bits.div_ceil(64);
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }
@@ -185,7 +185,7 @@ impl TryFrom<Path> for Primitive {
 
         if let Some(caps) = INT_REGEX.captures(name) {
             let bits: usize = caps[1].parse().unwrap();
-            let limbs = (63 + bits) / 64;
+            let limbs = bits.div_ceil(64);
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }
@@ -250,7 +250,7 @@ impl TryFrom<Path> for PrimitiveKey {
 
         if let Some(caps) = UINT_REGEX.captures(name) {
             let bits: usize = caps[1].parse().unwrap();
-            let limbs = (63 + bits) / 64;
+            let limbs = bits.div_ceil(64);
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }
@@ -259,7 +259,7 @@ impl TryFrom<Path> for PrimitiveKey {
 
         if let Some(caps) = INT_REGEX.captures(name) {
             let bits: usize = caps[1].parse().unwrap();
-            let limbs = (63 + bits) / 64;
+            let limbs = bits.div_ceil(64);
             if bits > 256 {
                 return error!("Type not supported: too many bits");
             }

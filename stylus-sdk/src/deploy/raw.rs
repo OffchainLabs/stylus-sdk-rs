@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
 use stylus_core::Host;
 
+#[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
@@ -106,5 +107,27 @@ impl RawDeploy {
             return Err(host.read_return_data(0, None));
         }
         Ok(contract)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use alloy_primitives::{Address, U256};
+    use stylus_test::TestVM;
+
+    #[test]
+    fn test_deploy() {
+        let vm = TestVM::new();
+
+        let code = vec![0x60, 0x80, 0x60, 0x40];
+        let salt = B256::with_last_byte(1);
+        let deployed_address = Address::from([2u8; 20]);
+        vm.mock_deploy(code.clone(), Some(salt), Ok(deployed_address));
+
+        let deployer = RawDeploy::new().salt(salt);
+
+        let result = unsafe { deployer.deploy(&vm, &code, U256::ZERO).unwrap() };
+        assert_eq!(result, deployed_address);
     }
 }

@@ -25,6 +25,7 @@ pub fn transfer_eth(
     to: Address,
     amount: U256,
 ) -> Result<(), Vec<u8>> {
+    #[allow(unused_imports)]
     use crate::storage::Storage;
     host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
     unsafe {

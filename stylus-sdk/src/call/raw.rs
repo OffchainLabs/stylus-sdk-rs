@@ -5,6 +5,7 @@ use crate::{stylus_core::host::*, ArbResult};
 use alloy_primitives::{Address, B256, U256};
 use cfg_if::cfg_if;
 
+#[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
