@@ -41,7 +41,6 @@
 use alloy_primitives::{Address, B256, U256};
 use alloy_provider::Provider;
 pub use calls::{errors::Error, MutatingCallContext, StaticCallContext};
-use deploy::DeploymentAccess;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::slice;
@@ -391,24 +390,53 @@ impl CalldataAccess for TestVM {
 unsafe impl UnsafeDeploymentAccess for TestVM {
     unsafe fn create1(
         &self,
-        _code: *const u8,
-        _code_len: usize,
+        code: *const u8,
+        code_len: usize,
         _endowment: *const u8,
         _contract: *mut u8,
         _revert_data_len: *mut usize,
     ) {
-        unimplemented!("unsafe create1 not yet implemented for TestVM")
+        let code = slice::from_raw_parts(code, code_len);
+        let deployment_result = self
+            .state
+            .borrow()
+            .deploy_returns
+            .get(&(code.to_vec(), None))
+            .cloned();
+        if deployment_result.is_none() {
+            return;
+        }
+        if let Some(Ok(addr)) = deployment_result {
+            let contract = slice::from_raw_parts_mut(_contract as *mut u8, 20);
+            contract.copy_from_slice(addr.as_ref());
+        }
     }
     unsafe fn create2(
         &self,
-        _code: *const u8,
-        _code_len: usize,
+        code: *const u8,
+        code_len: usize,
         _endowment: *const u8,
-        _salt: *const u8,
+        salt: *const u8,
         _contract: *mut u8,
         _revert_data_len: *mut usize,
     ) {
-        unimplemented!("unsafe create2 not yet implemented for TestVM")
+        let salt = slice::from_raw_parts(salt, 32);
+        let salt = B256::from_slice(salt);
+        let code = slice::from_raw_parts(code, code_len);
+        let deployment_result = self
+            .state
+            .borrow()
+            .deploy_returns
+            .get(&(code.to_vec(), Some(salt)))
+            .cloned();
+        if deployment_result.is_none() {
+            return;
+        }
+        if let Some(Ok(addr)) = deployment_result {
+            println!("Exists");
+            let contract = slice::from_raw_parts_mut(_contract as *mut u8, 20);
+            contract.copy_from_slice(addr.as_ref());
+        }
     }
 }
 
@@ -617,39 +645,6 @@ impl MeteringAccess for TestVM {
     }
 }
 
-impl DeploymentAccess for TestVM {
-    #[cfg(feature = "reentrant")]
-    unsafe fn deploy(
-        &self,
-        code: &[u8],
-        _endowment: U256,
-        salt: Option<B256>,
-        _cache_policy: stylus_core::deploy::CachePolicy,
-    ) -> Result<Address, Vec<u8>> {
-        self.state
-            .borrow()
-            .deploy_returns
-            .get(&(code.to_vec(), salt))
-            .cloned()
-            .unwrap()
-    }
-
-    #[cfg(not(feature = "reentrant"))]
-    unsafe fn deploy(
-        &self,
-        code: &[u8],
-        _endowment: U256,
-        salt: Option<B256>,
-    ) -> Result<Address, Vec<u8>> {
-        self.state
-            .borrow()
-            .deploy_returns
-            .get(&(code.to_vec(), salt))
-            .cloned()
-            .unwrap()
-    }
-}
-
 impl LogAccess for TestVM {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         let (topics_data, data) = input.split_at(num_topics * 32);
@@ -732,11 +727,6 @@ mod tests {
         let value = U256::from(2);
         vm.set_value(value);
         assert_eq!(vm.msg_value(), value);
-    }
-
-    #[test]
-    fn test_mock_deploys() {
-        // TODO: Implement transfer_eth success test
     }
 
     #[test]

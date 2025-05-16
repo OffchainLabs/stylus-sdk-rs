@@ -62,21 +62,3 @@ pub fn transfer_eth(host: &dyn Host, to: Address, amount: U256) -> Result<(), Ve
         .call(to, &[])?;
     Ok(())
 }
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_transfer_eth_success() {
-        // TODO: Implement transfer_eth success test
-    }
-
-    #[test]
-    fn test_transfer_eth_insufficient_funds() {
-        // TODO: Implement transfer_eth success test
-    }
-
-    #[test]
-    fn test_transfer_eth_overflow() {
-        // TODO: Implement transfer_eth success test
-    }
-}

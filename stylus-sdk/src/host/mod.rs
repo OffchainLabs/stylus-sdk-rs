@@ -19,10 +19,6 @@ use crate::{
     types::AddressVM,
 };
 
-/// Defines an implementation of traits for the VM struct
-/// that provide access to programmatic contract deployment.
-pub mod deploy;
-
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "stylus-test"))] {
         use stylus_core::deploy::*;
@@ -233,29 +229,6 @@ cfg_if::cfg_if! {
             #[inline]
             fn tx_ink_price(&self) -> u32 {
                 self.0.tx_ink_price()
-            }
-        }
-        impl DeploymentAccess for VM {
-            #[inline]
-            #[cfg(feature = "reentrant")]
-            unsafe fn deploy(
-                &self,
-                code: &[u8],
-                endowment: U256,
-                salt: Option<B256>,
-                cache_policy: CachePolicy,
-            ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt, cache_policy)
-            }
-            #[inline]
-            #[cfg(not(feature = "reentrant"))]
-            unsafe fn deploy(
-                &self,
-                code: &[u8],
-                endowment: U256,
-                salt: Option<B256>,
-            ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt)
             }
         }
         impl LogAccess for VM {
