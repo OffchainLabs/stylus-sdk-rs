@@ -44,6 +44,7 @@ pub use calls::{errors::Error, MutatingCallContext, StaticCallContext};
 use deploy::DeploymentAccess;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::slice;
 use tokio::runtime::Runtime;
 
 pub use stylus_core::*;
@@ -231,16 +232,26 @@ impl TestVM {
     /// let data = vec![0x01, 0x02, 0x03];
     ///
     /// // Mock successful call
-    /// vm.mock_call(contract, data.clone(), Ok(vec![0x04]));
+    /// let value = U256::from(1);
+    /// vm.mock_call(contract, data.clone(), value, Ok(vec![0x04]));
     ///
+    /// let value = U256::from(0);
     /// // Mock reverted call
-    /// vm.mock_call(contract, data, Err(vec![0xff]));
+    /// vm.mock_call(contract, data, value, Err(vec![0xff]));
     /// ```
-    pub fn mock_call(&self, to: Address, data: Vec<u8>, return_data: Result<Vec<u8>, Vec<u8>>) {
-        self.state
-            .borrow_mut()
-            .call_returns
-            .insert((to, data), return_data);
+    pub fn mock_call(
+        &self,
+        to: Address,
+        data: Vec<u8>,
+        value: U256,
+        return_data: Result<Vec<u8>, Vec<u8>>,
+    ) {
+        let mut state = self.state.borrow_mut();
+        state.return_data = match return_data.clone() {
+            Ok(data) => data,
+            Err(data) => data,
+        };
+        state.call_returns.insert((to, data, value), return_data);
     }
 
     /// Mocks a delegate call.
@@ -250,10 +261,13 @@ impl TestVM {
         data: Vec<u8>,
         return_data: Result<Vec<u8>, Vec<u8>>,
     ) {
-        self.state
-            .borrow_mut()
-            .delegate_call_returns
-            .insert((to, data), return_data);
+        let mut state = self.state.borrow_mut();
+        state.return_data = match return_data.clone() {
+            Ok(data) => data,
+            Err(data) => data,
+        };
+
+        state.delegate_call_returns.insert((to, data), return_data);
     }
 
     /// Mocks a static call.
@@ -263,10 +277,12 @@ impl TestVM {
         data: Vec<u8>,
         return_data: Result<Vec<u8>, Vec<u8>>,
     ) {
-        self.state
-            .borrow_mut()
-            .static_call_returns
-            .insert((to, data), return_data);
+        let mut state = self.state.borrow_mut();
+        state.return_data = match return_data.clone() {
+            Ok(data) => data,
+            Err(data) => data,
+        };
+        state.static_call_returns.insert((to, data), return_data);
     }
 
     /// Mocks contract deployment.
@@ -302,6 +318,38 @@ impl TestVM {
         state.static_call_returns.clear();
         state.deploy_returns.clear();
         state.emitted_logs.clear();
+        state.return_data.clear();
+    }
+
+    fn perform_mocked_call(
+        &self,
+        to: Address,
+        data: Vec<u8>,
+        value: U256,
+    ) -> Result<Vec<u8>, Vec<u8>> {
+        let state = self.state.borrow();
+        if let Some(return_data) = state.call_returns.get(&(to, data.clone(), value)) {
+            return return_data.clone();
+        }
+        Ok(Vec::new())
+    }
+
+    /// Performs a mocked call to a contract.
+    fn perform_mocked_delegate_call(&self, to: Address, data: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
+        let state = self.state.borrow();
+        if let Some(return_data) = state.delegate_call_returns.get(&(to, data.clone())) {
+            return return_data.clone();
+        }
+        Ok(Vec::new())
+    }
+
+    /// Performs a mocked call to a contract.
+    fn perform_mocked_static_call(&self, to: Address, data: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
+        let state = self.state.borrow();
+        if let Some(return_data) = state.static_call_returns.get(&(to, data.clone())) {
+            return return_data.clone();
+        }
+        Ok(Vec::new())
     }
 }
 
@@ -317,14 +365,26 @@ impl CalldataAccess for TestVM {
     fn read_args(&self, _len: usize) -> Vec<u8> {
         unimplemented!("read_args not yet implemented for TestVM")
     }
-    fn read_return_data(&self, _offset: usize, _size: Option<usize>) -> Vec<u8> {
-        unimplemented!("read_return_data not yet implemented for TestVM")
+
+    fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
+        let state = self.state.borrow();
+        let data = &state.return_data;
+        let start = offset.min(data.len());
+        let end = match size {
+            Some(s) => (start + s).min(data.len()),
+            None => data.len(),
+        };
+        data[start..end].to_vec()
     }
+
     fn return_data_size(&self) -> usize {
-        unimplemented!("return_data_size not yet implemented for TestVM")
+        self.state.borrow().return_data.len()
     }
-    fn write_result(&self, _data: &[u8]) {
-        unimplemented!("write_result not yet implemented for TestVM")
+
+    fn write_result(&self, data: &[u8]) {
+        let mut state = self.state.borrow_mut();
+        state.return_data.clear();
+        state.return_data.extend_from_slice(data);
     }
 }
 
@@ -375,34 +435,74 @@ impl StorageAccess for TestVM {
 unsafe impl UnsafeCallAccess for TestVM {
     unsafe fn call_contract(
         &self,
-        _to: *const u8,
-        _data: *const u8,
-        _data_len: usize,
-        _value: *const u8,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
+        value: *const u8,
         _gas: u64,
-        _outs_len: &mut usize,
+        outs_len: &mut usize,
     ) -> u8 {
-        unimplemented!("unsafe call_contract not yet implemented for TestVM")
+        let to_addr = Address::from_slice(slice::from_raw_parts(to, 20));
+        let data_slice = slice::from_raw_parts(data, data_len);
+        let value_slice = slice::from_raw_parts(value, 32);
+        let mut value_bytes = [0u8; 32];
+        value_bytes.copy_from_slice(value_slice);
+        let value_u256 = U256::from_be_bytes(value_bytes);
+
+        match self.perform_mocked_call(to_addr, data_slice.to_vec(), value_u256) {
+            Ok(return_data) => {
+                *outs_len = return_data.len();
+                0 // Success
+            }
+            Err(revert_data) => {
+                *outs_len = revert_data.len();
+                1 // Revert
+            }
+        }
     }
     unsafe fn delegate_call_contract(
         &self,
-        _to: *const u8,
-        _data: *const u8,
-        _data_len: usize,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
         _gas: u64,
-        _outs_len: &mut usize,
+        outs_len: &mut usize,
     ) -> u8 {
-        unimplemented!("unsafe delegate_call_contract not yet implemented for TestVM")
+        let to_addr = Address::from_slice(slice::from_raw_parts(to, 20));
+        let data_slice = slice::from_raw_parts(data, data_len);
+
+        match self.perform_mocked_delegate_call(to_addr, data_slice.to_vec()) {
+            Ok(return_data) => {
+                *outs_len = return_data.len();
+                0 // Success
+            }
+            Err(revert_data) => {
+                *outs_len = revert_data.len();
+                1 // Revert
+            }
+        }
     }
     unsafe fn static_call_contract(
         &self,
-        _to: *const u8,
-        _data: *const u8,
-        _data_len: usize,
+        to: *const u8,
+        data: *const u8,
+        data_len: usize,
         _gas: u64,
-        _outs_len: &mut usize,
+        outs_len: &mut usize,
     ) -> u8 {
-        unimplemented!("unsafe static_call_contract not yet implemented for TestVM")
+        let to_addr = Address::from_slice(slice::from_raw_parts(to, 20));
+        let data_slice = slice::from_raw_parts(data, data_len);
+
+        match self.perform_mocked_static_call(to_addr, data_slice.to_vec()) {
+            Ok(return_data) => {
+                *outs_len = return_data.len();
+                0 // Success
+            }
+            Err(revert_data) => {
+                *outs_len = revert_data.len();
+                1 // Revert
+            }
+        }
     }
 }
 
@@ -635,11 +735,6 @@ mod tests {
     }
 
     #[test]
-    fn test_mock_calls() {
-        // TODO: Implement transfer_eth success test
-    }
-
-    #[test]
     fn test_mock_deploys() {
         // TODO: Implement transfer_eth success test
     }
@@ -657,20 +752,5 @@ mod tests {
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].0, vec![topic1, topic2]);
         assert_eq!(logs[0].1, data);
-    }
-
-    #[test]
-    fn test_transfer_eth_success() {
-        // TODO: Implement transfer_eth success test
-    }
-
-    #[test]
-    fn test_transfer_eth_insufficient_funds() {
-        // TODO: Implement transfer_eth success test
-    }
-
-    #[test]
-    fn test_transfer_eth_overflow() {
-        // TODO: Implement transfer_eth success test
     }
 }

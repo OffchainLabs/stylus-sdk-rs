@@ -99,3 +99,57 @@ pub fn call(
             .map_err(Error::Revert)
     }}
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use alloy_primitives::{Address, U256};
+    use stylus_core::CallContext;
+    use stylus_test::TestVM;
+
+    #[derive(Clone)]
+    pub struct MyContract;
+    impl CallContext for MyContract {
+        fn gas(&self) -> u64 {
+            0
+        }
+    }
+    unsafe impl MutatingCallContext for MyContract {
+        fn value(&self) -> U256 {
+            U256::from(0)
+        }
+    }
+    impl StaticCallContext for MyContract {}
+
+    #[test]
+    fn test_calls() {
+        let vm = TestVM::new();
+        let contract = MyContract {};
+        let target = Address::from([2u8; 20]);
+        let data = vec![1, 2, 3, 4];
+        let expected_return = vec![5, 6, 7, 8];
+
+        // Mock a regular call.
+        vm.mock_call(
+            target,
+            data.clone(),
+            U256::ZERO,
+            Ok(expected_return.clone()),
+        );
+
+        let response = call(&vm, contract.clone(), target, &data).unwrap();
+        assert_eq!(response, expected_return);
+        vm.clear_mocks();
+
+        // Mock a delegate call.
+        vm.mock_delegate_call(target, data.clone(), Ok(expected_return.clone()));
+        let response = unsafe { delegate_call(&vm, contract.clone(), target, &data).unwrap() };
+        assert_eq!(response, expected_return);
+        vm.clear_mocks();
+
+        // Mock a static call.
+        vm.mock_static_call(target, data.clone(), Ok(expected_return.clone()));
+        let response = static_call(&vm, contract.clone(), target, &data).unwrap();
+        assert_eq!(response, expected_return);
+    }
+}
