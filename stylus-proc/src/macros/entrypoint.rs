@@ -59,6 +59,7 @@ impl ToTokens for Entrypoint {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum EntrypointKind {
     Fn(EntrypointFn),
     Struct(EntrypointStruct),
