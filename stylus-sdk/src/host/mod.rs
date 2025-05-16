@@ -407,7 +407,7 @@ impl BlockAccess for WasmVM {
         unsafe {
             let mut data = Address::ZERO;
             hostio::block_coinbase(data.as_mut_ptr());
-            data.into()
+            data
         }
     }
     fn block_gas_limit(&self) -> u64 {
@@ -436,7 +436,7 @@ impl AccountAccess for WasmVM {
     fn contract_address(&self) -> Address {
         let mut data = Address::ZERO;
         unsafe { hostio::contract_address(data.as_mut_ptr()) };
-        data.into()
+        data
     }
     fn code(&self, account: Address) -> Vec<u8> {
         let size = self.code_size(account);
@@ -470,7 +470,7 @@ impl MessageAccess for WasmVM {
     fn msg_sender(&self) -> Address {
         let mut data = Address::ZERO;
         unsafe { hostio::msg_sender(data.as_mut_ptr()) };
-        data.into()
+        data
     }
     fn msg_value(&self) -> U256 {
         let mut data = B256::ZERO;
@@ -480,7 +480,7 @@ impl MessageAccess for WasmVM {
     fn tx_origin(&self) -> Address {
         let mut data = Address::ZERO;
         unsafe { hostio::tx_origin(data.as_mut_ptr()) };
-        data.into()
+        data
     }
 }
 
