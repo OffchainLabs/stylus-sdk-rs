@@ -407,7 +407,7 @@ unsafe impl UnsafeDeploymentAccess for TestVM {
             return;
         }
         if let Some(Ok(addr)) = deployment_result {
-            let contract = slice::from_raw_parts_mut(_contract as *mut u8, 20);
+            let contract = slice::from_raw_parts_mut(_contract, 20);
             contract.copy_from_slice(addr.as_ref());
         }
     }
@@ -433,8 +433,7 @@ unsafe impl UnsafeDeploymentAccess for TestVM {
             return;
         }
         if let Some(Ok(addr)) = deployment_result {
-            println!("Exists");
-            let contract = slice::from_raw_parts_mut(_contract as *mut u8, 20);
+            let contract = slice::from_raw_parts_mut(_contract, 20);
             contract.copy_from_slice(addr.as_ref());
         }
     }
