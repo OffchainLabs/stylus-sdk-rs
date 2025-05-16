@@ -34,7 +34,7 @@ jobs:
         with:
           submodules: true
       - name: Install ${{ matrix.toolchain }}
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@1.87
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
