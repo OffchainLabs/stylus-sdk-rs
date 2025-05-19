@@ -234,7 +234,7 @@ impl<E: FnExtension> PublicFn<E> {
             #[allow(non_upper_case_globals)]
             #constant => {
                 #deny_value
-                let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
+                let args = match <#decode_inputs as #SolType>::abi_decode_params(input) {
                     Ok(args) => args,
                     Err(err) => {
                         internal::failed_to_decode_arguments(err);
@@ -343,7 +343,7 @@ impl<E: FnExtension> PublicFn<E> {
             if let Err(e) = storage.check_constructor_slot() {
                 return Some(Err(e));
             }
-            let args = match <#decode_inputs as #SolType>::abi_decode_params(input, true) {
+            let args = match <#decode_inputs as #SolType>::abi_decode_params(input) {
                 Ok(args) => args,
                 Err(err) => {
                     internal::failed_to_decode_arguments(err);

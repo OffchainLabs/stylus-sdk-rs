@@ -37,7 +37,7 @@ fn test_abi_decode() {
     let mut input = [0u8; 32];
     input[31] = 100;
     assert_eq!(
-        <MyStruct as SolType>::abi_decode(&input, true),
+        <MyStruct as SolType>::abi_decode(&input),
         Ok(MyStruct { bar: 100 }),
     );
 }
