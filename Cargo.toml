@@ -45,3 +45,4 @@ stylus-sdk = { path = "stylus-sdk" }
 stylus-core = { path = "stylus-core", version = "0.9.0" }
 stylus-test = { path = "stylus-test", version = "0.9.0" }
 stylus-proc = { path = "stylus-proc", version = "0.9.0" }
+stylus-tools = { path = "stylus-tools", version = "0.9.0" }

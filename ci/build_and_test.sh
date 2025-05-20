@@ -11,9 +11,8 @@ cargo -V
 
 # Build and test main crate
 if [ "$CFG_RELEASE_CHANNEL" == "nightly" ]; then
-    cargo build --all-features
+    cargo build --locked --all-features
 else
-    cargo build
+    cargo build --locked
 fi
 cargo test --all-features
-cat Cargo.lock
