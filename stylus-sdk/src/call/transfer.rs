@@ -24,7 +24,6 @@ use stylus_core::Host;
 /// #     Ok(())
 /// # }
 /// ```
-#[allow(dead_code)]
 pub fn transfer_eth(host: &dyn Host, to: Address, amount: U256) -> Result<(), Vec<u8>> {
     host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
     unsafe {

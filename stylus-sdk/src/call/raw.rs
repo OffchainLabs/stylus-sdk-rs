@@ -83,7 +83,6 @@ impl<'a> RawCall<'a> {
     /// ```
     ///
     /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
-    #[allow(dead_code)]
     pub fn new(host: &'a dyn Host) -> Self {
         Self {
             host,
