@@ -3,25 +3,14 @@
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
-use stylus_core::calls::{
-    errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer,
+use stylus_core::{
+    calls::{errors::Error, CallAccess, MutatingCallContext, StaticCallContext, ValueTransfer},
+    host::StorageAccess,
 };
 
 use crate::call::RawCall;
 
 use super::WasmVM;
-
-macro_rules! unsafe_reentrant {
-    ($block:block) => {
-        #[cfg(feature = "reentrant")]
-        unsafe {
-            $block
-        }
-
-        #[cfg(not(feature = "reentrant"))]
-        $block
-    };
-}
 
 impl CallAccess for WasmVM {
     /// Calls the contract at the given address.
@@ -31,18 +20,13 @@ impl CallAccess for WasmVM {
         to: alloy_primitives::Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        #[cfg(feature = "reentrant")]
-        {
-            use stylus_core::host::StorageAccess;
-            self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-        }
-
-        unsafe_reentrant! {{
+        self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        unsafe {
             RawCall::new_with_value(context.value())
                 .gas(context.gas())
                 .call(to, data)
                 .map_err(Error::Revert)
-        }}
+        }
     }
     /// Delegate calls the contract at the given address.
     ///
@@ -57,16 +41,13 @@ impl CallAccess for WasmVM {
         to: alloy_primitives::Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        #[cfg(feature = "reentrant")]
-        {
-            use stylus_core::host::StorageAccess;
-            self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        unsafe {
+            RawCall::new_delegate()
+                .gas(context.gas())
+                .call(to, data)
+                .map_err(Error::Revert)
         }
-
-        RawCall::new_delegate()
-            .gas(context.gas())
-            .call(to, data)
-            .map_err(Error::Revert)
     }
     /// Static calls the contract at the given address.
     fn static_call(
@@ -75,18 +56,13 @@ impl CallAccess for WasmVM {
         to: alloy_primitives::Address,
         data: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        #[cfg(feature = "reentrant")]
-        {
-            use stylus_core::host::StorageAccess;
-            self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
-        }
-
-        unsafe_reentrant! {{
+        self.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
+        unsafe {
             RawCall::new_static()
                 .gas(context.gas())
                 .call(to, data)
                 .map_err(Error::Revert)
-        }}
+        }
     }
 }
 
@@ -105,7 +81,6 @@ impl ValueTransfer for WasmVM {
         to: Address,
         amount: U256,
     ) -> Result<(), Vec<u8>> {
-        use stylus_core::host::StorageAccess;
         self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
         unsafe {
             RawCall::new_with_value(amount)
@@ -134,9 +109,12 @@ impl ValueTransfer for WasmVM {
     /// ```
     #[cfg(not(feature = "reentrant"))]
     fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        RawCall::new_with_value(amount)
-            .skip_return_data()
-            .call(to, &[])?;
+        self.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+        unsafe {
+            RawCall::new_with_value(amount)
+                .skip_return_data()
+                .call(to, &[])?;
+        }
         Ok(())
     }
 }
