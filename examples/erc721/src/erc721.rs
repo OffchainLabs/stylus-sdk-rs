@@ -12,7 +12,7 @@ use alloc::vec;
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
-use stylus_sdk::{abi::Bytes, evm, msg, prelude::*};
+use stylus_sdk::{abi::Bytes, stylus_core, prelude::*};
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -85,7 +85,7 @@ const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 // These methods aren't public, but are helpers used by public methods.
 // Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
 impl<T: Erc721Params> Erc721<T> {
-    /// Requires that msg::sender() is authorized to spend a given token
+    /// Requires that msg_sender is authorized to spend a given token
     fn require_authorized_to_spend(
         &self,
         from: Address,
@@ -102,24 +102,25 @@ impl<T: Erc721Params> Erc721<T> {
         }
 
         // caller is the owner
-        if msg::sender() == owner {
+        let msg_sender = self.vm().msg_sender();
+        if msg_sender == owner {
             return Ok(());
         }
 
         // caller is an operator for the owner (can manage their tokens)
-        if self.operator_approvals.getter(owner).get(msg::sender()) {
+        if self.operator_approvals.getter(owner).get(msg_sender) {
             return Ok(());
         }
 
         // caller is approved to manage this token_id
-        if msg::sender() == self.token_approvals.get(token_id) {
+        if msg_sender == self.token_approvals.get(token_id) {
             return Ok(());
         }
 
         // otherwise, caller is not allowed to manage this token_id
         Err(Erc721Error::NotApproved(NotApproved {
             owner,
-            spender: msg::sender(),
+            spender: msg_sender,
             token_id,
         }))
     }
@@ -156,23 +157,25 @@ impl<T: Erc721Params> Erc721<T> {
         // cleaning app the approved mapping for this token
         self.token_approvals.delete(token_id);
 
-        evm::log(Transfer { from, to, token_id });
+        stylus_core::log(self.vm(), Transfer { from, to, token_id });
         Ok(())
     }
 
     /// Calls `onERC721Received` on the `to` address if it is a contract.
     /// Otherwise it does nothing
-    fn call_receiver<S: TopLevelStorage>(
+    fn call_receiver<S: TopLevelStorage + BorrowMut<Self>>(
         storage: &mut S,
         token_id: U256,
         from: Address,
         to: Address,
         data: Vec<u8>,
     ) -> Result<(), Erc721Error> {
-        if to.has_code() {
+        let vm = storage.borrow_mut().vm();
+        if vm.code_size(to) > 0 {
+            let msg_sender = vm.msg_sender();
             let receiver = IERC721TokenReceiver::new(to);
             let received = receiver
-                .on_erc_721_received(&mut *storage, msg::sender(), from, token_id, data.into())
+                .on_erc_721_received(&mut *storage, msg_sender, from, token_id, data.into())
                 .map_err(|_e| {
                     Erc721Error::ReceiverRefused(ReceiverRefused {
                         receiver: receiver.address,
@@ -309,16 +312,17 @@ impl<T: Erc721Params> Erc721<T> {
         let owner = self.owner_of(token_id)?;
 
         // require authorization
-        if msg::sender() != owner && !self.operator_approvals.getter(owner).get(msg::sender()) {
+        let msg_sender = self.vm().msg_sender();
+        if msg_sender != owner && !self.operator_approvals.getter(owner).get(msg_sender) {
             return Err(Erc721Error::NotApproved(NotApproved {
                 owner,
-                spender: msg::sender(),
+                spender: msg_sender,
                 token_id,
             }));
         }
         self.token_approvals.insert(token_id, approved);
 
-        evm::log(Approval {
+        stylus_core::log(self.vm(), Approval {
             approved,
             owner,
             token_id,
@@ -332,12 +336,12 @@ impl<T: Erc721Params> Erc721<T> {
         operator: Address,
         approved: bool,
     ) -> Result<(), Erc721Error> {
-        let owner = msg::sender();
+        let owner = self.vm().msg_sender();
         self.operator_approvals
             .setter(owner)
             .insert(operator, approved);
 
-        evm::log(ApprovalForAll {
+        stylus_core::log(self.vm(), ApprovalForAll {
             owner,
             operator,
             approved,

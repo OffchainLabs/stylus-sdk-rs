@@ -45,6 +45,7 @@ extern "C" {
 static mut STATE: Option<(NonZero, usize)> = None;
 
 unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
+    #[allow(mutable_borrow_reservation_conflict)]
     let (neg_offset, neg_bound) = STATE.get_or_insert_with(|| {
         let heap_base = &__heap_base as *const u8 as usize;
         let bound = MiniAlloc::PAGE_SIZE * wasm32::memory_size(0) - 1;

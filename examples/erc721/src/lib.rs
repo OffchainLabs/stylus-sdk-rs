@@ -8,7 +8,7 @@ mod erc721;
 use crate::erc721::{Erc721, Erc721Error, Erc721Params};
 use alloy_primitives::{Address, U256};
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
-use stylus_sdk::{msg, prelude::*};
+use stylus_sdk::prelude::*;
 
 /// Immutable definitions
 struct StylusTestNFTParams;
@@ -37,7 +37,7 @@ sol_storage! {
 impl StylusTestNFT {
     /// Mints an NFT
     pub fn mint(&mut self) -> Result<(), Erc721Error> {
-        let minter = msg::sender();
+        let minter = self.vm().msg_sender();
         self.erc721.mint(minter)?;
         Ok(())
     }
@@ -50,8 +50,8 @@ impl StylusTestNFT {
 
     /// Burns an NFT
     pub fn burn(&mut self, token_id: U256) -> Result<(), Erc721Error> {
-        // This function checks that msg::sender() owns the specified token_id
-        self.erc721.burn(msg::sender(), token_id)?;
+        // This function checks that msg_sender owns the specified token_id
+        self.erc721.burn(self.vm().msg_sender(), token_id)?;
         Ok(())
     }
 
