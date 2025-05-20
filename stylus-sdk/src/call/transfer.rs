@@ -1,40 +1,10 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::call::RawCall;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 use stylus_core::Host;
-
-use crate::call::raw::RawCall;
-
-#[cfg(feature = "reentrant")]
-use stylus_core::storage::TopLevelStorage;
-
-/// Transfers an amount of ETH in wei to the given account.
-/// Note that this method will call the other contract, which may in turn call others.
-///
-/// All gas is supplied, which the recipient may burn.
-/// If this is not desired, the [`call`](super::call) function may be used directly.
-///
-/// [`call`]: super::call
-#[cfg(feature = "reentrant")]
-#[allow(dead_code)]
-pub fn transfer_eth(
-    host: &dyn Host,
-    _storage: &mut impl TopLevelStorage,
-    to: Address,
-    amount: U256,
-) -> Result<(), Vec<u8>> {
-    #[allow(unused_imports)]
-    use crate::storage::Storage;
-    host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
-    unsafe {
-        RawCall::new_with_value(host, amount)
-            .skip_return_data()
-            .call(to, &[])?;
-    }
-    Ok(())
-}
 
 /// Transfers an amount of ETH in wei to the given account.
 /// Note that this method will call the other contract, which may in turn call others.
@@ -54,11 +24,13 @@ pub fn transfer_eth(
 /// #     Ok(())
 /// # }
 /// ```
-#[cfg(not(feature = "reentrant"))]
 #[allow(dead_code)]
 pub fn transfer_eth(host: &dyn Host, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-    RawCall::new_with_value(host, amount)
-        .skip_return_data()
-        .call(to, &[])?;
+    host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
+    unsafe {
+        RawCall::new_with_value(host, amount)
+            .skip_return_data()
+            .call(to, &[])?;
+    }
     Ok(())
 }

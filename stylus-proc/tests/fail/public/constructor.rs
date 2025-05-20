@@ -27,14 +27,10 @@ impl Contract {
     #[receive]
     fn constructor() {}
 
-    // error: stylusConstructor function can only be defined using the corresponding attribute
+    // error: constructor function can only be defined using the corresponding attribute
     fn stylus_constructor() {}
 
-    // error: stylusConstructor function can only be defined using the corresponding attribute
-    #[selector(name = "stylus_constructor")]
-    fn foo() {}
-
-    // error: stylusConstructor function can only be defined using the corresponding attribute
+    // error: constructor function can only be defined using the corresponding attribute
     #[selector(name = "stylusConstructor")]
     fn foo() {}
 }

@@ -54,6 +54,7 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub inheritance: Vec<syn::Type>,
     pub implements: Vec<syn::Type>,
     pub funcs: Vec<PublicFn<E::FnExt>>,
+    pub associated_types: Vec<(syn::Ident, syn::Type)>,
     #[allow(dead_code)]
     pub extension: E,
 }
@@ -98,8 +99,23 @@ impl PublicImpl {
 
         let implements_routes = self.implements_routes();
 
+        // Determine trait dynamic interface with associated types
         let iface = match &self.trait_ {
-            Some(trait_) => &parse_quote! { dyn #trait_ },
+            Some(trait_) => {
+                if !self.associated_types.is_empty() {
+                    let assoc_types_formatted = self
+                        .associated_types
+                        .iter()
+                        .map(|(name, value)| {
+                            quote! { #name = #value }
+                        })
+                        .collect::<Vec<_>>();
+
+                    &parse_quote! { dyn #trait_ < #(#assoc_types_formatted),* > }
+                } else {
+                    &parse_quote! { dyn #trait_ }
+                }
+            }
             None => self_ty,
         };
 
