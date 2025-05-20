@@ -3,7 +3,7 @@
 
 /// Returns the minimum number of EVM words needed to store `bytes` bytes.
 pub(crate) const fn evm_words(bytes: usize) -> usize {
-    (bytes + 31) / 32
+    bytes.div_ceil(32)
 }
 
 /// Pads a length to the next multiple of 32 bytes

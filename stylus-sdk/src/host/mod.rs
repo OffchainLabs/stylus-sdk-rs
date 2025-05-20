@@ -19,22 +19,11 @@ use crate::{
     types::AddressVM,
 };
 
-/// Defines an implementation of traits for the VM struct that
-/// provides access to cross-contract calls.
-pub mod calls;
-
-/// Defines an implementation of traits for the VM struct
-/// that provide access to programmatic contract deployment.
-pub mod deploy;
-
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "stylus-test"))] {
-        use stylus_core::calls::*;
-        use stylus_core::deploy::*;
-
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, Default)]
         pub struct VM(pub WasmVM);
 
         impl Host for VM {}
@@ -238,79 +227,6 @@ cfg_if::cfg_if! {
             #[inline]
             fn tx_ink_price(&self) -> u32 {
                 self.0.tx_ink_price()
-            }
-        }
-        impl CallAccess for VM {
-            #[inline]
-            fn call(
-                &self,
-                context: &dyn MutatingCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.call(context, to, data)
-            }
-            #[inline]
-            unsafe fn delegate_call(
-                &self,
-                context: &dyn MutatingCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.delegate_call(context, to, data)
-            }
-            #[inline]
-            fn static_call(
-                &self,
-                context: &dyn StaticCallContext,
-                to: alloy_primitives::Address,
-                data: &[u8],
-            ) -> Result<Vec<u8>, stylus_core::calls::errors::Error> {
-                self.0.static_call(context, to, data)
-            }
-        }
-        impl ValueTransfer for VM {
-            #[inline]
-            #[cfg(feature = "reentrant")]
-            fn transfer_eth(
-                &self,
-                storage: &mut dyn stylus_core::storage::TopLevelStorage,
-                to: Address,
-                amount: U256,
-            ) -> Result<(), Vec<u8>> {
-                self.0.transfer_eth(storage, to, amount)
-            }
-            #[inline]
-            #[cfg(not(feature = "reentrant"))]
-            fn transfer_eth(
-                &self,
-                to: alloy_primitives::Address,
-                amount: alloy_primitives::U256,
-            ) -> Result<(), Vec<u8>> {
-                self.0.transfer_eth(to, amount)
-            }
-        }
-        impl DeploymentAccess for VM {
-            #[inline]
-            #[cfg(feature = "reentrant")]
-            unsafe fn deploy(
-                &self,
-                code: &[u8],
-                endowment: U256,
-                salt: Option<B256>,
-                cache_policy: CachePolicy,
-            ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt, cache_policy)
-            }
-            #[inline]
-            #[cfg(not(feature = "reentrant"))]
-            unsafe fn deploy(
-                &self,
-                code: &[u8],
-                endowment: U256,
-                salt: Option<B256>,
-            ) -> Result<Address, Vec<u8>> {
-                self.0.deploy(code, endowment, salt)
             }
         }
         impl LogAccess for VM {

@@ -1,68 +1,11 @@
 // Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy_primitives::{Address, U256};
+use alloy_primitives::U256;
 
-use alloc::vec::Vec;
+use crate::TopLevelStorage;
 
-pub mod context;
 pub mod errors;
-
-/// Trait for accessing a safe API for calling other contracts.
-/// Its implementation should have reentrancy awareness and protections depending
-/// on the SDK configuration.
-pub trait CallAccess {
-    /// Static calls the contract at the given address.
-    fn static_call(
-        &self,
-        context: &dyn StaticCallContext,
-        to: Address,
-        data: &[u8],
-    ) -> Result<Vec<u8>, errors::Error>;
-    /// Delegate calls the contract at the given address.
-    ///
-    /// # Safety
-    ///
-    /// A delegate call must trust the other contract to uphold safety requirements.
-    /// Though this function clears any cached values, the other contract may arbitrarily change storage,
-    /// spend ether, and do other things one should never blindly allow other contracts to do.
-    unsafe fn delegate_call(
-        &self,
-        context: &dyn MutatingCallContext,
-        to: Address,
-        data: &[u8],
-    ) -> Result<Vec<u8>, errors::Error>;
-    /// Calls the contract at the given address.
-    fn call(
-        &self,
-        context: &dyn MutatingCallContext,
-        to: Address,
-        data: &[u8],
-    ) -> Result<Vec<u8>, errors::Error>;
-}
-
-/// Trait for transferring ETH.
-pub trait ValueTransfer {
-    #[cfg(feature = "reentrant")]
-    /// Transfers an amount of ETH in wei to the given account.
-    /// Note that this method will call the other contract, which may in turn call others.
-    ///
-    /// All gas is supplied, which the recipient may burn.
-    /// If this is not desired, the [`call`] method on the CallAccess trait may be used directly.
-    fn transfer_eth(
-        &self,
-        storage: &mut dyn crate::storage::TopLevelStorage,
-        to: Address,
-        amount: U256,
-    ) -> Result<(), Vec<u8>>;
-    #[cfg(not(feature = "reentrant"))]
-    /// Transfers an amount of ETH in wei to the given account.
-    /// Note that this method will call the other contract, which may in turn call others.
-    ///
-    /// All gas is supplied, which the recipient may burn.
-    /// If this is not desired, the [`call`] method on the CallAccess trait may be used directly.
-    fn transfer_eth(&self, to: Address, amount: U256) -> Result<(), Vec<u8>>;
-}
 
 /// Trait for calling other contracts.
 /// Users should rarely implement this trait outside of proc macros.
@@ -94,3 +37,76 @@ pub unsafe trait MutatingCallContext: CallContext {
 ///
 /// Note: any implementations of this must return zero for [`MutatingCallContext::value`].
 pub trait NonPayableCallContext: MutatingCallContext {}
+
+/// Enables configurable calls to other contracts.
+#[derive(Debug, Clone)]
+pub struct Call<const MUTATING: bool = false, const HAS_VALUE: bool = false> {
+    gas: u64,
+    value: Option<U256>,
+}
+
+impl<const MUTATING: bool, const HAS_VALUE: bool> Call<MUTATING, HAS_VALUE> {
+    /// Amount of gas to supply the call.
+    /// Values greater than the amount provided will be clipped to all gas left.
+    pub fn gas(self, gas: u64) -> Self {
+        Self { gas, ..self }
+    }
+
+    /// Amount of ETH in wei to give the other contract.
+    /// Note: adding value will prevent calls to non-payable methods.
+    pub fn value(self, value: U256) -> Call<true, true> {
+        Call {
+            value: Some(value),
+            gas: self.gas,
+        }
+    }
+}
+
+impl<const MUTATING: bool, const HAS_VALUE: bool> CallContext for Call<MUTATING, HAS_VALUE> {
+    fn gas(&self) -> u64 {
+        self.gas
+    }
+}
+
+impl StaticCallContext for Call<false, false> {}
+
+impl NonPayableCallContext for Call<true, false> {}
+
+unsafe impl<const HAS_VALUE: bool> MutatingCallContext for Call<true, HAS_VALUE> {
+    fn value(&self) -> U256 {
+        self.value.unwrap_or_default()
+    }
+}
+
+impl Default for Call<false, false> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Call<false, false> {
+    pub fn new() -> Self {
+        Self {
+            gas: u64::MAX,
+            value: None,
+        }
+    }
+}
+
+impl Call<true, false> {
+    pub fn new_mutating(_storage: &mut impl TopLevelStorage) -> Self {
+        Self {
+            gas: 0,
+            value: None,
+        }
+    }
+}
+
+impl Call<true, true> {
+    pub fn new_payable(_storage: &mut impl TopLevelStorage, value: U256) -> Self {
+        Self {
+            gas: 0,
+            value: Some(value),
+        }
+    }
+}

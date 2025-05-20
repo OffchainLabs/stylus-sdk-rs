@@ -166,7 +166,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// error. Additionally, each function must be marked `external`. Inheritance is not supported.
 ///
 /// ```
-/// use stylus_sdk::call::{Call, Error};
+/// use stylus_sdk::prelude::*;
+/// use stylus_sdk::stylus_core::host::*;
+/// use stylus_sdk::stylus_core::calls::errors::*;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///
@@ -177,12 +179,12 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # }
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
-/// pub fn do_call(account: IService, user: Address) -> Result<String, Error> {
+/// pub fn do_call(host: &dyn Host, account: IService, user: Address) -> Result<String, Error> {
 ///     let config = Call::new()
 ///         .gas(evm::gas_left() / 2)       // limit to half the gas left
 ///         .value(msg::value());           // set the callvalue
 ///
-///     account.make_payment(config, user)  // note the snake case
+///     account.make_payment(host, config, user)  // note the snake case
 /// }
 /// ```
 ///
@@ -201,7 +203,6 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// ```
 /// # extern crate alloc;
-/// # use stylus_sdk::call::Call;
 /// # use stylus_sdk::prelude::*;
 /// # use stylus_proc::{entrypoint, public, sol_interface, storage};
 /// sol_interface! {
@@ -209,7 +210,6 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///         function pureFoo() external pure;
 ///         function viewFoo() external view;
 ///         function writeFoo() external;
-///         function payableFoo() external payable;
 ///     }
 /// }
 ///
@@ -217,37 +217,28 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         Ok(methods.pure_foo(self)?)    // `pure` methods might lie about not being `view`
+///         let cfg = Call::new();
+///         Ok(methods.pure_foo(self.vm(), cfg)?)    // `pure` methods might lie about not being `view`
 ///     }
 ///
 ///     pub fn call_view(&self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         Ok(methods.view_foo(self)?)
+///         let cfg = Call::new();
+///         Ok(methods.view_foo(self.vm().clone(), cfg)?)
 ///     }
 ///
 ///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         methods.view_foo(&mut *self)?;       // allows `pure` and `view` methods too
-///         Ok(methods.write_foo(self)?)
-///     }
-///
-///     #[payable]
-///     pub fn call_payable(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///         methods.write_foo(Call::new_in(self))?;   // these are the same
-///         Ok(methods.payable_foo(self)?)            // ------------------
+///          let cfg = Call::new_mutating(self);    
+///          Ok(methods.write_foo(self.vm(), cfg)?)
 ///     }
 /// }
 /// ```
 ///
-/// In the above, we're able to pass `&self` and `&mut self` because `Contract` implements
-/// [`TopLevelStorage`], which means that a reference to it entails access to the entirety of
-/// the contract's state. This is the reason it is sound to make a call, since it ensures all
-/// cached values are invalidated and/or persisted to state at the right time.
-///
-/// When writing Stylus libraries, a type might not be [`TopLevelStorage`] and therefore
-/// `&self` or `&mut self` won't work. Building a [`Call`] from a generic parameter is the usual solution.
+/// Another example of making a mutable, payable call to a contract using the [`sol_interface!`] macro.
 ///
 /// ```
-/// use stylus_sdk::{call::{Call, Error}};
-/// use stylus_sdk::stylus_core::storage::TopLevelStorage;
+/// use stylus_sdk::prelude::*;
+/// use stylus_sdk::stylus_core::calls::errors::*;
+/// use stylus_sdk::stylus_core::host::*;
 /// use alloy_primitives::Address;
 /// # use stylus_proc::sol_interface;
 ///
@@ -259,16 +250,16 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
 /// pub fn do_call(
-///     storage: &mut impl TopLevelStorage,  // can be generic, but often just &mut self
+///     host: &dyn Host,
 ///     account: IService,                   // serializes as an Address
 ///     user: Address,
 /// ) -> Result<String, Error> {
 ///
-///     let config = Call::new_in(storage)
+///     let config = Call::new()
 ///         .gas(evm::gas_left() / 2)        // limit to half the gas left
 ///         .value(msg::value());            // set the callvalue
 ///
-///     account.make_payment(config, user)   // note the snake case
+///     account.make_payment(host, config, user)   // note the snake case
 /// }
 /// ```
 ///

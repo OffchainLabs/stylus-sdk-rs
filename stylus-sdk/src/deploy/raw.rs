@@ -1,27 +1,24 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{call::CachePolicy, hostio};
+use crate::call::CachePolicy;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
+use stylus_core::Host;
 
+#[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
 
 /// Mechanism for performing raw deploys of other contracts.
 #[derive(Clone, Default)]
 #[must_use]
-#[deprecated(
-    since = "0.8.0",
-    note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-)]
 pub struct RawDeploy {
     salt: Option<B256>,
     #[allow(unused)]
     cache_policy: CachePolicy,
 }
 
-#[allow(deprecated)]
 impl RawDeploy {
     /// Begin configuring the raw deploy.
     pub fn new() -> Self {
@@ -70,15 +67,16 @@ impl RawDeploy {
     /// reference's lifetime and if reentrancy is allowed.
     ///
     /// For extra flexibility, this method does not clear the global storage cache.
-    /// See [`StorageCache::flush`][flush] and [`StorageCache::clear`][clear] for more information.
-    ///
-    /// [flush]: crate::storage::StorageCache::flush
-    /// [clear]: crate::storage::StorageCache::clear
-    pub unsafe fn deploy(self, code: &[u8], endowment: U256) -> Result<Address, Vec<u8>> {
+    pub unsafe fn deploy(
+        self,
+        host: &dyn Host,
+        code: &[u8],
+        endowment: U256,
+    ) -> Result<Address, Vec<u8>> {
         #[cfg(feature = "reentrant")]
         match self.cache_policy {
-            CachePolicy::Clear => StorageCache::clear(),
-            CachePolicy::Flush => StorageCache::flush(),
+            CachePolicy::Clear => host.flush_cache(true),
+            CachePolicy::Flush => host.flush_cache(false),
             CachePolicy::DoNothing => {}
         }
 
@@ -87,7 +85,7 @@ impl RawDeploy {
 
         let endowment: B256 = endowment.into();
         if let Some(salt) = self.salt {
-            hostio::create2(
+            host.create2(
                 code.as_ptr(),
                 code.len(),
                 endowment.as_ptr(),
@@ -96,7 +94,7 @@ impl RawDeploy {
                 &mut revert_data_len as *mut _,
             );
         } else {
-            hostio::create1(
+            host.create1(
                 code.as_ptr(),
                 code.len(),
                 endowment.as_ptr(),
@@ -106,9 +104,30 @@ impl RawDeploy {
         }
 
         if contract.is_zero() {
-            #[allow(deprecated)]
-            return Err(crate::contract::read_return_data(0, None));
+            return Err(host.read_return_data(0, None));
         }
         Ok(contract)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use alloy_primitives::{Address, U256};
+    use stylus_test::TestVM;
+
+    #[test]
+    fn test_deploy() {
+        let vm = TestVM::new();
+
+        let code = vec![0x60, 0x80, 0x60, 0x40];
+        let salt = B256::with_last_byte(1);
+        let deployed_address = Address::from([2u8; 20]);
+        vm.mock_deploy(code.clone(), Some(salt), Ok(deployed_address));
+
+        let deployer = RawDeploy::new().salt(salt);
+
+        let result = unsafe { deployer.deploy(&vm, &code, U256::ZERO).unwrap() };
+        assert_eq!(result, deployed_address);
     }
 }
