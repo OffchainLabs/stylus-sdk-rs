@@ -11,11 +11,14 @@
 
 extern crate alloc;
 
+use alloy_primitives::U256;
 use stylus_sdk::prelude::*;
 
 sol_interface! {
     interface IFoo {
-        function viewFoo() external pure;
+        function viewFoo() view external;
+        function mutateFoo() external;
+        function payFoo() payable external;
     }
 }
 
@@ -25,9 +28,20 @@ struct Contract {}
 
 #[public]
 impl Contract {
-    pub fn execute(&mut self, methods: IFoo) -> Result<(), Vec<u8>> {
-        let cfg = Call::new().gas(1_000_000);
+    pub fn mutate(&mut self, methods: IFoo) -> Result<(), Vec<u8>> {
+        let cfg = Call::new_mutating(self);
+        methods.mutate_foo(self.vm(), cfg).unwrap();
+        Ok(())
+    }
+    pub fn view(&mut self, methods: IFoo) -> Result<(), Vec<u8>> {
+        let cfg = Call::new();
         methods.view_foo(self.vm(), cfg).unwrap();
+        Ok(())
+    }
+    #[payable]
+    pub fn pay(&mut self, methods: IFoo) -> Result<(), Vec<u8>> {
+        let cfg = Call::new_payable(self, U256::from(1));
+        methods.pay_foo(self.vm(), cfg).unwrap();
         Ok(())
     }
 }
