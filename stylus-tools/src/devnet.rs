@@ -106,9 +106,8 @@ impl Node {
             .expect("failed to parse devnet private key");
         let wallet = EthereumWallet::from(signer);
         let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(wallet)
-            .on_builtin(self.rpc())
+            .connect(self.rpc())
             .await?;
         Ok(provider)
     }

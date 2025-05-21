@@ -1,10 +1,11 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::call::RawCall;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, U256};
 use stylus_core::Host;
+
+use super::RawCall;
 
 /// Transfers an amount of ETH in wei to the given account.
 /// Note that this method will call the other contract, which may in turn call others.
