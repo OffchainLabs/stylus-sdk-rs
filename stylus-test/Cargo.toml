@@ -15,7 +15,7 @@ alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 stylus-core.workspace = true
 tokio = { version = "1.12.0", features = ["full"] }
-alloy-provider = "0.11.0"
+alloy-provider = "1.0.1"
 url = "2.5.4"
 
 [dev-dependencies]
