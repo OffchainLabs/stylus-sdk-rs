@@ -9,6 +9,13 @@ alloy-sol-types = "1.0.1"
 stylus-sdk = { path = "../../stylus-sdk" }
 mini-alloc = { path = "../../mini-alloc" }
 
+[dev-dependencies]
+alloy = { version = "1.0.1", features = ["contract", "signer-local", "rpc-types", "sha3-keccak"] }
+eyre = "0.6"
+tokio = "1.44"
+stylus-sdk = { path = "../../stylus-sdk", features = ["stylus-test"] }
+stylus-tools = { path = "../../stylus-tools", features = ["testcontainers"] }
+
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 

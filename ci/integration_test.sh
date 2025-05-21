@@ -10,3 +10,8 @@ rustc -Vv
 cargo -V
 
 cargo test -p stylus-tools -F testcontainers
+
+pushd examples/erc20
+cargo check --locked
+cargo test
+popd

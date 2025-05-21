@@ -6,14 +6,14 @@
 extern crate alloc;
 
 // Modules and imports
-mod erc20;
+pub mod erc20;
 
 use crate::erc20::{Erc20, Erc20Error, Erc20Params};
 use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
 
 /// Immutable definitions
-struct StylusTestTokenParams;
+pub struct StylusTestTokenParams;
 impl Erc20Params for StylusTestTokenParams {
     const NAME: &'static str = "StylusTestToken";
     const SYMBOL: &'static str = "STTK";

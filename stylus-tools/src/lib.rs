@@ -3,3 +3,7 @@
 
 #[cfg(feature = "testcontainers")]
 pub mod devnet;
+
+pub mod cargo_stylus;
+
+pub use cargo_stylus::*;
