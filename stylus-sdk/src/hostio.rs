@@ -6,25 +6,7 @@
 //! This module is only available when the `hostio` feature flag is enabled, which exposes
 //! low-level functions for accessing the VM directly. Most users should instead use the
 //! high-level equivalents of [`block`](crate::block), [`contract`](crate::contract),
-//! [`crypto`](crate::crypto), [`evm`](crate::evm), [`msg`](crate::msg), and [`tx`](crate::tx).
 //!
-#![cfg_attr(
-    feature = "hostio",
-    doc = r##"
-```no_run
-use stylus_sdk::hostio;
-use stylus_sdk::{alloy_primitives::Address, msg};
-
-let mut sender = Address::ZERO;
-unsafe {
-    hostio::msg_sender(sender.as_mut_ptr());
-}
-
-assert_eq!(sender, msg::sender());
-```
-"##
-)]
-
 use cfg_if::cfg_if;
 
 macro_rules! vm_hooks {
@@ -424,51 +406,6 @@ vm_hooks! {
     /// Prints a UTF-8 encoded string to the console. Only available in debug mode.
     pub fn log_txt(text: *const u8, len: usize)
 }
-
-macro_rules! wrap_hostio {
-    ($(#[$meta:meta])* $name:ident $hostio:ident bool) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, bool);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident u32) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u32);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident usize) => {
-        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, usize);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident Address) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $hostio, Address, Address);
-    };
-    ($(#[$meta:meta])* $name:ident $hostio:ident U256) => {
-        wrap_hostio!(@convert $(#[$meta])* $name, $hostio, B256, U256);
-    };
-    (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
-        $(#[$meta])*
-        #[deprecated(
-            since = "0.8.0",
-            note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-        )]
-        pub fn $name() -> $ty {
-            unsafe { $ty::from(hostio::$hostio()) }
-        }
-    };
-    (@convert $(#[$meta:meta])* $name:ident, $hostio:ident, $from:ident, $ty:ident) => {
-        $(#[$meta])*
-        #[deprecated(
-            since = "0.8.0",
-            note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-        )]
-        pub fn $name() -> $ty {
-            let mut data = $from::ZERO;
-            unsafe { hostio::$hostio(data.as_mut_ptr()) };
-            data.into()
-        }
-    };
-}
-
-pub(crate) use wrap_hostio;
 
 #[cfg(test)]
 mod tests {

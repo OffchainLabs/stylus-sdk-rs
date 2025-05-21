@@ -13,4 +13,3 @@ pub use crate::call::*;
 pub use crate::storage::{Erase, SimpleStorageType, StorageType};
 pub use crate::stylus_core::*;
 pub use crate::stylus_proc::*;
-pub use crate::types::AddressVM;

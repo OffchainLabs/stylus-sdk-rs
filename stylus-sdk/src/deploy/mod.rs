@@ -6,7 +6,6 @@
 //! Currently this module only supports low-level contract creation via [`RawDeploy`],
 //! but work is being done to introduce high-level deployment patterns.
 
-#[allow(deprecated)]
 pub use raw::RawDeploy;
 
 mod raw;
