@@ -22,7 +22,7 @@ pub fn deploy(rpc: &str, key: &str) -> Result<Address> {
         let err = String::from_utf8(output.stderr).unwrap_or("failed to decode error".to_owned());
         bail!("failed to run node: {}", err);
     }
-    let out = String::from_utf8(output.stdout).unwrap_or("failed to decode stdout".to_owned());
+    let out = String::from_utf8(output.stdout).wrap_err("failed to decode stdout")?;
     let out = strip_color(&out);
     let address = extract_deployed_address(&out)?;
     let address: Address = address
