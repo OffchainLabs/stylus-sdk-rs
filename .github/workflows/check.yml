@@ -1,6 +1,7 @@
 on:
   push:
-    branches: [stylus]
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
