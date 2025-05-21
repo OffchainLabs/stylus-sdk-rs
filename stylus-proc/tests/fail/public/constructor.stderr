@@ -22,20 +22,14 @@ error: constructor function can only be defined using the corresponding attribut
 28 |     fn constructor() {}
    |     ^^
 
-error: stylusConstructor function can only be defined using the corresponding attribute
+error: constructor function can only be defined using the corresponding attribute
   --> tests/fail/public/constructor.rs:31:5
    |
 31 |     fn stylus_constructor() {}
    |     ^^
 
-error: stylusConstructor function can only be defined using the corresponding attribute
+error: constructor function can only be defined using the corresponding attribute
   --> tests/fail/public/constructor.rs:35:5
    |
 35 |     fn foo() {}
-   |     ^^
-
-error: stylusConstructor function can only be defined using the corresponding attribute
-  --> tests/fail/public/constructor.rs:39:5
-   |
-39 |     fn foo() {}
    |     ^^
