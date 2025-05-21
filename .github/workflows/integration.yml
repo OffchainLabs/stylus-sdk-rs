@@ -17,6 +17,7 @@ jobs:
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
         sh rustup-init.sh -y --default-toolchain stable
+        rustup target add wasm32-unknown-unknown
 
     - name: Cargo stylus
       run: |
