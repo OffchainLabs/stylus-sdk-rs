@@ -36,8 +36,14 @@ syn-solidity = "0.8.3"
 # proc macro dev
 pretty_assertions = "1.4.1"
 prettyplease = "0.2.22"
-
 trybuild = "1.0"
+
+# stylus tools
+alloy = "0.8.3"
+eyre = "0.6"
+reqwest = "0.12"
+testcontainers = { version = "0.23", features = ["http_wait"] }
+tokio = "1.44"
 
 # members
 mini-alloc = { path = "mini-alloc", version = "0.9.0" }
