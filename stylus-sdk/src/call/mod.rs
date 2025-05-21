@@ -21,26 +21,10 @@ use stylus_core::{
     Host,
 };
 
-#[allow(unused_imports)]
-#[cfg(feature = "reentrant")]
-use crate::storage::Storage;
-
 mod raw;
 
 /// Provides a convenience method to transfer ETH to a given address.
 pub mod transfer;
-
-macro_rules! unsafe_reentrant {
-    ($block:block) => {
-        #[cfg(feature = "reentrant")]
-        unsafe {
-            $block
-        }
-
-        #[cfg(not(feature = "reentrant"))]
-        $block
-    };
-}
 
 /// Static calls the contract at the given address.
 pub fn static_call(
@@ -49,15 +33,13 @@ pub fn static_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     host.flush_cache(false); // flush storage to persist changes, but don't invalidate the cache
-
-    unsafe_reentrant! {{
+    unsafe {
         RawCall::new_static(host)
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
-    }}
+    }
 }
 
 /// Delegate calls the contract at the given address.
@@ -73,7 +55,6 @@ pub unsafe fn delegate_call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     host.flush_cache(true); // clear storage to persist changes, invalidating the cache
 
     RawCall::new_delegate(host)
@@ -89,15 +70,14 @@ pub fn call(
     to: Address,
     data: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    #[cfg(feature = "reentrant")]
     host.flush_cache(true); // clear storage to persist changes, invalidating the cache
 
-    unsafe_reentrant! {{
+    unsafe {
         RawCall::new_with_value(host, context.value())
             .gas(context.gas())
             .call(to, data)
             .map_err(Error::Revert)
-    }}
+    }
 }
 
 #[cfg(test)]

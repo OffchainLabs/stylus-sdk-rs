@@ -58,7 +58,6 @@ pub fn log<T: SolEvent>(host: &dyn Host, event: T) {
         bytes.extend_from_slice(topic.as_slice());
     }
     event.encode_data_to(&mut bytes);
-    #[allow(deprecated)]
     host.emit_log(&bytes, count);
 }
 

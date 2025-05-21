@@ -1,27 +1,9 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::{stylus_core::host::*, ArbResult};
+use crate::ArbResult;
 use alloy_primitives::{Address, B256, U256};
-use cfg_if::cfg_if;
-
-#[allow(unused_imports)]
-#[cfg(feature = "reentrant")]
-use crate::storage::StorageCache;
-
-macro_rules! unsafe_reentrant {
-    ($(#[$meta:meta])* pub fn $name:ident $($rest:tt)*) => {
-        cfg_if! {
-            if #[cfg(feature = "reentrant")] {
-                $(#[$meta])*
-                pub unsafe fn $name $($rest)*
-            } else {
-                $(#[$meta])*
-                pub fn $name $($rest)*
-            }
-        }
-    };
-}
+use stylus_core::Host;
 
 /// Mechanism for performing raw calls to other contracts.
 ///
@@ -93,7 +75,7 @@ impl<'a> RawCall<'a> {
     ///         let result = RawCall::new(host)       // configure a call
     ///             .gas(2100)                    // supply 2100 gas
     ///             .limit_return_data(0, 32)     // only read the first 32 bytes back
-    ///         //  .flush_storage_cache()        // flush the storage cache before the call (available in `reentrant`)
+    ///             .flush_storage_cache()        // flush the storage cache before the call
     ///             .call(contract, calldata);    // do the call
     ///     }
     ///     Ok(())
@@ -101,7 +83,6 @@ impl<'a> RawCall<'a> {
     /// ```
     ///
     /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
-    #[allow(dead_code)]
     pub fn new(host: &'a dyn Host) -> Self {
         Self {
             host,
@@ -190,70 +171,69 @@ impl<'a> RawCall<'a> {
     }
 
     /// Write all cached values to persistent storage before the call.
-    #[cfg(any(feature = "reentrant", feature = "docs"))]
     pub fn flush_storage_cache(mut self) -> Self {
         self.cache_policy = self.cache_policy.max(CachePolicy::Flush);
         self
     }
 
     /// Flush and clear the storage cache before the call.
-    #[cfg(any(feature = "reentrant", feature = "docs"))]
     pub fn clear_storage_cache(mut self) -> Self {
         self.cache_policy = CachePolicy::Clear;
         self
     }
 
-    unsafe_reentrant! {
-        /// Performs a raw call to another contract at the given address with the given `calldata`.
-        ///
-        /// # Safety
-        ///
-        /// This function becomes `unsafe` when the `reentrant` feature is enabled.
-        /// That's because raw calls might alias storage if used in the middle of a storage ref's lifetime.
-        ///
-        /// For extra flexibility, this method does not clear the global storage cache by default.
-        pub fn call(self, contract: Address, calldata: &[u8]) -> ArbResult {
-            let mut outs_len: usize = 0;
-            let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
-            let value = B256::from(self.callvalue);
-            let status = unsafe {
-                #[cfg(feature = "reentrant")]
-                match self.cache_policy {
-                    CachePolicy::Clear => self.host.flush_cache(true),
-                    CachePolicy::Flush => self.host.flush_cache(false),
-                    CachePolicy::DoNothing => {}
-                }
-                match self.kind {
-                    CallKind::Basic => self.host.call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        value.as_ptr(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                    CallKind::Delegate => self.host.delegate_call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                    CallKind::Static => self.host.static_call_contract(
-                        contract.as_ptr(),
-                        calldata.as_ptr(),
-                        calldata.len(),
-                        gas,
-                        &mut outs_len,
-                    ),
-                }
-            };
-
-            let outs = self.host.read_return_data(self.offset, self.size);
-            match status {
-                0 => Ok(outs),
-                _ => Err(outs),
+    /// Performs a raw call to another contract at the given address with the given `calldata`.
+    ///
+    /// # Safety
+    ///
+    /// This function is `unsafe`. That's because raw calls might alias storage if used in the
+    /// middle of a storage ref's lifetime.
+    ///
+    /// For extra flexibility, this method does not clear the global storage cache by default.
+    /// See [`flush_storage_cache`] and [`clear_storage_cache`] for more information.
+    ///
+    /// [`flush_storage_cache`]: RawCall::flush_storage_cache
+    /// [`clear_storage_cache`]: RawCall::clear_storage_cache
+    pub unsafe fn call(self, contract: Address, calldata: &[u8]) -> ArbResult {
+        let mut outs_len: usize = 0;
+        let gas = self.gas.unwrap_or(u64::MAX); // will be clamped by 63/64 rule
+        let value = B256::from(self.callvalue);
+        let status = unsafe {
+            match self.cache_policy {
+                CachePolicy::Clear => self.host.flush_cache(true),
+                CachePolicy::Flush => self.host.flush_cache(false),
+                CachePolicy::DoNothing => {}
             }
+            match self.kind {
+                CallKind::Basic => self.host.call_contract(
+                    contract.as_ptr(),
+                    calldata.as_ptr(),
+                    calldata.len(),
+                    value.as_ptr(),
+                    gas,
+                    &mut outs_len,
+                ),
+                CallKind::Delegate => self.host.delegate_call_contract(
+                    contract.as_ptr(),
+                    calldata.as_ptr(),
+                    calldata.len(),
+                    gas,
+                    &mut outs_len,
+                ),
+                CallKind::Static => self.host.static_call_contract(
+                    contract.as_ptr(),
+                    calldata.as_ptr(),
+                    calldata.len(),
+                    gas,
+                    &mut outs_len,
+                ),
+            }
+        };
+
+        let outs = self.host.read_return_data(self.offset, self.size);
+        match status {
+            0 => Ok(outs),
+            _ => Err(outs),
         }
     }
 }

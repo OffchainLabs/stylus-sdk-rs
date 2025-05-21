@@ -141,7 +141,7 @@ fn test_mock_calls() {
     // Mock a regular call.
     vm.mock_call(target, data.clone(), Ok(expected_return.clone()));
 
-    let ctx = stylus_core::calls::context::Call::new();
+    let ctx = stylus_core::calls::Call::new();
     let result = vm.call(&ctx, target, &data).unwrap();
     assert_eq!(result, expected_return);
 
