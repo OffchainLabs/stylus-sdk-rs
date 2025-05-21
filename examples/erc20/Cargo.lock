@@ -404,9 +404,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.7"
+version = "1.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a012a0df96dd6d06ba9a1b29d6402d1a5d77c6befd2566afdc26e10603dc93d7"
+checksum = "5f4ac86a9e5bc1e2b3449ab9d7d3a6a405e3d1bb28d7b9be8614f55846ae3766"
 dependencies = [
  "shlex",
 ]
@@ -907,9 +907,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.169"
+version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5aba8db14291edd000dfcc4d620c7ebfb122c613afb886ca8803fa4e128a20a"
+checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "libm"
@@ -931,7 +931,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "mini-alloc"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "cfg-if",
 ]
@@ -1481,7 +1481,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylus-core"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -1491,7 +1491,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-proc"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -1510,7 +1510,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
