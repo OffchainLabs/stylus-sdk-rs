@@ -8,9 +8,9 @@ export RUSTFMT_CI=1
 rustc -Vv
 cargo -V
 
-cargo test -p stylus-tools -F testcontainers
+cargo test -p stylus-tools -F integration-tests
 
 pushd examples/erc20
-cargo check --locked
-cargo test
+cargo check -F integration-tests --locked --all-targets
+cargo test -F integration-tests
 popd

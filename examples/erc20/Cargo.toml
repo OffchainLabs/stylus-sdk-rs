@@ -14,10 +14,11 @@ alloy = { version = "1.0.1", features = ["contract", "signer-local", "rpc-types"
 eyre = "0.6"
 tokio = "1.44"
 stylus-sdk = { path = "../../stylus-sdk", features = ["stylus-test"] }
-stylus-tools = { path = "../../stylus-tools", features = ["testcontainers"] }
+stylus-tools = { path = "../../stylus-tools" }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
+integration-tests = ["stylus-tools/integration-tests"]
 
 [lib]
 crate-type = ["lib", "cdylib"]

@@ -20,5 +20,4 @@ tokio.workspace = true
 regex.workspace = true
 
 [features]
-# The testcontainers feature is necessary to enable integration testing
-testcontainers = []
+integration-tests = []
