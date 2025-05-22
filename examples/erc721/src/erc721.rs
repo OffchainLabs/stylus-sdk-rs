@@ -1,3 +1,6 @@
+// Copyright 2025, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 //! Implementation of the ERC-721 standard
 //!
 //! The eponymous [`Erc721`] type provides all the standard methods,
