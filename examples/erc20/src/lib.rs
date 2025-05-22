@@ -1,16 +1,19 @@
+// Copyright 2025, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 // Only run this as a WASM if the export-abi feature is not set.
 #![cfg_attr(not(any(feature = "export-abi", test)), no_main)]
 extern crate alloc;
 
 // Modules and imports
-mod erc20;
+pub mod erc20;
 
 use crate::erc20::{Erc20, Erc20Error, Erc20Params};
 use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
 
 /// Immutable definitions
-struct StylusTestTokenParams;
+pub struct StylusTestTokenParams;
 impl Erc20Params for StylusTestTokenParams {
     const NAME: &'static str = "StylusTestToken";
     const SYMBOL: &'static str = "STTK";

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - stylus
+      - main
       - ci-testing
 
 jobs:
