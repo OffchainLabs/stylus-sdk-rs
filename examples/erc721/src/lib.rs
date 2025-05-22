@@ -60,4 +60,3 @@ impl StylusTestNFT {
         Ok(self.erc721.total_supply.get())
     }
 }
-

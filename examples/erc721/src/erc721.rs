@@ -12,7 +12,8 @@ use alloc::vec;
 use alloy_primitives::{Address, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
-use stylus_sdk::{abi::Bytes, stylus_core, prelude::*};
+use stylus_sdk::stylus_core::calls::Call;
+use stylus_sdk::{abi::Bytes, prelude::*};
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -157,7 +158,7 @@ impl<T: Erc721Params> Erc721<T> {
         // cleaning app the approved mapping for this token
         self.token_approvals.delete(token_id);
 
-        stylus_core::log(self.vm(), Transfer { from, to, token_id });
+        stylus_sdk::evm::log(self.vm(), Transfer { from, to, token_id });
         Ok(())
     }
 
@@ -170,12 +171,19 @@ impl<T: Erc721Params> Erc721<T> {
         to: Address,
         data: Vec<u8>,
     ) -> Result<(), Erc721Error> {
-        let vm = storage.borrow_mut().vm();
-        if vm.code_size(to) > 0 {
-            let msg_sender = vm.msg_sender();
+        if storage.borrow().vm().code_size(to) > 0 {
+            let msg_sender = storage.borrow().vm().msg_sender();
+            let context = Call::new_mutating(storage);
             let receiver = IERC721TokenReceiver::new(to);
             let received = receiver
-                .on_erc_721_received(&mut *storage, msg_sender, from, token_id, data.into())
+                .on_erc_721_received(
+                    storage.borrow_mut().vm(),
+                    context,
+                    msg_sender,
+                    from,
+                    token_id,
+                    data.into(),
+                )
                 .map_err(|_e| {
                     Erc721Error::ReceiverRefused(ReceiverRefused {
                         receiver: receiver.address,
@@ -322,11 +330,14 @@ impl<T: Erc721Params> Erc721<T> {
         }
         self.token_approvals.insert(token_id, approved);
 
-        stylus_core::log(self.vm(), Approval {
-            approved,
-            owner,
-            token_id,
-        });
+        stylus_sdk::evm::log(
+            self.vm(),
+            Approval {
+                approved,
+                owner,
+                token_id,
+            },
+        );
         Ok(())
     }
 
@@ -341,11 +352,14 @@ impl<T: Erc721Params> Erc721<T> {
             .setter(owner)
             .insert(operator, approved);
 
-        stylus_core::log(self.vm(), ApprovalForAll {
-            owner,
-            operator,
-            approved,
-        });
+        stylus_sdk::evm::log(
+            self.vm(),
+            ApprovalForAll {
+                owner,
+                operator,
+                approved,
+            },
+        );
         Ok(())
     }
 
