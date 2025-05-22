@@ -13,11 +13,11 @@ version.workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["contract", "signer-local", "rpc-types"] }
 eyre.workspace = true
-reqwest.workspace = true
-testcontainers.workspace = true
-trybuild.workspace = true
-tokio.workspace = true
 regex.workspace = true
+reqwest.workspace = true
+testcontainers = { workspace = true, optional = true }
+tokio.workspace = true
+trybuild.workspace = true
 
 [features]
-integration-tests = []
+integration-tests = ["dep:testcontainers"]
