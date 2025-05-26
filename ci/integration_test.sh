@@ -14,3 +14,13 @@ pushd examples/erc20
 cargo check -F integration-tests --locked --all-targets
 cargo test -F integration-tests
 popd
+
+pushd examples/erc721
+cargo check -F integration-tests --locked --all-targets
+cargo test -F integration-tests
+popd
+
+pushd examples/single_call
+cargo check -F integration-tests --locked --all-targets
+cargo test -F integration-tests
+popd
