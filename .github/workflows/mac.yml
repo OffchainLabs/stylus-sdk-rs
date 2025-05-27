@@ -2,7 +2,7 @@ name: mac
 on:
   push:
     branches:
-      - stylus
+      - main
   pull_request:
   workflow_dispatch:
 

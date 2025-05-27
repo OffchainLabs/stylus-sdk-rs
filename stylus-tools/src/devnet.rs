@@ -33,6 +33,7 @@ mod bytecode {
 pub mod addresses {
     pub use alloy::primitives::{address, Address};
 
+    pub const OWNER: Address = address!("0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E");
     pub const ARB_DEBUG: Address = address!("0x00000000000000000000000000000000000000FF");
     pub const ARB_OWNER: Address = address!("0x0000000000000000000000000000000000000070");
     pub const CREATE2_FACTORY: Address = address!("0x4e59b44847b379578588920ca78fbf26c0b4956c");
