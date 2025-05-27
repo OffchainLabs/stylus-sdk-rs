@@ -45,8 +45,15 @@ extern "C" {
 static mut STATE: Option<(NonZero, usize)> = None;
 
 unsafe fn alloc_impl(layout: Layout) -> Option<*mut u8> {
-    #[allow(mutable_borrow_reservation_conflict)]
-    let (neg_offset, neg_bound) = STATE.get_or_insert_with(|| {
+    // Avoid the warning "creating a mutable reference to mutable static is discouraged" by taking
+    // a raw pointer to STATE and then converting it to a mutable reference.
+    // We know this is safe because:
+    //   * We are in single-threaded WASM.
+    //   * This is the only place that references STATE.
+    //   * This function is not reentrant.
+    // See: https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html#safe-references
+    let state_ref = &mut *&raw mut STATE;
+    let (neg_offset, neg_bound) = state_ref.get_or_insert_with(|| {
         let heap_base = &__heap_base as *const u8 as usize;
         let bound = MiniAlloc::PAGE_SIZE * wasm32::memory_size(0) - 1;
         (
