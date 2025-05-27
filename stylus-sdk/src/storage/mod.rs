@@ -20,7 +20,7 @@
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::{host::VM, hostio};
+use crate::host::VM;
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 use cfg_if::cfg_if;
@@ -73,30 +73,6 @@ impl GlobalStorage for StorageCache {
                 vm.host.storage_cache_bytes32(key, value)
             }
         }
-    }
-}
-
-impl StorageCache {
-    /// Flushes the VM cache, persisting all values to the EVM state trie.
-    /// Note: this is used at the end of the [`entrypoint`] macro and is not typically called by user code.
-    ///
-    /// [`entrypoint`]: macro@stylus_proc::entrypoint
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-    )]
-    pub fn flush() {
-        unsafe { hostio::storage_flush_cache(false) }
-    }
-
-    /// Flushes and clears the VM cache, persisting all values to the EVM state trie.
-    /// This is useful in cases of reentrancy to ensure cached values from one call context show up in another.
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use the .vm() method available on Stylus contracts instead to access host environment methods"
-    )]
-    pub fn clear() {
-        unsafe { hostio::storage_flush_cache(true) }
     }
 }
 

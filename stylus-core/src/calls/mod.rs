@@ -24,7 +24,7 @@ pub trait StaticCallContext: CallContext {}
 ///
 /// # Safety
 ///
-/// The type must contain a [`TopLevelStorage`][TLS] to prevent aliasing in cases of reentrancy.
+/// The type initializer must be a [`TopLevelStorage`][TLS] to prevent aliasing in cases of reentrancy.
 ///
 /// [TLS]: stylus_core::storage::TopLevelStorage
 pub unsafe trait MutatingCallContext: CallContext {
