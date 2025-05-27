@@ -1,9 +1,12 @@
+// Copyright 2025, Offchain Labs, Inc.
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+
 // Only run this as a WASM if the export-abi feature is not set.
 #![cfg_attr(not(any(feature = "export-abi", test)), no_main)]
 extern crate alloc;
 
 // Modules and imports
-mod erc721;
+pub mod erc721;
 
 use crate::erc721::{Erc721, Erc721Error, Erc721Params};
 use alloy_primitives::{Address, U256};
@@ -11,7 +14,7 @@ use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
 
 /// Immutable definitions
-struct StylusTestNFTParams;
+pub struct StylusTestNFTParams;
 impl Erc721Params for StylusTestNFTParams {
     const NAME: &'static str = "StylusTestNFT";
     const SYMBOL: &'static str = "STNFT";
@@ -60,4 +63,3 @@ impl StylusTestNFT {
         Ok(self.erc721.total_supply.get())
     }
 }
-
