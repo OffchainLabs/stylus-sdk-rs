@@ -27,7 +27,7 @@ mod integration_test {
     }
 
     #[tokio::test]
-    async fn single_all() -> Result<()> {
+    async fn single_call() -> Result<()> {
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
