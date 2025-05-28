@@ -8,7 +8,7 @@ use std::{ffi::OsStr, process::Command};
 
 /// Deploy the contract in the current directory
 pub fn deploy(rpc: &str, key: &str) -> Result<Address> {
-    call_deploy(&["-e", rpc, "--private-key", key])
+    call_deploy(["-e", rpc, "--private-key", key])
 }
 
 /// Deploy the contract in the current directory passing the arguments to the constructor.
@@ -27,7 +27,7 @@ pub fn deploy_with_constructor(
         "--experimental-deployer-address",
         "0x6ac4839Bfe169CadBBFbDE3f29bd8459037Bf64e",
     ];
-    if value != "" {
+    if value.is_empty() {
         deploy_args.push("--experimental-constructor-value");
         deploy_args.push(value);
     }
