@@ -27,7 +27,7 @@ pub fn deploy_with_constructor(
         "--experimental-deployer-address",
         "0x6ac4839Bfe169CadBBFbDE3f29bd8459037Bf64e",
     ];
-    if value.is_empty() {
+    if !value.is_empty() {
         deploy_args.push("--experimental-constructor-value");
         deploy_args.push(value);
     }
