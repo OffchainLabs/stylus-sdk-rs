@@ -38,6 +38,7 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "constructor"
         - "erc20"
         - "erc721"
         - "single_call"
