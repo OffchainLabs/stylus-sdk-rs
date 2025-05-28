@@ -5,9 +5,8 @@
 
 extern crate alloc;
 
-
-use alloy_sol_types::sol;
 use alloy_primitives::{Address, U256};
+use alloy_sol_types::sol;
 use stylus_sdk::prelude::*;
 
 sol! {
@@ -18,7 +17,7 @@ sol_storage! {
     #[entrypoint]
     pub struct Contract {
         address owner;
-        uint256 value;
+        uint256 number;
     }
 }
 
@@ -31,24 +30,25 @@ pub enum ContractErrors {
 impl Contract {
     /// The constructor sets the owner as the EOA that deployed the contract.
     #[constructor]
-    pub fn constructor(&mut self, initial_value: U256) {
+    #[payable]
+    pub fn constructor(&mut self, initial_number: U256) {
         // Use tx_origin instead of msg_sender because we use a factory contract in deployment.
         let owner = self.vm().tx_origin();
         self.owner.set(owner);
-        self.value.set(initial_value);
+        self.number.set(initial_number);
     }
 
-    /// Only the owner can set the value in the contract.
-    pub fn set_value(&mut self, value: U256) -> Result<(), ContractErrors> {
+    /// Only the owner can set the number in the contract.
+    pub fn set_number(&mut self, number: U256) -> Result<(), ContractErrors> {
         if self.owner.get() != self.vm().msg_sender() {
-            return Err(ContractErrors::Unauthorized(Unauthorized{}));
+            return Err(ContractErrors::Unauthorized(Unauthorized {}));
         }
-        self.value.set(value);
+        self.number.set(number);
         Ok(())
     }
 
-    pub fn value(&self) -> U256 {
-        self.value.get()
+    pub fn number(&self) -> U256 {
+        self.number.get()
     }
 
     pub fn owner(&self) -> Address {
