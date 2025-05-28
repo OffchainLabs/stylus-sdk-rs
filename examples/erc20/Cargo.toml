@@ -7,7 +7,6 @@ edition = "2021"
 alloy-primitives = "1.0.1"
 alloy-sol-types = "1.0.1"
 stylus-sdk = { path = "../../stylus-sdk" }
-mini-alloc = { path = "../../mini-alloc" }
 
 [dev-dependencies]
 alloy = { version = "1.0.1", features = ["contract", "signer-local", "rpc-types", "sha3-keccak"] }

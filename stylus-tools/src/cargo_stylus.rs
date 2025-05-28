@@ -4,18 +4,44 @@
 use alloy::primitives::Address;
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
-use std::process::Command;
+use std::{ffi::OsStr, process::Command};
 
 /// Deploy the contract in the current directory
 pub fn deploy(rpc: &str, key: &str) -> Result<Address> {
+    call_deploy(["-e", rpc, "--private-key", key])
+}
+
+/// Deploy the contract in the current directory passing the arguments to the constructor.
+/// This function will fail if the contract doesn't have a constructor.
+pub fn deploy_with_constructor(
+    rpc: &str,
+    key: &str,
+    value: &str,
+    args: &[&str],
+) -> Result<Address> {
+    let mut deploy_args = vec![
+        "-e",
+        rpc,
+        "--private-key",
+        key,
+        "--experimental-deployer-address",
+        "0x6ac4839Bfe169CadBBFbDE3f29bd8459037Bf64e",
+    ];
+    if !value.is_empty() {
+        deploy_args.push("--experimental-constructor-value");
+        deploy_args.push(value);
+    }
+    deploy_args.push("--experimental-constructor-args");
+    deploy_args.extend_from_slice(args);
+    call_deploy(&deploy_args)
+}
+
+fn call_deploy<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(args: I) -> Result<Address> {
     let output = Command::new("cargo")
         .arg("stylus")
         .arg("deploy")
         .arg("--no-verify")
-        .arg("-e")
-        .arg(rpc)
-        .arg("--private-key")
-        .arg(key)
+        .args(args)
         .output()
         .wrap_err("failed to run cargo deploy")?;
     if !output.status.success() {

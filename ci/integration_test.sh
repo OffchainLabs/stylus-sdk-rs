@@ -25,6 +25,7 @@ run_example_tests() {
   fi
   echo "Running integration tests for example: $example_name"
   pushd "examples/$example_name"
+  cargo fmt --check
   cargo check -F integration-tests --locked --all-targets
   cargo test -F integration-tests
   popd

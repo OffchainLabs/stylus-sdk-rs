@@ -1515,7 +1515,6 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "eyre",
- "mini-alloc",
  "stylus-sdk",
  "stylus-tools",
  "tokio",
