@@ -3854,10 +3854,7 @@ version = "0.1.5"
 dependencies = [
  "alloy",
  "alloy-primitives",
- "alloy-sol-types",
  "eyre",
- "hex",
- "mini-alloc",
  "stylus-sdk",
  "stylus-tools",
  "tokio",
