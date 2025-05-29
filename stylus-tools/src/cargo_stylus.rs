@@ -19,12 +19,7 @@ pub fn deploy_with_constructor(
     value: &str,
     args: &[&str],
 ) -> Result<Address> {
-    let mut deploy_args = vec![
-        "-e",
-        rpc,
-        "--private-key",
-        key,
-    ];
+    let mut deploy_args = vec!["-e", rpc, "--private-key", key];
     if !value.is_empty() {
         deploy_args.push("--constructor-value");
         deploy_args.push(value);
