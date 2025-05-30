@@ -45,6 +45,7 @@ jobs:
         - "hello_world"
         - "primitive_data_types"
         - "single_call"
+        - "storage_data_types"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
