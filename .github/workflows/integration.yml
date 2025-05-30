@@ -43,6 +43,7 @@ jobs:
         - "erc721"
         - "first_app"
         - "hello_world"
+        - "primitive_data_types"
         - "single_call"
     steps:
     - name: Checkout code
