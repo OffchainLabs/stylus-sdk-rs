@@ -47,6 +47,7 @@ jobs:
         - "hello_world"
         - "mapping"
         - "primitive_data_types"
+        - "sending_ether"
         - "single_call"
         - "storage_data_types"
         - "variables"
