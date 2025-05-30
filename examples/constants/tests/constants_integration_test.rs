@@ -27,7 +27,10 @@ mod integration_test {
 
         contract.init().send().await?.watch().await?;
         let owner = contract.owner().call().await?;
-        assert_eq!(owner, address!("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"));
+        assert_eq!(
+            owner,
+            address!("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+        );
 
         Ok(())
     }
