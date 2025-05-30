@@ -76,14 +76,6 @@ pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
     macros::storage(attr, input)
 }
 
-#[doc(hidden)]
-#[deprecated = "please use `#[storage]` instead"]
-#[proc_macro_attribute]
-#[proc_macro_error]
-pub fn solidity_storage(attr: TokenStream, input: TokenStream) -> TokenStream {
-    macros::storage(attr, input)
-}
-
 /// The types in [`#[storage]`][storage] are laid out in the EVM state trie exactly
 /// as they are in [Solidity][solidity]. This means that the fields of a `struct` definition will map
 /// to the same storage slots as they would in EVM programming languages. Hence, it is often nice to
@@ -702,14 +694,6 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_error]
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     macros::public(attr, input)
-}
-
-#[doc(hidden)]
-#[deprecated = "please use `#[public]` instead"]
-#[proc_macro_attribute]
-#[proc_macro_error]
-pub fn external(attr: TokenStream, input: TokenStream) -> TokenStream {
-    public(attr, input)
 }
 
 /// Implements the AbiType for arbitrary structs, allowing them to be used in external method
