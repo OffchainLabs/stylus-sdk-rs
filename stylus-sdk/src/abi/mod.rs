@@ -64,9 +64,10 @@ where
     /// calldata, regardless of the transaction having a value attached.
     fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>>;
 
-    /// Called when no receive function is defined.
-    /// If no #[fallback] function is defined in the contract, then any transactions that do not
-    /// match a selector will revert.
+    /// Called when no receive function is defined or when the transaction has calldata but it
+    /// doesn't match any function selector.
+    /// If no #[fallback] function is defined in the contract, then any transactions with calldata
+    /// that do not match a selector will revert.
     /// A fallback function may have two different implementations. It can be either declared
     /// without any input or output, or with bytes input calldata and bytes output. If a user
     /// defines a fallback function with no input or output, then this method will be called
