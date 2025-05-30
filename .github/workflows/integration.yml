@@ -38,6 +38,7 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "arrays"
         - "constants"
         - "constructor"
         - "erc20"
