@@ -38,6 +38,7 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "constants"
         - "constructor"
         - "erc20"
         - "erc721"
