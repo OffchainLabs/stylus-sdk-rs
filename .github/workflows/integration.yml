@@ -44,6 +44,7 @@ jobs:
         - "erc721"
         - "first_app"
         - "hello_world"
+        - "mapping"
         - "primitive_data_types"
         - "single_call"
         - "storage_data_types"
