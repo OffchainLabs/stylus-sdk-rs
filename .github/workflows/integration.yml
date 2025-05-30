@@ -41,6 +41,7 @@ jobs:
         - "constructor"
         - "erc20"
         - "erc721"
+        - "hello_world"
         - "single_call"
     steps:
     - name: Checkout code
