@@ -38,10 +38,19 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "arrays"
+        - "constants"
         - "constructor"
         - "erc20"
         - "erc721"
+        - "first_app"
+        - "hello_world"
+        - "mapping"
+        - "primitive_data_types"
+        - "sending_ether"
         - "single_call"
+        - "storage_data_types"
+        - "variables"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
