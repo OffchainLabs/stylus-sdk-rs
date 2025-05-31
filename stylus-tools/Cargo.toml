@@ -22,7 +22,10 @@ trybuild.workspace = true
 anyhow = "1"
 brotli2 = "0.3.2"
 bytesize = "1.2.0"
+cargo-generate = "0.23"
+cargo_metadata = "0.20"
 cargo-util-schemas = "0.8"
+escargot = "0.5"
 hex.workspace = true
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }

@@ -7,16 +7,14 @@
 #[macro_use]
 mod macros;
 
-pub mod activate;
-pub mod check;
-pub mod contract;
+pub mod build;
 pub mod error;
 pub mod manifest;
 pub mod ops;
 pub mod precompiles;
-pub mod verify;
+pub mod project;
+pub mod verification;
 pub mod wasm;
-pub mod workspace;
 
 pub(crate) mod cargo;
 pub(crate) mod utils;
