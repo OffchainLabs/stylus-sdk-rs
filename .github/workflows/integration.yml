@@ -38,6 +38,7 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "abi_decode"
         - "arrays"
         - "constants"
         - "constructor"
