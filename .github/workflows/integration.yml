@@ -47,6 +47,7 @@ jobs:
         - "erc721"
         - "errors"
         - "first_app"
+        - "function"
         - "hello_world"
         - "mapping"
         - "primitive_data_types"
