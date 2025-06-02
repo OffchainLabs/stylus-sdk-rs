@@ -45,6 +45,7 @@ jobs:
         - "constructor"
         - "erc20"
         - "erc721"
+        - "errors"
         - "first_app"
         - "hello_world"
         - "mapping"
