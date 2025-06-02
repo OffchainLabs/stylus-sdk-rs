@@ -3,7 +3,10 @@
 
 #[cfg(feature = "integration-tests")]
 mod integration_test {
-    use alloy::{primitives::{address, U256}, sol};
+    use alloy::{
+        primitives::{address, U256},
+        sol,
+    };
     use eyre::Result;
     use stylus_tools::devnet::{Node, DEVNET_PRIVATE_KEY};
 
