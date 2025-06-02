@@ -39,6 +39,7 @@ jobs:
       matrix:
         test: 
         - "abi_decode"
+        - "abi_encode"
         - "arrays"
         - "constants"
         - "constructor"
