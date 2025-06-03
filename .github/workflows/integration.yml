@@ -58,6 +58,7 @@ jobs:
         - "storage_data_types"
         - "test"
         - "variables"
+        - "verify_signature"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
