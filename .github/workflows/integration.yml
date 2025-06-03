@@ -46,6 +46,7 @@ jobs:
         - "erc20"
         - "erc721"
         - "errors"
+        - "events"
         - "first_app"
         - "function"
         - "hello_world"
