@@ -43,6 +43,7 @@ jobs:
         - "arrays"
         - "constants"
         - "constructor"
+        - "encoding_and_hashing"
         - "erc20"
         - "erc721"
         - "errors"
