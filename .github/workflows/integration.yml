@@ -55,6 +55,7 @@ jobs:
         - "sending_ether"
         - "single_call"
         - "storage_data_types"
+        - "test"
         - "variables"
     steps:
     - name: Checkout code
