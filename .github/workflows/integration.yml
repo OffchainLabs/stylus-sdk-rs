@@ -41,6 +41,7 @@ jobs:
         - "abi_decode"
         - "abi_encode"
         - "arrays"
+        - "call"
         - "constants"
         - "constructor"
         - "encoding_and_hashing"
