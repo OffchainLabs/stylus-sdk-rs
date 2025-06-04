@@ -45,6 +45,7 @@ jobs:
         - "constants"
         - "constructor"
         - "encoding_and_hashing"
+        - "delegate_call"
         - "erc20"
         - "erc721"
         - "errors"
