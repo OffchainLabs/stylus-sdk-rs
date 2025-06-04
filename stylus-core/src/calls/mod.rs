@@ -96,7 +96,7 @@ impl Call<false, false> {
 impl Call<true, false> {
     pub fn new_mutating(_storage: &mut impl TopLevelStorage) -> Self {
         Self {
-            gas: 0,
+            gas: u64::MAX,
             value: None,
         }
     }
@@ -105,7 +105,7 @@ impl Call<true, false> {
 impl Call<true, true> {
     pub fn new_payable(_storage: &mut impl TopLevelStorage, value: U256) -> Self {
         Self {
-            gas: 0,
+            gas: u64::MAX,
             value: Some(value),
         }
     }
