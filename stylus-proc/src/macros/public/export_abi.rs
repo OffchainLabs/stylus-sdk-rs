@@ -20,7 +20,7 @@ impl InterfaceExtension for InterfaceAbi {
         InterfaceAbi
     }
 
-    fn codegen(iface: &PublicImpl<Self>) -> Self::Ast {
+    fn codegen(iface: &PublicImpl<Self>) -> (Self::Ast, String) {
         let PublicImpl {
             generic_params,
             self_ty,
@@ -62,6 +62,25 @@ impl InterfaceExtension for InterfaceAbi {
             }
         }));
 
+        // write the "is" clause in Solidity
+        let mut is_clause2 = match inheritance.is_empty() {
+            true => "".to_string(),
+            false => " is ".to_string(),
+        };
+        let mut i = 0;
+        for ty in inheritance.iter() {
+            let comma = (i > 0).then_some(", ").unwrap_or_default();
+            let ty_name = match ty {
+                syn::Type::Path(path) => {
+                    path.path.segments.last().unwrap().ident.clone().to_string()
+                }
+                _ => todo!(),
+            };
+            is_clause2.push_str(&format!("{}I{}", comma, ty_name));
+            i += 1;
+        }
+
+        let mut abi2 = String::new();
         let mut abi = TokenStream::new();
         for func in funcs {
             if !matches!(func.kind, FnKind::Function) {
@@ -78,6 +97,19 @@ impl InterfaceExtension for InterfaceAbi {
                 }
             });
 
+            // let sol_args2 = String::new();
+            // for (i, arg) in func.inputs.iter().enumerate() {
+            //     let comma = (i > 0).then_some(", ").unwrap_or_default();
+            //     let name = arg.extension.pattern_ident.as_ref().map(ToString::to_string).unwrap_or_default();
+            //     let ty = &arg.ty;
+            //     match ty {
+            //         AbiType => {
+            //             abi2.push_str(&format!("{}{}{}", comma, ty::EXPORT_ABI_ARG, &name));
+            //         }
+            //         _ => panic!("Unsupported type in ABI export: {:?}", ty),
+            //     }
+            // }
+
             let sol_outs = if let Some(ty) = &func.extension.output {
                 quote!(write_solidity_returns::<#ty>(f)?;)
             } else {
@@ -88,6 +120,11 @@ impl InterfaceExtension for InterfaceAbi {
                 Purity::Write => String::new(),
                 x => format!(" {x}"),
             };
+
+            abi2.push_str(&format!("    function {}(", sol_name));
+            abi2.push_str(") external");
+            abi2.push_str(&sol_purity);
+            abi2.push_str(";\n");
 
             abi.extend(quote! {
                 write!(f, "\n    function {}(", #sol_name)?;
@@ -128,7 +165,7 @@ impl InterfaceExtension for InterfaceAbi {
             })
             .next();
 
-        parse_quote! {
+        let pq = parse_quote! {
             impl<#generic_params> stylus_sdk::abi::GenerateAbi for #self_ty where #where_clause {
                 const NAME: &'static str = #name;
 
@@ -155,7 +192,13 @@ impl InterfaceExtension for InterfaceAbi {
                     Ok(())
                 }
             }
-        }
+        };
+
+        let mut solidity_str = format!("interface I{}{} {{\n", name, is_clause2);
+        solidity_str.push_str(&abi2);
+        solidity_str.push_str("}\n");
+
+        return (pq, solidity_str);
     }
 }
 

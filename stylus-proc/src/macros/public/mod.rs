@@ -1,7 +1,7 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use cfg_if::cfg_if;
+// use cfg_if::cfg_if;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
@@ -23,14 +23,16 @@ mod attrs;
 mod overrides;
 mod types;
 
-cfg_if! {
-    if #[cfg(feature = "export-abi")] {
-        mod export_abi;
-        type Extension = export_abi::InterfaceAbi;
-    } else {
-        type Extension = ();
-    }
-}
+// cfg_if! {
+//     if #[cfg(feature = "export-abi")] {
+//         mod export_abi;
+//         type Extension = export_abi::InterfaceAbi;
+//     } else {
+//         type Extension = ();
+//     }
+// }
+mod export_abi;
+type Extension = export_abi::InterfaceAbi;
 
 /// Implementation of the [`#[public]`][crate::public] macro.
 ///
@@ -53,7 +55,9 @@ impl ToTokens for PublicImpl {
         self.impl_router().to_tokens(tokens);
         if self.trait_.is_none() {
             self.impl_override_checks().to_tokens(tokens);
-            Extension::codegen(self).to_tokens(tokens);
+            let ret = Extension::codegen(self);
+            ret.0.to_tokens(tokens);
+            println!("Generated code: {}", ret.1);
         }
     }
 }

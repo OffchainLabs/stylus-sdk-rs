@@ -383,7 +383,7 @@ pub trait InterfaceExtension: Sized {
     type Ast: ToTokens;
 
     fn build(node: &syn::ItemImpl) -> Self;
-    fn codegen(iface: &PublicImpl<Self>) -> Self::Ast;
+    fn codegen(iface: &PublicImpl<Self>) -> (Self::Ast, String);
 }
 
 pub trait FnExtension {
@@ -402,8 +402,8 @@ impl InterfaceExtension for () {
 
     fn build(_node: &syn::ItemImpl) -> Self {}
 
-    fn codegen(_iface: &PublicImpl<Self>) -> Self::Ast {
-        Nothing
+    fn codegen(_iface: &PublicImpl<Self>) -> (Self::Ast, String) {
+        (Nothing, "".to_string())
     }
 }
 
