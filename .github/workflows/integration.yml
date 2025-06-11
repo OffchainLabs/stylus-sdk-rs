@@ -50,6 +50,7 @@ jobs:
         - "erc721"
         - "errors"
         - "events"
+        - "fallback_receive"
         - "first_app"
         - "function"
         - "hello_world"
