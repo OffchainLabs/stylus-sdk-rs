@@ -38,10 +38,30 @@ jobs:
     strategy:
       matrix:
         test: 
+        - "abi_decode"
+        - "abi_encode"
+        - "arrays"
+        - "call"
+        - "constants"
         - "constructor"
+        - "encoding_and_hashing"
+        - "delegate_call"
         - "erc20"
         - "erc721"
+        - "errors"
+        - "events"
+        - "fallback_receive"
+        - "first_app"
+        - "function"
+        - "hello_world"
+        - "mapping"
+        - "primitive_data_types"
+        - "sending_ether"
         - "single_call"
+        - "storage_data_types"
+        - "test"
+        - "variables"
+        - "verify_signature"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3

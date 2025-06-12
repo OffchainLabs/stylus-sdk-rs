@@ -27,8 +27,25 @@ run_example_tests() {
   pushd "examples/$example_name"
   cargo fmt --check
   cargo check -F integration-tests --locked --all-targets
+  check_export_abi
   cargo test -F integration-tests
   popd
+}
+
+check_export_abi() {
+  local abi_file="abi.sol"
+  if [ ! -f "$abi_file" ]; then
+    echo "Error: File '$abi_file' not found."
+    exit 1
+  fi
+  local cargo_output=$(cargo stylus export-abi)
+  local diff_output=$(diff -u <(echo "$cargo_output") "$abi_file")
+  if [ -n "$diff_output" ]; then
+    echo "Error: Export-abi contents do not match."
+    echo "--- Diff ---"
+    echo "$diff_output"
+    exit 1
+  fi
 }
 
 run_stylus_tools_tests() {
