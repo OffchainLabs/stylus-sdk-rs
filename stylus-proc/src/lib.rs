@@ -213,7 +213,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 ///
 ///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///          let cfg = Call::new_mutating(self);    
+///          let cfg = Call::new_mutating(self);
 ///          Ok(methods.write_foo(self.vm(), cfg)?)
 ///     }
 /// }
@@ -266,6 +266,12 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 #[proc_macro_error]
 pub fn sol_interface(input: TokenStream) -> TokenStream {
     macros::sol_interface(input)
+}
+
+#[proc_macro_attribute]
+#[proc_macro_error]
+pub fn contract_client_gen(attr: TokenStream, input: TokenStream) -> TokenStream {
+    macros::contract_client_gen(attr, input)
 }
 
 /// Some [`StorageType`] values implement [`Erase`], which provides an [`erase()`] method for clearing state.
