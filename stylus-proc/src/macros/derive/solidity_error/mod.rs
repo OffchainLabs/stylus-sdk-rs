@@ -23,7 +23,7 @@ pub fn derive_solidity_error(input: proc_macro::TokenStream) -> proc_macro::Toke
 }
 
 #[derive(Debug)]
-struct DeriveSolidityError<E = Extension> {
+struct DeriveSolidityError<E: SolidityErrorExtension = Extension> {
     name: syn::Ident,
     from_impls: Vec<syn::ItemImpl>,
     match_arms: Vec<syn::Arm>,
