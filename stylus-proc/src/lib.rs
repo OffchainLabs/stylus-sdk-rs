@@ -268,12 +268,6 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
     macros::sol_interface(input)
 }
 
-#[proc_macro_attribute]
-#[proc_macro_error]
-pub fn contract_client_gen(attr: TokenStream, input: TokenStream) -> TokenStream {
-    macros::contract_client_gen(attr, input)
-}
-
 /// Some [`StorageType`] values implement [`Erase`], which provides an [`erase()`] method for clearing state.
 /// [The Stylus SDK][sdk] implements [`Erase`] for all primitives, and for vectors of primitives, but not for maps.
 /// This is because a Solidity mapping does not provide iteration, and so it's generally impossible to
