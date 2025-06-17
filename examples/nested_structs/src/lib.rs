@@ -112,7 +112,7 @@ impl NestedStructs {
             let dog_entry = entry.dogs.get(i).unwrap();
             let dog = Dog {
                 name: dog_entry.name.get_string(),
-                breed: dog_entry.name.get_string(),
+                breed: dog_entry.breed.get_string(),
             };
             dogs.push(dog);
         }
