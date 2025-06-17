@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::imports::stylus_sdk::abi::{ConstString, AbiType};
+use crate::imports::stylus_sdk::abi::{AbiType, ConstString};
 use cfg_if::cfg_if;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
