@@ -157,6 +157,9 @@ pub trait AbiType {
     /// Equivalent to [`SolType::sol_type_name`], but `const`.
     const ABI: ConstString;
 
+    /// String used in the function selector.
+    const SELECTOR_ABI: ConstString = Self::ABI;
+
     /// String to use when the type is an interface method argument.
     const EXPORT_ABI_ARG: ConstString = Self::ABI;
 
@@ -182,10 +185,10 @@ macro_rules! function_selector {
         const DIGEST: [u8; 32] = $crate::keccak_const::Keccak256::new()
             .update($name.as_bytes())
             .update(b"(")
-            .update(<$first as $crate::abi::AbiType>::ABI.as_bytes())
+            .update(<$first as $crate::abi::AbiType>::SELECTOR_ABI.as_bytes())
             $(
                 .update(b",")
-                .update(<$ty as $crate::abi::AbiType>::ABI.as_bytes())
+                .update(<$ty as $crate::abi::AbiType>::SELECTOR_ABI.as_bytes())
             )*
             .update(b")")
             .finalize();

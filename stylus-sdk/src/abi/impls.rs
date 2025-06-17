@@ -115,6 +115,8 @@ impl<T: AbiType> AbiType for Vec<T> {
 
     const ABI: ConstString = append!(T::ABI, "[]");
 
+    const SELECTOR_ABI: ConstString = append!(T::SELECTOR_ABI, "[]");
+
     const EXPORT_ABI_ARG: ConstString = Self::EXPORT_ABI_RET; // vectors are never calldata
 
     const EXPORT_ABI_RET: ConstString = append!(T::ABI, "[] memory");
@@ -135,6 +137,11 @@ impl<T: AbiType, const N: usize> AbiType for [T; N] {
     type SolType = sol_data::FixedArray<T::SolType, N>;
 
     const ABI: ConstString = T::ABI
+        .concat(ConstString::new("["))
+        .concat(ConstString::from_decimal_number(N))
+        .concat(ConstString::new("]"));
+
+    const SELECTOR_ABI: ConstString = T::SELECTOR_ABI
         .concat(ConstString::new("["))
         .concat(ConstString::from_decimal_number(N))
         .concat(ConstString::new("]"));
@@ -177,6 +184,14 @@ macro_rules! impl_tuple {
                 $(
                     .concat(ConstString::new(","))
                     .concat($rest::ABI)
+                )*
+                .concat(ConstString::new(")"));
+
+            const SELECTOR_ABI: ConstString = ConstString::new("(")
+                .concat($first::SELECTOR_ABI)
+                $(
+                    .concat(ConstString::new(","))
+                    .concat($rest::SELECTOR_ABI)
                 )*
                 .concat(ConstString::new(")"));
 

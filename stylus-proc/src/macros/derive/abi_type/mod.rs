@@ -1,7 +1,7 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::imports::stylus_sdk::abi::AbiType;
+use crate::imports::stylus_sdk::abi::{ConstString, AbiType};
 use cfg_if::cfg_if;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
@@ -40,12 +40,29 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
         let name = &self.item.ident;
         let name_str = name.to_string();
         let (impl_generics, ty_generics, where_clause) = self.item.generics.split_for_impl();
-
+        let mut fields_selector_abis: Vec<syn::Expr> = Vec::new();
+        for (i, item) in self.item.fields.iter().enumerate() {
+            if i > 0 {
+                fields_selector_abis.push(parse_quote! {
+                    #ConstString::new(",")
+                });
+            }
+            let item_ty = item.ty.clone();
+            fields_selector_abis.push(parse_quote! {
+                <#item_ty as #AbiType>::SELECTOR_ABI
+            });
+        }
         parse_quote! {
             impl #impl_generics #AbiType for #name #ty_generics #where_clause {
                 type SolType = Self;
 
-                const ABI: stylus_sdk::abi::ConstString = stylus_sdk::abi::ConstString::new(#name_str);
+                const ABI: #ConstString = #ConstString::new(#name_str);
+
+                const SELECTOR_ABI: #ConstString = #ConstString::new("(")
+                    #(
+                        .concat(#fields_selector_abis)
+                    )*
+                    .concat(#ConstString::new(")"));
             }
         }
     }

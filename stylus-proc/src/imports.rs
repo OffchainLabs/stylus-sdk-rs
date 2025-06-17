@@ -61,6 +61,7 @@ pub mod stylus_sdk {
 
         pub const AbiType: ConstPath = ConstPath("stylus_sdk::abi::AbiType");
         pub const Router: ConstPath = ConstPath("stylus_sdk::abi::Router");
+        pub const ConstString: ConstPath = ConstPath("stylus_sdk::abi::ConstString");
 
         #[cfg(feature = "export-abi")]
         pub mod export {
