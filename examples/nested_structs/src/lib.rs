@@ -36,33 +36,33 @@ sol! {
     error InvalidParam();
 }
 
+#[derive(SolidityError, Debug)]
+pub enum NestedStructsErrors {
+    NotFound(NotFound),
+    AlreadyExists(AlreadyExists),
+    InvalidParam(InvalidParam),
+}
+
 #[storage]
-pub struct StorageDog {
+struct StorageDog {
     name: StorageString,
     breed: StorageString,
 }
 
 #[storage]
-pub struct StorageUser {
+struct StorageUser {
     name: StorageString,
     dogs: StorageVec<StorageDog>,
 }
 
 #[storage]
 #[entrypoint]
-pub struct NestedStructs {
+struct NestedStructs {
     // Store the user data in a map
     user_data: StorageMap<Address, StorageUser>,
 
     // Create a list of addresses because we can't iterate over the map
     user_list: StorageVec<StorageAddress>,
-}
-
-#[derive(SolidityError, Debug)]
-pub enum NestedStructsErrors {
-    NotFound(NotFound),
-    AlreadyExists(AlreadyExists),
-    InvalidParam(InvalidParam),
 }
 
 #[public]
