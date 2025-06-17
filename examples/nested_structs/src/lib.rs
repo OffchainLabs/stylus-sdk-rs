@@ -9,7 +9,7 @@ use alloy_primitives::Address;
 use alloy_sol_types::sol;
 use stylus_sdk::{
     prelude::*,
-    storage::{StorageMap, StorageString, StorageVec, StorageAddress},
+    storage::{StorageAddress, StorageMap, StorageString, StorageVec},
 };
 
 sol! {
@@ -69,11 +69,11 @@ struct NestedStructs {
 impl NestedStructs {
     pub fn add_user(&mut self, address: Address, name: String) -> Result<(), NestedStructsErrors> {
         if name.is_empty() {
-            return Err(InvalidParam{}.into())
+            return Err(InvalidParam {}.into());
         }
         let entry = self.user_data.get(address);
         if !entry.name.is_empty() {
-            return Err(AlreadyExists{}.into());
+            return Err(AlreadyExists {}.into());
         }
         self.user_list.push(address);
         self.user_data.setter(address).name.set_str(name);
@@ -83,12 +83,12 @@ impl NestedStructs {
     pub fn add_dogs(&mut self, user: Address, dogs: Vec<Dog>) -> Result<(), NestedStructsErrors> {
         for dog in dogs.iter() {
             if dog.name.is_empty() || dog.breed.is_empty() {
-                return Err(InvalidParam{}.into());
+                return Err(InvalidParam {}.into());
             }
         }
         let entry = self.user_data.get(user);
         if entry.name.is_empty() {
-            return Err(NotFound{}.into());
+            return Err(NotFound {}.into());
         }
         let mut user_setter = self.user_data.setter(user);
         for dog in dogs {
@@ -103,7 +103,7 @@ impl NestedStructs {
         let entry = self.user_data.get(address);
         let name = entry.name.get_string();
         if name.is_empty() {
-            return Err(NotFound{}.into());
+            return Err(NotFound {}.into());
         }
         let dogs_len = entry.dogs.len();
         let mut dogs = Vec::with_capacity(dogs_len);
