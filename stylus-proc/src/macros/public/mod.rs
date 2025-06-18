@@ -5,9 +5,9 @@ use cfg_if::cfg_if;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, spanned::Spanned, Ident, ImplItem, ItemImpl, ReturnType, Type, TypePath,
+    parse_macro_input, spanned::Spanned, ImplItem, ItemImpl, ReturnType, Type, TypePath,
 };
 
 use crate::{
@@ -119,16 +119,15 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     check_attr_is_empty(attr);
     let mut item_impl = parse_macro_input!(input as syn::ItemImpl);
-    let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
 
     let mut output: proc_macro2::TokenStream;
-    // if cfg!(feature = "contract-client-gen") {
-    output = contract_client_gen(item_impl);
-    // } else {
-    //     output = item_impl.into_token_stream();
-    // }
-
-    public_impl.to_tokens(&mut output);
+    if cfg!(feature = "contract-client-gen") {
+        output = contract_client_gen(item_impl);
+    } else {
+        let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
+        output = item_impl.into_token_stream();
+        public_impl.to_tokens(&mut output);
+    }
     output.into()
 }
 
