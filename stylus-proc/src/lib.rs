@@ -701,6 +701,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// [alloy_sol_types::sol] macro.
 ///
 /// ```
+/// # extern crate alloc;
 /// # use alloy_sol_types::sol;
 /// # use stylus_proc::AbiType;
 /// sol! {
