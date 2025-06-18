@@ -91,7 +91,9 @@ impl Parse for Entrypoint {
 impl ToTokens for Entrypoint {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.kind.to_tokens(tokens);
-        self.user_entrypoint_fn.to_tokens(tokens);
+        if !cfg!(feature = "contract-client-gen") {
+            self.user_entrypoint_fn.to_tokens(tokens);
+        }
     }
 }
 
@@ -129,7 +131,9 @@ struct EntrypointFn {
 
 impl ToTokens for EntrypointFn {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.item.to_tokens(tokens);
+        if !cfg!(feature = "contract-client-gen") {
+            self.item.to_tokens(tokens);
+        }
     }
 }
 
@@ -143,9 +147,11 @@ struct EntrypointStruct {
 impl ToTokens for EntrypointStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.item.to_tokens(tokens);
-        self.top_level_storage_impl.to_tokens(tokens);
-        self.struct_entrypoint_fn.to_tokens(tokens);
-        self.print_from_args_fn.to_tokens(tokens);
+        if !cfg!(feature = "contract-client-gen") {
+            self.top_level_storage_impl.to_tokens(tokens);
+            self.struct_entrypoint_fn.to_tokens(tokens);
+            self.print_from_args_fn.to_tokens(tokens);
+        }
     }
 }
 
