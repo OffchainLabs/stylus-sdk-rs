@@ -27,29 +27,20 @@ pub fn entrypoint(
     entrypoint.into_token_stream().into()
 }
 
-pub fn appends_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
-    let new_field: syn::Field = parse_quote! { pub #STYLUS_CONTRACT_ADDRESS_FIELD: Address };
+pub fn struct_with_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
+    let field: syn::Field = parse_quote! { pub #STYLUS_CONTRACT_ADDRESS_FIELD: Address };
+    let mut named_fields = Punctuated::<syn::Field, Comma>::new();
+    named_fields.push(field);
 
     match &mut item_struct.fields {
-        syn::Fields::Named(named_fields) => {
-            named_fields.named.push(new_field);
-            Ok(())
-        }
-        syn::Fields::Unit => {
-            // Transform unit struct directly into a named struct with the new field
-            let mut named_fields = Punctuated::<syn::Field, Comma>::new();
-            named_fields.push(new_field);
-
-            // Replace Fields::Unit with Fields::Named
+        syn::Fields::Unnamed(_) => Err(syn::Error::new_spanned(
+            &item_struct.ident,
+            "[entrypoint] only supports named and unit structs.",
+        )),
+        _ => {
             item_struct.fields = syn::Fields::Named(parse_quote! { { #named_fields } });
             item_struct.semi_token = None; // Named structs do not have a semicolon at the end
             Ok(())
-       }
-       syn::Fields::Unnamed(_) => {
-            Err(syn::Error::new_spanned(
-                &item_struct.ident,
-                "[entrypoint] only supports named and unit structs.",
-            ))
         }
     }
 }
@@ -65,7 +56,7 @@ impl Parse for Entrypoint {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
             syn::Item::Struct(ref mut item) => {
                 if cfg!(feature = "contract-client-gen") {
-                    match appends_stylus_contract_address(item) {
+                    match struct_with_stylus_contract_address(item) {
                         Err(e) => return Err(e),
                         Ok(_) => (),
                     }
