@@ -98,7 +98,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
     if item_impl.trait_.is_none() {
         output.extend(quote! {
             impl #struct_path {
-                pub fn new(address: Address) -> Self {
+                pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                     Self {
                         #STYLUS_CONTRACT_ADDRESS_FIELD: address,
                     }
