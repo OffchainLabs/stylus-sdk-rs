@@ -3,7 +3,7 @@
 
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{Address, Bytes, FixedBytes};
 use alloy_sol_types::sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
@@ -50,10 +50,21 @@ where
     const ABI: ConstString = append_dec!("bytes", N);
 }
 
-test_type!(bytes, "bytes calldata", super::Bytes);
-
 test_type!(uint160, "uint160", alloy_primitives::Uint<160, 3>);
 test_type!(uint256, "uint256", alloy_primitives::Uint<256, 4>);
+
+impl AbiType for Bytes {
+    type SolType = sol_data::Bytes;
+
+    const ABI: ConstString = ConstString::new("bytes");
+
+    const EXPORT_ABI_ARG: ConstString = Self::ABI.concat(ConstString::new(" calldata"));
+
+    const EXPORT_ABI_RET: ConstString = Self::ABI.concat(ConstString::new(" memory"));
+}
+
+test_type!(bytes, "bytes calldata", Bytes);
+test_type!(sdk_bytes, "bytes calldata", super::Bytes);
 
 macro_rules! impl_int {
     ($bits:literal, $as_arg:expr, $unsigned:ty, $signed:ty) => {
