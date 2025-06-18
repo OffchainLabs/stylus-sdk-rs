@@ -28,7 +28,7 @@ pub fn entrypoint(
 }
 
 pub fn struct_with_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
-    let field: syn::Field = parse_quote! { pub #STYLUS_CONTRACT_ADDRESS_FIELD: Address };
+    let field: syn::Field = parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: Address };
     let mut named_fields = Punctuated::<syn::Field, Comma>::new();
     named_fields.push(field);
 
