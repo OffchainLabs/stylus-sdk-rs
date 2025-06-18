@@ -76,7 +76,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             };
 
             Some(quote! {
-                #const_token #async_token #unsafety_token #abi fn #method_name #generics(#inputs) #output {
+                #const_token #async_token #unsafety_token #abi pub fn #method_name #generics(#inputs) #output {
                     println!("(Simulated Call) Executing method: {}{}", stringify!(#method_name), stringify!(#generics));
                     #default_return_value
                 }
@@ -98,7 +98,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
     if item_impl.trait_.is_none() {
         output.extend(quote! {
             impl #struct_path {
-                fn new(address: Address) -> Self {
+                pub fn new(address: Address) -> Self {
                     Self {
                         #STYLUS_CONTRACT_ADDRESS_FIELD: address,
                     }
