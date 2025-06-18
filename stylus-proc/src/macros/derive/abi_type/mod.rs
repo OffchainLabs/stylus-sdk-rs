@@ -71,7 +71,7 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
 impl<E: DeriveAbiTypeExtension> From<syn::ItemStruct> for DeriveAbiTypeGenerator<E> {
     fn from(item: syn::ItemStruct) -> Self {
         Self {
-            item: item,
+            item,
             _e: PhantomData,
         }
     }
