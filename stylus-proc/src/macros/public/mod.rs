@@ -5,7 +5,7 @@ use cfg_if::cfg_if;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
-use quote::{quote, ToTokens};
+use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{
     parse_macro_input, spanned::Spanned, Ident, ImplItem, ItemImpl, ReturnType, Type, TypePath,
 };
@@ -35,48 +35,7 @@ cfg_if! {
 }
 
 fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
-    if item_impl.trait_.is_none() {
-        let mut cloned_item_impl = item_impl.clone();
-
-        let new_address_fn: syn::ImplItemFn = syn::parse_quote! {
-            pub fn address(self) -> Address{
-                self.#STYLUS_CONTRACT_ADDRESS_FIELD
-            }
-        };
-
-        cloned_item_impl.items.push(ImplItem::Fn(new_address_fn));
-        // For direct struct implementation (impl MyStruct {}), just return the original impl
-        return cloned_item_impl.to_token_stream();
-    }
-
-    // // Parse the item as an `impl` block (e.g., `impl MyTrait for MyStruct`).
-    // let item_impl: ItemImpl = parse_macro_input!(item as ItemImpl);
-
-    // Extract generics, the trait path, and the self type from the impl block.
-    let (impl_generics, ty_generics, where_clause) = item_impl.generics.split_for_impl();
-    let trait_path = item_impl.trait_.as_ref()
-                                    .expect("`contract_client_gen` must be applied to an `impl` block for a trait (e.g., `impl Trait for Type`).")
-                                    .1 // Get the syn::Path of the trait (e.g., `MyContractTrait`)
-                                    .clone();
-    let self_ty = item_impl.self_ty;
-
-    // Use the last segment of the trait path for naming (e.g., `MyContractTrait` from `some_module::MyContractTrait`).
-    // let last_segment_ident = trait_path.segments.last()
-    //                                         .expect("Trait path must have at least one segment")
-    //                                         .ident
-    //                                         .clone();
-    // let last_segment_ident_span = last_segment_ident.span();
-    //
-    // // Construct the generated struct name without a unique ID.
-    // // This relies on the assumption that `contract_client_gen` is called once per type_path.
-    // let generated_struct_name = Ident::new(
-    //     // &format!("Generated{}Client", last_segment_ident),
-    //     &last_segment_ident.to_string(),
-    //     last_segment_ident_span,
-    // );
-
-    // Collect generated methods from the `impl` block's items.
-    let generated_methods_and_items = item_impl.items.iter().filter_map(|impl_item| {
+    let generated_methods = item_impl.items.iter().filter_map(|impl_item| {
         if let ImplItem::Fn(method) = impl_item {
             let sig = &method.sig;
             let method_name = &sig.ident;
@@ -117,51 +76,36 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             };
 
             Some(quote! {
-                // #const_token #async_token #unsafety_token #abi pub fn #method_name #generics(#inputs) #output {
                 #const_token #async_token #unsafety_token #abi fn #method_name #generics(#inputs) #output {
                     println!("(Simulated Call) Executing method: {}{}", stringify!(#method_name), stringify!(#generics));
                     #default_return_value
                 }
             })
         } else {
+            // TODO: should error
             Some(quote! { #impl_item })
         }
     }).collect::<proc_macro2::TokenStream>();
 
-    let output = quote! {
-        // Re-emit the original `impl` block.
-        // #item_impl
+    let struct_path = item_impl.self_ty;
 
-        /// Automatically generated client for a contract associated with a specific address,
-        /// implementing the functionality defined by the associated trait.
-        // #[derive(Debug, Clone)]
-        // pub struct #generated_struct_name {
-        //     address: stylus_sdk::alloy_primitives::Address,
-        // }
-
-        // impl #generated_struct_name {
-        //     /// Creates a new instance of this generated contract client.
-        //     /// The contract address is provided at runtime.
-        //     // pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
-        //     //     #generated_struct_name {
-        //     //         address,
-        //     //     }
-        //     // }
-        //
-        //     /// Returns the blockchain address of this contract instance.
-        //     pub fn address(&self) -> stylus_sdk::alloy_primitives::Address {
-        //         self.#STYLUS_CONTRACT_ADDRESS_FIELD
-        //     }
-        //
-        //     // Generated methods are placed directly into the `impl GeneratedClient { ... }` block.
-        //     #generated_methods_and_items
-        // }
-
-        // Also implement the trait for the generated client.
-        impl #impl_generics #trait_path for #self_ty #ty_generics #where_clause {
-            #generated_methods_and_items
+    let mut output = quote! {
+        impl #struct_path {
+            #generated_methods
         }
     };
+
+    if item_impl.trait_.is_none() {
+        output.extend(quote! {
+            impl #struct_path {
+                fn new(address: Address) -> Self {
+                    Self {
+                        #STYLUS_CONTRACT_ADDRESS_FIELD: address,
+                    }
+                }
+            }
+        });
+    }
 
     output.into()
 }
