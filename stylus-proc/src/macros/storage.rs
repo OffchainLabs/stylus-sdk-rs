@@ -23,6 +23,11 @@ pub fn storage(
         );
     }
 
+    // If the `contract-client-gen` feature is enabled, we skip the macro expansion.
+    if cfg!(feature = "contract-client-gen") {
+        return input.into();
+    }
+
     let item = parse_macro_input!(input as ItemStruct);
     let ItemStruct {
         attrs,
