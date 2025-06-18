@@ -1,6 +1,8 @@
 // Copyright 2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+extern crate alloc;
+
 use stylus_proc::AbiType;
 use stylus_sdk::abi::AbiType;
 use stylus_sdk::alloy_sol_types::sol;

@@ -112,16 +112,22 @@ mod tests {
                 t: T,
             }
         };
-        assert_ast_eq(
-            DeriveAbiTypeGenerator::<()>::from(item).impl_abi_type(),
-            parse_quote! {
-                impl<T> stylus_sdk::abi::AbiType for Foo<T>
-                where T: Bar {
-                    type SolType = Self;
+        let result = DeriveAbiTypeGenerator::<()>::from(item).impl_abi_type();
+        let expected = parse_quote! {
+            impl<T> stylus_sdk::abi::AbiType for Foo<T>
+            where T: Bar {
+                type SolType = Self;
 
-                    const ABI: stylus_sdk::abi::ConstString = stylus_sdk::abi::ConstString::new("Foo");
-                }
-            },
-        )
+                const ABI: stylus_sdk::abi::ConstString = stylus_sdk::abi::ConstString::new("Foo");
+                const SELECTOR_ABI: stylus_sdk::abi::ConstString = stylus_sdk::abi::ConstString::new("(")
+                    .concat(<bool as stylus_sdk::abi::AbiType>::SELECTOR_ABI)
+                    .concat(stylus_sdk::abi::ConstString::new(","))
+                    .concat(<String as stylus_sdk::abi::AbiType>::SELECTOR_ABI)
+                    .concat(stylus_sdk::abi::ConstString::new(","))
+                    .concat(<T as stylus_sdk::abi::AbiType>::SELECTOR_ABI)
+                    .concat(stylus_sdk::abi::ConstString::new(")"));
+            }
+        };
+        assert_ast_eq(result, expected);
     }
 }
