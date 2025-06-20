@@ -298,7 +298,7 @@ mod tests {
         let value = (
             100u8,
             vec![U256::from(1), U256::from(2)],
-            Bytes(vec![1, 2, 3, 4]),
+            Bytes::from(vec![1, 2, 3, 4]),
             FixedBytes::new([5, 6]),
             [vec![true, false, true], vec![false, true, false]],
         );

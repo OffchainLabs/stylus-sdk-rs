@@ -286,7 +286,7 @@ impl<T: Erc721Params> Erc721<T> {
             .borrow_mut()
             .require_authorized_to_spend(from, token_id)?;
 
-        Self::safe_transfer(storage, token_id, from, to, data.0)
+        Self::safe_transfer(storage, token_id, from, to, data.into())
     }
 
     /// Equivalent to [`safe_transfer_from_with_data`], but without the additional data.
@@ -300,7 +300,7 @@ impl<T: Erc721Params> Erc721<T> {
         to: Address,
         token_id: U256,
     ) -> Result<(), Erc721Error> {
-        Self::safe_transfer_from_with_data(storage, from, to, token_id, Bytes(vec![]))
+        Self::safe_transfer_from_with_data(storage, from, to, token_id, Bytes::new())
     }
 
     /// Transfers the NFT.

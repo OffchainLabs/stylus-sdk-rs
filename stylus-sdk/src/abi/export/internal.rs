@@ -61,8 +61,6 @@ macro_rules! impl_inner {
 
 impl_inner!(bool u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 String Address Bytes);
 
-impl InnerTypes for crate::abi::Bytes {}
-
 impl<const B: usize, const L: usize> InnerTypes for Uint<B, L> {}
 impl<const B: usize, const L: usize> InnerTypes for Signed<B, L> {}
 impl<const N: usize> InnerTypes for FixedBytes<N> {}

@@ -10,7 +10,7 @@
 //! Solidity interfaces, and otherwise facilitate inter-op between Rust and Solidity contracts.
 //!
 //! Notably, the SDK treats `Vec<u8>` as a Solidity `uint8[]`.
-//! For a Solidity `bytes`, see [`Bytes`].
+//! For a Solidity `bytes`, see [`alloy_primitives::Bytes`].
 //!
 //! [prelude]: crate::prelude
 //!
@@ -24,7 +24,7 @@ use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 
 use crate::{console, host::VM, storage::StorageType, ArbResult};
 
-pub use bytes::{Bytes, BytesSolType};
+pub use alloy_primitives::Bytes;
 pub use const_string::ConstString;
 
 #[cfg(feature = "export-abi")]
@@ -33,7 +33,6 @@ pub use export::GenerateAbi;
 #[cfg(feature = "export-abi")]
 pub mod export;
 
-mod bytes;
 mod const_string;
 mod impls;
 mod ints;

@@ -63,7 +63,7 @@ impl SendEther {
     ) -> Result<(), Vec<u8>> {
         let value = self.vm().msg_value();
         let context = Call::new_payable(self, value);
-        call(self.vm(), context, to, data.as_slice())?;
+        call(self.vm(), context, to, &data)?;
         Ok(())
     }
 
