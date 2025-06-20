@@ -64,11 +64,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             let method_name = &sig.ident;
             let inputs = &sig.inputs;
             let output = &sig.output;
-            let generics = &sig.generics;
-            let async_token = &sig.asyncness;
             let const_token = &sig.constness;
-            let unsafety_token = &sig.unsafety;
-            let abi = &sig.abi;
 
             let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
             new_inputs.push(syn::parse_quote!(&self));
@@ -113,8 +109,8 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             };
 
             Some(quote! {
-                #const_token #async_token #unsafety_token #abi pub fn #method_name #generics(#new_inputs) #output {
-                    println!("(Simulated Call) Executing method: {}{}", stringify!(#method_name), stringify!(#generics));
+                #const_token pub fn #method_name (#new_inputs) #output {
+                    println!("(Simulated Call) Executing method: {}", stringify!(#method_name));
                     #default_return_value
                 }
             })
