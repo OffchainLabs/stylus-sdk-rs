@@ -47,6 +47,36 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             let unsafety_token = &sig.unsafety;
             let abi = &sig.abi;
 
+            let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
+
+            let self_param = syn::parse_quote!(&self);
+            new_inputs.push(self_param);
+
+            let context_param: syn::FnArg = match inputs.iter().next() {
+                Some(syn::FnArg::Receiver(receiver)) => {
+                    let is_mutable = receiver.mutability.is_some();
+                    let is_reference = receiver.reference.is_some();
+
+                    if is_reference && is_mutable {
+                        // &mut self
+                        syn::parse_quote!(context: MutatingCallContext)
+                    } else if is_reference {
+                        // &self
+                        syn::parse_quote!(context: StaticCallContext)
+                    } else {
+                        // TODO: should error
+                        syn::parse_quote!(&self)
+                    }
+                },
+                _ => {
+                    // TODO: should error
+                    syn::parse_quote!(&self)
+                }
+            };
+            new_inputs.push(context_param);
+
+            new_inputs.extend(inputs.iter().skip(1).cloned());
+
             let default_return_value = match output {
                 ReturnType::Default => quote! { () },
                 ReturnType::Type(_, ty) => {
@@ -76,7 +106,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             };
 
             Some(quote! {
-                #const_token #async_token #unsafety_token #abi pub fn #method_name #generics(#inputs) #output {
+                #const_token #async_token #unsafety_token #abi pub fn #method_name #generics(#new_inputs) #output {
                     println!("(Simulated Call) Executing method: {}{}", stringify!(#method_name), stringify!(#generics));
                     #default_return_value
                 }
