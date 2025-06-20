@@ -6,9 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
-use syn::{
-    parse_macro_input, spanned::Spanned, ImplItem, ItemImpl, ReturnType, Type, TypePath,
-};
+use syn::{parse_macro_input, spanned::Spanned, ImplItem, ItemImpl, ReturnType, Type, TypePath};
 
 use crate::{
     consts::STYLUS_CONTRACT_ADDRESS_FIELD,
@@ -34,8 +32,33 @@ cfg_if! {
     }
 }
 
+fn get_context_input_contract_client(
+    inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>,
+) -> Option<syn::FnArg> {
+    match inputs.iter().next() {
+        Some(syn::FnArg::Receiver(receiver)) => {
+            let is_mutable = receiver.mutability.is_some();
+            let is_reference = receiver.reference.is_some();
+
+            if is_reference && is_mutable {
+                // &mut self
+                return Some(syn::parse_quote!(context: MutatingCallContext));
+            } else if is_reference {
+                // &self
+                return Some(syn::parse_quote!(context: StaticCallContext));
+            } else {
+                // don't output a method if first argument is not `&self` or `&mut self`
+                return None;
+            }
+        }
+        _ => {
+            return None;
+        }
+    };
+}
+
 fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
-    let generated_methods = item_impl.items.iter().filter_map(|impl_item| {
+    let client_methods = item_impl.items.iter().filter_map(|impl_item| {
         if let ImplItem::Fn(method) = impl_item {
             let sig = &method.sig;
             let method_name = &sig.ident;
@@ -48,33 +71,17 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
             let abi = &sig.abi;
 
             let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
+            new_inputs.push(syn::parse_quote!(&self));
 
-            let self_param = syn::parse_quote!(&self);
-            new_inputs.push(self_param);
-
-            let context_param: syn::FnArg = match inputs.iter().next() {
-                Some(syn::FnArg::Receiver(receiver)) => {
-                    let is_mutable = receiver.mutability.is_some();
-                    let is_reference = receiver.reference.is_some();
-
-                    if is_reference && is_mutable {
-                        // &mut self
-                        syn::parse_quote!(context: MutatingCallContext)
-                    } else if is_reference {
-                        // &self
-                        syn::parse_quote!(context: StaticCallContext)
-                    } else {
-                        // TODO: should error
-                        syn::parse_quote!(&self)
-                    }
-                },
-                _ => {
-                    // TODO: should error
-                    syn::parse_quote!(&self)
+            let context_input = match get_context_input_contract_client(inputs) {
+                Some(input) => input,
+                None => {
+                    return None;
                 }
             };
-            new_inputs.push(context_param);
+            new_inputs.push(context_input);
 
+            // adds the rest of the inputs, skipping the first one which should be `&self` or `&mut self`
             new_inputs.extend(inputs.iter().skip(1).cloned());
 
             let default_return_value = match output {
@@ -112,8 +119,7 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
                 }
             })
         } else {
-            // TODO: should error
-            Some(quote! { #impl_item })
+            return None;
         }
     }).collect::<proc_macro2::TokenStream>();
 
@@ -121,10 +127,11 @@ fn contract_client_gen(item_impl: ItemImpl) -> proc_macro2::TokenStream {
 
     let mut output = quote! {
         impl #struct_path {
-            #generated_methods
+            #client_methods
         }
     };
 
+    // If the impl does not implement a trait, we add a constructor for the contract client
     if item_impl.trait_.is_none() {
         output.extend(quote! {
             impl #struct_path {
