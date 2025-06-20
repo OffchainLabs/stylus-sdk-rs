@@ -3,11 +3,14 @@
 
 use quote::quote;
 
-use crate::consts::STYLUS_CONTRACT_ADDRESS_FIELD;
+use crate::{
+    consts::STYLUS_CONTRACT_ADDRESS_FIELD,
+    imports::alloy_sol_types::SolType,
+};
 
-fn get_context_input(
+fn get_context_and_call(
     inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>,
-) -> Option<syn::FnArg> {
+) -> Option<(syn::FnArg, proc_macro2::TokenStream)> {
     match inputs.iter().next() {
         Some(syn::FnArg::Receiver(receiver)) => {
             let is_mutable = receiver.mutability.is_some();
@@ -15,16 +18,17 @@ fn get_context_input(
 
             if is_reference && is_mutable {
                 // &mut self
-                return Some(syn::parse_quote!(context: MutatingCallContext));
+                return Some((syn::parse_quote!(context: stylus_sdk::stylus_core::calls::MutatingCallContext), quote!(stylus_sdk::call::call)));
             } else if is_reference {
                 // &self
-                return Some(syn::parse_quote!(context: StaticCallContext));
+                return Some((syn::parse_quote!(context: stylus_sdk::stylus_core::calls::StaticCallContext), quote!(stylus_sdk::call::static_call)));
             } else {
                 // don't output a method if first argument is not `&self` or `&mut self`
                 return None;
             }
         }
         _ => {
+            // don't output a method if first argument is not `&self` or `&mut self`
             return None;
         }
     };
@@ -37,21 +41,35 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
             let method_name = &sig.ident;
             let inputs = &sig.inputs;
             let output = &sig.output;
-            let const_token = &sig.constness;
 
             let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
             new_inputs.push(syn::parse_quote!(&self));
+            new_inputs.push(syn::parse_quote!(host: &dyn stylus_sdk::stylus_core::host::Host));
 
-            let context_input = match get_context_input(inputs) {
-                Some(input) => input,
+            let (context, call) = match get_context_and_call(inputs) {
+                Some((context, call)) => (context, call),
                 None => {
                     return None;
                 }
             };
-            new_inputs.push(context_input);
+            new_inputs.push(context.clone());
 
             // adds the rest of the inputs, skipping the first one which should be `&self` or `&mut self`
             new_inputs.extend(inputs.iter().skip(1).cloned());
+
+            let rust_inputs = inputs.iter().skip(1).map(|input| {
+                match input {
+                    syn::FnArg::Typed(pat_type) => {
+                        let ty = &pat_type.ty;
+                        let ident = match &*pat_type.pat {
+                            syn::Pat::Ident(pat_ident) => &pat_ident.ident,
+                            _ => panic!("Expected identifier pattern"),
+                        };
+                        quote! { #ty }
+                    }
+                    _ => panic!("Expected typed argument"),
+                }
+            });
 
             let default_return_value = match output {
                 syn::ReturnType::Default => quote! { () },
@@ -82,9 +100,10 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
             };
 
             Some(quote! {
-                #const_token pub fn #method_name (#new_inputs) #output {
+                pub fn #method_name(#new_inputs) {
                     println!("(Simulated Call) Executing method: {}", stringify!(#method_name));
-                    #default_return_value
+                    let args = <(#(#rust_inputs,)*) as #SolType>::abi_encode_params();
+                    // #default_return_value
                 }
             })
         } else {
