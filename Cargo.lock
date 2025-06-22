@@ -1197,7 +1197,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-stylus"
+name = "cargo-stylus-beta"
 version = "0.9.0"
 dependencies = [
  "alloy",

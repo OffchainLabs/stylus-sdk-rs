@@ -1,8 +1,8 @@
 [package]
-name = "cargo-stylus"
+name = "cargo-stylus-beta"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy", "cargo"]
 description = "CLI tool for building Stylus contracts on Arbitrum chains"
-default-run = "cargo-stylus"
+default-run = "cargo-stylus-beta"
 
 version.workspace = true
 edition.workspace = true

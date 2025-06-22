@@ -29,8 +29,7 @@ struct Args {
 
 fn main() -> ExitCode {
     // Parse args from CLI, skipping `stylus` arg coming from `cargo`
-    // TODO: do the skipping
-    let args: Vec<_> = std::env::args().collect();
+    let args: Vec<_> = std::env::args().skip(1).collect();
     let args = Args::parse_from(args);
 
     // Create the async runtime

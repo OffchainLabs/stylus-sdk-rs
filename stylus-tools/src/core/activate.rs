@@ -4,7 +4,7 @@
 //! Contract acitvation.
 //!
 //! See the [Arbitrum Docs](https://docs.arbitrum.io/stylus/concepts/how-it-works#activation) for
-//! more info on contract activation.
+//! details on contract activation.
 
 use alloy::{
     primitives::{utils::parse_ether, Address, Bytes, U256},
