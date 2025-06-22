@@ -40,7 +40,7 @@ impl Workspace {
         std::fs::create_dir(path.join("crates"))?;
 
         copy_from_template!(
-            "../templates/workspace" -> path,
+            "../../templates/workspace" -> path,
             "Cargo.toml",
             "rust-toolchain.toml",
             "Stylus.toml",

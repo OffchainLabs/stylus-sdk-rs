@@ -8,11 +8,18 @@
 
 // TODO: what do we want to expose here
 
+use std::{fs, path::Path};
+
+use alloy::primitives::U256;
 use bytesize::ByteSize;
 use color::{GREY, MINT, PINK, YELLOW};
 
-pub(crate) mod color;
+use crate::Result;
+
+pub mod cargo;
+pub mod color;
 pub(crate) mod docker;
+pub(crate) mod git;
 pub(crate) mod wasm;
 
 /// Pretty-prints a file size based on its limits.
@@ -26,4 +33,21 @@ pub fn format_file_size(len: ByteSize, mid: ByteSize, max: ByteSize) -> String {
     };
 
     format!("{color}{len}{GREY} ({} bytes)", len.as_u64())
+}
+
+/// Check if a directory exists, creating it if not.
+pub fn create_dir_if_dne(path: impl AsRef<Path>) -> Result<()> {
+    let path = path.as_ref();
+    if !path.is_dir() {
+        fs::create_dir(path)?;
+    }
+    Ok(())
+}
+
+pub fn sanitize_package_name(name: &str) -> String {
+    name.replace('-', "_").replace('"', "")
+}
+
+pub fn bump_data_fee(data_fee: U256, bump_percent: u64) -> U256 {
+    data_fee * U256::from(100 + bump_percent) / U256::from(100)
 }

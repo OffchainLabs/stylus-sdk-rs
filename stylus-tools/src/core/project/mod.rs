@@ -3,3 +3,9 @@
 
 pub mod contract;
 pub mod workspace;
+
+#[derive(Debug)]
+pub enum ProjectKind {
+    Contract,
+    Workspace,
+}

@@ -4,10 +4,8 @@
 
 pragma solidity >=0.4.21 <0.9.0;
 
-/**
- * @title Methods for managing user programs
- * @notice Precompiled contract that exists in every Arbitrum chain at 0x0000000000000000000000000000000000000071.
- */
+/// @title Methods for managing user programs
+/// @notice Precompiled contract that exists in every Arbitrum chain at 0x0000000000000000000000000000000000000071.
 #[sol(rpc)]
 interface ArbWasm {
     /// @notice Activate a wasm program

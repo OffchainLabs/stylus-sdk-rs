@@ -4,10 +4,8 @@
 
 pragma solidity >=0.4.21 <0.9.0;
 
-/**
- * @title A test contract whose methods are only accessible in debug mode
- * @notice Precompiled contract that exists in every Arbitrum chain at 0x00000000000000000000000000000000000000ff.
- */
+/// @title A test contract whose methods are only accessible in debug mode
+/// @notice Precompiled contract that exists in every Arbitrum chain at 0x00000000000000000000000000000000000000ff.
 #[sol(rpc)]
 interface ArbDebug {
     /// @notice Caller becomes a chain owner

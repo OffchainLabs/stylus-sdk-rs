@@ -8,16 +8,15 @@
 mod macros;
 
 pub mod build;
-pub mod error;
+pub mod core;
+pub(crate) mod error;
 pub mod manifest;
 pub mod ops;
 pub mod precompiles;
-pub mod project;
 pub mod verification;
 pub mod wasm;
 
-pub(crate) mod cargo;
-pub(crate) mod utils;
+pub mod utils;
 
 #[cfg(feature = "integration-tests")]
 pub mod devnet;
@@ -25,3 +24,4 @@ pub mod devnet;
 pub mod cargo_stylus;
 
 pub use cargo_stylus::*;
+pub use error::{Error, Result};

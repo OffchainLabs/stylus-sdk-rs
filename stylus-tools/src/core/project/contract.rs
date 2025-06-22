@@ -53,7 +53,7 @@ impl Contract {
         let mut cargo_manifest = cargo_package.read_manifest()?;
         // read Cargo.toml template
         let cargo_template: cargo::manifest::TomlManifest =
-            toml::from_str(include_str!("../templates/contract/Cargo.toml"))?;
+            toml::from_str(include_str!("../../templates/contract/Cargo.toml"))?;
         // merge template into Cargo.toml, keeping original [package] section
         cargo_manifest.dependencies = cargo_template.dependencies;
         cargo_manifest.dev_dependencies = cargo_template.dev_dependencies;
@@ -65,7 +65,7 @@ impl Contract {
         cargo_package.write_manifest(&cargo_manifest)?;
 
         copy_from_template!(
-            "../templates/contract" -> path,
+            "../../templates/contract" -> path,
             "src/lib.rs",
             "src/main.rs",
             "rust-toolchain.toml",

@@ -13,6 +13,7 @@ version.workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["contract", "getrandom", "rpc-types", "signer-local", "sol-types"] }
 eyre.workspace = true
+hex.workspace = true
 regex.workspace = true
 reqwest.workspace = true
 testcontainers = { workspace = true, optional = true }
@@ -22,17 +23,17 @@ trybuild.workspace = true
 anyhow = "1"
 brotli2 = "0.3.2"
 bytesize = "1.2.0"
-cargo-generate = "0.23"
 cargo_metadata = "0.20"
 cargo-util-schemas = "0.8"
 escargot = "0.5"
-hex.workspace = true
 log = "0.4"
+rust-toolchain-file = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sys-info = "0.9.1"
 thiserror = "2.0"
-toml = { version = "0.8" }
+toml = "0.8"
+toml_edit = "0.22.26"
 wasm-encoder = "0.213.0"
 wasm-gen = "0.1.4"
 wasmer = "3.1.0"

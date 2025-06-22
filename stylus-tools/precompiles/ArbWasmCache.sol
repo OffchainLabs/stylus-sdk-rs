@@ -4,10 +4,8 @@
 
 pragma solidity >=0.4.21 <0.9.0;
 
-/**
- * @title Methods for managing Stylus caches
- * @notice Precompiled contract that exists in every Arbitrum chain at 0x0000000000000000000000000000000000000072.
- */
+/// @title Methods for managing Stylus caches
+/// @notice Precompiled contract that exists in every Arbitrum chain at 0x0000000000000000000000000000000000000072.
 #[sol(rpc)]
 interface ArbWasmCache {
     /// @notice See if the user is a cache manager.

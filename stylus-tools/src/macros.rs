@@ -2,7 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 macro_rules! copy_from_template {
-    ($tmpl:literal -> $root:ident, $($files:expr,)*) => {
+    ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
         $(
             std::fs::write(
                 $root.join($files),
@@ -10,6 +10,16 @@ macro_rules! copy_from_template {
             )?;
         )*
     };
+}
+
+macro_rules! copy_from_template_if_dne {
+    ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
+        $(
+            if !$root.join($files).exists() {
+                copy_from_template!($tmpl -> $root, $files);
+            }
+        )*
+    }
 }
 
 macro_rules! debug {
@@ -33,5 +43,27 @@ macro_rules! warn {
         use crate::utils::color::Color;
         let msg = format!($($msg),*);
         log::info!("{}", msg.$color())
+    }};
+}
+
+macro_rules! greyln {
+    ($($msg:expr),*) => {{
+        use crate::utils::color::Color;
+        let msg = format!($($msg),*);
+        println!("{}", msg.grey())
+    }};
+}
+
+macro_rules! mintln {
+    ($($msg:expr),*) => {{
+        let msg = format!($($msg),*);
+        println!("{}", msg.mint())
+    }};
+}
+
+macro_rules! egreyln {
+    ($($msg:expr),*) => {{
+        let msg = format!($($msg),*);
+        eprintln!("{}", msg.grey())
     }};
 }
