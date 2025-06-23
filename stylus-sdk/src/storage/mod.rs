@@ -171,6 +171,29 @@ where
     }
 }
 
+macro_rules! gen_int_wrap_ops {
+    ($( $(#[$docs:meta])* $name:ident ),* $(,)?) => {
+        $( $(#[$docs])*
+           pub fn $name(&mut self, v: Uint<B,L>) -> Uint<B,L> {
+               let x = self.get().$name(v); self.set(x); x
+           }
+        )*
+    };
+}
+
+macro_rules! gen_int_checked_ops {
+    ($( $(#[$doc:meta])* $name:ident ),* $(,)?) => {
+        $(
+            $(#[$doc])*
+            pub fn $name(&mut self, v: Uint<B, L>) -> Option<Uint<B, L>> {
+                let r = self.get().$name(v);
+                if let Some(x) = r { self.set(x); }
+                r
+            }
+        )*
+    };
+}
+
 impl<const B: usize, const L: usize> StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
@@ -190,6 +213,38 @@ where
                 value,
             )
         };
+    }
+
+    gen_int_wrap_ops! {
+        /// Add to the underlying value, wrapping around if overflow.
+        /// Returns the new value.
+        wrapping_add,
+
+        /// Subtract the underlying value, wrapping around if overflow.
+        /// Returns the new value.
+        wrapping_sub,
+
+        /// Divide the underlying value, wrapping around if overflow.
+        /// Returns the new value.
+        wrapping_div,
+
+        /// Multiply the underlying value, wrapping around if overflow.
+        /// Returns the new value.
+        wrapping_mul
+    }
+
+    gen_int_checked_ops! {
+        /// Add to the underlying value, returning None if overflow.
+        checked_add,
+
+        /// Subtract from the underlying value, returning None if overflow.
+        checked_sub,
+
+        /// Divide the underlying value, returning None if overflow.
+        checked_div,
+
+        /// Multiply the underlying value, returning None if overflow.
+        checked_mul
     }
 }
 
