@@ -26,6 +26,16 @@ pub fn deploy_with_constructor(
     }
     deploy_args.push("--constructor-args");
     deploy_args.extend_from_slice(args);
+    cfg_if::cfg_if! {
+        // When running with integration tests, use the stylus deployer defined in the devnet
+        // module. Otherwise, leave this field blank and use cargo-stylus' default address.
+        if #[cfg(feature = "integration-tests")] {
+            use crate::devnet::addresses::STYLUS_DEPLOYER;
+            deploy_args.push("--deployer-address");
+            let address = STYLUS_DEPLOYER.to_string();
+            deploy_args.push(&address);
+        }
+    }
     call_deploy(&deploy_args)
 }
 

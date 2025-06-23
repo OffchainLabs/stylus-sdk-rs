@@ -18,6 +18,7 @@ reqwest.workspace = true
 testcontainers = { workspace = true, optional = true }
 tokio.workspace = true
 trybuild.workspace = true
+cfg-if.workspace = true
 
 [features]
 integration-tests = ["dep:testcontainers"]
