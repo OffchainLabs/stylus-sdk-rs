@@ -9,7 +9,7 @@ mod integration_test {
         sol_types::SolCall,
     };
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node, DEVNET_PRIVATE_KEY};
+    use stylus_tools::devnet::{addresses::OWNER, Node};
 
     const ARB_OWNER_PUBLIC: Address = address!("0x000000000000000000000000000000000000006b");
 
@@ -31,7 +31,7 @@ mod integration_test {
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
-        let address = stylus_tools::deploy(rpc, DEVNET_PRIVATE_KEY)?;
+        let address = stylus_tools::Deployer::new(rpc.to_owned()).deploy()?;
         println!("Deployed contract to {address}");
         let provider = devnode.create_provider().await?;
         let contract = ISingleCall::ISingleCallInstance::new(address, provider);
