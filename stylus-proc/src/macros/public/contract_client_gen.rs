@@ -36,6 +36,18 @@ fn get_context_and_call(
     };
 }
 
+fn get_new_inputs(
+    inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>,
+    context: syn::FnArg,
+) -> syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma> {
+    let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
+    new_inputs.push(syn::parse_quote!(&self));
+    new_inputs.push(syn::parse_quote!(host: &dyn stylus_sdk::stylus_core::host::Host));
+    new_inputs.push(context);
+    new_inputs.extend(inputs.iter().skip(1).cloned());
+    new_inputs
+}
+
 pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
     let client_methods = item_impl.items.iter().filter_map(|impl_item| {
         if let syn::ImplItem::Fn(method) = impl_item {
@@ -44,20 +56,15 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
             let inputs = &sig.inputs;
             let output = &sig.output;
 
-            let mut new_inputs = syn::punctuated::Punctuated::<syn::FnArg, syn::token::Comma>::new();
-            new_inputs.push(syn::parse_quote!(&self));
-            new_inputs.push(syn::parse_quote!(host: &dyn stylus_sdk::stylus_core::host::Host));
-
             let (context, call) = match get_context_and_call(inputs) {
                 Some((context, call)) => (context, call),
                 None => {
+                    // don't output method
                     return None;
                 }
             };
-            new_inputs.push(context.clone());
 
-            // adds the rest of the inputs, skipping the first one which should be `&self` or `&mut self`
-            new_inputs.extend(inputs.iter().skip(1).cloned());
+            let new_inputs = get_new_inputs(inputs, context);
 
             let rust_input_types = inputs.iter().skip(1).map(|input| {
                 match input {
