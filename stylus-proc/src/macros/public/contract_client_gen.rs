@@ -2,6 +2,8 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use quote::quote;
+use convert_case::{Case, Casing};
+use sha3::{Digest, Keccak256};
 
 use crate::{
     consts::STYLUS_CONTRACT_ADDRESS_FIELD,
@@ -57,53 +59,76 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
             // adds the rest of the inputs, skipping the first one which should be `&self` or `&mut self`
             new_inputs.extend(inputs.iter().skip(1).cloned());
 
-            let rust_inputs = inputs.iter().skip(1).map(|input| {
+            let rust_input_types = inputs.iter().skip(1).map(|input| {
                 match input {
                     syn::FnArg::Typed(pat_type) => {
                         let ty = &pat_type.ty;
-                        let ident = match &*pat_type.pat {
-                            syn::Pat::Ident(pat_ident) => &pat_ident.ident,
-                            _ => panic!("Expected identifier pattern"),
-                        };
                         quote! { #ty }
                     }
                     _ => panic!("Expected typed argument"),
                 }
             });
-
-            let default_return_value = match output {
-                syn::ReturnType::Default => quote! { () },
-                syn::ReturnType::Type(_, ty) => {
-                    match &**ty {
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("u8") => quote! { 0u8 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("u16") => quote! { 0u16 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("u32") => quote! { 0u32 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("u64") => quote! { 0u64 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("u128") => quote! { 0u128 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("usize") => quote! { 0usize },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("i8") => quote! { 0i8 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("i16") => quote! { 0i16 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("i32") => quote! { 0i32 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("i64") => quote! { 0i64 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("i128") => quote! { 0i128 },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("isize") => quote! { 0isize },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("bool") => quote! { false },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("String") => quote! { String::new() },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("Address") => quote! { stylus_sdk::alloy_primitives::Address::ZERO },
-                        syn::Type::Path(syn::TypePath { path, .. }) if path.is_ident("U256") => quote! { stylus_sdk::alloy_primitives::U256::ZERO },
-                        syn::Type::Tuple(syn::TypeTuple { elems, .. }) if elems.is_empty() => quote! { () },
-                        _ => {
-                            quote! { Default::default() }
+            let rust_input_names = inputs.iter().skip(1).map(|input| {
+                match input {
+                    syn::FnArg::Typed(pat_type) => {
+                        if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                            pat_ident.ident.clone()
+                        } else {
+                            panic!("Expected identifier in function argument");
                         }
                     }
+                    _ => panic!("Expected typed argument"),
+                }
+            });
+
+            let rust_output_type = match output {
+                syn::ReturnType::Type(_, ty) => {
+                    if let syn::Type::Path(syn::TypePath { path, .. }) = &**ty {
+                        quote! { #path }
+                    } else {
+                        panic!("Expected path type in return type");
+                    }
+                }
+                syn::ReturnType::Default => {
+                    quote! { () }
                 }
             };
 
+            let mut selector = Keccak256::new();
+            let method_name_camel = method_name.to_string().to_case(Case::Camel);
+            selector.update(method_name_camel);
+            selector.update("(");
+            for (i, input) in inputs.iter().skip(1).enumerate() {
+                if i > 0 {
+                    selector.update(",");
+                }
+                match input {
+                    syn::FnArg::Typed(pat_type) => {
+                        if let syn::Type::Path(syn::TypePath { path, .. }) = &*pat_type.ty {
+                            if let Some(segment) = path.segments.last() {
+                                selector.update(segment.ident.to_string());
+                            }
+                        } else {
+                            panic!("Expected path type in function argument");
+                        }
+                    }
+                    _ => panic!("Expected typed argument"),
+                }
+            }
+            selector.update(")");
+            let selector_bytes = selector.finalize();
+            let selector0 = selector_bytes[0];
+            let selector1 = selector_bytes[1];
+            let selector2 = selector_bytes[2];
+            let selector3 = selector_bytes[3];
+
             Some(quote! {
-                pub fn #method_name(#new_inputs) {
-                    println!("(Simulated Call) Executing method: {}", stringify!(#method_name));
-                    let args = <(#(#rust_inputs,)*) as #SolType>::abi_encode_params();
-                    // #default_return_value
+                pub fn #method_name(#new_inputs) -> Result<<#rust_output_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
+                    let args = <(#(#rust_input_types,)*) as #SolType>::abi_encode_params(&(#(#rust_input_names,)*));
+                    let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
+                    calldata.extend(args);
+                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
+                    Ok(<#rust_output_type as #SolType>::abi_decode_params(&call_result)?.0)
                 }
             })
         } else {
