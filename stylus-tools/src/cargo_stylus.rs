@@ -19,24 +19,25 @@ pub struct Deployer {
 impl Deployer {
     // Create the Deployer with default parameters.
     pub fn new(rpc: String) -> Self {
-        let private_key;
-        let stylus_deployer;
         cfg_if::cfg_if! {
             // When running with integration tests, set the default parameters for the local devnet.
             if #[cfg(feature = "integration-tests")] {
-                private_key = Some(crate::devnet::DEVNET_PRIVATE_KEY.to_owned());
-                stylus_deployer = Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string());
+                Self {
+                    rpc,
+                    private_key: Some(crate::devnet::DEVNET_PRIVATE_KEY.to_owned()),
+                    stylus_deployer: Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string()),
+                    constructor_value: None,
+                    constructor_args: None,
+                }
             } else {
-                private_key = None;
-                stylus_deployer = None;
+                Self {
+                    rpc,
+                    private_key: None,
+                    stylus_deployer: None,
+                    constructor_value: None,
+                    constructor_args: None,
+                }
             }
-        }
-        Self {
-            rpc,
-            private_key,
-            stylus_deployer,
-            constructor_value: None,
-            constructor_args: None,
         }
     }
 
