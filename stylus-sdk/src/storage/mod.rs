@@ -233,6 +233,7 @@ where
         wrapping_mul,
 
         /// Set the modulo of the value, panicking if rhs is 0.
+        /// Returns the new value.
         wrapping_rem
     }
 
