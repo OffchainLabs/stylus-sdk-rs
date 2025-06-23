@@ -230,7 +230,10 @@ where
 
         /// Multiply the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        wrapping_mul
+        wrapping_mul,
+
+        /// Set the modulo of the value, panicking if rhs is 0.
+        wrapping_rem
     }
 
     gen_int_checked_ops! {
@@ -244,7 +247,11 @@ where
         checked_div,
 
         /// Multiply the underlying value, returning None if overflow.
-        checked_mul
+        checked_mul,
+
+        /// Set the modulo of the value, returning None if overflow or rhs
+        /// is 0.
+        checked_rem,
     }
 }
 
