@@ -6,37 +6,85 @@ use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
 use std::{ffi::OsStr, process::Command};
 
-/// Deploy the contract in the current directory
-pub fn deploy(rpc: &str, key: &str) -> Result<Address> {
-    call_deploy(["-e", rpc, "--private-key", key])
+/// Defines the configuration for deploying a Stylus contract.
+/// After setting the parameters, call `Deployer::deploy` to perform the deployement.
+pub struct Deployer {
+    rpc: String,
+    private_key: Option<String>,
+    stylus_deployer: Option<String>,
+    constructor_value: Option<String>,
+    constructor_args: Option<Vec<String>>,
 }
 
-/// Deploy the contract in the current directory passing the arguments to the constructor.
-/// This function will fail if the contract doesn't have a constructor.
-pub fn deploy_with_constructor(
-    rpc: &str,
-    key: &str,
-    value: &str,
-    args: &[&str],
-) -> Result<Address> {
-    let mut deploy_args = vec!["-e", rpc, "--private-key", key];
-    if !value.is_empty() {
-        deploy_args.push("--constructor-value");
-        deploy_args.push(value);
-    }
-    deploy_args.push("--constructor-args");
-    deploy_args.extend_from_slice(args);
-    cfg_if::cfg_if! {
-        // When running with integration tests, use the stylus deployer defined in the devnet
-        // module. Otherwise, leave this field blank and use cargo-stylus' default address.
-        if #[cfg(feature = "integration-tests")] {
-            use crate::devnet::addresses::STYLUS_DEPLOYER;
-            deploy_args.push("--deployer-address");
-            let address = STYLUS_DEPLOYER.to_string();
-            deploy_args.push(&address);
+impl Deployer {
+    // Create the Deployer with default parameters.
+    pub fn new(rpc: String) -> Self {
+        let private_key;
+        let stylus_deployer;
+        cfg_if::cfg_if! {
+            // When running with integration tests, set the default parameters for the local devnet.
+            if #[cfg(feature = "integration-tests")] {
+                private_key = Some(crate::devnet::DEVNET_PRIVATE_KEY.to_owned());
+                stylus_deployer = Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string());
+            } else {
+                private_key = None;
+                stylus_deployer = None;
+            }
+        }
+        Self {
+            rpc,
+            private_key,
+            stylus_deployer,
+            constructor_value: None,
+            constructor_args: None,
         }
     }
-    call_deploy(&deploy_args)
+
+    pub fn with_private_key(mut self, key: String) -> Self {
+        self.private_key = Some(key);
+        self
+    }
+
+    pub fn with_stylus_deployer(mut self, deployer: Address) -> Self {
+        self.stylus_deployer = Some(deployer.to_string());
+        self
+    }
+
+    pub fn with_constructor_value(mut self, value: String) -> Self {
+        self.constructor_value = Some(value);
+        self
+    }
+
+    pub fn with_constructor_args(mut self, args: Vec<String>) -> Self {
+        self.constructor_args = Some(args);
+        self
+    }
+
+    // Deploy the Stylus contract returning the contract address.
+    pub fn deploy(self) -> Result<Address> {
+        let mut deploy_args: Vec<String> = Vec::new();
+        deploy_args.push("-e".to_owned());
+        deploy_args.push(self.rpc);
+        let Some(private_key) = self.private_key else {
+            bail!("missing private key");
+        };
+        deploy_args.push("--private-key".to_owned());
+        deploy_args.push(private_key);
+        if let Some(args) = self.constructor_args {
+            if let Some(value) = self.constructor_value {
+                deploy_args.push("--constructor-value".to_owned());
+                deploy_args.push(value);
+            }
+            if let Some(deployer) = self.stylus_deployer {
+                deploy_args.push("--deployer-address".to_owned());
+                deploy_args.push(deployer.to_string());
+            }
+            // Must add the args at the end
+            deploy_args.push("--constructor-args".to_owned());
+            deploy_args.extend_from_slice(&args);
+        }
+        call_deploy(deploy_args)
+    }
 }
 
 fn call_deploy<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(args: I) -> Result<Address> {

@@ -5,7 +5,7 @@
 mod integration_test {
     use alloy::{primitives::address, sol};
     use eyre::Result;
-    use stylus_tools::devnet::{Node, DEVNET_PRIVATE_KEY};
+    use stylus_tools::devnet::Node;
 
     sol! {
         #[sol(rpc)]
@@ -20,7 +20,7 @@ mod integration_test {
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
-        let address = stylus_tools::deploy(rpc, DEVNET_PRIVATE_KEY)?;
+        let address = stylus_tools::Deployer::new(rpc.to_owned()).deploy()?;
         println!("Deployed contract to {address}");
         let provider = devnode.create_provider().await?;
         let contract = IContract::IContractInstance::new(address, provider);
