@@ -1,66 +1,6 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::{fs, path::PathBuf};
-
-use alloy::{
-    network::EthereumWallet,
-    primitives::FixedBytes,
-    providers::{Provider, ProviderBuilder, WalletProvider},
-    signers::{
-        local::{LocalSigner, PrivateKeySigner},
-        Signer,
-    },
-};
-use eyre::{eyre, Context};
-
-use crate::{constants::DEFAULT_ENDPOINT, utils::decode0x};
-
-#[derive(Debug, clap::Args)]
-pub struct AuthArgs {
-    /// File path to a text file containing a hex-encoded private key
-    #[arg(long)]
-    private_key_path: Option<PathBuf>,
-    /// Private key as a hex string. Warning: this exposes your key to shell history
-    #[arg(long)]
-    private_key: Option<String>,
-    /// Path to an Ethereum wallet keystore file (e.g. clef)
-    #[arg(long)]
-    keystore_path: Option<String>,
-    /// Keystore password file
-    #[arg(long)]
-    keystore_password_path: Option<PathBuf>,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct BuildArgs {
-    /// Specifies the features to use when building the Stylus binary.
-    #[arg(long)]
-    pub features: Option<String>,
-    /// The path to source files to include in the project hash, which is included in the contract
-    /// deployment init code transaction to be used for verification of deployment integrity.
-    ///
-    /// If not provided, all .rs files and Cargo.toml and Cargo.lock files in project's directory
-    /// tree are included.
-    // TODO: where is this default set?
-    #[arg(long)]
-    source_files_for_project_hash: Vec<String>,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct DataFeeArgs {
-    /// Percent to bump the estimated activation data fee by
-    #[arg(long("data-fee-bump-percent"), default_value = "20")]
-    pub bump_percent: u64,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct ProviderArgs {
-    /// Arbitrum RPC endpoint
-    #[arg(short, long, default_value = DEFAULT_ENDPOINT)]
-    endpoint: String,
-}
-
 impl AuthArgs {
     fn build_wallet(&self, chain_id: u64) -> eyre::Result<EthereumWallet> {
         if let Some(key) = &self.private_key {

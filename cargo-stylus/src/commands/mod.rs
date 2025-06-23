@@ -69,7 +69,7 @@ pub async fn exec(cmd: Command) -> CargoStylusResult {
         Command::Build(args) => build::exec(args),
         Command::Cache(args) => cache::exec(args),
         Command::Cgen(args) => cgen::exec(args),
-        Command::Check(args) => check::exec(args),
+        Command::Check(args) => check::exec(args).await,
         Command::Constructor(args) => constructor::exec(args),
         Command::Deploy(args) => deploy::exec(args),
         Command::ExportAbi(args) => export_abi::exec(args),

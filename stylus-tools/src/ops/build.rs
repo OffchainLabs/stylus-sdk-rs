@@ -1,25 +1,35 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::path::{Path, PathBuf};
+use std::{path::PathBuf, str::FromStr};
 
-use cargo_metadata::{MetadataCommand, Package};
+use cargo_metadata::MetadataCommand;
+use cargo_util_schemas::manifest::PackageName;
+use eyre::eyre;
 
-use crate::Result;
+use crate::{core::build::Build, Result};
 
-/// Build a Rust project to WASM and return the path to the compiled WASM file.
-pub fn build_contract(package: &Package) -> Result<PathBuf> {
-    todo!("return path")
-}
-
-/// Build contracts in a workspace
-pub fn build_workspace(cargo_manifest_path: impl AsRef<Path>) -> Result<Vec<Result<PathBuf>>> {
-    let metadata = MetadataCommand::new()
-        .manifest_path(cargo_manifest_path.as_ref())
-        .exec()?;
+/// Build contracts in a workspace.
+pub fn build(features: Option<String>) -> Result<Vec<Result<PathBuf>>> {
+    let metadata = MetadataCommand::new().exec()?;
     Ok(metadata
         .workspace_default_packages()
         .into_iter()
-        .map(build_contract)
+        .map(|p| Ok(Build::contract(p)?.features(&features).exec()?))
         .collect())
+}
+
+/// Build a Stylus contract to WASM and return the path to the compiled WASM file.
+pub fn build_contract(package_name: impl AsRef<str>) -> eyre::Result<PathBuf> {
+    let package_name = PackageName::from_str(package_name.as_ref())?;
+
+    let metadata = MetadataCommand::new().exec()?;
+    let package = metadata
+        .packages
+        .into_iter()
+        .find(|p| p.name == package_name)
+        .ok_or(eyre!("could not find contract: {package_name}"))?;
+
+    let wasm_path = Build::contract(&package)?.exec()?;
+    Ok(wasm_path)
 }

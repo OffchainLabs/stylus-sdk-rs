@@ -26,4 +26,8 @@ pub enum Error {
     // TODO: better error formatting
     #[error("command failed (exit code: {code:?})", code = .0.exit_code)]
     CommandFailure(crate::core::message::ProcessOutput),
+    #[error("{0}")]
+    Build(#[from] crate::core::build::BuildError),
+    #[error("{0}")]
+    Toolchain(#[from] crate::utils::toolchain::ToolchainError),
 }

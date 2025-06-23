@@ -41,3 +41,19 @@ pub struct ProcessOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
 }
+
+impl ProcessOutput {
+    pub fn check(process_name: impl Into<String>, output: Output) -> Result<String> {
+        let process_output = ProcessOutput {
+            process_name: process_name.into(),
+            stdout: String::from_utf8(output.stdout)?,
+            stderr: String::from_utf8(output.stderr)?,
+            exit_code: output.status.code(),
+        };
+        if output.status.success() {
+            Ok(process_output.stdout)
+        } else {
+            Err(Error::CommandFailure(process_output))
+        }
+    }
+}

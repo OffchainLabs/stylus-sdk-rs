@@ -7,7 +7,6 @@
 #[macro_use]
 mod macros;
 
-pub mod build;
 pub mod core;
 pub(crate) mod error;
 pub mod manifest;

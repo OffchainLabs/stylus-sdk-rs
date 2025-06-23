@@ -1,11 +1,17 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::error::CargoStylusResult;
+use stylus_tools::ops;
+
+use crate::{common_args::BuildArgs, error::CargoStylusResult};
 
 #[derive(Debug, clap::Args)]
-pub struct Args {}
+pub struct Args {
+    #[command(flatten)]
+    build: BuildArgs,
+}
 
-pub fn exec(_args: Args) -> CargoStylusResult {
+pub fn exec(args: Args) -> CargoStylusResult {
+    ops::build(args.build.features)?;
     Ok(())
 }

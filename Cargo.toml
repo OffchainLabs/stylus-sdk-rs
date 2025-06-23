@@ -39,7 +39,7 @@ prettyplease = "0.2.22"
 trybuild = "1.0"
 
 # stylus tools
-alloy = { version = "1.0.1", features = ["signer-keystore"] }
+alloy = { version = "1.0.1", features = ["json-rpc", "signer-keystore"] }
 eyre = "0.6"
 reqwest = "0.12"
 testcontainers = { version = "0.23", features = ["http_wait"] }

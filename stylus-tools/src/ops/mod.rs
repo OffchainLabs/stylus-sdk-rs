@@ -2,7 +2,8 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 pub use activate::{activate_contract, activation_estimate_gas};
-pub use build::{build_contract, build_workspace};
+pub use build::{build, build_contract};
+pub use check::{check, check_wasm_file};
 pub use deploy::deploy;
 pub use export_abi::export_abi;
 pub use init::{init, init_contract, init_workspace};

@@ -5,6 +5,7 @@
 
 use std::{fs, io, path::Path};
 
+use alloy::primitives::B256;
 use wasmparser::BinaryReaderError;
 
 use crate::utils::wasm;
@@ -44,6 +45,12 @@ pub fn process_wasm_file(
 pub struct ProcessedWasm {
     pub wasm: Vec<u8>,
     pub code: Vec<u8>,
+}
+
+impl ProcessedWasm {
+    pub fn codehash(&self) -> B256 {
+        alloy::primitives::keccak256(&self.code)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

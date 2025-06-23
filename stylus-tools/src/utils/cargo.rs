@@ -1,22 +1,27 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::{ffi::OsStr, fs, path::Path, process::Stdio};
+use std::{
+    ffi::OsStr,
+    fs,
+    path::{Path, PathBuf},
+    process::Stdio,
+};
 
 use cargo_metadata::MetadataCommand;
-use escargot::Cargo;
+use escargot::{format::Message, Cargo, CommandMessages};
 
-use crate::Result;
+use crate::{core::message::ProcessOutput, Result};
 
 pub fn new(path: impl AsRef<Path>) -> Result<()> {
     let mut cmd = Cargo::new().into_command();
-    let _status = cmd
+    let output = cmd
         .args(["new", "--lib"])
         .arg(path.as_ref())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .status()?;
-    // TODO: check status
+        .output()?;
+    ProcessOutput::check("cargo new", output)?;
     Ok(())
 }
 
@@ -25,15 +30,26 @@ pub fn add(
     sources: impl IntoIterator<Item = impl AsRef<OsStr>>,
 ) -> Result<()> {
     let mut cmd = Cargo::new().into_command();
-    let _status = cmd
+    let output = cmd
         .arg("add")
         .args(sources)
         .current_dir(path)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .status()?;
-    // TODO: check status
+        .output()?;
+    ProcessOutput::check("cargo add", output)?;
     Ok(())
+}
+
+pub fn version() -> Result<String> {
+    let mut cmd = Cargo::new().into_command();
+    let output = cmd
+        .arg("version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .output()?;
+    let version = ProcessOutput::check("cargo version", output)?;
+    Ok(version)
 }
 
 pub fn is_workspace_root(path: impl AsRef<Path>) -> Result<bool> {
@@ -41,4 +57,22 @@ pub fn is_workspace_root(path: impl AsRef<Path>) -> Result<bool> {
     let metadata = MetadataCommand::new().exec()?;
     let workspace_root = fs::canonicalize(metadata.workspace_root)?;
     Ok(path == workspace_root)
+}
+
+pub fn parse_messages_for_filename(
+    messages: CommandMessages,
+    target: impl AsRef<OsStr>,
+) -> escargot::error::CargoResult<Option<PathBuf>> {
+    let target = target.as_ref();
+    let maybe_path = messages.into_iter().find_map(|msg| {
+        if let Message::CompilerArtifact(artifact) = msg.ok()?.decode().ok()? {
+            artifact
+                .filenames
+                .into_iter()
+                .find_map(|path| (path.file_name() == Some(target)).then(|| path.to_path_buf()))
+        } else {
+            None
+        }
+    });
+    Ok(maybe_path)
 }

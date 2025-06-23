@@ -25,8 +25,7 @@ pub async fn contract(
 ) -> Result<TransactionReceipt, ActivationError> {
     let code = provider.get_code_at(address).await?;
     let from_address = provider.default_signer_address();
-    let data_fee = data_fee(code, address, &provider).await?;
-    let data_fee = bump_data_fee(data_fee, data_fee_bump_percent);
+    let data_fee = data_fee(code, address, data_fee_bump_percent, &provider).await?;
 
     let receipt = precompiles::arb_wasm(&provider)
         .activateProgram(address)
@@ -42,14 +41,15 @@ pub async fn contract(
 
 /// Checks Stylus contract activation, returning the data fee.
 pub async fn data_fee(
-    code: Bytes,
+    code: impl Into<Bytes>,
     address: Address,
+    bump_percent: u64,
     provider: impl Provider,
 ) -> Result<U256, ActivationError> {
     let arbwasm = precompiles::arb_wasm(provider);
     let random_sender_addr = Address::random();
     let spoofed_sender_account = AccountOverride::default().with_balance(U256::MAX);
-    let spoofed_code = AccountOverride::default().with_code(code.clone());
+    let spoofed_code = AccountOverride::default().with_code(code);
     let state_override = StateOverride::from_iter([
         (address, spoofed_code),
         (random_sender_addr, spoofed_sender_account),
@@ -63,7 +63,7 @@ pub async fn data_fee(
         .call()
         .await?;
 
-    Ok(result.dataFee)
+    Ok(bump_data_fee(result.dataFee, bump_percent))
 }
 
 /// Estimate gas cost for Stylus contract activation.
@@ -74,8 +74,7 @@ pub async fn estimate_gas(
 ) -> Result<u64, ActivationError> {
     let code = provider.get_code_at(address).await?;
     let from_address = provider.default_signer_address();
-    let data_fee = data_fee(code, address, &provider).await?;
-    let data_fee = bump_data_fee(data_fee, data_fee_bump_percent);
+    let data_fee = data_fee(code, address, data_fee_bump_percent, &provider).await?;
 
     let gas = precompiles::arb_wasm(&provider)
         .activateProgram(address)

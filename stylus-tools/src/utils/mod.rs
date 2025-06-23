@@ -20,6 +20,7 @@ pub mod cargo;
 pub mod color;
 pub(crate) mod docker;
 pub(crate) mod git;
+pub(crate) mod toolchain;
 pub(crate) mod wasm;
 
 /// Pretty-prints a file size based on its limits.
