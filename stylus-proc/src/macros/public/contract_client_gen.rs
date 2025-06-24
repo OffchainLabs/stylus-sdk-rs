@@ -7,7 +7,7 @@ use quote::quote;
 use sha3::{Digest, Keccak256};
 use syn::spanned::Spanned;
 
-use crate::{consts::STYLUS_CONTRACT_ADDRESS_FIELD, imports::alloy_sol_types::SolType};
+use crate::{consts::STYLUS_CONTRACT_ADDRESS_FIELD, imports::alloy_sol_types::SolType, imports::stylus_sdk::abi::AbiType};
 
 fn get_context_and_call(
     first_input: Option<&syn::FnArg>,
@@ -81,7 +81,7 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
 
             let (inputs_types, inputs_names) = get_inputs_types_and_names(inputs.clone());
 
-            let rust_output_type = match output {
+            let output_type = match output {
                 syn::ReturnType::Type(_, ty) => {
                     if let syn::Type::Path(syn::TypePath { path, .. }) = &**ty {
                         quote! { #path }
@@ -127,12 +127,12 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
                     &self,
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: #context, #(#inputs,)*
-                ) -> Result<<#rust_output_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
-                    let inputs = <(#(#inputs_types,)*) as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
+                ) -> Result<<<#output_type as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
+                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                     calldata.extend(inputs);
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
-                    Ok(<#rust_output_type as #SolType>::abi_decode_params(&call_result)?.0)
+                    Ok(<<#output_type as #AbiType>::SolType as #SolType>::abi_decode_params(&call_result)?)
                 }
             })
         } else {
