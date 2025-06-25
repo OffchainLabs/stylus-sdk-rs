@@ -69,8 +69,6 @@ pub mod methods;
 pub mod prelude;
 pub mod storage;
 
-mod util;
-
 #[cfg(feature = "hostio")]
 pub mod hostio;
 
