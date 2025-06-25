@@ -21,7 +21,6 @@ use types::{
 
 mod attrs;
 mod types;
-mod contract_client_gen;
 
 cfg_if! {
     if #[cfg(feature = "export-abi")] {
@@ -45,7 +44,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut output: proc_macro2::TokenStream;
     if cfg!(feature = "contract-client-gen") {
-        output = contract_client_gen::generate_client(public_impl);
+        output = public_impl.contract_client_gen();
     } else {
         output = item_impl.into_token_stream();
         public_impl.to_tokens(&mut output);
