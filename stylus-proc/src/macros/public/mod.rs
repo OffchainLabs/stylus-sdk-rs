@@ -42,12 +42,12 @@ cfg_if! {
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     check_attr_is_empty(attr);
     let mut item_impl = parse_macro_input!(input as syn::ItemImpl);
+    let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
 
     let mut output: proc_macro2::TokenStream;
     if cfg!(feature = "contract-client-gen") {
-        output = contract_client_gen::generate_client(item_impl);
+        output = contract_client_gen::generate_client(public_impl);
     } else {
-        let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
         output = item_impl.into_token_stream();
         public_impl.to_tokens(&mut output);
     }
@@ -210,6 +210,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
             has_self,
             inputs,
             input_span,
+            output: node.sig.output.clone(),
             output_span,
 
             extension,
@@ -221,10 +222,15 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
     fn from(node: &syn::FnArg) -> Self {
         match node {
             syn::FnArg::Typed(pat_type) => {
-                let extension = E::build(node);
-                Self {
-                    ty: *pat_type.ty.clone(),
-                    extension,
+                match &*pat_type.pat {
+                    syn::Pat::Ident(pat_ident) => {
+                        Self {
+                            name: pat_ident.ident.clone(),
+                            ty: *pat_type.ty.clone(),
+                            extension: E::build(node),
+                        }
+                    }
+                    _ => unreachable!(),
                 }
             }
             _ => unreachable!(),
