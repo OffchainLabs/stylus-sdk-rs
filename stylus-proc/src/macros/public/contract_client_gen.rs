@@ -54,10 +54,10 @@ fn get_inputs_types_and_names<'a>(
                     inputs_types.push(quote! { #ty });
                     inputs_names.push(pat_ident.ident.clone());
                 } else {
-                    emit_error!(input.span(), "Expected identifier in function argument");
+                    emit_error!(pat_type.span(), "Expected identifier in function argument");
                 }
             }
-            _ => panic!("Expected typed argument"),
+            _ => emit_error!(input.span(), "Expected typed argument"),
         }
     }
     (inputs_types, inputs_names)
@@ -86,7 +86,8 @@ pub fn generate_client(item_impl: syn::ItemImpl) -> proc_macro2::TokenStream {
                     if let syn::Type::Path(syn::TypePath { path, .. }) = &**ty {
                         quote! { #path }
                     } else {
-                        panic!("Expected path type in return type");
+                        emit_error!(ty.span(), "Expected path type in return type");
+                        quote! { () }
                     }
                 }
                 syn::ReturnType::Default => {
