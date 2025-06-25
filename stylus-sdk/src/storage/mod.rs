@@ -218,41 +218,41 @@ where
     gen_int_wrap_ops! {
         /// Add to the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        wrapping_add,
+        update_wrap_sub,
 
         /// Subtract the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        wrapping_sub,
+        update_wrap_sub,
 
         /// Divide the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        wrapping_div,
+        update_wrap_div,
 
         /// Multiply the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        wrapping_mul,
+        update_wrap_mul,
 
         /// Set the modulo of the value, panicking if rhs is 0.
         /// Returns the new value.
-        wrapping_rem
+        update_wrap_rem
     }
 
     gen_int_checked_ops! {
         /// Add to the underlying value, returning None if overflow.
-        checked_add,
+        update_check_add,
 
         /// Subtract from the underlying value, returning None if overflow.
-        checked_sub,
+        update_check_sub,
 
         /// Divide the underlying value, returning None if overflow.
-        checked_div,
+        update_check_div,
 
         /// Multiply the underlying value, returning None if overflow.
-        checked_mul,
+        update_check_mul,
 
         /// Set the modulo of the value, returning None if overflow or rhs
         /// is 0.
-        checked_rem,
+        update_check_rem,
     }
 }
 
