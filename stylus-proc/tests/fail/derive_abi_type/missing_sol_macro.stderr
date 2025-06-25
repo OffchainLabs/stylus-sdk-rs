@@ -1,3 +1,55 @@
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `alloc`
+ --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
+  |
+9 | #[derive(AbiType)]
+  |          ^^^^^^^ use of unresolved module or unlinked crate `alloc`
+  |
+  = help: add `extern crate alloc` to use the `alloc` crate
+  = note: this error originates in the derive macro `AbiType` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0432]: unresolved import `alloc`
+ --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
+  |
+9 | #[derive(AbiType)]
+  |          ^^^^^^^
+  |
+  = note: this error originates in the derive macro `AbiType` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `export` in `abi`
+ --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
+  |
+9 | #[derive(AbiType)]
+  |          ^^^^^^^ could not find `export` in `abi`
+  |
+note: found an item that was configured out
+ --> $WORKSPACE/stylus-sdk/src/abi/mod.rs
+  |
+  | pub mod export;
+  |         ^^^^^^
+note: the item is gated behind the `export-abi` feature
+ --> $WORKSPACE/stylus-sdk/src/abi/mod.rs
+  |
+  | #[cfg(feature = "export-abi")]
+  |       ^^^^^^^^^^^^^^^^^^^^^^
+  = note: this error originates in the derive macro `AbiType` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this struct
+  |
+6  + use syn_solidity::kw::internal;
+   |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `alloc`
+ --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
+  |
+9 | #[derive(AbiType)]
+  |          ^^^^^^^ use of unresolved module or unlinked crate `alloc`
+  |
+  = help: add `extern crate alloc` to use the `alloc` crate
+  = note: this error originates in the derive macro `AbiType` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this module
+  |
+6 + use std::vec;
+  |
+
 error[E0277]: the trait bound `MyStruct: SolType` is not satisfied
  --> tests/fail/derive_abi_type/missing_sol_macro.rs:9:10
   |
