@@ -189,6 +189,7 @@ pub struct PublicFn<E: FnExtension> {
     pub has_self: bool,
     pub inputs: Vec<PublicFnArg<E::FnArgExt>>,
     pub input_span: Span,
+    pub output: syn::ReturnType,
     pub output_span: Span,
 
     #[allow(dead_code)]
@@ -196,15 +197,22 @@ pub struct PublicFn<E: FnExtension> {
 }
 
 impl<E: FnExtension> PublicFn<E> {
+    pub fn function_selector(&self) -> syn::Expr {
+        let sol_name = syn::LitStr::new(&self.sol_name.as_string(), self.sol_name.span());
+        let arg_types = self.arg_types();
+        parse_quote! {
+            function_selector!(#sol_name #(, #arg_types )*)
+        }
+    }
+
     pub fn selector_name(&self) -> syn::Ident {
         syn::Ident::new(&format!("__SELECTOR_{}", self.name), self.name.span())
     }
 
     fn selector_value(&self) -> syn::Expr {
-        let sol_name = syn::LitStr::new(&self.sol_name.as_string(), self.sol_name.span());
-        let arg_types = self.arg_types();
+        let function_selector = self.function_selector();
         parse_quote! {
-            u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*))
+            u32::from_be_bytes(#function_selector)
         }
     }
 
@@ -357,6 +365,7 @@ impl<E: FnExtension> PublicFn<E> {
 
 pub struct PublicFnArg<E: FnArgExtension> {
     pub ty: syn::Type,
+    pub name: syn::Ident,
     #[allow(dead_code)]
     pub extension: E,
 }
