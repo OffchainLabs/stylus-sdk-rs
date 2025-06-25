@@ -238,20 +238,24 @@ where
     }
 
     gen_int_checked_ops! {
-        /// Add to the underlying value, returning None if overflow.
+        /// Add to the underlying value, only setting if the value does not
+        /// overflow. Returns the value if set.
         update_check_add,
 
-        /// Subtract from the underlying value, returning None if overflow.
+        /// Subtract from the underlying value, only setting if the value does not
+        /// overflow. Returns the value if set.
         update_check_sub,
 
-        /// Divide the underlying value, returning None if overflow.
+        /// Divide the underlying value, only setting if the value does not
+        /// overflow. Returns the value if set.
         update_check_div,
 
-        /// Multiply the underlying value, returning None if overflow.
+        /// Divide the underlying value, only setting if the value does not
+        /// overflow. Returns the value if set.
         update_check_mul,
 
         /// Set the modulo of the value, returning None if overflow or rhs
-        /// is 0.
+        /// is 0, only setting if the value would be Some. Returns the result.
         update_check_rem,
     }
 }
