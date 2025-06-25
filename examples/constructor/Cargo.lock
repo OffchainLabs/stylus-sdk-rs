@@ -3888,6 +3888,7 @@ name = "stylus-tools"
 version = "0.9.0"
 dependencies = [
  "alloy",
+ "cfg-if",
  "eyre",
  "regex",
  "reqwest",

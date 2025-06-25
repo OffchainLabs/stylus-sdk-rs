@@ -9,7 +9,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node, DEVNET_PRIVATE_KEY};
+    use stylus_tools::devnet::{addresses::OWNER, Node};
 
     sol! {
         #[sol(rpc)]
@@ -26,9 +26,10 @@ mod integration_test {
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
-        let args = &["0xbeef"];
-        let address =
-            stylus_tools::deploy_with_constructor(rpc, DEVNET_PRIVATE_KEY, "12.34", args)?;
+        let address = stylus_tools::Deployer::new(rpc.to_owned())
+            .with_constructor_args(vec!["0xbeef".to_owned()])
+            .with_constructor_value("12.34".to_owned())
+            .deploy()?;
         println!("Deployed contract to {address}");
         let provider = devnode.create_provider().await?;
 
