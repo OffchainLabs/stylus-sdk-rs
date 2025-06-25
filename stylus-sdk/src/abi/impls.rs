@@ -372,7 +372,11 @@ mod tests {
         input.extend([1, 2, 3, 4]);
         input.extend([0u8; 32]);
         input.extend([5, 6, 7, 8]);
-        let value = (Bytes::from(input), Bytes::new(), Bytes::from(vec![1, 2, 3, 4]));
+        let value = (
+            Bytes::from(input),
+            Bytes::new(),
+            Bytes::from(vec![1, 2, 3, 4]),
+        );
 
         let encoded = hex!(
             "0000000000000000000000000000000000000000000000000000000000000060"
