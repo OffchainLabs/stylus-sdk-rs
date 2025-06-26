@@ -6,45 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IErc721  {
-    function name() external pure returns (string memory);
-
-    function symbol() external pure returns (string memory);
-
-    function tokenURI(uint256 token_id) external view returns (string memory);
-
-    function balanceOf(address owner) external view returns (uint256);
-
-    function ownerOf(uint256 token_id) external view returns (address);
-
-    function safeTransferFrom(address from, address to, uint256 token_id, bytes calldata data) external;
-
-    function safeTransferFrom(address from, address to, uint256 token_id) external;
-
-    function transferFrom(address from, address to, uint256 token_id) external;
-
-    function approve(address approved, uint256 token_id) external;
-
-    function setApprovalForAll(address operator, bool approved) external;
-
-    function getApproved(uint256 token_id) external returns (address);
-
-    function isApprovedForAll(address owner, address operator) external returns (bool);
-
-    function supportsInterface(bytes4 _interface) external pure returns (bool);
-
-    error InvalidTokenId(uint256);
-
-    error NotOwner(address, uint256, address);
-
-    error NotApproved(address, address, uint256);
-
-    error TransferToZero(uint256);
-
-    error ReceiverRefused(address, uint256, bytes4);
-}
-
-interface IStylusTestNFT is IErc721  {
+interface IStylusTestNFT  {
     function mint() external;
 
     function mintTo(address to) external;

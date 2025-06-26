@@ -11,12 +11,15 @@
 //!
 //! Note that this code is unaudited and not fit for production use.
 
+use crate::ierc721::{
+    Erc721Error, InvalidTokenId, NotApproved, NotOwner, ReceiverRefused, TransferToZero,
+};
 use alloc::vec;
-use alloy_primitives::{Address, FixedBytes, U256};
+use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
+use stylus_sdk::prelude::*;
 use stylus_sdk::stylus_core::calls::Call;
-use stylus_sdk::{abi::Bytes, prelude::*};
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -47,32 +50,11 @@ sol_storage! {
     }
 }
 
-// Declare events and Solidity error types
+// Declare Solidity events
 sol! {
     event Transfer(address indexed from, address indexed to, uint256 indexed token_id);
     event Approval(address indexed owner, address indexed approved, uint256 indexed token_id);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-
-    // Token id has not been minted, or it has been burned
-    error InvalidTokenId(uint256 token_id);
-    // The specified address is not the owner of the specified token id
-    error NotOwner(address from, uint256 token_id, address real_owner);
-    // The specified address does not have allowance to spend the specified token id
-    error NotApproved(address owner, address spender, uint256 token_id);
-    // Attempt to transfer token id to the Zero address
-    error TransferToZero(uint256 token_id);
-    // The receiver address refused to receive the specified token id
-    error ReceiverRefused(address receiver, uint256 token_id, bytes4 returned);
-}
-
-/// Represents the ways methods may fail.
-#[derive(SolidityError)]
-pub enum Erc721Error {
-    InvalidTokenId(InvalidTokenId),
-    NotOwner(NotOwner),
-    NotApproved(NotApproved),
-    TransferToZero(TransferToZero),
-    ReceiverRefused(ReceiverRefused),
 }
 
 // External interfaces
