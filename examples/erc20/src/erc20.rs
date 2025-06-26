@@ -12,6 +12,7 @@
 //! Note that this code is unaudited and not fit for production use.
 
 // Imported packages
+use crate::ierc20::{Erc20Error, InsufficientAllowance, InsufficientBalance};
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
 use core::marker::PhantomData;
@@ -28,6 +29,12 @@ pub trait Erc20Params {
     const DECIMALS: u8;
 }
 
+// Declare Solidity event types
+sol! {
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
 sol_storage! {
     /// Erc20 implements all ERC-20 methods.
     pub struct Erc20<T> {
@@ -40,22 +47,6 @@ sol_storage! {
         /// Used to allow [`Erc20Params`]
         PhantomData<T> phantom;
     }
-}
-
-// Declare events and Solidity error types
-sol! {
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-    error InsufficientBalance(address from, uint256 have, uint256 want);
-    error InsufficientAllowance(address owner, address spender, uint256 have, uint256 want);
-}
-
-/// Represents the ways methods may fail.
-#[derive(SolidityError)]
-pub enum Erc20Error {
-    InsufficientBalance(InsufficientBalance),
-    InsufficientAllowance(InsufficientAllowance),
 }
 
 // These methods aren't exposed to other contracts
@@ -142,7 +133,6 @@ impl<T: Erc20Params> Erc20<T> {
 }
 
 // These methods are public to other contracts
-// Note: modifying storage will become much prettier soon
 #[public]
 impl<T: Erc20Params> Erc20<T> {
     /// Immutable token name
