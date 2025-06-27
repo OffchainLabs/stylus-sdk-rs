@@ -37,7 +37,6 @@ default = []
 export-abi = ["stylus-sdk/export-abi"]
 reentrant = []
 stylus-test = ["stylus-sdk/stylus-test"]
-contract-client-gen = []
 
 [package.metadata.docs.rs]
 features = ["export-abi"]
