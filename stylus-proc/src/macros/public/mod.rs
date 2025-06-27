@@ -5,7 +5,7 @@ use cfg_if::cfg_if;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
-use quote::ToTokens;
+use quote::{ToTokens, quote};
 use syn::{parse_macro_input, spanned::Spanned};
 
 use crate::{
@@ -42,13 +42,12 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut item_impl = parse_macro_input!(input as syn::ItemImpl);
     let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
 
-    let mut output: proc_macro2::TokenStream;
-    if cfg!(feature = "contract-client-gen") {
-        output = public_impl.contract_client_gen();
-    } else {
-        output = item_impl.into_token_stream();
-        public_impl.to_tokens(&mut output);
-    }
+    let mut output = quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
+    };
+    output.extend(item_impl.into_token_stream());
+    output.extend(public_impl.contract_client_gen());
+    public_impl.to_tokens(&mut output);
     output.into()
 }
 
@@ -211,18 +210,14 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
 impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
     fn from(node: &syn::FnArg) -> Self {
         match node {
-            syn::FnArg::Typed(pat_type) => {
-                match &*pat_type.pat {
-                    syn::Pat::Ident(pat_ident) => {
-                        Self {
-                            name: pat_ident.ident.clone(),
-                            ty: *pat_type.ty.clone(),
-                            extension: E::build(node),
-                        }
-                    }
-                    _ => unreachable!(),
-                }
-            }
+            syn::FnArg::Typed(pat_type) => match &*pat_type.pat {
+                syn::Pat::Ident(pat_ident) => Self {
+                    name: pat_ident.ident.clone(),
+                    ty: *pat_type.ty.clone(),
+                    extension: E::build(node),
+                },
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         }
     }

@@ -4,7 +4,7 @@
 use cfg_if::cfg_if;
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::{abort, emit_error};
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
@@ -28,7 +28,8 @@ pub fn entrypoint(
 }
 
 pub fn struct_with_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
-    let field: syn::Field = parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
+    let field: syn::Field =
+        parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
     let mut named_fields = Punctuated::<syn::Field, Comma>::new();
     named_fields.push(field);
 
@@ -51,22 +52,22 @@ struct Entrypoint {
 }
 impl Parse for Entrypoint {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut item: syn::Item = input.parse()?;
+        let item: syn::Item = input.parse()?;
         let kind = match item {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
-            syn::Item::Struct(ref mut item) => {
-                if cfg!(feature = "contract-client-gen") {
-                    match struct_with_stylus_contract_address(item) {
-                        Err(e) => return Err(e),
-                        Ok(_) => (),
-                    }
+            syn::Item::Struct(item) => {
+                let mut item_contract_client_gen = item.clone();
+                match struct_with_stylus_contract_address(&mut item_contract_client_gen) {
+                    Err(e) => return Err(e),
+                    Ok(_) => (),
                 }
 
                 EntrypointKind::Struct(EntrypointStruct {
                     top_level_storage_impl: top_level_storage_impl(&item),
                     struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
                     print_from_args_fn: print_from_args_fn(&item.ident),
-                    item: item.clone(),
+                    item,
+                    item_contract_client_gen,
                 })
             }
             _ => abort!(item, "not a struct or fn"),
@@ -82,9 +83,7 @@ impl Parse for Entrypoint {
 impl ToTokens for Entrypoint {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.kind.to_tokens(tokens);
-        if !cfg!(feature = "contract-client-gen") {
-            self.user_entrypoint_fn.to_tokens(tokens);
-        }
+        self.user_entrypoint_fn.to_tokens(tokens);
     }
 }
 
@@ -122,14 +121,13 @@ struct EntrypointFn {
 
 impl ToTokens for EntrypointFn {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        if !cfg!(feature = "contract-client-gen") {
-            self.item.to_tokens(tokens);
-        }
+        self.item.to_tokens(tokens);
     }
 }
 
 struct EntrypointStruct {
     item: syn::ItemStruct,
+    item_contract_client_gen: syn::ItemStruct,
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
     print_from_args_fn: Option<syn::ItemFn>,
@@ -137,12 +135,26 @@ struct EntrypointStruct {
 
 impl ToTokens for EntrypointStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
         self.item.to_tokens(tokens);
-        if !cfg!(feature = "contract-client-gen") {
-            self.top_level_storage_impl.to_tokens(tokens);
-            self.struct_entrypoint_fn.to_tokens(tokens);
-            self.print_from_args_fn.to_tokens(tokens);
-        }
+        tokens.extend(quote! {
+            #[cfg(feature = "contract-client-gen")]
+        });
+        self.item_contract_client_gen.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
+        self.top_level_storage_impl.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
+        self.struct_entrypoint_fn.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
+        self.print_from_args_fn.to_tokens(tokens);
     }
 }
 

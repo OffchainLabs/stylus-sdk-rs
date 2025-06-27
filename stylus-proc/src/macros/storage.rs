@@ -23,11 +23,6 @@ pub fn storage(
         );
     }
 
-    // If the `contract-client-gen` feature is enabled, we skip the macro expansion.
-    if cfg!(feature = "contract-client-gen") {
-        return input.into();
-    }
-
     let item = parse_macro_input!(input as ItemStruct);
     let ItemStruct {
         attrs,
@@ -89,6 +84,7 @@ impl Storage {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         let size = TokenStream::from_iter(self.fields.iter().map(StorageField::size));
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics #name #ty_generics #where_clause {
                 const fn required_slots() -> usize {
                     use stylus_sdk::storage;
@@ -111,6 +107,7 @@ impl Storage {
             self.fields.iter().filter_map(StorageField::init),
         );
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::storage::StorageType for #name #ty_generics #where_clause {
                 type Wraps<'a> = stylus_sdk::storage::StorageGuard<'a, Self> where Self: 'a;
                 type WrapsMut<'a> = stylus_sdk::storage::StorageGuardMut<'a, Self> where Self: 'a;
@@ -149,6 +146,7 @@ impl Storage {
         cfg_if::cfg_if! {
             if #[cfg(feature = "stylus-test")] {
                 parse_quote! {
+                    #[cfg(not(feature = "contract-client-gen"))]
                     impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
                         fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
                             self.__stylus_host.host.as_ref()
@@ -157,6 +155,7 @@ impl Storage {
                 }
             } else {
                 parse_quote! {
+                    #[cfg(not(feature = "contract-client-gen"))]
                     impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
                         fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
                             &self.__stylus_host
@@ -170,6 +169,7 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::stylus_core::host::ValueDenier for #name #ty_generics #where_clause {
                 fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>> {
                     if self.vm().msg_value() == stylus_sdk::alloy_primitives::U256::ZERO {
@@ -185,6 +185,7 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::stylus_core::host::ConstructorGuard for #name #ty_generics #where_clause {
                 fn check_constructor_slot(&self) -> Result<(), Vec<u8>> {
                     let mut slot = unsafe {
@@ -215,6 +216,7 @@ impl Storage {
                 new_generics.params.push(host_param);
                 let (impl_generics, _, _) = new_generics.split_for_impl();
                 Some(parse_quote! {
+                    #[cfg(not(feature = "contract-client-gen"))]
                     impl #impl_generics From<&__StylusHostType> for #name #ty_generics #where_clause {
                         fn from(host: &__StylusHostType) -> Self {
                             unsafe {
@@ -373,6 +375,7 @@ impl StorageField {
         let Self { ty, accessor, .. } = self;
         self.borrow.then(|| {
             parse_quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
                 impl core::borrow::Borrow<#ty> for #name {
                     fn borrow(&self) -> &#ty {
                         &self.#accessor
@@ -386,6 +389,7 @@ impl StorageField {
         let Self { ty, accessor, .. } = self;
         self.borrow.then(|| {
             parse_quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
                 impl core::borrow::BorrowMut<#ty> for #name {
                     fn borrow_mut(&mut self) -> &mut #ty {
                         &mut self.#accessor
