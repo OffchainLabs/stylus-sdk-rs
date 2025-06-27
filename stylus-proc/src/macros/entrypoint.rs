@@ -57,10 +57,7 @@ impl Parse for Entrypoint {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
             syn::Item::Struct(item) => {
                 let mut item_contract_client_gen = item.clone();
-                match add_stylus_contract_address(&mut item_contract_client_gen) {
-                    Err(e) => return Err(e),
-                    Ok(_) => (),
-                }
+                add_stylus_contract_address(&mut item_contract_client_gen)?;
 
                 EntrypointKind::Struct(EntrypointStruct {
                     top_level_storage_impl: top_level_storage_impl(&item),
