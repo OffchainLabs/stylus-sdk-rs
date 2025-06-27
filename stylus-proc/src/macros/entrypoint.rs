@@ -151,9 +151,6 @@ impl ToTokens for EntrypointStruct {
             #[cfg(not(feature = "contract-client-gen"))]
         });
         self.struct_entrypoint_fn.to_tokens(tokens);
-        tokens.extend(quote! {
-            #[cfg(not(feature = "contract-client-gen"))]
-        });
         self.print_from_args_fn.to_tokens(tokens);
     }
 }
