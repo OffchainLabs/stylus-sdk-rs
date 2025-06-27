@@ -27,7 +27,7 @@ pub fn entrypoint(
     entrypoint.into_token_stream().into()
 }
 
-pub fn struct_with_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
+pub fn add_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
     let field: syn::Field =
         parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
     let mut named_fields = Punctuated::<syn::Field, Comma>::new();
@@ -57,7 +57,7 @@ impl Parse for Entrypoint {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
             syn::Item::Struct(item) => {
                 let mut item_contract_client_gen = item.clone();
-                match struct_with_stylus_contract_address(&mut item_contract_client_gen) {
+                match add_stylus_contract_address(&mut item_contract_client_gen) {
                     Err(e) => return Err(e),
                     Ok(_) => (),
                 }
