@@ -246,7 +246,7 @@ impl PublicImpl {
             });
         }
 
-        output.into()
+        output
     }
 }
 
