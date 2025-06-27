@@ -256,7 +256,7 @@ where
 
         /// Set the modulo of the value, returning None if overflow or rhs
         /// is 0, only setting if the value would be Some. Returns the result.
-        update_check_rem,
+        update_check_rem
     }
 }
 
