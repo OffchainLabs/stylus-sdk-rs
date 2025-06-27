@@ -143,13 +143,8 @@ impl ToTokens for EntrypointStruct {
             #[cfg(feature = "contract-client-gen")]
         });
         self.item_contract_client_gen.to_tokens(tokens);
-        tokens.extend(quote! {
-            #[cfg(not(feature = "contract-client-gen"))]
-        });
+
         self.top_level_storage_impl.to_tokens(tokens);
-        tokens.extend(quote! {
-            #[cfg(not(feature = "contract-client-gen"))]
-        });
         self.struct_entrypoint_fn.to_tokens(tokens);
         self.print_from_args_fn.to_tokens(tokens);
     }
@@ -159,12 +154,14 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
     let name = &item.ident;
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
     parse_quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
         unsafe impl #impl_generics stylus_sdk::stylus_core::storage::TopLevelStorage for #name #ty_generics #where_clause {}
     }
 }
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
         fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
             stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
@@ -180,6 +177,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
             let deny_reentrant = deny_reentrant();
             Some(parse_quote! {
                 #[no_mangle]
+                #[cfg(not(feature = "contract-client-gen"))]
                 pub extern "C" fn user_entrypoint(len: usize) -> usize {
                     let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
                     #deny_reentrant
