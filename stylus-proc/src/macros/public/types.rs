@@ -118,6 +118,7 @@ impl PublicImpl {
         };
 
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl<S, #generic_params> #Router<S, #iface> for #self_ty
             where
                 S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
@@ -225,6 +226,7 @@ impl PublicImpl {
         let struct_path = self.self_ty.clone();
 
         let mut output = quote! {
+            #[cfg(feature = "contract-client-gen")]
             impl #struct_path {
                 #client_funcs
             }
@@ -233,6 +235,7 @@ impl PublicImpl {
         // If the impl does not implement a trait, we add a constructor for the contract client
         if self.trait_.is_none() {
             output.extend(quote! {
+                #[cfg(feature = "contract-client-gen")]
                 impl #struct_path {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self {
