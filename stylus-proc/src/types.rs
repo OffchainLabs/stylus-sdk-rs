@@ -32,24 +32,18 @@ impl Purity {
 
     pub fn get_context_and_call(&self) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
         match self {
-            Purity::Pure | Purity::View => {
-                (
-                    quote!(stylus_sdk::stylus_core::calls::StaticCallContext),
-                    quote!(stylus_sdk::call::static_call),
-                )
-            }
-            Purity::Write => {
-                (
-                    quote!(stylus_sdk::stylus_core::calls::NonPayableCallContext),
-                    quote!(stylus_sdk::call::call),
-                )
-            }
-            Purity::Payable => {
-                (
-                    quote!(stylus_sdk::stylus_core::calls::MutatingCallContext),
-                    quote!(stylus_sdk::call::call),
-                )
-            }
+            Purity::Pure | Purity::View => (
+                quote!(stylus_sdk::stylus_core::calls::StaticCallContext),
+                quote!(stylus_sdk::call::static_call),
+            ),
+            Purity::Write => (
+                quote!(stylus_sdk::stylus_core::calls::NonPayableCallContext),
+                quote!(stylus_sdk::call::call),
+            ),
+            Purity::Payable => (
+                quote!(stylus_sdk::stylus_core::calls::MutatingCallContext),
+                quote!(stylus_sdk::call::call),
+            ),
         }
     }
 }
