@@ -5,7 +5,7 @@ use cfg_if::cfg_if;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use syn::{parse_macro_input, spanned::Spanned};
 
 use crate::{
