@@ -172,21 +172,26 @@ where
 }
 
 macro_rules! gen_int_wrap_ops {
-    ($( $(#[$docs:meta])* $name:ident ),* $(,)?) => {
-        $( $(#[$docs])*
-           pub fn $name(&mut self, v: Uint<B,L>) -> Uint<B,L> {
-               let x = self.get().$name(v); self.set(x); x
-           }
+    ($( $(#[$docs:meta])* $fn:ident => $op:ident ),* $(,)?) => {
+        $(
+            $(#[$docs])*
+            #[inline]
+            pub fn $fn(&mut self, v: Uint<B, L>) -> Uint<B, L> {
+                let x = self.get().$op(v);
+                self.set(x);
+                x
+            }
         )*
     };
 }
 
 macro_rules! gen_int_checked_ops {
-    ($( $(#[$doc:meta])* $name:ident ),* $(,)?) => {
+    ($( $(#[$docs:meta])* $fn:ident => $op:ident ),* $(,)?) => {
         $(
-            $(#[$doc])*
-            pub fn $name(&mut self, v: Uint<B, L>) -> Option<Uint<B, L>> {
-                let r = self.get().$name(v);
+            $(#[$docs])*
+            #[inline]
+            pub fn $fn(&mut self, v: Uint<B, L>) -> Option<Uint<B, L>> {
+                let r = self.get().$op(v);
                 if let Some(x) = r { self.set(x); }
                 r
             }
@@ -218,45 +223,45 @@ where
     gen_int_wrap_ops! {
         /// Add to the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        update_wrap_sub,
+        update_wrap_add => wrapping_add,
 
         /// Subtract the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        update_wrap_sub,
+        update_wrap_sub => wrapping_sub,
 
         /// Divide the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        update_wrap_div,
+        update_wrap_div => wrapping_div,
 
         /// Multiply the underlying value, wrapping around if overflow.
         /// Returns the new value.
-        update_wrap_mul,
+        update_wrap_mul => wrapping_mul,
 
         /// Set the modulo of the value, panicking if rhs is 0.
         /// Returns the new value.
-        update_wrap_rem
+        update_wrap_rem => wrapping_rem
     }
 
     gen_int_checked_ops! {
         /// Add to the underlying value, only setting if the value does not
         /// overflow. Returns the value if set.
-        update_check_add,
+        update_check_add => checked_add,
 
         /// Subtract from the underlying value, only setting if the value does not
         /// overflow. Returns the value if set.
-        update_check_sub,
+        update_check_sub => checked_sub,
 
         /// Divide the underlying value, only setting if the value does not
         /// overflow. Returns the value if set.
-        update_check_div,
+        update_check_div => checked_div,
 
         /// Divide the underlying value, only setting if the value does not
         /// overflow. Returns the value if set.
-        update_check_mul,
+        update_check_mul => checked_mul,
 
         /// Set the modulo of the value, returning None if overflow or rhs
         /// is 0, only setting if the value would be Some. Returns the result.
-        update_check_rem
+        update_check_rem => checked_rem
     }
 }
 
