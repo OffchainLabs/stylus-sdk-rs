@@ -124,7 +124,8 @@ impl InterfaceExtension for InterfaceAbi {
                     use stylus_sdk::abi::internal::write_solidity_returns;
                     use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                     use std::collections::HashSet;
-                    write!(f, "interface I{} {{", #name)?;
+                    write!(f, "interface I{}", #name)?;
+                    write!(f, "  {{")?;
                     #abi
                     #type_decls
                     writeln!(f, "}}")?;
