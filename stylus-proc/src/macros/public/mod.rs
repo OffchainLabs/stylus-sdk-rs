@@ -46,13 +46,15 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
         #[cfg(not(feature = "contract-client-gen"))]
     };
     output.extend(item_impl.into_token_stream());
-    output.extend(public_impl.contract_client_gen());
+
     public_impl.to_tokens(&mut output);
+
     output.into()
 }
 
 impl ToTokens for PublicImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(self.contract_client_gen());
         self.impl_router().to_tokens(tokens);
         if self.trait_.is_none() {
             Extension::codegen(self).to_tokens(tokens);
