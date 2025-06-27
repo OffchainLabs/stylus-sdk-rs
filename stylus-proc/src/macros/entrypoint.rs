@@ -8,8 +8,8 @@ use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
-    spanned::Spanned,
-    ItemStruct,
+    punctuated::Punctuated,
+    token::Comma,
 };
 
 use crate::consts::{ASSERT_OVERRIDES_FN, STRUCT_ENTRYPOINT_FN, STYLUS_CONTRACT_ADDRESS_FIELD};
@@ -27,53 +27,23 @@ pub fn entrypoint(
     entrypoint.into_token_stream().into()
 }
 
-fn struct_with_filtered_fields(item_struct: &ItemStruct) -> ItemStruct {
-    let ItemStruct {
-        attrs,
-        vis,
-        ident,
-        generics,
-        fields,
-        ..
-    } = item_struct;
+pub fn struct_with_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
+    let field: syn::Field =
+        parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
+    let mut named_fields = Punctuated::<syn::Field, Comma>::new();
+    named_fields.push(field);
 
-    let expanded_fields = match fields {
-        syn::Fields::Named(named_fields) => {
-            let original_fields = named_fields.named.clone();
-            let mut token_stream = quote! {
-                #[cfg(feature = "contract-client-gen")]
-                #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
-            };
-            for field in original_fields {
-                token_stream.extend(quote! {
-                    #[cfg(not(feature = "contract-client-gen"))]
-                    #field,
-                });
-            }
-            token_stream
+    match &mut item_struct.fields {
+        syn::Fields::Unnamed(_) => Err(syn::Error::new_spanned(
+            &item_struct.ident,
+            "[entrypoint] only supports named and unit structs.",
+        )),
+        _ => {
+            item_struct.fields = syn::Fields::Named(parse_quote! { { #named_fields } });
+            item_struct.semi_token = None; // Named structs do not have a semicolon at the end
+            Ok(())
         }
-        syn::Fields::Unnamed(_) => {
-            emit_error!(
-                fields.span(),
-                "Tuple structs are not supported by #[storage]"
-            );
-            item_struct.to_token_stream()
-        }
-        syn::Fields::Unit => {
-            quote! {
-                #[cfg(feature = "contract-client-gen")]
-                #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
-            }
-        }
-    };
-
-    let filtered_struct_item: syn::ItemStruct = parse_quote! {
-        #(#attrs)*
-        #vis struct #ident #generics {
-            #expanded_fields
-        }
-    };
-    filtered_struct_item
+    }
 }
 
 struct Entrypoint {
@@ -85,13 +55,22 @@ impl Parse for Entrypoint {
         let item: syn::Item = input.parse()?;
         let kind = match item {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
-            syn::Item::Struct(item) => EntrypointKind::Struct(EntrypointStruct {
-                top_level_storage_impl: top_level_storage_impl(&item),
-                struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
-                assert_overrides_const: assert_overrides_const(&item.ident),
-                print_from_args_fn: print_from_args_fn(&item.ident),
-                item: struct_with_filtered_fields(&item),
-            }),
+            syn::Item::Struct(item) => {
+                let mut item_contract_client_gen = item.clone();
+                match struct_with_stylus_contract_address(&mut item_contract_client_gen) {
+                    Err(e) => return Err(e),
+                    Ok(_) => (),
+                }
+
+                EntrypointKind::Struct(EntrypointStruct {
+                    top_level_storage_impl: top_level_storage_impl(&item),
+                    struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
+                    assert_overrides_const: assert_overrides_const(&item.ident),
+                    print_from_args_fn: print_from_args_fn(&item.ident),
+                    item,
+                    item_contract_client_gen,
+                })
+            }
             _ => abort!(item, "not a struct or fn"),
         };
 
@@ -149,6 +128,7 @@ impl ToTokens for EntrypointFn {
 
 struct EntrypointStruct {
     item: syn::ItemStruct,
+    item_contract_client_gen: syn::ItemStruct,
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
     assert_overrides_const: syn::ItemConst,
@@ -157,7 +137,14 @@ struct EntrypointStruct {
 
 impl ToTokens for EntrypointStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
         self.item.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(feature = "contract-client-gen")]
+        });
+        self.item_contract_client_gen.to_tokens(tokens);
         tokens.extend(quote! {
             #[cfg(not(feature = "contract-client-gen"))]
         });
@@ -170,6 +157,9 @@ impl ToTokens for EntrypointStruct {
             #[cfg(not(feature = "contract-client-gen"))]
         });
         self.assert_overrides_const.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
         self.print_from_args_fn.to_tokens(tokens);
     }
 }
