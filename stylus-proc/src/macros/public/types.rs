@@ -51,7 +51,6 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
     pub trait_: Option<syn::Path>,
-    pub inheritance: Vec<syn::Type>,
     pub implements: Vec<syn::Type>,
     pub funcs: Vec<PublicFn<E::FnExt>>,
     pub associated_types: Vec<(syn::Ident, syn::Type)>,
@@ -65,7 +64,6 @@ impl PublicImpl {
             self_ty,
             generic_params,
             where_clause,
-            inheritance,
             ..
         } = self;
         let function_iter = self
@@ -76,7 +74,6 @@ impl PublicImpl {
         let selector_arms = function_iter
             .map(PublicFn::selector_arm)
             .collect::<Vec<_>>();
-        let inheritance_routes = self.inheritance_routes();
 
         let fallback = call_special!(
             self,
@@ -123,9 +120,6 @@ impl PublicImpl {
             impl<S, #generic_params> #Router<S, #iface> for #self_ty
             where
                 S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
-                #(
-                    S: core::borrow::BorrowMut<#inheritance>,
-                )*
                 #where_clause
             {
                 type Storage = Self;
@@ -142,7 +136,6 @@ impl PublicImpl {
                         #(#selector_arms)*
                         _ => {
                             #(#implements_routes)*
-                            #(#inheritance_routes)*
                             None
                         }
                     }
@@ -171,16 +164,6 @@ impl PublicImpl {
         self.implements.iter().map(move |ty| {
             parse_quote! {
                 if let Some(result) = <#self_ty as #Router<S, dyn #ty>>::route(storage, selector, input) {
-                    return Some(result);
-                }
-            }
-        })
-    }
-
-    fn inheritance_routes(&self) -> impl Iterator<Item = syn::ExprIf> + '_ {
-        self.inheritance.iter().map(|ty| {
-            parse_quote! {
-                if let Some(result) = <#ty as #Router<S>>::route(storage, selector, input) {
                     return Some(result);
                 }
             }
