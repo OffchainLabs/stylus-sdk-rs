@@ -12,13 +12,6 @@ use quote::ToTokens;
 /// Name of the entrypoint function that is generated for struct-based contracts.
 pub const STRUCT_ENTRYPOINT_FN: ConstIdent = ConstIdent("__stylus_struct_entrypoint");
 
-/// Name of the associated function that can be called to assert safe overrides at compile-time.
-pub const ASSERT_OVERRIDES_FN: ConstIdent = ConstIdent("__stylus_assert_overrides");
-
-/// Name of the associated function that can be called to check safe overriding of a single
-/// function.
-pub const ALLOW_OVERRIDE_FN: ConstIdent = ConstIdent("__stylus_allow_override");
-
 pub const STYLUS_HOST_FIELD: ConstIdent = ConstIdent("__stylus_host");
 
 /// Definition of a constant identifier

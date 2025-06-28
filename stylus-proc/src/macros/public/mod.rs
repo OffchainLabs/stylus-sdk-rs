@@ -20,7 +20,6 @@ use types::{
 };
 
 mod attrs;
-mod overrides;
 mod types;
 
 cfg_if! {
@@ -52,7 +51,6 @@ impl ToTokens for PublicImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.impl_router().to_tokens(tokens);
         if self.trait_.is_none() {
-            self.impl_override_checks().to_tokens(tokens);
             Extension::codegen(self).to_tokens(tokens);
         }
     }
@@ -60,12 +58,6 @@ impl ToTokens for PublicImpl {
 
 impl From<&mut syn::ItemImpl> for PublicImpl {
     fn from(node: &mut syn::ItemImpl) -> Self {
-        // parse inheritance from #[inherits(...)] attribute
-        let mut inheritance = Vec::new();
-        if let Some(inherits) = consume_attr::<attrs::Inherit>(&mut node.attrs, "inherit") {
-            inheritance.extend(inherits.types);
-        }
-
         // parse traits from #[implements(...)] attribute
         let mut implements = Vec::new();
         if let Some(attr) = consume_attr::<attrs::Implements>(&mut node.attrs, "implements") {
@@ -110,7 +102,6 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             generic_params,
             where_clause,
             trait_,
-            inheritance,
             implements,
             funcs,
             associated_types,
@@ -259,18 +250,6 @@ mod tests {
         types::{FnKind, PublicImpl},
         verify_sol_name,
     };
-
-    #[test]
-    fn test_public_consumes_inherit() {
-        let mut impl_item = parse_quote! {
-            #[derive(Debug)]
-            #[inherit(Parent)]
-            impl Contract {
-            }
-        };
-        let _public = PublicImpl::from(&mut impl_item);
-        assert_eq!(impl_item.attrs, vec![parse_quote! { #[derive(Debug)] }]);
-    }
 
     #[test]
     fn test_public_consumes_payable() {

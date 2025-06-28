@@ -10,7 +10,7 @@ use syn::{
     parse_macro_input, parse_quote,
 };
 
-use crate::consts::{ASSERT_OVERRIDES_FN, STRUCT_ENTRYPOINT_FN};
+use crate::consts::STRUCT_ENTRYPOINT_FN;
 
 /// Implementation for the [`#[entrypoint]`][crate::entrypoint] macro.
 pub fn entrypoint(
@@ -37,7 +37,6 @@ impl Parse for Entrypoint {
             syn::Item::Struct(item) => EntrypointKind::Struct(EntrypointStruct {
                 top_level_storage_impl: top_level_storage_impl(&item),
                 struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
-                assert_overrides_const: assert_overrides_const(&item.ident),
                 print_from_args_fn: print_from_args_fn(&item.ident),
                 item,
             }),
@@ -100,7 +99,6 @@ struct EntrypointStruct {
     item: syn::ItemStruct,
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
-    assert_overrides_const: syn::ItemConst,
     print_from_args_fn: Option<syn::ItemFn>,
 }
 
@@ -109,7 +107,6 @@ impl ToTokens for EntrypointStruct {
         self.item.to_tokens(tokens);
         self.top_level_storage_impl.to_tokens(tokens);
         self.struct_entrypoint_fn.to_tokens(tokens);
-        self.assert_overrides_const.to_tokens(tokens);
         self.print_from_args_fn.to_tokens(tokens);
     }
 }
@@ -127,14 +124,6 @@ fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
         fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
             stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
-    }
-}
-
-fn assert_overrides_const(name: &Ident) -> syn::ItemConst {
-    parse_quote! {
-        const _: () = {
-            <#name>::#ASSERT_OVERRIDES_FN();
-        };
     }
 }
 

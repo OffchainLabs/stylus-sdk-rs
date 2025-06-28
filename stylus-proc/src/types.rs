@@ -16,16 +16,6 @@ pub enum Purity {
 }
 
 impl Purity {
-    /// How to reference this purity from inside a contract.
-    pub fn as_path(&self) -> syn::Path {
-        match self {
-            Purity::Pure => parse_quote!(stylus_sdk::methods::Purity::Pure),
-            Purity::View => parse_quote!(stylus_sdk::methods::Purity::View),
-            Purity::Write => parse_quote!(stylus_sdk::methods::Purity::Write),
-            Purity::Payable => parse_quote!(stylus_sdk::methods::Purity::Payable),
-        }
-    }
-
     /// Infer the purity of the function by inspecting the first argument. Also returns whether the
     /// function has a self parameter.
     pub fn infer(func: &syn::ImplItemFn) -> (Self, bool) {

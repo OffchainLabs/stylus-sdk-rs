@@ -7,21 +7,6 @@ use syn::{
     Token,
 };
 
-/// Inherit from parent contracts.
-///
-/// Used for the `#[inherit(Parent1, Parent2]` attribute.
-pub struct Inherit {
-    pub types: Punctuated<syn::Type, Token![,]>,
-}
-
-impl Parse for Inherit {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            types: Punctuated::parse_terminated(input)?,
-        })
-    }
-}
-
 /// Implement parent trait routes.
 ///
 /// Used for the `#[implements(Parent1, Parent2)` attribute.
