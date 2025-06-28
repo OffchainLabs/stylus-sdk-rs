@@ -26,6 +26,7 @@ impl PublicImpl {
         let inheritance_overrides = self.inheritance_overrides();
         let override_checks = self.override_checks();
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl<#generic_params> #self_ty where #where_clause {
                 /// Whether or not to allow overriding a selector by a child contract and method with
                 /// the given purity. This is currently implemented as a hidden function to allow it to
