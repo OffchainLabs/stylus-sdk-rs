@@ -7,8 +7,10 @@ extern crate alloc;
 
 // Modules and imports
 pub mod erc20;
+pub mod ierc20;
 
-use crate::erc20::{Erc20, Erc20Error, Erc20Params};
+use crate::erc20::{Erc20, Erc20Params};
+use crate::ierc20::{Erc20Error, IErc20};
 use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
 
@@ -26,14 +28,12 @@ impl Erc20Params for StylusTestTokenParams {
 sol_storage! {
     #[entrypoint]
     struct StylusTestToken {
-        // Allows erc20 to access StylusTestToken's storage and make calls
-        #[borrow]
         Erc20<StylusTestTokenParams> erc20;
     }
 }
 
 #[public]
-#[inherit(Erc20<StylusTestTokenParams>)]
+#[implements(IErc20)]
 impl StylusTestToken {
     /// Mints tokens
     pub fn mint(&mut self, value: U256) -> Result<(), Erc20Error> {
@@ -51,5 +51,49 @@ impl StylusTestToken {
     pub fn burn(&mut self, value: U256) -> Result<(), Erc20Error> {
         self.erc20.burn(self.vm().msg_sender(), value)?;
         Ok(())
+    }
+}
+
+#[public]
+impl IErc20 for StylusTestToken {
+    fn name(&self) -> String {
+        Erc20::<StylusTestTokenParams>::name()
+    }
+
+    fn symbol(&self) -> String {
+        Erc20::<StylusTestTokenParams>::symbol()
+    }
+
+    fn decimals(&self) -> u8 {
+        Erc20::<StylusTestTokenParams>::decimals()
+    }
+
+    fn total_supply(&self) -> U256 {
+        self.erc20.total_supply()
+    }
+
+    fn balance_of(&self, owner: Address) -> U256 {
+        self.erc20.balance_of(owner)
+    }
+
+    fn transfer(&mut self, to: Address, value: U256) -> Result<bool, Erc20Error> {
+        self.erc20.transfer(to, value)
+    }
+
+    fn transfer_from(
+        &mut self,
+        from: Address,
+        to: Address,
+        value: U256,
+    ) -> Result<bool, Erc20Error> {
+        self.erc20.transfer_from(from, to, value)
+    }
+
+    fn approve(&mut self, spender: Address, value: U256) -> bool {
+        self.erc20.approve(spender, value)
+    }
+
+    fn allowance(&self, owner: Address, spender: Address) -> U256 {
+        self.erc20.allowance(owner, spender)
     }
 }

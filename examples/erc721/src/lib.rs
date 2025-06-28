@@ -7,9 +7,11 @@ extern crate alloc;
 
 // Modules and imports
 pub mod erc721;
+pub mod ierc721;
 
-use crate::erc721::{Erc721, Erc721Error, Erc721Params};
-use alloy_primitives::{Address, U256};
+use crate::erc721::{Erc721, Erc721Params};
+use crate::ierc721::{Erc721Error, IErc721};
+use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
 use stylus_sdk::prelude::*;
 
@@ -36,7 +38,7 @@ sol_storage! {
 }
 
 #[public]
-#[inherit(Erc721<StylusTestNFTParams>)]
+#[implements(IErc721)]
 impl StylusTestNFT {
     /// Mints an NFT
     pub fn mint(&mut self) -> Result<(), Erc721Error> {
@@ -61,5 +63,87 @@ impl StylusTestNFT {
     /// Total supply
     pub fn total_supply(&mut self) -> Result<U256, Erc721Error> {
         Ok(self.erc721.total_supply.get())
+    }
+}
+
+#[public]
+impl IErc721 for StylusTestNFT {
+    fn name(&self) -> Result<String, Erc721Error> {
+        Erc721::<StylusTestNFTParams>::name()
+    }
+
+    fn symbol(&self) -> Result<String, Erc721Error> {
+        Erc721::<StylusTestNFTParams>::symbol()
+    }
+
+    #[selector(name = "tokenURI")]
+    fn token_uri(&self, token_id: U256) -> Result<String, Erc721Error> {
+        self.erc721.token_uri(token_id)
+    }
+
+    fn balance_of(&self, owner: Address) -> Result<U256, Erc721Error> {
+        self.erc721.balance_of(owner)
+    }
+
+    fn owner_of(&self, token_id: U256) -> Result<Address, Erc721Error> {
+        self.erc721.owner_of(token_id)
+    }
+
+    #[selector(name = "safeTransferFrom")]
+    fn safe_transfer_from_with_data(
+        &mut self,
+        from: Address,
+        to: Address,
+        token_id: U256,
+        data: Bytes,
+    ) -> Result<(), Erc721Error> {
+        Erc721::<StylusTestNFTParams>::safe_transfer_from_with_data(self, from, to, token_id, data)
+    }
+
+    #[selector(name = "safeTransferFrom")]
+    fn safe_transfer_from(
+        &mut self,
+        from: Address,
+        to: Address,
+        token_id: U256,
+    ) -> Result<(), Erc721Error> {
+        Erc721::<StylusTestNFTParams>::safe_transfer_from(self, from, to, token_id)
+    }
+
+    fn transfer_from(
+        &mut self,
+        from: Address,
+        to: Address,
+        token_id: U256,
+    ) -> Result<(), Erc721Error> {
+        self.erc721.transfer_from(from, to, token_id)
+    }
+
+    fn approve(&mut self, approved: Address, token_id: U256) -> Result<(), Erc721Error> {
+        self.erc721.approve(approved, token_id)
+    }
+
+    fn set_approval_for_all(
+        &mut self,
+        operator: Address,
+        approved: bool,
+    ) -> Result<(), Erc721Error> {
+        self.erc721.set_approval_for_all(operator, approved)
+    }
+
+    fn get_approved(&mut self, token_id: U256) -> Result<Address, Erc721Error> {
+        self.erc721.get_approved(token_id)
+    }
+
+    fn is_approved_for_all(
+        &mut self,
+        owner: Address,
+        operator: Address,
+    ) -> Result<bool, Erc721Error> {
+        self.erc721.is_approved_for_all(owner, operator)
+    }
+
+    fn supports_interface(&self, interface: FixedBytes<4>) -> Result<bool, Erc721Error> {
+        Erc721::<StylusTestNFTParams>::supports_interface(interface)
     }
 }
