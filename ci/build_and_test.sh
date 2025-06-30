@@ -25,4 +25,4 @@ FEATURES=$(echo $FEATURES | tr ' ' ',')
 echo "testing features: $FEATURES"
 
 cargo check --locked -F $FEATURES
-cargo test -F $FEATURES
+cargo test --no-default-features -F $FEATURES
