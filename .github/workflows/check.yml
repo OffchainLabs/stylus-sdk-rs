@@ -5,11 +5,9 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-
 env:
   rust_stable: 1.87.0
   rust_nightly: nightly-2025-06-26
-
 jobs:
   fmt:
     runs-on: ubuntu-latest

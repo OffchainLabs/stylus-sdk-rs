@@ -5,122 +5,108 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-
 env:
   rust_stable: 1.87.0
   rust_nightly: nightly-2025-06-26
-
 jobs:
   setup-cargo-stylus:
     name: Setup Cargo Stylus
     runs-on: ubuntu-latest
     steps:
-    - name: Install Rust toolchain
-      shell: bash
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        source "$HOME/.cargo/env"
-
-    - name: Install cargo-stylus
-      shell: bash
-      run: |
-        RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
-
-    - name: Archive cargo-stylus binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: cargo-stylus-binary
-        path: ~/.cargo/bin/cargo-stylus
-        retention-days: 1 # Keep artifact for 1 day
-
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+          sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source "$HOME/.cargo/env"
+      - name: Install cargo-stylus
+        shell: bash
+        run: |
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
+      - name: Archive cargo-stylus binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin/cargo-stylus
+          retention-days: 1 # Keep artifact for 1 day
   integration-test-example:
     name: Integration Test (Example ${{ matrix.test }})
     runs-on: ubuntu-latest
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        test: 
-        - "abi_decode"
-        - "abi_encode"
-        - "arrays"
-        - "call"
-        - "constants"
-        - "constructor"
-        - "delegate_call"
-        - "encoding_and_hashing"
-        - "erc20"
-        - "erc721"
-        - "errors"
-        - "events"
-        - "fallback_receive"
-        - "first_app"
-        - "function"
-        - "hello_world"
-        - "mapping"
-        - "nested_structs"
-        - "primitive_data_types"
-        - "sending_ether"
-        - "single_call"
-        - "storage_data_types"
-        - "test"
-        - "variables"
-        - "verify_signature"
+        test:
+          - "abi_decode"
+          - "abi_encode"
+          - "arrays"
+          - "call"
+          - "constants"
+          - "constructor"
+          - "delegate_call"
+          - "encoding_and_hashing"
+          - "erc20"
+          - "erc721"
+          - "errors"
+          - "events"
+          - "fallback_receive"
+          - "first_app"
+          - "function"
+          - "hello_world"
+          - "mapping"
+          - "nested_structs"
+          - "primitive_data_types"
+          - "sending_ether"
+          - "single_call"
+          - "storage_data_types"
+          - "test"
+          - "variables"
+          - "verify_signature"
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Install Rust toolchain and add wasm target
-      shell: bash
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        source "$HOME/.cargo/env"
-        rustup target add wasm32-unknown-unknown
-
-    - name: Download cargo-stylus binary
-      uses: actions/download-artifact@v4
-      with:
-        name: cargo-stylus-binary
-        path: ~/.cargo/bin
-
-    - name: Make cargo-stylus executable
-      shell: bash
-      run: chmod +x ~/.cargo/bin/cargo-stylus
-
-    - name: Run integration tests for ${{ matrix.test }}
-      shell: bash
-      run: ./ci/integration_test.sh --example ${{ matrix.test }}
-
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Rust toolchain and add wasm target
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+          sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source "$HOME/.cargo/env"
+          rustup target add wasm32-unknown-unknown
+      - name: Download cargo-stylus binary
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin
+      - name: Make cargo-stylus executable
+        shell: bash
+        run: chmod +x ~/.cargo/bin/cargo-stylus
+      - name: Run integration tests for ${{ matrix.test }}
+        shell: bash
+        run: ./ci/integration_test.sh --example ${{ matrix.test }}
   integration-test-stylus-tools:
     name: Integration Test (Stylus Tools)
     runs-on: ubuntu-latest
     needs: setup-cargo-stylus
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Install Rust toolchain and add wasm target
-      shell: bash
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        source "$HOME/.cargo/env"
-        rustup target add wasm32-unknown-unknown
-
-    - name: Download cargo-stylus binary
-      uses: actions/download-artifact@v4
-      with:
-        name: cargo-stylus-binary
-        path: ~/.cargo/bin
-
-    - name: Make cargo-stylus executable
-      shell: bash
-      run: chmod +x ~/.cargo/bin/cargo-stylus
-
-    - name: Run integration tests for Stylus Tools
-      shell: bash
-      run: ./ci/integration_test.sh --stylus-tools
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Rust toolchain and add wasm target
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+          sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source "$HOME/.cargo/env"
+          rustup target add wasm32-unknown-unknown
+      - name: Download cargo-stylus binary
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin
+      - name: Make cargo-stylus executable
+        shell: bash
+        run: chmod +x ~/.cargo/bin/cargo-stylus
+      - name: Run integration tests for Stylus Tools
+        shell: bash
+        run: ./ci/integration_test.sh --stylus-tools

@@ -1,5 +1,4 @@
-name: Smoke Test 
-
+name: Smoke Test
 on:
   pull_request:
   workflow_dispatch:
@@ -7,11 +6,9 @@ on:
     branches:
       - main
       - ci-testing
-
 env:
   rust_stable: 1.87.0
   rust_nightly: nightly-2025-06-26
-
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
@@ -34,18 +31,14 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
           sh rustup-init.sh -y --default-toolchain ${{ matrix.cfg_release_channel }}
           rustup target add ${{ matrix.target }}
-          
       - name: Cargo stylus
         run: |
           RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
-          
       - uses: OffchainLabs/actions/run-nitro-test-node@main
         with:
           nitro-testnode-ref: release
           no-token-bridge: true
           # no-simple must be false for now as our nitro testnode branch doesn't have that option
           no-simple: false
-          
-      - name: Smoke Test Deployment 
+      - name: Smoke Test Deployment
         run: ./ci/smoke_test.sh
-        
