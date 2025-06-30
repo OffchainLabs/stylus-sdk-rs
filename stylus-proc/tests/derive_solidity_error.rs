@@ -34,6 +34,7 @@ impl Contract {
     }
 }
 
+#[cfg(feature = "trybuild-tests")]
 #[test]
 fn test_derive_solidity_error_failures() {
     let t = trybuild::TestCases::new();
