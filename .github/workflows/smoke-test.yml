@@ -42,7 +42,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.87.0, nightly-2025-06-26]
+        toolchain: [1.88.0, nightly-2025-06-26]
     steps:
       - name: checkout
         uses: actions/checkout@v3
