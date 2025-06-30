@@ -108,12 +108,6 @@ pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Because the layout is identical to [Solidity's][solidity], existing Solidity smart contracts can
 /// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type definitions.
 ///
-/// Note that one exception to this storage layout guarantee is contracts which utilize
-/// inheritance. The current solution in Stylus using `#[borrow]` and `#[inherits(...)]` packs
-/// nested (inherited) structs into their own slots. This is consistent with regular struct nesting
-/// in solidity, but not inherited structs. We plan to revisit this behavior in an upcoming
-/// release.
-///
 /// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling might use.
 /// Most developers don't need to worry about this though and can freely order their types when working on a
 /// Rust contract from scratch.
@@ -512,10 +506,6 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// contract. Like Solidity, function overloading for constructors is not supported. Constructors may be
 /// annotated with the [`#[payable]`][payable] attribute if they are supposed to receive Ether.
 ///
-/// The SDK does not automatically call the constructor of inherited contracts. You must explicitly call them in
-/// the child contract constructor. If the child contract doesn't define a constructor, the SDK won't attempt to
-/// call the parent contract constructor.
-///
 /// The constructor must receive the self parameter, and it can have any number of other parameters. The values
 /// for these parameters will be passed to the constructor when deploying the contract. The constructor should
 /// return no value or a result value with a unit type and a vector of bytes (`Result<(), Vec<u8>>`). If the
@@ -558,81 +548,6 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// even this one if the `reentrant` feature is enabled.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
-///
-/// # Inheritance, `#[inherit]`, and `#[borrow]`
-///
-/// Composition in Rust follows that of Solidity. Types that implement [`Router`], the trait that
-/// [`#[public]`][public] provides, can be connected via inheritance.
-///
-/// ```
-/// # extern crate alloc;
-/// # use alloy_primitives::U256;
-/// # use stylus_proc::{entrypoint, public, storage};
-/// # use stylus_sdk::prelude::*;
-/// # #[entrypoint] #[storage] struct Token { #[borrow] erc20: Erc20, }
-/// #[public]
-/// #[inherit(Erc20)]
-/// impl Token {
-///     pub fn mint(&mut self, amount: U256) -> Result<(), Vec<u8>> {
-///         // ...
-/// #       Ok(())
-///     }
-/// }
-///
-/// #[storage] struct Erc20;
-/// #[public]
-/// impl Erc20 {
-///     pub fn balance_of() -> Result<U256, Vec<u8>> {
-///         // ...
-/// #       Ok(U256::ZERO)
-///     }
-/// }
-/// ```
-///
-/// Because `Token` inherits `Erc20` in the above, if `Token` has the [`#[entrypoint]`][entrypoint], calls to the
-/// contract will first check if the requested method exists within `Token`. If a matching function is not found,
-/// it will then try the `Erc20`. Only after trying everything `Token` inherits will the call revert.
-///
-/// Note that because methods are checked in that order, if both implement the same method, the one in `Token`
-/// will override the one in `Erc20`, which won't be callable. This allows for patterns where the developer
-/// imports a crate implementing a standard, like ERC 20, and then adds or overrides just the methods they
-/// want to without modifying the imported `Erc20` type.
-///
-/// Stylus does not currently contain explicit `override` or `virtual` keywords for explicitly
-/// marking override functions. It is important, therefore, to carefully ensure that contracts are
-/// only overriding the functions.
-///
-/// Inheritance can also be chained. `#[inherit(Erc20, Erc721)]` will inherit both `Erc20` and `Erc721`, checking
-/// for methods in that order. `Erc20` and `Erc721` may also inherit other types themselves. Method resolution
-/// finds the first matching method by [`Depth First Search`][dfs].
-///
-/// Note that for the above to work, Token must implement [`Borrow<Erc20>`][Borrow] and
-/// [`BorrowMut<Erc20>`][BorrowMut]. You can implement this yourself, but for simplicity,
-/// [`#[storage]`][storage] and [`sol_storage!`][sol_storage] provide a
-/// `#[borrow]` annotation.
-///
-/// ```
-/// # extern crate alloc;
-/// # use stylus_sdk::prelude::*;
-/// # use stylus_proc::{entrypoint, public, sol_storage};
-/// sol_storage! {
-///     #[entrypoint]
-///     pub struct Token {
-///         #[borrow]
-///         Erc20 erc20;
-///     }
-///
-///     pub struct Erc20 {
-///         uint256 total;
-///     }
-/// }
-/// # #[public] impl Token {}
-/// # #[public] impl Erc20 {}
-/// ```
-///
-/// In the future we plan to simplify the SDK so that [`Borrow`][Borrow] isn't needed and so that
-/// [`Router`] composition is more configurable. The motivation for this becomes clearer in complex
-/// cases of multi-level inheritance, which we intend to improve.
 ///
 /// # Exporting a Solidity interface
 ///
