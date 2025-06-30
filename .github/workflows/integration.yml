@@ -85,6 +85,13 @@ jobs:
       - name: Make cargo-stylus executable
         shell: bash
         run: chmod +x ~/.cargo/bin/cargo-stylus
+      - name: Replace rust toolchain file
+        env:
+          file: ./examples/${{ workflow.example }}/rust-toolchain.toml
+        run: |
+          echo "[toolchain]" > ${{ env.file }}
+          echo "channel = \"${{ matrix.toolchain }}\"" >> ${{ env.file }}
+          echo ${{ env.file }}
       - name: Run integration tests for ${{ matrix.test }}
         shell: bash
         run: ./ci/integration_test.sh --example ${{ matrix.test }}
