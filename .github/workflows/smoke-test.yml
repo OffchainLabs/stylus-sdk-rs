@@ -6,31 +6,23 @@ on:
     branches:
       - main
       - ci-testing
-env:
-  rust_stable: 1.87.0
-  rust_nightly: nightly-2025-06-26
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
-    name: 'Test (Smoke)(${{ matrix.cfg_release_channel }})'
+    name: smoke-test ${{ matrix.toolchain }}
     env:
-      CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
-      PRIV_KEY: ${{ secrets.SEPOLIA_PRIVATE_KEY }}
+      CFG_RELEASE_CHANNEL: ${{ matrix.toolchain }}
     strategy:
       matrix:
-        target:
-          - wasm32-unknown-unknown
-        cfg_release_channel:
-          - ${{ env.rust_stable }}
-          - ${{ env.rust_nightly }}
+        toolchain: [1.87.0, nightly-2025-06-26]
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: install rustup
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-          sh rustup-init.sh -y --default-toolchain ${{ matrix.cfg_release_channel }}
-          rustup target add ${{ matrix.target }}
+      - name: Install ${{ matrix.toolchain }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          targets: wasm32-unknown-unknown
       - name: Cargo stylus
         run: |
           RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus

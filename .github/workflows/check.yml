@@ -5,13 +5,9 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-env:
-  rust_stable: 1.87.0
-  rust_nightly: nightly-2025-06-26
 jobs:
   fmt:
     runs-on: ubuntu-latest
-    name: stable / fmt
     steps:
       - uses: actions/checkout@v3
         with:
@@ -19,7 +15,6 @@ jobs:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.rust_stable }}
           components: rustfmt
       - name: cargo fmt --check
         uses: actions-rs/cargo@v1
@@ -28,11 +23,11 @@ jobs:
           args: --check
   clippy:
     runs-on: ubuntu-latest
-    name: ${{ matrix.toolchain }} / clippy
+    name: clippy (${{ matrix.toolchain }})
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable, beta]
+        toolchain: [1.87.0, nightly-2025-06-26]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -46,7 +41,6 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
   yamlfmt:
     runs-on: ubuntu-latest
-    name: yamlfmt
     steps:
       - uses: actions/checkout@v3
       - name: yamlfmt
