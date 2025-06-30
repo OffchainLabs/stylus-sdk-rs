@@ -11,12 +11,21 @@ jobs:
     steps:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+      - name: Get latest cargo-stylus version
+        id: get-version
+        shell: bash
+        run: |
+          version=$(cargo info cargo-stylus -q | grep '^version:' | cut -d ' ' -f2)
+          echo "cargo-stylus-version=$version" >> "$GITHUB_OUTPUT"
       - name: Cache cargo stylus
+        id: cache
         uses: actions/cache@v4
         with:
+          key: cargo-stylus-${{ steps.get-version.outputs.cargo-stylus-version }}
           path: |
             ~/.cargo/bin/cargo-stylus
       - name: Install cargo-stylus
+        if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
