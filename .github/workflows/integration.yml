@@ -86,8 +86,9 @@ jobs:
         shell: bash
         run: chmod +x ~/.cargo/bin/cargo-stylus
       - name: Replace rust toolchain file
+        shell: bash
         run: |
-          FILE=./examples/${{ workflow.example }}/rust-toolchain.toml
+          FILE=./examples/${{ matrix.example }}/rust-toolchain.toml
           echo "[toolchain]" > $FILE
           echo "channel = \"${{ matrix.toolchain }}\"" >> $FILE
           echo $FILE
