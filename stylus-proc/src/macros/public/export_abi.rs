@@ -25,7 +25,6 @@ impl InterfaceExtension for InterfaceAbi {
             generic_params,
             self_ty,
             where_clause,
-            inheritance,
             funcs,
             ..
         } = iface;
@@ -49,18 +48,6 @@ impl InterfaceExtension for InterfaceAbi {
                 }
             }
         };
-
-        // write the "is" clause in Solidity
-        let mut is_clause = match inheritance.is_empty() {
-            true => quote! {},
-            false => quote! { write!(f, " is ")?; },
-        };
-        is_clause.extend(inheritance.iter().enumerate().map(|(i, ty)| {
-            let comma = (i > 0).then_some(", ").unwrap_or_default();
-            quote! {
-                write!(f, "{}I{}", #comma, <#ty as GenerateAbi>::NAME)?;
-            }
-        }));
 
         let mut abi = TokenStream::new();
         for func in funcs {
@@ -137,12 +124,7 @@ impl InterfaceExtension for InterfaceAbi {
                     use stylus_sdk::abi::internal::write_solidity_returns;
                     use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                     use std::collections::HashSet;
-                    #(
-                        <#inheritance as GenerateAbi>::fmt_abi(f)?;
-                        writeln!(f)?;
-                    )*
                     write!(f, "interface I{}", #name)?;
-                    #is_clause
                     write!(f, "  {{")?;
                     #abi
                     #type_decls
