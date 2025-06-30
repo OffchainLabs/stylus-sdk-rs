@@ -38,7 +38,7 @@ jobs:
           retention-days: 1 # Keep artifact for 1 day
   smoke-test:
     runs-on: ubuntu-latest
-    name: smoke-test ${{ matrix.toolchain }}
+    name: smoke-test (${{ matrix.toolchain }})
     needs: setup-cargo-stylus
     strategy:
       matrix:
