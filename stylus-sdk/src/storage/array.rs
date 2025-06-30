@@ -91,7 +91,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Gets an accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
-    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
+    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<'_, S>> {
         let store = unsafe { self.accessor(index)? };
         Some(StorageGuard::new(store))
     }
@@ -99,7 +99,7 @@ impl<S: StorageType, const N: usize> StorageArray<S, N> {
     /// Gets a mutable accessor to the element at a given index, if it exists.
     /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
-    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
+    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<'_, S>> {
         let store = unsafe { self.accessor(index)? };
         Some(StorageGuardMut::new(store))
     }
