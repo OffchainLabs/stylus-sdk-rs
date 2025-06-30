@@ -76,6 +76,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           targets: wasm32-unknown-unknown
+          components: rustfmt
       - name: Download cargo-stylus binary
         uses: actions/download-artifact@v4
         with:
