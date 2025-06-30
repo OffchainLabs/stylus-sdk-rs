@@ -21,6 +21,17 @@ jobs:
         with:
           command: fmt
           args: --check
+  yamlfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: yamllint
+        uses: reviewdog/action-yamllint@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          fail_on_error: true
+      - name: yamlfmt
+        uses: yk-lab/yamlfmt-action@v1
   clippy:
     runs-on: ubuntu-latest
     name: clippy (${{ matrix.toolchain }})
@@ -39,9 +50,3 @@ jobs:
           components: clippy
       - name: cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-  yamlfmt:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: yamlfmt
-        uses: yk-lab/yamlfmt-action@v1
