@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  rust_stable: 1.87.0
+  rust_nightly: nightly-2025-06-26
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,10 +18,11 @@ jobs:
       CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
     strategy:
       matrix:
-        target: [
-          x86_64-unknown-linux-gnu,
-        ]
-        cfg_release_channel: [nightly, stable]
+        target:
+          - x86_64-unknown-linux-gnu
+        cfg_release_channel:
+          - ${{ env.rust_stable }}
+          - ${{ env.rust_nightly }}
 
     steps:
     - name: checkout
@@ -27,7 +32,7 @@ jobs:
     - name: install rustup
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain none
+        sh rustup-init.sh -y --default-toolchain ${{ matrix.cfg_release_channel }}
         rustup target add ${{ matrix.target }}
 
     - name: Build and Test

@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  rust_stable: 1.87.0
+  rust_nightly: nightly-2025-06-26
+
 jobs:
   setup-cargo-stylus:
     name: Setup Cargo Stylus
@@ -15,7 +19,7 @@ jobs:
       shell: bash
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain 1.87.0
+        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         source "$HOME/.cargo/env"
 
@@ -71,7 +75,7 @@ jobs:
       shell: bash
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain 1.87.0
+        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         source "$HOME/.cargo/env"
         rustup target add wasm32-unknown-unknown
@@ -102,7 +106,7 @@ jobs:
       shell: bash
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-        sh rustup-init.sh -y --default-toolchain 1.87.0
+        sh rustup-init.sh -y --default-toolchain ${{ env.rust_stable }}
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         source "$HOME/.cargo/env"
         rustup target add wasm32-unknown-unknown

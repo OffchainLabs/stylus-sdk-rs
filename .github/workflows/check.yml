@@ -1,3 +1,4 @@
+name: check
 on:
   push:
     branches:
@@ -5,7 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
-name: check
+env:
+  rust_stable: 1.87.0
+  rust_nightly: nightly-2025-06-26
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
         with:
           submodules: true
       - name: Install stable
-        uses: dtolnay/rust-toolchain@1.87
+        uses: dtolnay/rust-toolchain@${{ env.rust_stable }}
         with:
           components: rustfmt
       - name: cargo fmt --check
@@ -35,7 +39,7 @@ jobs:
         with:
           submodules: true
       - name: Install ${{ matrix.toolchain }}
-        uses: dtolnay/rust-toolchain@1.87
+        uses: dtolnay/rust-toolchain@${{ env.rust_stable }}
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy

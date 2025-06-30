@@ -8,6 +8,10 @@ on:
       - main
       - ci-testing
 
+env:
+  rust_stable: 1.87.0
+  rust_nightly: nightly-2025-06-26
+
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
@@ -17,15 +21,18 @@ jobs:
       PRIV_KEY: ${{ secrets.SEPOLIA_PRIVATE_KEY }}
     strategy:
       matrix:
-        target: [wasm32-unknown-unknown]
-        cfg_release_channel: [nightly, stable]
+        target:
+          - wasm32-unknown-unknown
+        cfg_release_channel:
+          - ${{ env.rust_stable }}
+          - ${{ env.rust_nightly }}
     steps:
       - name: checkout
         uses: actions/checkout@v3
       - name: install rustup
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-          sh rustup-init.sh -y --default-toolchain none
+          sh rustup-init.sh -y --default-toolchain ${{ matrix.cfg_release_channel }}
           rustup target add ${{ matrix.target }}
           
       - name: Cargo stylus
