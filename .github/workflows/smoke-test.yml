@@ -7,11 +7,30 @@ on:
       - main
       - ci-testing
 jobs:
+  setup-cargo-stylus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo stylus
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/cargo-stylus
+      - name: Install cargo-stylus
+        shell: bash
+        run: |
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
+      - name: Archive cargo-stylus binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin/cargo-stylus
+          retention-days: 1 # Keep artifact for 1 day
   smoke-test:
     runs-on: ubuntu-latest
     name: smoke-test ${{ matrix.toolchain }}
-    env:
-      CFG_RELEASE_CHANNEL: ${{ matrix.toolchain }}
+    needs: setup-cargo-stylus
     strategy:
       matrix:
         toolchain: [1.87.0, nightly-2025-06-26]
@@ -23,9 +42,14 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           targets: wasm32-unknown-unknown
-      - name: Cargo stylus
-        run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
+      - name: Download cargo-stylus binary
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin
+      - name: Make cargo-stylus executable
+        shell: bash
+        run: chmod +x ~/.cargo/bin/cargo-stylus
       - uses: OffchainLabs/actions/run-nitro-test-node@main
         with:
           nitro-testnode-ref: release

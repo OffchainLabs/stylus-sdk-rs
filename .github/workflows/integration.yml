@@ -11,10 +11,15 @@ jobs:
     steps:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo stylus
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/cargo-stylus
       - name: Install cargo-stylus
         shell: bash
         run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
       - name: Archive cargo-stylus binary
         uses: actions/upload-artifact@v4
         with:
