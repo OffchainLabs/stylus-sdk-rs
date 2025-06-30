@@ -44,3 +44,10 @@ jobs:
           components: clippy
       - name: cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+  yamlfmt:
+    runs-on: ubuntu-latest
+    name: yamlfmt
+    steps:
+      - uses: actions/checkout@v3
+      - name: yamlfmt
+        uses: yk-lab/yamlfmt-action@v1
