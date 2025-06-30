@@ -31,7 +31,7 @@ jobs:
           go install github.com/google/yamlfmt/cmd/yamlfmt@latest
       - name: run yamlfmt
         run: |
-          yamlfmt -dry .github
+          yamlfmt -lint .github
   clippy:
     runs-on: ubuntu-latest
     name: clippy (${{ matrix.toolchain }})
