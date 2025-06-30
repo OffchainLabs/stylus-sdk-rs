@@ -15,13 +15,13 @@ jobs:
         id: get-version
         shell: bash
         run: |
-          version=$(cargo info cargo-stylus -q | grep '^version:' | cut -d ' ' -f2)
-          echo "cargo-stylus-version=$version" >> "$GITHUB_OUTPUT"
+          version=$(cargo info cargo-stylus | grep 'version:' | awk 'NR==1 {print $2; exit}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Cache cargo stylus
         id: cache
         uses: actions/cache@v4
         with:
-          key: cargo-stylus-${{ steps.get-version.outputs.cargo-stylus-version }}
+          key: cargo-stylus-${{ steps.get-version.outputs.version }}
           path: |
             ~/.cargo/bin/cargo-stylus
       - name: Install cargo-stylus
