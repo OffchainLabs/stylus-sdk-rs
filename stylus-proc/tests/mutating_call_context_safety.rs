@@ -24,9 +24,9 @@ sol_interface! {
     }
 }
 
-#[entrypoint]
 #[storage]
-struct Contract {}
+#[entrypoint]
+pub struct Contract {}
 
 #[public]
 impl Contract {
