@@ -29,6 +29,7 @@ fn impl_erase(node: &syn::ItemStruct) -> syn::ItemImpl {
         });
 
     parse_quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
         impl #impl_generics stylus_sdk::storage::Erase for #name #ty_generics #where_clause {
             fn erase(&mut self) {
                 #(
