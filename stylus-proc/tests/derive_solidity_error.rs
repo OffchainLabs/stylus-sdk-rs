@@ -3,6 +3,9 @@
 
 #![allow(dead_code)]
 
+// contract-client-gen feature can generate code that makes some imports of this file unused
+#![allow(unused_imports)]
+
 extern crate alloc;
 
 use alloy_primitives::{Address, U256};
