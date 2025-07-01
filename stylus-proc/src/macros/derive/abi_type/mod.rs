@@ -53,6 +53,7 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
             });
         }
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics #AbiType for #name #ty_generics #where_clause {
                 type SolType = Self;
 
