@@ -1,8 +1,9 @@
 // Copyright 2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-// contract-client-gen feature can generate code that makes some imports of this file unused
+// contract-client-gen feature can generate code that makes some imports and struct's fields of this file unused
 #![allow(unused_imports)]
+#![allow(dead_code)]
 
 extern crate alloc;
 
