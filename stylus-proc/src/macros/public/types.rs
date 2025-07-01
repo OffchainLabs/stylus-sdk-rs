@@ -59,37 +59,86 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub extension: E,
 }
 
-fn extract_result_ok_type(output: &syn::ReturnType) -> Option<syn::Type> {
+fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
+    (
+        quote! {
+            Result<<<#ty as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
+        },
+        quote! {
+            Ok(<<#ty as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
+        },
+    )
+}
+
+fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, TokenStream) {
     match output {
-        syn::ReturnType::Default => None,
+        syn::ReturnType::Default => (
+            quote! { Result<(), stylus_sdk::stylus_core::calls::errors::Error> },
+            quote! { Ok(()) },
+        ),
         syn::ReturnType::Type(_, ty) => {
-            // Check if it's a path type (like Result<T, E>)
+            // Check if it's a path type (like Result<T, E> or ArbResult)
             let type_path = match ty.as_ref() {
                 syn::Type::Path(type_path) => type_path,
-                _ => return None,
+                _ => return get_default_output(ty),
             };
 
-            // Check if the path is "Result"
-            let segment = type_path.path.segments.last()?;
-            if segment.ident != "Result" {
-                return None;
-            }
-
-            // Extract the generic arguments
-            let args = match &segment.arguments {
-                syn::PathArguments::AngleBracketed(args) => args,
-                _ => return None,
+            // Check if the path is "Result" or "ArbResult"
+            let segment = match type_path.path.segments.last() {
+                Some(segment) => segment,
+                None => {
+                    emit_error!(
+                        ty.span(),
+                        "Expected a type path with segments, found none"
+                    );
+                    return get_default_output(ty);
+                }
             };
+            match segment.ident.to_string().as_str() {
+                "ArbResult" => {
+                    (
+                        quote! {
+                            stylus_sdk::ArbResult
+                        },
+                        quote! {
+                            use stylus_sdk::abi::internal::EncodableReturnType;
+                            EncodableReturnType::encode(call_result)
+                        },
+                    )
+                }
+                "Result" => {
+                    // Extract the generic arguments
+                    let args = match &segment.arguments {
+                        syn::PathArguments::AngleBracketed(args) => args,
+                        _ => {
+                            emit_error!(
+                                ty.span(),
+                                "Expected Result to have generic arguments, found none"
+                            );
+                            return get_default_output(ty);
+                        },
+                    };
 
-            // Get the first generic argument (T in Result<T, E>)
-            if args.args.is_empty() {
-                return None;
+                    // Get the first generic argument (T in Result<T, E>)
+                    if args.args.is_empty() {
+                        emit_error!(
+                            ty.span(),
+                            "Expected Result to have at least one generic argument"
+                        );
+                        return get_default_output(ty);
+                    }
+                    if let syn::GenericArgument::Type(ok_type) = &args.args[0] {
+                        get_default_output(ok_type)
+                    } else {
+                        emit_error!(
+                            ty.span(),
+                            "Expected Result to have a type as the first generic argument"
+                        );
+                        get_default_output(ty)
+                    }
+                }
+                _ => get_default_output(ty),
             }
-            if let syn::GenericArgument::Type(ok_type) = &args.args[0] {
-                return Some(ok_type.clone());
-            }
-
-            None
         }
     }
 }
@@ -229,20 +278,7 @@ impl PublicImpl {
                 quote! { #ty }
             });
 
-            let result_ok_type = extract_result_ok_type(&func.output);
-            let output_type = if let Some(ty) = result_ok_type {
-                quote! { #ty }
-            } else {
-                match &func.output {
-                    syn::ReturnType::Type(_, ty) => {
-                        let ty = ty.clone();
-                        quote! { #ty }
-                    }
-                    syn::ReturnType::Default => {
-                        quote! { () }
-                    }
-                }
-            };
+            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
 
             let function_selector = func.function_selector();
 
@@ -252,12 +288,14 @@ impl PublicImpl {
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
                     #(#inputs,)*
-                ) -> Result<<<#output_type as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
+                // ) -> Result<<<#output_type as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
+                ) -> #output_type {
                     let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     use stylus_sdk::function_selector;
                     let mut calldata = #function_selector;
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
-                    Ok(<<#output_type as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
+                    #output_decoding
+                    // Ok(<<#output_type as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
                 }
             }
         })
