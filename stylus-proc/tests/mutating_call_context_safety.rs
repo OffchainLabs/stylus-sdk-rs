@@ -8,6 +8,8 @@
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
+// contract-client-gen feature can generate code that makes some imports of this file unused
+#![allow(unused_imports)]
 
 extern crate alloc;
 
