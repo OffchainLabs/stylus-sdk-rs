@@ -59,6 +59,41 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub extension: E,
 }
 
+fn extract_result_ok_type(output: &syn::ReturnType) -> Option<syn::Type> {
+    match output {
+        syn::ReturnType::Default => None,
+        syn::ReturnType::Type(_, ty) => {
+            // Check if it's a path type (like Result<T, E>)
+            let type_path = match ty.as_ref() {
+                syn::Type::Path(type_path) => type_path,
+                _ => return None,
+            };
+
+            // Check if the path is "Result"
+            let segment = type_path.path.segments.last()?;
+            if segment.ident != "Result" {
+                return None;
+            }
+
+            // Extract the generic arguments
+            let args = match &segment.arguments {
+                syn::PathArguments::AngleBracketed(args) => args,
+                _ => return None,
+            };
+
+            // Get the first generic argument (T in Result<T, E>)
+            if args.args.is_empty() {
+                return None;
+            }
+            if let syn::GenericArgument::Type(ok_type) = &args.args[0] {
+                return Some(ok_type.clone());
+            }
+
+            None
+        }
+    }
+}
+
 impl PublicImpl {
     pub fn impl_router(&self) -> syn::ItemImpl {
         let Self {
@@ -194,13 +229,18 @@ impl PublicImpl {
                 quote! { #ty }
             });
 
-            let output_type = match &func.output {
-                syn::ReturnType::Type(_, ty) => {
-                    let ty = ty.clone();
-                    quote! { #ty }
-                }
-                syn::ReturnType::Default => {
-                    quote! { () }
+            let result_ok_type = extract_result_ok_type(&func.output);
+            let output_type = if let Some(ty) = result_ok_type {
+                quote! { #ty }
+            } else {
+                match &func.output {
+                    syn::ReturnType::Type(_, ty) => {
+                        let ty = ty.clone();
+                        quote! { #ty }
+                    }
+                    syn::ReturnType::Default => {
+                        quote! { () }
+                    }
                 }
             };
 
