@@ -12,6 +12,7 @@ use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
 
 use stylus_proc::{public, SolidityError};
+use stylus_sdk::prelude::*;
 
 sol! {
     error InsufficientBalance(address from, uint256 have, uint256 want);
@@ -24,6 +25,8 @@ pub enum Erc20Error {
     InsufficientAllowance(InsufficientAllowance),
 }
 
+#[storage]
+#[entrypoint]
 struct Contract {}
 
 #[public]
