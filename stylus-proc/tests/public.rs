@@ -14,7 +14,7 @@ extern crate alloc;
 
 use alloy_primitives::U256;
 use stylus_proc::public;
-use stylus_sdk::{storage::StorageU256, ArbResult, prelude::*};
+use stylus_sdk::{prelude::*, storage::StorageU256, ArbResult};
 
 #[storage]
 #[entrypoint]
