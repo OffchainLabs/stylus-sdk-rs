@@ -1,5 +1,5 @@
 [workspace]
-members = ["stylus-sdk", "stylus-proc", "stylus-test", "mini-alloc", "stylus-core", "stylus-tools"]
+members = ["stylus-sdk", "stylus-proc", "stylus-test", "mini-alloc", "stylus-core", "stylus-tools", "cargo-stylus"]
 resolver = "2"
 
 [workspace.package]
@@ -12,7 +12,7 @@ repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
 rust-version = "1.71.0"
 
 [workspace.dependencies]
-alloy-primitives = { version = "1.0.1", default-features = false , features = ["native-keccak"] }
+alloy-primitives = { version = "1.0.1", default-features = false }
 alloy-sol-types = { version = "1.0.1", default-features = false }
 cfg-if = "1.0.0"
 clap = { version = "4.5.4", features = [ "derive", "color" ] }
@@ -39,11 +39,11 @@ prettyplease = "0.2.22"
 trybuild = "1.0"
 
 # stylus tools
-alloy = "1.0.1"
+alloy = { version = "1.0.1", features = ["json-rpc", "provider-debug-api", "provider-trace-api", "signer-keystore"] }
 eyre = "0.6"
 reqwest = "0.12"
 testcontainers = { version = "0.23", features = ["http_wait"] }
-tokio = "1.44"
+tokio = "1.45"
 
 # members
 mini-alloc = { path = "mini-alloc", version = "0.9.0" }
