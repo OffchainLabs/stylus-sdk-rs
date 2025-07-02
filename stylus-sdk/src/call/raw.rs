@@ -40,24 +40,6 @@ pub(crate) enum CachePolicy {
     Clear,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-struct RustVec {
-    ptr: *mut u8,
-    len: usize,
-    cap: usize,
-}
-
-impl Default for RustVec {
-    fn default() -> Self {
-        Self {
-            ptr: core::ptr::null_mut(),
-            len: 0,
-            cap: 0,
-        }
-    }
-}
-
 impl<'a> RawCall<'a> {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///

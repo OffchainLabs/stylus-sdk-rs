@@ -1,5 +1,4 @@
-name: Smoke Test 
-
+name: Smoke Test
 on:
   pull_request:
   workflow_dispatch:
@@ -7,38 +6,64 @@ on:
     branches:
       - main
       - ci-testing
-
 jobs:
+  setup-cargo-stylus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Get latest cargo-stylus version
+        id: get-version
+        shell: bash
+        run: |
+          version=$(cargo info cargo-stylus | grep 'version:' | awk 'NR==1 {print $2; exit}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache cargo stylus
+        id: cache
+        uses: actions/cache@v4
+        with:
+          key: cargo-stylus-${{ steps.get-version.outputs.version }}
+          path: |
+            ~/.cargo/bin/cargo-stylus
+      - name: Install cargo-stylus
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
+      - name: Archive cargo-stylus binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin/cargo-stylus
+          retention-days: 1 # Keep artifact for 1 day
   smoke-test:
     runs-on: ubuntu-latest
-    name: 'Test (Smoke)(${{ matrix.cfg_release_channel }})'
-    env:
-      CFG_RELEASE_CHANNEL: ${{ matrix.cfg_release_channel }}
-      PRIV_KEY: ${{ secrets.SEPOLIA_PRIVATE_KEY }}
+    name: smoke-test (${{ matrix.toolchain }})
+    needs: setup-cargo-stylus
     strategy:
       matrix:
-        target: [wasm32-unknown-unknown]
-        cfg_release_channel: [nightly, stable]
+        toolchain: [1.88.0, nightly-2025-06-26]
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: install rustup
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
-          sh rustup-init.sh -y --default-toolchain none
-          rustup target add ${{ matrix.target }}
-          
-      - name: Cargo stylus
-        run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install --force cargo-stylus
-          
+      - name: Install ${{ matrix.toolchain }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          targets: wasm32-unknown-unknown
+      - name: Download cargo-stylus binary
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-stylus-binary
+          path: ~/.cargo/bin
+      - name: Make cargo-stylus executable
+        shell: bash
+        run: chmod +x ~/.cargo/bin/cargo-stylus
       - uses: OffchainLabs/actions/run-nitro-test-node@main
         with:
           nitro-testnode-ref: release
           no-token-bridge: true
           # no-simple must be false for now as our nitro testnode branch doesn't have that option
           no-simple: false
-          
-      - name: Smoke Test Deployment 
+      - name: Smoke Test Deployment
         run: ./ci/smoke_test.sh
-        

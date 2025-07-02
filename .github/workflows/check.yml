@@ -1,21 +1,19 @@
+name: check
 on:
   push:
     branches:
       - main
   pull_request:
   workflow_dispatch:
-
-name: check
 jobs:
   fmt:
     runs-on: ubuntu-latest
-    name: stable / fmt
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install stable
-        uses: dtolnay/rust-toolchain@1.87
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - name: cargo fmt --check
@@ -23,19 +21,30 @@ jobs:
         with:
           command: fmt
           args: --check
+  yamlfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+      - name: install yamlfmt
+        run: |
+          go install github.com/google/yamlfmt/cmd/yamlfmt@latest
+      - name: run yamlfmt
+        run: |
+          yamlfmt -lint .github
   clippy:
     runs-on: ubuntu-latest
-    name: ${{ matrix.toolchain }} / clippy
+    name: clippy (${{ matrix.toolchain }})
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable, beta]
+        toolchain: [1.88.0, nightly-2025-06-26]
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install ${{ matrix.toolchain }}
-        uses: dtolnay/rust-toolchain@1.87
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy

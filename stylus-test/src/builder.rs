@@ -82,7 +82,7 @@ impl TestVMBuilder {
         let url = match Url::parse(url) {
             Ok(url) => url,
             Err(e) => {
-                panic!("Invalid RPC URL specified: {}", e);
+                panic!("Invalid RPC URL specified: {e}");
             }
         };
         self.rpc_url = Some(url.to_string());

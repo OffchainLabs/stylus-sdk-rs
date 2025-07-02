@@ -103,6 +103,7 @@ fn decode() {
     );
 }
 
+#[cfg(feature = "trybuild-tests")]
 #[test]
 fn abi_type_failures() {
     let t = trybuild::TestCases::new();

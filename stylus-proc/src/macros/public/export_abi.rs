@@ -57,7 +57,7 @@ impl InterfaceExtension for InterfaceAbi {
 
             let sol_name = func.sol_name.to_string();
             let sol_args = func.inputs.iter().enumerate().map(|(i, arg)| {
-                let comma = (i > 0).then_some(", ").unwrap_or_default();
+                let comma = if i > 0 { ", " } else { Default::default() };
                 let name = arg.extension.pattern_ident.as_ref().map(ToString::to_string).unwrap_or_default();
                 let ty = &arg.ty;
                 quote! {
@@ -91,7 +91,7 @@ impl InterfaceExtension for InterfaceAbi {
             .filter_map(|func| match func.kind {
                 FnKind::Constructor => {
                     let sol_args = func.inputs.iter().enumerate().map(|(i, arg)| {
-                        let comma = (i > 0).then_some(", ").unwrap_or_default();
+                        let comma = if i > 0 { ", " } else { Default::default() };
                         let name = arg.extension.pattern_ident.as_ref().map(ToString::to_string).unwrap_or_default();
                         let ty = &arg.ty;
                         quote! {

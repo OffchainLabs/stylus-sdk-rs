@@ -97,7 +97,7 @@ where
     /// Gets an accessor to the element at the given key, or the zero-value if none is there.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts its lifetime
     /// to that of `&self`.
-    pub fn getter(&self, key: K) -> StorageGuard<V> {
+    pub fn getter(&self, key: K) -> StorageGuard<'_, V> {
         let slot = key.to_slot(self.slot.into());
         unsafe { StorageGuard::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone())) }
     }
@@ -105,7 +105,7 @@ where
     /// Gets a mutable accessor to the element at the given key, or the zero-value if none is there.
     /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts its lifetime
     /// to that of `&mut self`.
-    pub fn setter(&mut self, key: K) -> StorageGuardMut<V> {
+    pub fn setter(&mut self, key: K) -> StorageGuardMut<'_, V> {
         let slot = key.to_slot(self.slot.into());
         unsafe {
             StorageGuardMut::new(V::new(slot, Self::CHILD_OFFSET, self.__stylus_host.clone()))

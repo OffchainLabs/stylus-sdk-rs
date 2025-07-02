@@ -40,6 +40,7 @@ impl Contract {
     }
 }
 
+#[cfg(feature = "trybuild-tests")]
 #[test]
 fn test_public_failures() {
     let t = trybuild::TestCases::new();

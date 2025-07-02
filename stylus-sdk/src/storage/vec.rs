@@ -109,7 +109,7 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts
     /// its lifetime to that of `&self`.
-    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<S>> {
+    pub fn getter(&self, index: impl TryInto<usize>) -> Option<StorageGuard<'_, S>> {
         let store = unsafe { self.accessor(index)? };
         Some(StorageGuard::new(store))
     }
@@ -118,7 +118,7 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// Note: the accessor is protected by a [`StorageGuardMut`], which restricts
     /// its lifetime to that of `&mut self`.
-    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<S>> {
+    pub fn setter(&mut self, index: impl TryInto<usize>) -> Option<StorageGuardMut<'_, S>> {
         let store = unsafe { self.accessor(index)? };
         Some(StorageGuardMut::new(store))
     }
@@ -181,7 +181,7 @@ impl<S: StorageType> StorageVec<S> {
     /// ```
     ///
     /// [vec_push]: https://doc.rust-lang.org/std/vec/struct.Vec.html#method.push
-    pub fn grow(&mut self) -> StorageGuardMut<S> {
+    pub fn grow(&mut self) -> StorageGuardMut<'_, S> {
         let index = self.len();
         unsafe { self.set_len(index + 1) };
 
@@ -191,7 +191,7 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Removes and returns an accessor to the last element of the vector, if any.
-    pub fn shrink(&mut self) -> Option<StorageGuardMut<S>> {
+    pub fn shrink(&mut self) -> Option<StorageGuardMut<'_, S>> {
         let index = match self.len() {
             0 => return None,
             x => x - 1,

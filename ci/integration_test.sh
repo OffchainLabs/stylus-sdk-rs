@@ -9,6 +9,7 @@ usage() {
   echo "  -e, --example <name>   Run integration tests for the specified example (e.g., erc20)"
   echo "  -s, --stylus-tools     Run integration tests for stylus-tools package only"
   echo "  -a, --all              Run all integration tests"
+  echo "  -c, --clean            Clean target dirs for all tests"
   echo "  -h, --help             Display this help message"
   exit 1
 }
@@ -68,6 +69,17 @@ run_all_examples() {
   done
 }
 
+clean_all() {
+  cargo clean
+  for example_dir in examples/*/; do
+    if [ -d "$example_dir" ]; then # Check if it's a directory
+      pushd $example_dir
+      cargo clean
+      popd
+    fi
+  done
+}
+
 if [ $# -eq 0 ]; then
   usage
 fi
@@ -89,6 +101,9 @@ case "$1" in
   -a|--all)
     run_stylus_tools_tests
     run_all_examples
+    ;;
+  -c|--clean)
+    clean_all
     ;;
   *)
     echo "Error: Unknown option $1"
