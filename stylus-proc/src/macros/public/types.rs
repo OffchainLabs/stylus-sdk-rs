@@ -288,14 +288,12 @@ impl PublicImpl {
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
                     #(#inputs,)*
-                // ) -> Result<<<#output_type as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error> {
                 ) -> #output_type {
                     let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     use stylus_sdk::function_selector;
                     let mut calldata = #function_selector;
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
                     #output_decoding
-                    // Ok(<<#output_type as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
                 }
             }
         })
