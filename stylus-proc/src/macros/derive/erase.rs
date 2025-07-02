@@ -57,6 +57,7 @@ mod tests {
                 }
             }),
             parse_quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
                 impl<T: Erase> stylus_sdk::storage::Erase for Foo<T> {
                     fn erase(&mut self) {
                         self.field1.erase();
