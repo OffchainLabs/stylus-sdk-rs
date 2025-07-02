@@ -87,25 +87,20 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
             let segment = match type_path.path.segments.last() {
                 Some(segment) => segment,
                 None => {
-                    emit_error!(
-                        ty.span(),
-                        "Expected a type path with segments, found none"
-                    );
+                    emit_error!(ty.span(), "Expected a type path with segments, found none");
                     return get_default_output(ty);
                 }
             };
             match segment.ident.to_string().as_str() {
-                "ArbResult" => {
-                    (
-                        quote! {
-                            stylus_sdk::ArbResult
-                        },
-                        quote! {
-                            use stylus_sdk::abi::internal::EncodableReturnType;
-                            EncodableReturnType::encode(call_result)
-                        },
-                    )
-                }
+                "ArbResult" => (
+                    quote! {
+                        stylus_sdk::ArbResult
+                    },
+                    quote! {
+                        use stylus_sdk::abi::internal::EncodableReturnType;
+                        EncodableReturnType::encode(call_result)
+                    },
+                ),
                 "Result" => {
                     // Extract the generic arguments
                     let args = match &segment.arguments {
@@ -116,7 +111,7 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
                                 "Expected Result to have generic arguments, found none"
                             );
                             return get_default_output(ty);
-                        },
+                        }
                     };
 
                     // Get the first generic argument (T in Result<T, E>)
