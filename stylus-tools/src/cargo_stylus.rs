@@ -99,7 +99,7 @@ impl Deployer {
         }
         let res = call_deploy(deploy_args);
         env::set_current_dir(original_dir)?;
-        return res;
+        res
     }
 }
 
