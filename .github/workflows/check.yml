@@ -48,5 +48,35 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
-      - name: cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      # contract-client-gen and export-abi features considerably change the structure of the output code.
+      # So they are checked individually.
+      - name: Run clippy excluding contract-client-gen and export-abi features
+        run: |
+          # Get all crates in the workspace
+          workspace_members=$(cargo metadata --format-version=1 | jq -r '.workspace_members[] | split(" ")[0]')
+
+          # For each crate, run clippy with all features except contract-client-gen and export-abi
+          for crate in $workspace_members; do
+            # Get features for this crate excluding the ones we don't want
+            features=$(cargo metadata --format-version=1 |
+              jq -r ".packages[] | select(.id == \"$crate\") | .features | keys[] |
+              select(. != \"contract-client-gen\" and . != \"export-abi\")" |
+              tr '\n' ',' | sed 's/,$//')
+
+            echo "Running clippy on $crate with features: $features"
+            if [ -n "$features" ]; then
+              cargo clippy -p "$crate" --all-targets --no-default-features --features "$features" -- -D warnings
+            else
+              cargo clippy -p "$crate" --all-targets --no-default-features -- -D warnings
+            fi
+          done
+      - name: Run clippy on stylus-proc with contract-client-gen feature
+        run: |
+          cargo clippy -p stylus-proc --no-default-features --features "contract-client-gen" --all-targets -- -D warnings
+      - name: Run clippy with export-abi feature
+        run: |
+          echo "Checking stylus-proc with export-abi"
+          cargo clippy -p stylus-proc --no-default-features --features "export-abi" --all-targets -- -D warnings
+
+          echo "Checking stylus-sdk with export-abi"
+          cargo clippy -p stylus-sdk --no-default-features --features "export-abi" --all-targets -- -D warnings
