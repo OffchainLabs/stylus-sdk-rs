@@ -4,7 +4,7 @@
 use alloy::primitives::Address;
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
-use std::{ffi::OsStr, process::Command, env, path::Path};
+use std::{env, ffi::OsStr, path::Path, process::Command};
 
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
