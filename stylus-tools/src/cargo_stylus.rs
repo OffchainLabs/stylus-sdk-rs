@@ -4,12 +4,13 @@
 use alloy::primitives::Address;
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
-use std::{ffi::OsStr, process::Command};
+use std::{ffi::OsStr, process::Command, env, path::Path};
 
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
 pub struct Deployer {
     rpc: String,
+    dir: Option<String>,
     private_key: Option<String>,
     stylus_deployer: Option<String>,
     constructor_value: Option<String>,
@@ -24,6 +25,7 @@ impl Deployer {
             if #[cfg(feature = "integration-tests")] {
                 Self {
                     rpc,
+                    dir: None,
                     private_key: Some(crate::devnet::DEVNET_PRIVATE_KEY.to_owned()),
                     stylus_deployer: Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string()),
                     constructor_value: None,
@@ -32,6 +34,7 @@ impl Deployer {
             } else {
                 Self {
                     rpc,
+                    dir: None,
                     private_key: None,
                     stylus_deployer: None,
                     constructor_value: None,
@@ -39,6 +42,11 @@ impl Deployer {
                 }
             }
         }
+    }
+
+    pub fn with_contract_dir(mut self, dir: String) -> Self {
+        self.dir = Some(dir);
+        self
     }
 
     pub fn with_private_key(mut self, key: String) -> Self {
@@ -84,7 +92,14 @@ impl Deployer {
             deploy_args.push("--constructor-args".to_owned());
             deploy_args.extend_from_slice(&args);
         }
-        call_deploy(deploy_args)
+
+        let original_dir = env::current_dir()?;
+        if let Some(dir) = self.dir {
+            env::set_current_dir(Path::new(&dir))?;
+        }
+        let res = call_deploy(deploy_args);
+        env::set_current_dir(original_dir)?;
+        return res;
     }
 }
 
