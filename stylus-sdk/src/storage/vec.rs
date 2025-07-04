@@ -7,7 +7,7 @@ use super::{
 use crate::{crypto, host::VM};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
-use core::{cell::OnceCell, marker::PhantomData, ops::Add};
+use core::{cell::OnceCell, marker::PhantomData};
 use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed vector.
@@ -294,6 +294,9 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
     }
 }
 
+/// An iterator over the values of a `StorageVec`.
+///
+/// Create the iterator by calling: [`StorageVec.iter()`]
 pub struct Iter<'a, S> {
     idx: usize,
     base: U256,
@@ -303,8 +306,7 @@ pub struct Iter<'a, S> {
 }
 
 impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
-    ///
-    ///
+    /// Create an iterator
     pub fn iter(&self) -> Iter<'a, S> {
         Iter {
             idx: 0,
@@ -316,6 +318,16 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
     }
 }
 
+impl<'a, S: SimpleStorageType<'a>> IntoIterator for &'a StorageVec<S> {
+    type Item = S::Wraps<'a>;
+    type IntoIter = Iter<'a, S>;
+
+    /// Convert to an iterator
+    fn into_iter(self) -> Iter<'a, S> {
+        self.iter()
+    }
+}
+
 impl<'a, S: SimpleStorageType<'a>> Iterator for Iter<'a, S> {
     type Item = S::Wraps<'a>;
 
@@ -323,15 +335,17 @@ impl<'a, S: SimpleStorageType<'a>> Iterator for Iter<'a, S> {
         if self.idx >= self.len {
             return None;
         }
+        // calculate where to find the next value
         let width = S::SLOT_BYTES;
         let words = S::REQUIRED_SLOTS.max(1);
         let density = 32 / S::SLOT_BYTES;
-
         let slot = self.base + U256::from(words * self.idx / density);
         let offset = 32 - (width * (1 + self.idx % density)) as u8;
 
         let store = unsafe { S::new(slot, offset, self.__stylus_host.clone()) };
+        // increment and track the state of the index
         self.idx += 1;
+
         Some(store.load())
     }
 }
@@ -383,5 +397,23 @@ mod test {
         let vec: StorageVec<StorageU256> = StorageVec::from(&host);
         let mut iter = vec.iter();
         assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn test_storage_vec_into_iter() {
+        use super::*;
+        use alloy_primitives::U256;
+
+        let host = TestVM::new();
+        let mut vec: StorageVec<StorageU256> = StorageVec::from(&host);
+        vec.push(U256::from(1));
+        vec.push(U256::from(2));
+        vec.push(U256::from(3));
+
+        let v = vec.into_iter().collect::<Vec<_>>();
+        assert_eq!(3, v.len());
+        assert_eq!(U256::from(1), v[0]);
+        assert_eq!(U256::from(2), v[1]);
+        assert_eq!(U256::from(3), v[2]);
     }
 }
