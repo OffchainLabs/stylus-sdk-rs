@@ -7,7 +7,7 @@ use super::{
 use crate::{crypto, host::VM};
 use alloy_primitives::U256;
 use cfg_if::cfg_if;
-use core::{cell::OnceCell, marker::PhantomData};
+use core::{cell::OnceCell, marker::PhantomData, ops::Add};
 use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed vector.
@@ -294,9 +294,53 @@ impl<'a, S: SimpleStorageType<'a>> Extend<S::Wraps<'a>> for StorageVec<S> {
     }
 }
 
+pub struct Iter<'a, S> {
+    idx: usize,
+    base: U256,
+    len: usize,
+    __stylus_host: VM,
+    marker: PhantomData<&'a S>,
+}
+
+impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
+    ///
+    ///
+    pub fn iter(&self) -> Iter<'a, S> {
+        Iter {
+            idx: 0,
+            base: *self.base(),
+            len: self.len(),
+            __stylus_host: self.__stylus_host.clone(),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, S: SimpleStorageType<'a>> Iterator for Iter<'a, S> {
+    type Item = S::Wraps<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx >= self.len {
+            return None;
+        }
+        let width = S::SLOT_BYTES;
+        let words = S::REQUIRED_SLOTS.max(1);
+        let density = 32 / S::SLOT_BYTES;
+
+        let slot = self.base + U256::from(words * self.idx / density);
+        let offset = 32 - (width * (1 + self.idx % density)) as u8;
+
+        let store = unsafe { S::new(slot, offset, self.__stylus_host.clone()) };
+        self.idx += 1;
+        Some(store.load())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use stylus_test::vm::TestVM;
+
+    use crate::storage::StorageU256;
 
     #[test]
     fn test_storage_vec() {
@@ -311,5 +355,33 @@ mod test {
         assert!(vec.get(0).unwrap());
         assert!(!vec.get(1).unwrap());
         assert!(vec.get(2).unwrap());
+    }
+
+    #[test]
+    fn test_storage_vec_iter() {
+        use super::*;
+        use alloy_primitives::U256;
+
+        let host = TestVM::new();
+        let mut vec: StorageVec<StorageU256> = StorageVec::from(&host);
+        vec.push(U256::from(1));
+        vec.push(U256::from(2));
+        vec.push(U256::from(3));
+
+        let mut iter = vec.iter();
+        assert_eq!(U256::from(1), iter.next().unwrap());
+        assert_eq!(U256::from(2), iter.next().unwrap());
+        assert_eq!(U256::from(3), iter.next().unwrap());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn test_empty_storage_vec_iter() {
+        use super::*;
+
+        let host = TestVM::new();
+        let vec: StorageVec<StorageU256> = StorageVec::from(&host);
+        let mut iter = vec.iter();
+        assert_eq!(None, iter.next());
     }
 }
