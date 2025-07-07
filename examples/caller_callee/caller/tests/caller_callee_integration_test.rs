@@ -23,6 +23,10 @@ mod integration_test {
             function mutable(address callee_addr) external returns (bool);
 
             function fails(address callee_addr) external view;
+
+            function outputsResultOk(address callee_addr) external view returns (uint256, uint256);
+
+            function outputsResultErr(address callee_addr) external view returns (uint256);
         }
     }
 
@@ -67,27 +71,28 @@ mod integration_test {
         let ret_mutable = caller.mutable(callee_address).call().await?;
         assert!(ret_mutable);
 
-        let call_ret = caller.fails(callee_address).call().await;
-        assert!(call_ret.is_err(), "Expected call to fail, but it succeeded");
+        let ret_fails = caller.fails(callee_address).call().await;
+        assert!(
+            ret_fails.is_err(),
+            "Expected call to fail, but it succeeded"
+        );
 
-        // let hey = String::from("hey");
-        // // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10), hey).call().await;
-        // // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10)).call().await;
-        // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10)).call().await;
-        // match res_multiple_inputs_multiple_outputs {
-        //     Ok(res) => println!("multipleInputsMultipleOutputs result ({}, {})", res._0, res._1),
-        //     Err(e) => {
-        //         println!("Error calling multipleInputsMultipleOutputs: {}", e);
-        //
-        //         let stdout = devnode.container().stdout_to_vec().await?;
-        //         let s = std::str::from_utf8(&stdout).expect("Invalid UTF-8");
-        //         println!("Devnode stdout: {}", s);
-        //
-        //         let stderr = devnode.container().stderr_to_vec().await?;
-        //         let s2 = std::str::from_utf8(&stderr).expect("Invalid UTF-8");
-        //         println!("Devnode stderr: {}", s2);
-        //     }
-        // }
+        let ret_outputs_result_ok = caller.outputsResultOk(callee_address).call().await?;
+        assert_eq!(ret_outputs_result_ok._0, U256::from(1234));
+        assert_eq!(ret_outputs_result_ok._1, U256::from(5678));
+
+        let ret_outputs_result_err = caller.outputsResultErr(callee_address).call().await;
+        match ret_outputs_result_err {
+            Err(e) => {
+                assert!(e.to_string().contains("execution reverted, data: \"0x010203\""));
+            }
+            Ok(_) => {
+                assert!(
+                    false,
+                    "Expected call to fail with specific error, but it succeeded"
+                );
+            }
+        }
 
         Ok(())
     }

@@ -60,7 +60,7 @@ impl Trait1 for Callee {
 }
 
 pub trait Trait2 {
-    fn outputs_result_ok(&self) -> Result<U256, Vec<u8>>;
+    fn outputs_result_ok(&self) -> Result<(U256, U256), Vec<u8>>;
     fn outputs_result_err(&self) -> Result<U256, Vec<u8>>;
     fn outputs_arbresult_ok(&self) -> ArbResult;
     fn outputs_arbresult_err(&self) -> ArbResult;
@@ -68,8 +68,8 @@ pub trait Trait2 {
 
 #[public]
 impl Trait2 for Callee {
-    fn outputs_result_ok(&self) -> Result<U256, Vec<u8>> {
-        Ok(U256::from(1234))
+    fn outputs_result_ok(&self) -> Result<(U256, U256), Vec<u8>> {
+        Ok((U256::from(1234), U256::from(5678)))
     }
 
     fn outputs_result_err(&self) -> Result<U256, Vec<u8>> {
