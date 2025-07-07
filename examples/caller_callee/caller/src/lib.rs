@@ -1,47 +1,48 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2025, Offchain Labs, Iargsnc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
 
 extern crate alloc;
 
-use stylus_sdk::{alloy_primitives::{Address, U256}, prelude::*, ArbResult};
 use callee::Callee;
+use stylus_sdk::{
+    alloy_primitives::{Address, FixedBytes, U256},
+    console,
+    prelude::*,
+    ArbResult,
+};
 
 #[storage]
 #[entrypoint]
 pub struct Caller {}
 
 #[public]
-impl Caller{
+impl Caller {
     fn no_input_no_output(&self, callee_addr: Address) {
         let callee = Callee::new(callee_addr);
-        callee.no_input_no_output(self.vm(), Call::new()).expect("Call failed")
-    }
-
-    fn no_input_one_output(&self, callee_addr: Address) -> U256 {
-        let callee = Callee::new(callee_addr);
-        callee.no_input_one_output(self.vm(), Call::new()).expect("Call failed")
-    }
-
-    fn no_input_multiple_outputs(&self, callee_addr: Address) -> (U256, U256) {
-        let callee = Callee::new(callee_addr);
-        callee.no_input_multiple_outputs(self.vm(), Call::new()).expect("Call failed")
-    }
-
-    fn one_input_no_output(&self, callee_addr: Address, input: U256) {
-        let callee = Callee::new(callee_addr);
-        callee.one_input_no_output(self.vm(), Call::new(), input).expect("Call failed")
+        callee
+            .no_input_no_output(self.vm(), Call::new())
+            .expect("Call failed")
     }
 
     fn one_input_one_output(&self, callee_addr: Address, input: U256) -> U256 {
         let callee = Callee::new(callee_addr);
-        callee.one_input_one_output(self.vm(), Call::new(), input).expect("Call failed")
+        callee
+            .one_input_one_output(self.vm(), Call::new(), input)
+            .expect("Call failed")
     }
 
-    fn multipe_inputs_multiple_outputs(&self, callee_addr: Address, input1: U256, input2: String) -> (U256, String) {
+    fn multiple_inputs_multiple_outputs(
+        &self,
+        callee_addr: Address,
+        input1: U256,
+        input2: Address,
+    ) -> (U256, bool, Address, FixedBytes<32>) {
         let callee = Callee::new(callee_addr);
-        callee.multipe_inputs_multiple_outputs(self.vm(), Call::new(), input1, input2).expect("Call failed")
+        callee
+            .multiple_inputs_multiple_outputs(self.vm(), Call::new(), input1, input2)
+            .expect("Call failed")
     }
 
     fn mutable(&mut self, callee_addr: Address) -> bool {

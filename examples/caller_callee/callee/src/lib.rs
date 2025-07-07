@@ -5,7 +5,11 @@
 
 extern crate alloc;
 
-use stylus_sdk::{alloy_primitives::U256, prelude::*, ArbResult};
+use stylus_sdk::{
+    alloy_primitives::{Address, FixedBytes, U256},
+    prelude::*,
+    ArbResult,
+};
 
 #[storage]
 #[entrypoint]
@@ -18,11 +22,12 @@ impl Callee {
 }
 
 pub trait Trait1 {
-    fn no_input_one_output(&self) -> U256;
-    fn no_input_multiple_outputs(&self) -> (U256, U256);
-    fn one_input_no_output(&self, input: U256);
     fn one_input_one_output(&self, input: U256) -> U256;
-    fn multipe_inputs_multiple_outputs(&self, input1: U256, input2: String) -> (U256, String);
+    fn multiple_inputs_multiple_outputs(
+        &self,
+        input1: U256,
+        input2: Address,
+    ) -> (U256, bool, Address, FixedBytes<32>);
     fn mutable(&mut self) -> bool;
     fn fails(&self);
 }
@@ -33,20 +38,16 @@ impl Trait1 for Callee {
         input.saturating_add(U256::from(1))
     }
 
-    fn no_input_multiple_outputs(&self) -> (U256, U256) {
-        (U256::from(41), U256::from(82))
-    }
-
-    fn one_input_no_output(&self, _input: U256) {
-    }
-
-    fn no_input_one_output(&self) -> U256 {
-        U256::from(31)
-    }
-
-    fn multipe_inputs_multiple_outputs(&self, input1: U256, input2: String) -> (U256, String) {
-        let input1_plus_input2 = input1.saturating_add(U256::from(input2.len() as u64));
-        (input1_plus_input2, input1_plus_input2.to_string())
+    fn multiple_inputs_multiple_outputs(
+        &self,
+        input1: U256,
+        input2: Address,
+    ) -> (U256, bool, Address, FixedBytes<32>) {
+        let output1 = input1.saturating_add(U256::from(2));
+        let output2 = true;
+        let output3 = input2;
+        let output4 = FixedBytes::from([0x01; 32]);
+        (output1, output2, output3, output4)
     }
 
     fn mutable(&mut self) -> bool {
