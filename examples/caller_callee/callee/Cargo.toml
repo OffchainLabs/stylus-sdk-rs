@@ -17,6 +17,8 @@ stylus-sdk = { path = "../../../stylus-sdk", features = ["stylus-test"] }
 stylus-tools = { path = "../../../stylus-tools" }
 
 [features]
+default = ["debug"]
+debug = ["stylus-sdk/debug"]
 export-abi = ["stylus-sdk/export-abi"]
 integration-tests = ["stylus-tools/integration-tests"]
 contract-client-gen = []
