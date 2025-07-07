@@ -4,7 +4,7 @@
 // #[cfg(feature = "integration-tests")]
 mod integration_test {
     use alloy::{
-        primitives::{address, Address, U256},
+        primitives::{address, Address, FixedBytes, U256},
         sol,
         sol_types::SolCall,
     };
@@ -16,15 +16,9 @@ mod integration_test {
         interface ICaller  {
             function noInputNoOutput(address callee_addr) external view;
 
-            function noInputOneOutput(address callee_addr) external view returns (uint256);
-
-            function noInputMultipleOutputs(address callee_addr) external view returns (uint256, uint256);
-
-            function oneInputNoOutput(address callee_addr, uint256 input) external view;
-
             function oneInputOneOutput(address callee_addr, uint256 input) external view returns (uint256);
 
-            function multipeInputsMultipleOutputs(address callee_addr, uint256 input1, string calldata input2) external view returns (uint256, string memory);
+            function multipleInputsMultipleOutputs(address callee_addr, uint256 input1, address input2) external view returns (uint256, bool, address, bytes32);
 
             function mutable(address callee_addr) external returns (bool);
 
@@ -39,7 +33,9 @@ mod integration_test {
         let provider = devnode.create_provider().await?;
 
         println!("Deploying callee contract to Nitro ({rpc})...");
-        let callee_address = stylus_tools::Deployer::new(rpc.to_owned()).with_contract_dir("../callee".into()).deploy()?;
+        let callee_address = stylus_tools::Deployer::new(rpc.to_owned())
+            .with_contract_dir("../callee".into())
+            .deploy()?;
         println!("Deployed callee contract to {callee_address}");
 
         println!("Deploying caller contract to Nitro ({rpc})...");
@@ -50,34 +46,48 @@ mod integration_test {
 
         caller.noInputNoOutput(callee_address).call().await?;
 
-        let res_no_input_one_output = caller.noInputOneOutput(callee_address).call().await?;
-        println!("noInputOneOutput result: {res_no_input_one_output}");
+        let ret_one_input_one_output = caller
+            .oneInputOneOutput(callee_address, U256::from(10))
+            .call()
+            .await?;
+        assert_eq!(ret_one_input_one_output, U256::from(11));
 
-        let res_no_input_multiple_outputs = caller.noInputMultipleOutputs(callee_address).call().await?;
-        println!("noInputMultipleOutputs result: ({}, {})", res_no_input_multiple_outputs._0, res_no_input_multiple_outputs._1);
+        let ret_multiple_inputs_multiple_outputs = caller
+            .multipleInputsMultipleOutputs(callee_address, U256::from(10), callee_address)
+            .call()
+            .await?;
+        assert_eq!(ret_multiple_inputs_multiple_outputs._0, U256::from(12));
+        assert_eq!(ret_multiple_inputs_multiple_outputs._1, true);
+        assert_eq!(ret_multiple_inputs_multiple_outputs._2, callee_address);
+        assert_eq!(
+            ret_multiple_inputs_multiple_outputs._3,
+            FixedBytes::from([0x01; 32]),
+        );
 
-        caller.oneInputNoOutput(callee_address, U256::from(10)).call().await?;
+        let ret_mutable = caller.mutable(callee_address).call().await?;
+        assert!(ret_mutable);
 
-        let res_one_input_one_output = caller.oneInputOneOutput(callee_address, U256::from(10)).call().await?;
-        println!("oneInputOneOutput result: {res_one_input_one_output}");
+        let call_ret = caller.fails(callee_address).call().await;
+        assert!(call_ret.is_err(), "Expected call to fail, but it succeeded");
 
-        let res_mutable = caller.mutable(callee_address).call().await?;
-        println!("mutable result: {res_mutable}");
-
-        // let address = stylus_tools::Deployer::new(rpc.to_owned()).deploy()?;
-        // println!("Deployed contract to {address}");
-        // let provider = devnode.create_provider().await?;
-        // let contract = IExampleContract::IExampleContractInstance::new(address, provider);
+        // let hey = String::from("hey");
+        // // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10), hey).call().await;
+        // // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10)).call().await;
+        // let res_multiple_inputs_multiple_outputs = caller.multipleInputsStrMultipleOutputs(callee_address, U256::from(10), U256::from(10)).call().await;
+        // match res_multiple_inputs_multiple_outputs {
+        //     Ok(res) => println!("multipleInputsMultipleOutputs result ({}, {})", res._0, res._1),
+        //     Err(e) => {
+        //         println!("Error calling multipleInputsMultipleOutputs: {}", e);
         //
-        // let calldata = ArbOwnerPublic::getAllChainOwnersCall {}.abi_encode();
-        // let owners_raw = contract
-        //     .execute(ARB_OWNER_PUBLIC, calldata.into())
-        //     .call()
-        //     .await?;
-        // let owners =
-        //     ArbOwnerPublic::getAllChainOwnersCall::abi_decode_returns_validate(&owners_raw)?;
+        //         let stdout = devnode.container().stdout_to_vec().await?;
+        //         let s = std::str::from_utf8(&stdout).expect("Invalid UTF-8");
+        //         println!("Devnode stdout: {}", s);
         //
-        // assert_eq!(owners, vec![Address::ZERO, OWNER]);
+        //         let stderr = devnode.container().stderr_to_vec().await?;
+        //         let s2 = std::str::from_utf8(&stderr).expect("Invalid UTF-8");
+        //         println!("Devnode stderr: {}", s2);
+        //     }
+        // }
 
         Ok(())
     }
