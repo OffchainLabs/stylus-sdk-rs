@@ -8,7 +8,6 @@ extern crate alloc;
 use callee::Callee;
 use stylus_sdk::{
     alloy_primitives::{Address, FixedBytes, U256},
-    console,
     prelude::*,
     ArbResult,
 };
@@ -56,12 +55,24 @@ impl Caller {
         callee.fails(self.vm(), Call::new()).expect("Call failed")
     }
 
-    // fn outputs_result_ok(&self, callee_addr: Address) -> Result<U256, Vec<u8>> {
-    //     let callee = Callee::new(callee_addr);
-    //     callee.outputs_result_ok(self.vm(), Call::new())
-    // }
+    fn outputs_result_ok(&self, callee_addr: Address) -> Result<(U256, U256), Vec<u8>> {
+        let callee = Callee::new(callee_addr);
+        let ret = callee.outputs_result_ok(self.vm(), Call::new());
+        match ret {
+            Ok((a, b)) => Ok((a, b)),
+            Err(e) => Err(e.into()),
+        }
+    }
 
-    // fn outputs_result_err(&self) -> Result<U256, Vec<u8>> {}
+    fn outputs_result_err(&self, callee_addr: Address) -> Result<U256, Vec<u8>> {
+        let callee = Callee::new(callee_addr);
+        let ret = callee.outputs_result_err(self.vm(), Call::new());
+        match ret {
+            Ok(a) => Ok(a),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     // fn outputs_arbresult_ok(&self) -> ArbResult {}
     // fn outputs_arbresult_err(&self) -> ArbResult {}
 }
