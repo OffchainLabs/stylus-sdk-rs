@@ -286,7 +286,8 @@ impl PublicImpl {
                 ) -> #output_type {
                     let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     use stylus_sdk::function_selector;
-                    let mut calldata = #function_selector;
+                    let mut calldata = Vec::from(#function_selector);
+                    calldata.extend(inputs);
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
                     #output_decoding
                 }
