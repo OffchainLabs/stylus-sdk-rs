@@ -97,8 +97,11 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
                         stylus_sdk::ArbResult
                     },
                     quote! {
-                        use stylus_sdk::abi::internal::EncodableReturnType;
-                        EncodableReturnType::encode(call_result)
+                        let decoded = <<Vec<u8> as #AbiType>::SolType as #SolType>::abi_decode(&call_result);
+                        match decoded {
+                            Ok(decoded) => Ok(decoded),
+                            Err(err) => Err("unable to decode to Vec<u8>".into()),
+                        }
                     },
                 ),
                 "Result" => {
