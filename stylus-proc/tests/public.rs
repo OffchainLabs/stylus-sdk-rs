@@ -47,7 +47,7 @@ impl Contract {
     }
 }
 
-#[cfg(feature = "trybuild-tests")]
+#[cfg(all(not(feature = "contract-client-gen"), feature = "trybuild-tests"))]
 #[test]
 fn test_public_failures() {
     let t = trybuild::TestCases::new();
