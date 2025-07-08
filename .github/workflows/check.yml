@@ -48,19 +48,19 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
-      # contract-client-gen and export-abi features considerably change the structure of the output code.
-      # So they are checked individually.
-      - name: Run clippy excluding contract-client-gen and export-abi features
+      # contract-client-gen feature considerably change the structure of the output code.
+      # So it is checked individually.
+      - name: Run clippy excluding contract-client-gen feature
         run: |
           # Get all crates in the workspace
           workspace_members=$(cargo metadata --format-version=1 | jq -r '.workspace_members[] | split(" ")[0]')
 
-          # For each crate, run clippy with all features except contract-client-gen and export-abi
+          # For each crate, run clippy with all features except contract-client-gen
           for crate in $workspace_members; do
             # Get features for this crate excluding the ones we don't want
             features=$(cargo metadata --format-version=1 |
               jq -r ".packages[] | select(.id == \"$crate\") | .features | keys[] |
-              select(. != \"contract-client-gen\" and . != \"export-abi\")" |
+              select(. != \"contract-client-gen\")" |
               tr '\n' ',' | sed 's/,$//')
 
             echo "Running clippy on $crate with features: $features"
@@ -73,10 +73,3 @@ jobs:
       - name: Run clippy on stylus-proc with contract-client-gen feature
         run: |
           cargo clippy -p stylus-proc --no-default-features --features "contract-client-gen" --all-targets -- -D warnings
-      - name: Run clippy with export-abi feature
-        run: |
-          echo "Checking stylus-proc with export-abi"
-          cargo clippy -p stylus-proc --no-default-features --features "export-abi" --all-targets -- -D warnings
-
-          echo "Checking stylus-sdk with export-abi"
-          cargo clippy -p stylus-sdk --no-default-features --features "export-abi" --all-targets -- -D warnings
