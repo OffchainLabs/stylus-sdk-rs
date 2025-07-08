@@ -73,6 +73,13 @@ impl Caller {
         }
     }
 
-    // fn outputs_arbresult_ok(&self) -> ArbResult {}
-    // fn outputs_arbresult_err(&self) -> ArbResult {}
+    fn outputs_arbresult_ok(&self, callee_addr: Address) -> ArbResult {
+        let callee = Callee::new(callee_addr);
+        callee.outputs_arbresult_ok(self.vm(), Call::new())
+    }
+
+    fn outputs_arbresult_err(&self, callee_addr: Address) -> ArbResult {
+        let callee = Callee::new(callee_addr);
+        callee.outputs_arbresult_err(self.vm(), Call::new())
+    }
 }

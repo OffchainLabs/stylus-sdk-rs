@@ -1,12 +1,11 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-// #[cfg(feature = "integration-tests")]
+#[cfg(feature = "integration-tests")]
 mod integration_test {
     use alloy::{
-        primitives::{address, Address, FixedBytes, U256},
+        primitives::{FixedBytes, U256},
         sol,
-        sol_types::SolCall,
     };
     use eyre::Result;
     use stylus_tools::devnet::Node;
@@ -27,6 +26,10 @@ mod integration_test {
             function outputsResultOk(address callee_addr) external view returns (uint256, uint256);
 
             function outputsResultErr(address callee_addr) external view returns (uint256);
+
+            function outputsArbresultOk(address callee_addr) external view returns (uint8[] memory);
+
+            function outputsArbresultErr(address callee_addr) external view returns (uint8[] memory);
         }
     }
 
@@ -84,7 +87,27 @@ mod integration_test {
         let ret_outputs_result_err = caller.outputsResultErr(callee_address).call().await;
         match ret_outputs_result_err {
             Err(e) => {
-                assert!(e.to_string().contains("execution reverted, data: \"0x010203\""));
+                assert!(e
+                    .to_string()
+                    .contains("execution reverted, data: \"0x010203\""));
+            }
+            Ok(_) => {
+                assert!(
+                    false,
+                    "Expected call to fail with specific error, but it succeeded"
+                );
+            }
+        }
+
+        let ret_outputs_arbresult_ok = caller.outputsArbresultOk(callee_address).call().await?;
+        assert_eq!(ret_outputs_arbresult_ok, Vec::<u8>::from([33, 34, 35]));
+
+        let ret_outputs_arbresult_err = caller.outputsArbresultErr(callee_address).call().await;
+        match ret_outputs_arbresult_err {
+            Err(e) => {
+                assert!(e
+                    .to_string()
+                    .contains("execution reverted, data: \"0x010203\""));
             }
             Ok(_) => {
                 assert!(
