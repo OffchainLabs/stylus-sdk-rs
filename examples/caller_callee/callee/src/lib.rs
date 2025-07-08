@@ -77,7 +77,7 @@ impl Trait2 for Callee {
     }
 
     fn outputs_arbresult_ok(&self) -> ArbResult {
-        Ok(vec![0x01, 0x02, 0x03])
+        Ok(Vec::from([33, 34, 35]))
     }
 
     fn outputs_arbresult_err(&self) -> ArbResult {
