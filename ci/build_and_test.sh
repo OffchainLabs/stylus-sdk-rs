@@ -31,7 +31,7 @@ test() {
     local targets="$2"
 
     cargo check --locked -F "$features"
-    cargo test --no-default-features -F "$features" -- "$targets"
+    cargo test --no-default-features $targets -F "$features"
 }
 
 test "$FEATURES" ""
