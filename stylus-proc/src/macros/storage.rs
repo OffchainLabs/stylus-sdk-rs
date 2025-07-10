@@ -229,6 +229,17 @@ impl Storage {
             }
         }
     }
+    fn impl_vm_access(&self) -> syn::ItemImpl {
+        let name = &self.name;
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        parse_quote! {
+            impl #impl_generics stylus_sdk::host::VMAccess for #name #ty_generics #where_clause {
+                unsafe fn raw_vm(&self) -> stylus_sdk::host::VM {
+                    self.__stylus_host.clone()
+                }
+            }
+        }
+    }
 }
 
 impl From<&mut syn::ItemStruct> for Storage {
@@ -263,6 +274,7 @@ impl ToTokens for Storage {
         self.impl_value_denier().to_tokens(tokens);
         self.impl_constructor_guard().to_tokens(tokens);
         self.impl_from_vm().to_tokens(tokens);
+        self.impl_vm_access().to_tokens(tokens);
         for field in &self.fields {
             field.impl_borrow(&self.name).to_tokens(tokens);
             field.impl_borrow_mut(&self.name).to_tokens(tokens);

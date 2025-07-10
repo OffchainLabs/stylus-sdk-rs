@@ -49,6 +49,7 @@ jobs:
           - "call"
           - "constants"
           - "constructor"
+          - "custom_storage_slots"
           - "delegate_call"
           - "encoding_and_hashing"
           - "erc20"

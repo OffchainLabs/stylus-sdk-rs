@@ -500,3 +500,13 @@ impl MeteringAccess for WasmVM {
         unsafe { hostio::tx_ink_price() }
     }
 }
+
+/// Provides a way to access the VM struct directly.
+pub trait VMAccess {
+    /// Returns a copy of the VM.
+    ///
+    /// # Safety
+    ///
+    /// This is unsafe because it might cause aliasing with existing slots defined by the contract.
+    unsafe fn raw_vm(&self) -> VM;
+}
