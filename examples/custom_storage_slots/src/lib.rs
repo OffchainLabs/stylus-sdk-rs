@@ -6,12 +6,11 @@
 extern crate alloc;
 
 use alloy_primitives::U256;
-use stylus_sdk::{storage::StorageU256, host::VMAccess, prelude::*};
+use stylus_sdk::{host::VMAccess, prelude::*, storage::StorageU256};
 
 #[entrypoint]
 #[storage]
-pub struct Contract {
-}
+pub struct Contract {}
 
 #[public]
 impl Contract {
@@ -22,9 +21,7 @@ impl Contract {
     }
 
     pub fn number(&self) -> U256 {
-        unsafe {
-            get_storage_slot(self).get()
-        }
+        unsafe { get_storage_slot(self).get() }
     }
 }
 
