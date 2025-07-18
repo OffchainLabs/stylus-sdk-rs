@@ -1,0 +1,23 @@
+[package]
+name = "cargo-stylus-beta"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy", "cargo"]
+description = "CLI tool for building Stylus contracts on Arbitrum chains"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy.workspace = true
+eyre.workspace = true
+hex.workspace = true
+stylus-tools.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+
+anstyle = "1.0.10"
+clap = { version = "4.5.39", features = ["derive"] }
+env_logger = "0.11"
