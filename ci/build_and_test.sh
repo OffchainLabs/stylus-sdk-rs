@@ -21,8 +21,21 @@ if [[ "${CFG_RELEASE_CHANNEL-}" == "nightly"* ]]; then
     FEATURES=$(echo "$FEATURES" | grep -v trybuild)
 fi
 
-FEATURES=$(echo $FEATURES | tr ' ' ',')
-echo "testing features: $FEATURES"
+# Remove contract-client-gen feature.
+# This feature is tested individually since it considerably change the structure of the output code.
+FEATURES=$(echo "$FEATURES" | grep -v contract-client-gen)
 
-cargo check --locked -F $FEATURES
-cargo test --no-default-features -F $FEATURES
+FEATURES=$(echo "$FEATURES" | tr ' ' ',')
+
+test() {
+    local features="$1"
+    echo "Testing with features: $features"
+    local targets="$2"
+
+    cargo check --locked -F "$features"
+    cargo test --no-default-features $targets -F "$features"
+}
+
+test "$FEATURES" ""
+# disables doctests when testing contract-client-gen
+test contract-client-gen "--lib --bins --tests --benches"

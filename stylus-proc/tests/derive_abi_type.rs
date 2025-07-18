@@ -1,6 +1,9 @@
 // Copyright 2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+// contract-client-gen feature can generate code that makes some imports and variables of this file unused
+#![allow(unused_imports)]
+
 extern crate alloc;
 
 use alloy_sol_types::{sol, SolType};
@@ -10,6 +13,8 @@ use stylus_sdk::abi::AbiType;
 macro_rules! test_abi_type {
     ($test_name:ident, $type:ty, $expected_abi:literal, $expected_selector:literal $(,)? ) => {
         #[test]
+        // contract-client-gen disables derive abi type code generation
+        #[cfg(not(feature = "contract-client-gen"))]
         fn $test_name() {
             assert_eq!(<$type as AbiType>::ABI.as_str(), $expected_abi);
             assert_eq!(
@@ -103,7 +108,7 @@ fn decode() {
     );
 }
 
-#[cfg(feature = "trybuild-tests")]
+#[cfg(all(not(feature = "contract-client-gen"), feature = "trybuild-tests"))]
 #[test]
 fn abi_type_failures() {
     let t = trybuild::TestCases::new();
