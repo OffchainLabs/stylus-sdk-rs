@@ -9,7 +9,7 @@ use eyre::eyre;
 
 use crate::core::{
     build::{self, BuildConfig},
-    contract::Contract,
+    project::contract::Contract,
 };
 
 /// Build contracts in a workspace.

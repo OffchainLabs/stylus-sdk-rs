@@ -8,9 +8,11 @@ use alloy::{
     rpc::types::{TransactionReceipt, TransactionRequest},
 };
 
-use super::{check::CheckConfig, contract::Contract};
 use crate::{
-    core::{check::check_contract, contract::ContractStatus},
+    core::{
+        check::{check_contract, CheckConfig},
+        project::contract::{Contract, ContractStatus},
+    },
     utils::color::{Color, DebugColor},
 };
 use prelude::DeploymentCalldata;

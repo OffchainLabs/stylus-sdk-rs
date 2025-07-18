@@ -5,6 +5,8 @@ pub use hash::{hash_project, ProjectHash};
 pub use init::{init_contract, init_workspace, InitError};
 pub use new::{new_contract, new_workspace};
 
+pub mod contract;
+
 mod hash;
 mod init;
 mod new;
