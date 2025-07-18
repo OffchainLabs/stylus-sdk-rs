@@ -1243,7 +1243,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-stylus-beta"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy",
  "anstyle",
@@ -3094,7 +3094,7 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "mini-alloc"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "cfg-if",
  "wasm-bindgen-test",
@@ -4722,7 +4722,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-core"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4732,7 +4732,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-proc"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4756,7 +4756,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4779,7 +4779,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-test"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy-primitives",
  "alloy-provider",
@@ -4791,7 +4791,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-tools"
-version = "0.9.0"
+version = "0.10.0-beta.0"
 dependencies = [
  "alloy",
  "anyhow",
