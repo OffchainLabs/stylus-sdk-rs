@@ -6,13 +6,18 @@ use std::path::Path;
 use alloy::{primitives::Address, providers::Provider};
 use bytesize::ByteSize;
 
-use super::{
-    activation::{self, ActivationConfig},
-    build::{build_contract, BuildConfig},
-    contract::{Contract, ContractStatus},
-    project::{hash_project, ProjectConfig, ProjectHash},
+use crate::{
+    core::{
+        activation::{self, ActivationConfig},
+        build::{build_contract, BuildConfig},
+        project::{
+            contract::{Contract, ContractStatus},
+            hash_project, ProjectConfig, ProjectHash,
+        },
+    },
+    utils::format_file_size,
+    wasm::process_wasm_file,
 };
-use crate::{utils::format_file_size, wasm::process_wasm_file};
 
 #[derive(Debug, Default)]
 pub struct CheckConfig {
@@ -31,7 +36,7 @@ pub enum CheckError {
     #[error("{0}")]
     Build(#[from] crate::core::build::BuildError),
     #[error("{0}")]
-    Contract(#[from] crate::core::contract::ContractError),
+    Contract(#[from] crate::core::project::contract::ContractError),
     #[error("{0}")]
     Project(#[from] crate::core::project::ProjectError),
     #[error("{0}")]

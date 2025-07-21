@@ -8,8 +8,10 @@ use cargo_metadata::MetadataCommand;
 
 use crate::core::{
     check::{check_contract, CheckConfig},
-    contract::{Contract, ContractStatus},
-    project::ProjectHash,
+    project::{
+        contract::{Contract, ContractStatus},
+        ProjectHash,
+    },
 };
 
 pub async fn check_workspace(config: &CheckConfig, provider: &impl Provider) -> eyre::Result<()> {
