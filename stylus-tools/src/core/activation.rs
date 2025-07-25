@@ -19,7 +19,7 @@ use crate::{
     precompiles,
     utils::{
         bump_data_fee,
-        color::{DebugColor, GREY, LAVENDER},
+        color::{GREY, LAVENDER},
         format_data_fee,
     },
 };
@@ -81,13 +81,6 @@ pub async fn activate_contract(
         .await?
         .get_receipt()
         .await?;
-
-    info!(@grey,
-        "successfully activated contract 0x{} with tx {}",
-        hex::encode(address),
-        hex::encode(receipt.transaction_hash).debug_lavender()
-    );
-
     Ok(receipt)
 }
 

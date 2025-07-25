@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 
 use alloy::{
     network::EthereumWallet,
-    primitives::FixedBytes,
+    primitives::{FixedBytes, TxHash},
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::{
         local::{LocalSigner, PrivateKeySigner},
@@ -65,6 +65,19 @@ pub struct ProviderArgs {
     /// Arbitrum RPC endpoint
     #[arg(short, long, default_value = DEFAULT_ENDPOINT)]
     pub endpoint: String,
+}
+
+#[derive(Debug, clap::Args)]
+pub struct TraceArgs {
+    /// Tx to replay.
+    #[arg(short, long)]
+    pub tx: TxHash,
+    /// If set, use the native tracer instead of the JavaScript one. Notice the native tracer might not be available in the node.
+    #[arg(short, long, default_value_t = false)]
+    pub use_native_tracer: bool,
+    /// Project path.
+    #[arg(short, long, default_value = ".")]
+    pub project: PathBuf,
 }
 
 #[derive(Debug, clap::Args)]

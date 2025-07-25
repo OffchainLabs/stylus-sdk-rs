@@ -21,7 +21,12 @@ pub async fn contract(
     config: &ActivationConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> eyre::Result<()> {
-    let _receipt = activation::activate_contract(address, config, provider).await?;
+    let receipt = activation::activate_contract(address, config, provider).await?;
+    info!(@grey,
+        "successfully activated contract 0x{} with tx {}",
+        hex::encode(address),
+        hex::encode(receipt.transaction_hash).debug_lavender()
+    );
     Ok(())
 }
 

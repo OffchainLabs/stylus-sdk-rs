@@ -70,6 +70,17 @@ impl TryFrom<&Package> for Contract {
             .find_map(|t| t.kind.contains(&TargetKind::Lib).then(|| t.name.clone()))
             // If that doesn't work, then we can use the package name, and break normally.
             .unwrap_or_else(|| package.name.to_string());
+
+        // TODO: parse Stylus.toml here
+        if !package
+            .manifest_path
+            .parent()
+            .expect("get Cargo.toml parent directory")
+            .join("Stylus.toml")
+            .exists()
+        {
+            return Err(ContractError::MissingStylusToml);
+        }
         Ok(Self {
             stable,
             version,
@@ -80,11 +91,16 @@ impl TryFrom<&Package> for Contract {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ContractError {
+    #[error("name validation error: {0}")]
+    NameValidation(#[from] cargo_util_schemas::manifest::NameValidationError),
+
     #[error("{0}")]
     ContractDecode(#[from] crate::error::ContractDecodeError),
     #[error("{0}")]
     Toolchain(#[from] crate::utils::toolchain::ToolchainError),
 
+    #[error("missing Stylus.toml")]
+    MissingStylusToml,
     #[error("unexpected ArbWasm error")]
     UnexpectedArbWasmError,
 }

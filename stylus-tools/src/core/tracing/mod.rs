@@ -12,10 +12,11 @@ use alloy::{
 
 use serde_json::{Map, Value};
 
-use frame::{ActivationTraceFrame, TraceFrame};
+use frame::{ActivationTraceFrame, FrameReader, TraceFrame};
 
 pub mod frame;
 pub mod hostio;
+pub mod hostios;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -76,6 +77,17 @@ impl Trace {
     pub fn json(&self) -> &Value {
         &self.json
     }
+
+    pub fn tx(&self) -> &TransactionRequest {
+        &self.tx
+    }
+
+    pub fn into_frame_reader(self) -> FrameReader {
+        FrameReader {
+            steps: self.top_frame.steps.clone().into(),
+            frame: self.top_frame,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -114,4 +126,6 @@ pub enum TracingError {
     ParsingFailed { name: &'static str },
     #[error("unexpected type for {key}: {value}")]
     UnexpectedType { key: &'static str, value: Value },
+    #[error("no next hostio")]
+    NoNextHostio,
 }
