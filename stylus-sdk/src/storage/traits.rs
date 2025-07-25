@@ -11,6 +11,18 @@ use derivative::Derivative;
 
 use crate::host::VM;
 
+/// Utils trait for Storage types.
+pub trait StorageUtils {
+    /// The type stored in persistent storage.
+    type Value;
+
+    /// Gets the underlying value in persistent storage.
+    fn get(&self) -> Self::Value;
+
+    /// Sets the underlying value in persistent storage.
+    fn set(&mut self, value: Self::Value);
+}
+
 /// Accessor trait that lets a type be used in persistent storage.
 /// Users can implement this trait to add novel data structures to their contract definitions.
 /// The Stylus SDK by default provides only solidity types, which are represented [`the same way`].
