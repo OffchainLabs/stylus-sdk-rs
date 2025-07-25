@@ -67,7 +67,7 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
     // Add files from template
     copy_from_template_if_dne!(
         "../../templates/workspace" -> path,
-        "Cargo.toml",
+        "Cargo.toml.tmpl",
         "rust-toolchain.toml",
         "Stylus.toml",
     );

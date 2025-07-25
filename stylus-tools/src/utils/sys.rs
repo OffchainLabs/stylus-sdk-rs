@@ -31,3 +31,11 @@ pub fn file_or_stdout(path: Option<impl AsRef<Path>>) -> io::Result<Box<dyn io::
 pub fn host_arch() -> Result<String, rustc_host::Error> {
     rustc_host::from_cli()
 }
+
+pub fn library_extension() -> &'static str {
+    if cfg!(target_os = "macos") {
+        ".dylib"
+    } else {
+        ".so"
+    }
+}

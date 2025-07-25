@@ -1,11 +1,13 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::mem;
+use std::{collections::VecDeque, mem};
 
 use alloy::primitives::{Address, B256, U256};
 use serde::Deserialize;
 use serde_json::Value;
+
+use crate::utils::color::{Color, DebugColor};
 
 use super::{hostio::Hostio, TracingError};
 
@@ -16,11 +18,11 @@ pub struct ActivationTraceFrame {
     address: Value,
 }
 
-//#[derive(Clone, Debug, PartialEq, Eq)]
-#[derive(Debug)]
+//#[derive(PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub struct TraceFrame {
-    steps: Vec<Hostio>,
+    pub(crate) steps: Vec<Hostio>,
     address: Option<Address>,
 }
 
@@ -374,5 +376,58 @@ impl TraceFrame {
             });
         }
         Ok(frame)
+    }
+}
+
+#[derive(Debug)]
+pub struct FrameReader {
+    pub(crate) frame: TraceFrame,
+    pub(crate) steps: VecDeque<Hostio>,
+}
+
+impl FrameReader {
+    pub fn next_hostio(&mut self, expected: &'static str) -> Hostio {
+        fn detected(reader: &FrameReader, expected: &'static str) {
+            let expected = expected.red();
+            let which = match reader.frame.address {
+                Some(call) => format!("call to {}", call.red()),
+                None => "contract deployment".to_string(),
+            };
+            println!("{}", "\n════════ Divergence ════════".red());
+            println!("Divegence detected while simulating a {which} via local assembly.");
+            println!("The simulated environment expected a call to the {expected} Host I/O.",);
+        }
+
+        loop {
+            let Ok(hostio) = self.next() else {
+                detected(self, expected);
+                println!("However, no such call is made onchain. Are you sure this the right contract?\n");
+                panic!();
+            };
+
+            if hostio.kind.name() == expected {
+                return hostio;
+            }
+
+            let kind = hostio.kind;
+            let name = kind.name();
+            match name {
+                "pay_for_memory_grow" | "user_entrypoint" | "user_returned" => continue,
+                _ => {
+                    detected(self, expected);
+                    println!("However, onchain there's a call to {name}. Are you sure this the right contract?\n");
+                    println!("expected: {}", expected.red());
+                    println!("but have: {}\n", kind.debug_red());
+                    panic!();
+                }
+            }
+        }
+    }
+
+    fn next(&mut self) -> Result<Hostio, TracingError> {
+        match self.steps.pop_front() {
+            Some(item) => Ok(item),
+            None => Err(TracingError::NoNextHostio),
+        }
     }
 }

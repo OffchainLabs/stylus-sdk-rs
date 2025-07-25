@@ -10,10 +10,13 @@ license.workspace = true
 repository.workspace = true
 version.workspace = true
 
+include = ["/src/**", "/precompiles/*.sol"]
+
 [dependencies]
 alloy = { workspace = true, features = ["contract", "getrandom", "rpc-types", "signer-local", "sol-types"] }
 eyre.workspace = true
 hex.workspace = true
+lazy_static.workspace = true
 regex.workspace = true
 reqwest.workspace = true
 testcontainers = { workspace = true, optional = true }
@@ -43,6 +46,11 @@ wasmer = "3.1.0"
 wasmparser = "0.213.0"
 wasmprinter = "0.221.2"
 wat = "1.230"
+
+# replay
+function_name = "0.3"
+parking_lot = "0.12"
+sneks = "0.1"
 
 [features]
 integration-tests = ["dep:testcontainers"]

@@ -7,6 +7,9 @@ use crate::{common_args::BuildArgs, error::CargoStylusResult};
 
 #[derive(Debug, clap::Args)]
 pub struct Args {
+    #[arg(long)]
+    contract: Vec<String>,
+
     #[command(flatten)]
     build: BuildArgs,
 }
@@ -16,6 +19,14 @@ pub fn exec(args: Args) -> CargoStylusResult {
         features: args.build.features,
         ..Default::default()
     };
-    ops::build_workspace(&config)?;
+
+    if args.contract.is_empty() {
+        ops::build_workspace(&config)?;
+    } else {
+        for contract in args.contract {
+            ops::build_contract(contract, &config)?;
+        }
+    }
+
     Ok(())
 }

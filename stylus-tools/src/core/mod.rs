@@ -6,7 +6,7 @@ pub mod build;
 pub mod cache;
 pub mod check;
 pub mod codegen;
-pub mod contract;
+pub mod debugger;
 pub mod deployment;
 pub mod message;
 pub mod network;

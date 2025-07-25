@@ -4,8 +4,12 @@
 macro_rules! copy_from_template {
     ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
         $(
+            let mut filename = std::path::Path::new($files);
+            if filename.extension().map(|s| s.to_string_lossy()) == Some("tmpl".into()) {
+                filename = filename.file_stem().unwrap().as_ref();
+            }
             std::fs::write(
-                $root.join($files),
+                $root.join(filename),
                 include_str!(concat!($tmpl, "/", $files)),
             )?;
         )*
