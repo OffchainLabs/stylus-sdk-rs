@@ -1,5 +1,5 @@
 [workspace]
-members = ["stylus-sdk", "stylus-proc", "stylus-test", "mini-alloc", "stylus-core", "stylus-tools", "cargo-stylus"]
+members = ["stylus-sdk", "stylus-proc", "stylus-test", "stylus-core", "stylus-tools", "cargo-stylus"]
 resolver = "2"
 
 [workspace.package]
@@ -20,6 +20,7 @@ derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"
 lazy_static = "1.5.0"
+mini-alloc = "0.10.0-beta.0"
 sha3 = "0.10.8"
 rclite = "0.2.4"
 
@@ -46,7 +47,6 @@ testcontainers = { version = "0.23", features = ["http_wait"] }
 tokio = "1.45"
 
 # members
-mini-alloc = { path = "mini-alloc", version = "0.10.0-beta.0" }
 stylus-sdk = { path = "stylus-sdk" }
 stylus-core = { path = "stylus-core", version = "0.10.0-beta.0" }
 stylus-test = { path = "stylus-test", version = "0.10.0-beta.0" }
