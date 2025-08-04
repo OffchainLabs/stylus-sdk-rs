@@ -26,7 +26,7 @@ pub fn exec(args: Args) -> CargoStylusResult {
         // Default to `--contract`
         (true, false) | (false, false) => ProjectKind::Contract,
         (false, true) => ProjectKind::Workspace,
-        (true, true) => Err(eyre!("cannot specify both --contract and --workspace"))?,
+        (true, true) => return Err(eyre!("cannot specify both --contract and --workspace").into()),
     };
     ops::new(args.path, kind)?;
     Ok(())

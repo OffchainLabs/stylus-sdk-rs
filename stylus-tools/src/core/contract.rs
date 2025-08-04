@@ -98,6 +98,13 @@ pub enum ContractStatus {
 }
 
 impl ContractStatus {
+    pub fn code(&self) -> &[u8] {
+        match self {
+            Self::Active { code } => code,
+            Self::Ready { code, .. } => code,
+        }
+    }
+
     pub fn suggest_fee(&self) -> U256 {
         match self {
             Self::Active { .. } => U256::ZERO,

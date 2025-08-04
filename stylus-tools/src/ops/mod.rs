@@ -7,6 +7,7 @@ pub use codegen::c_gen;
 pub use deploy::deploy;
 pub use export_abi::{export_abi, print_constructor};
 pub use init::init;
+pub use initcode::write_initcode;
 pub use new::new;
 pub use verify::verify;
 
@@ -19,5 +20,6 @@ mod codegen;
 mod deploy;
 mod export_abi;
 mod init;
+mod initcode;
 mod new;
 mod verify;

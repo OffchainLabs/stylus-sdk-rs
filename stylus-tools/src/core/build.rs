@@ -1,7 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Stdio};
 
 use cargo_metadata::MetadataCommand;
 use escargot::Cargo;
@@ -43,6 +43,10 @@ pub enum BuildError {
 
     #[error("build did not generate wasm file")]
     NoWasmFound,
+    #[error("failed to execute cargo build")]
+    FailedToExecute,
+    #[error("cargo build command failed")]
+    CargoBuildFailed,
 }
 
 pub fn build_contract(contract: &Contract, config: &BuildConfig) -> Result<PathBuf, BuildError> {
@@ -61,8 +65,15 @@ pub fn build_contract(contract: &Contract, config: &BuildConfig) -> Result<PathB
         cmd = cmd.args(["--config", OPT_LEVEL_Z_CONFIG]);
     }
 
-    // TODO: check output status
-    let _status = cmd.into_command().status()?;
+    let status = cmd
+        .into_command()
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .map_err(|_| BuildError::FailedToExecute)?;
+    if !status.success() {
+        return Err(BuildError::CargoBuildFailed);
+    }
 
     let metadata = MetadataCommand::new().exec()?;
     let wasm_path = metadata
