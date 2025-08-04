@@ -1,7 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use stylus_tools::{core::build::BuildConfig, ops};
+use stylus_tools::ops;
 
 use crate::{common_args::BuildArgs, error::CargoStylusResult};
 
@@ -12,10 +12,7 @@ pub struct Args {
 }
 
 pub fn exec(args: Args) -> CargoStylusResult {
-    let config = BuildConfig {
-        features: args.build.features,
-        ..Default::default()
-    };
+    let config = args.build.into_config();
     ops::build_workspace(&config)?;
     Ok(())
 }

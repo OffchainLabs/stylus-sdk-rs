@@ -5,12 +5,12 @@ use std::path::PathBuf;
 
 use alloy::primitives::Address;
 use stylus_tools::{
-    core::{activation::ActivationConfig, check::CheckConfig, network, project::ProjectHash},
+    core::{check::CheckConfig, network, project::ProjectHash},
     ops,
 };
 
 use crate::{
-    common_args::{BuildArgs, DataFeeArgs, ProviderArgs},
+    common_args::{ActivationArgs, BuildArgs, ProviderArgs},
     error::CargoStylusResult,
 };
 
@@ -25,9 +25,9 @@ pub struct Args {
     contract_address: Option<Address>,
 
     #[command(flatten)]
-    build: BuildArgs,
+    activation: ActivationArgs,
     #[command(flatten)]
-    data_fee: DataFeeArgs,
+    build: BuildArgs,
     #[command(flatten)]
     provider: ProviderArgs,
 }
@@ -36,9 +36,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
     network::check_endpoint(&args.provider.endpoint)?;
     let provider = args.provider.build_provider().await?;
     let config = CheckConfig {
-        activation: ActivationConfig {
-            data_fee_bump_percent: args.data_fee.bump_percent,
-        },
+        activation: args.activation.into_config(),
         ..Default::default()
     };
     if let Some(wasm_file) = args.wasm_file {

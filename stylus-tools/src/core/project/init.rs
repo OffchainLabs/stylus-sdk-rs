@@ -41,9 +41,6 @@ pub enum InitError {
 pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
 
-    // Update Cargo.toml
-    init_package_manifest(path)?;
-
     // Add files from template
     copy_from_template_if_dne!(
         "../../templates/contract" -> path,
@@ -52,6 +49,10 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
         "rust-toolchain.toml",
         "Stylus.toml",
     );
+
+    // Update Cargo.toml
+    // This must be done after copying templates, as it will fail if there is no src/[lib|main].rs
+    init_package_manifest(path)?;
 
     Ok(())
 }
@@ -96,6 +97,14 @@ fn init_package_manifest(path: impl AsRef<Path>) -> Result<(), InitError> {
     if release.set_default("opt-level", 3) {
         release.add_comment("opt-level", OPT_LEVEL_COMMENT)?;
     }
+
+    // Add expected features
+    manifest
+        .features()
+        .extend_feature("default", ["mini-alloc"])?
+        .extend_feature("export-abi", ["stylus-sdk/export-abi"])?
+        .extend_feature("debug", ["stylus-sdk/debug"])?
+        .extend_feature("mini-alloc", ["stylus-sdk/mini-alloc"])?;
 
     // Write the modified Cargo.toml file
     manifest.write()?;

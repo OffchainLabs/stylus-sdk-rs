@@ -3,6 +3,7 @@
 
 use alloy::primitives::TxHash;
 use eyre::eyre;
+use stylus_tools::ops;
 
 use crate::{
     common_args::{ProviderArgs, VerificationArgs},
@@ -23,11 +24,12 @@ pub struct Args {
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
-    let _provider = args.provider.build_provider().await?;
+    let provider = args.provider.build_provider().await?;
     let hash = decode0x(args.deployment_tx)?;
     if hash.len() != 32 {
         return Err(eyre!("Invalid hash").into());
     }
-    let _hash = TxHash::from_slice(&hash);
+    let hash = TxHash::from_slice(&hash);
+    ops::verify(hash, &provider).await?;
     Ok(())
 }

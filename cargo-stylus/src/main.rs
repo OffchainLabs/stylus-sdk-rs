@@ -23,14 +23,23 @@ mod utils;
 struct Args {
     #[command(subcommand)]
     command: commands::Command,
+
+    /// Whether to print debug info.
+    #[arg(long, global = true)]
+    verbose: bool,
 }
 
 fn main() -> ExitCode {
-    env_logger::init();
-
     // Parse args from CLI, skipping `stylus` arg coming from `cargo`
     let args: Vec<_> = std::env::args().skip(1).collect();
     let args = Args::parse_from(args);
+
+    let log_level = if args.verbose {
+        log::Level::Debug
+    } else {
+        log::Level::Info
+    };
+    simple_logger::init_with_level(log_level).expect("setting up logger");
 
     // Create the async runtime
     let mut runtime = match args.command {
