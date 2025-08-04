@@ -3094,9 +3094,9 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "mini-alloc"
-version = "0.10.0-beta.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6beb526ff4de6367f87cf8131e03d628fc037e1e642bc52d65e49e568b383395"
+checksum = "b620761d4c29ede39bb1351c4360dba54d3b414d9fb460d37cba4c98b37a0b9d"
 dependencies = [
  "cfg-if",
 ]

@@ -20,7 +20,7 @@ derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"
 lazy_static = "1.5.0"
-mini-alloc = "0.10.0-beta.0"
+mini-alloc = "1.0.0"
 sha3 = "0.10.8"
 rclite = "0.2.4"
 
