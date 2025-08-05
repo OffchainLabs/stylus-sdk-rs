@@ -5,6 +5,8 @@
 //!
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
+#![allow(dead_code)]
+
 extern crate alloc;
 
 use alloy_primitives::U256;

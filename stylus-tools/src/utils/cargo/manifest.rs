@@ -31,13 +31,13 @@ impl ManifestMut {
     }
 
     /// Make modifications to the `[lib]` table.
-    pub fn lib(&mut self) -> Lib {
+    pub fn lib(&mut self) -> Lib<'_> {
         let entry = self.doc.entry("lib");
         let item = entry.or_insert_with(|| Table::new().into());
         Lib { item }
     }
 
-    pub fn profile(&mut self, name: &str) -> Result<Profile, CargoManifestError> {
+    pub fn profile(&mut self, name: &str) -> Result<Profile<'_>, CargoManifestError> {
         // Create the profile table if it does not exist
         let profile_table = self
             .doc
@@ -56,7 +56,7 @@ impl ManifestMut {
         Ok(Profile { table })
     }
 
-    pub fn features(&mut self) -> Features {
+    pub fn features(&mut self) -> Features<'_> {
         let entry = self.doc.entry("features");
         let item = entry.or_insert_with(|| Table::new().into());
         Features { item }
