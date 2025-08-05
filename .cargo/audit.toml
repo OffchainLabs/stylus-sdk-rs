@@ -1,0 +1,10 @@
+[advisories]
+ignore = [
+    # The vulnerability in brotli-sys cannot be exploited in the Stylus SDK. We
+    # are only using the `brotli2::read::BrotliEncoder`, which wraps the reader
+    # in a `std::io::BufReader`, using the default buffer size of 8KiB. This
+    # ensures that no payload of >2GiB is sent to the C API. Additionally, we
+    # only use this library as part of the build-time tooling, so there is never
+    # any risk to the node itself.
+    "RUSTSEC-2021-0131",
+]
