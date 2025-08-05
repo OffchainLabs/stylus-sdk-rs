@@ -1,6 +1,8 @@
 // Copyright 2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+#![allow(dead_code)]
+
 extern crate alloc;
 
 use alloy_primitives::{Address, U256};

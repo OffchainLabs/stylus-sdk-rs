@@ -112,14 +112,14 @@ pub fn underscore_if_sol(name: &str) -> String {
 
     if let Some(caps) = UINT_REGEX.captures(name) {
         let bits: usize = caps[1].parse().unwrap();
-        if bits % 8 == 0 {
+        if bits.is_multiple_of(8) {
             return underscore();
         }
     }
 
     if let Some(caps) = INT_REGEX.captures(name) {
         let bits: usize = caps[1].parse().unwrap();
-        if bits % 8 == 0 {
+        if bits.is_multiple_of(8) {
             return underscore();
         }
     }

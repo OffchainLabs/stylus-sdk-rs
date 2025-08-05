@@ -249,7 +249,7 @@ impl<'a, S: SimpleStorageType<'a>> StorageVec<S> {
         let store = unsafe { self.shrink()?.into_raw() };
         let index = self.len();
         let value = store.into();
-        let first = index % self.density() == 0;
+        let first = index.is_multiple_of(self.density());
 
         if first {
             let slot = self.index_slot(index).0;
