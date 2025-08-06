@@ -24,7 +24,7 @@ struct Contract {
 }
 
 #[public]
-#[implements(IErc20, IOwnable)]
+#[implements(IErc20, IOwnable, PureTrait)]
 impl Contract {}
 
 #[storage]
@@ -89,4 +89,15 @@ impl IOwnable for Contract {
     fn renounce_ownership(&mut self) -> bool {
         todo!()
     }
+}
+
+trait PureTrait {
+    fn pure_method()
+    where
+        Self: Sized;
+}
+
+#[public]
+impl PureTrait for Contract {
+    fn pure_method() {}
 }
