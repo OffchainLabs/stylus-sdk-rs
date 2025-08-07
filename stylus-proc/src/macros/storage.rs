@@ -240,6 +240,7 @@ impl Storage {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::host::VMAccess for #name #ty_generics #where_clause {
                 unsafe fn raw_vm(&self) -> stylus_sdk::host::VM {
                     self.__stylus_host.clone()
