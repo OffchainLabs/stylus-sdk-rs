@@ -6,7 +6,6 @@
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
 #![allow(dead_code)]
-
 // contract-client-gen feature can generate code that makes some imports of this file unused
 #![allow(unused_imports)]
 

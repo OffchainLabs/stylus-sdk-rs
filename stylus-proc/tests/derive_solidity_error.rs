@@ -2,7 +2,6 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![allow(dead_code)]
-
 // contract-client-gen feature can generate code that makes some imports of this file unused
 #![allow(unused_imports)]
 
