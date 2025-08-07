@@ -213,7 +213,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 ///
 ///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///          let cfg = Call::new_mutating(self);    
+///          let cfg = Call::new_mutating(self);
 ///          Ok(methods.write_foo(self.vm(), cfg)?)
 ///     }
 /// }

@@ -14,6 +14,8 @@ pub const STRUCT_ENTRYPOINT_FN: ConstIdent = ConstIdent("__stylus_struct_entrypo
 
 pub const STYLUS_HOST_FIELD: ConstIdent = ConstIdent("__stylus_host");
 
+pub const STYLUS_CONTRACT_ADDRESS_FIELD: ConstIdent = ConstIdent("__stylus_contract_address");
+
 /// Definition of a constant identifier
 pub struct ConstIdent(&'static str);
 

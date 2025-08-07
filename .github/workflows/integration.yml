@@ -47,6 +47,8 @@ jobs:
           - "abi_encode"
           - "arrays"
           - "call"
+          - "caller"
+          - "callee"
           - "constants"
           - "constructor"
           - "custom_storage_slots"
