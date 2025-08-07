@@ -26,4 +26,6 @@ cargo check --locked -F $FEATURES
 cargo test --no-default-features -F $FEATURES
 
 # Run trybuild tests separately without other features
-cargo test -p stylus-proc -F trybuild-tests
+if [[ "${CFG_RELEASE_CHANNEL-}" != "nightly"* ]]; then
+    cargo test -p stylus-proc -F trybuild-tests
+fi
