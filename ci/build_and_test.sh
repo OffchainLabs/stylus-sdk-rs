@@ -17,12 +17,13 @@ FEATURES=$(echo "$FEATURES" | grep . | sort | uniq | grep -v default) # cleanup
 FEATURES=$(echo "$FEATURES" | grep -v integration-tests)
 
 # Remove trybuild tests on nightly because they depend on the compiler output.
-if [[ "${CFG_RELEASE_CHANNEL-}" == "nightly"* ]]; then
-    FEATURES=$(echo "$FEATURES" | grep -v trybuild)
-fi
+FEATURES=$(echo "$FEATURES" | grep -v trybuild)
 
 FEATURES=$(echo $FEATURES | tr ' ' ',')
 echo "testing features: $FEATURES"
 
 cargo check --locked -F $FEATURES
 cargo test --no-default-features -F $FEATURES
+
+# Run trybuild tests separately without other features
+cargo test -p stylus-proc -F trybuild-tests
