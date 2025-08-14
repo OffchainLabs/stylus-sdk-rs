@@ -6,14 +6,18 @@
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
 #![allow(dead_code)]
+// contract-client-gen feature can generate code that makes some imports of this file unused
+#![allow(unused_imports)]
 
 extern crate alloc;
 
 use alloy_primitives::U256;
 use stylus_proc::public;
-use stylus_sdk::{storage::StorageU256, ArbResult};
+use stylus_sdk::{prelude::*, storage::StorageU256, ArbResult};
 
-struct Contract {
+#[storage]
+#[entrypoint]
+pub struct Contract {
     value: StorageU256,
 }
 
@@ -42,7 +46,7 @@ impl Contract {
     }
 }
 
-#[cfg(feature = "trybuild-tests")]
+#[cfg(all(not(feature = "contract-client-gen"), feature = "trybuild-tests"))]
 #[test]
 fn test_public_failures() {
     let t = trybuild::TestCases::new();

@@ -9,6 +9,7 @@ use syn::{
 };
 
 use crate::{
+    consts::STYLUS_CONTRACT_ADDRESS_FIELD,
     imports::{
         alloy_sol_types::SolType,
         stylus_sdk::abi::{AbiType, Router},
@@ -56,6 +57,88 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub associated_types: Vec<(syn::Ident, syn::Type)>,
     #[allow(dead_code)]
     pub extension: E,
+}
+
+fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
+    (
+        quote! {
+            Result<<<#ty as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
+        },
+        quote! {
+            Ok(<<#ty as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
+        },
+    )
+}
+
+fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, TokenStream) {
+    match output {
+        syn::ReturnType::Default => (
+            quote! { Result<(), stylus_sdk::stylus_core::calls::errors::Error> },
+            quote! { Ok(()) },
+        ),
+        syn::ReturnType::Type(_, ty) => {
+            // Check if it's a path type (like Result<T, E> or ArbResult)
+            let type_path = match ty.as_ref() {
+                syn::Type::Path(type_path) => type_path,
+                _ => return get_default_output(ty),
+            };
+
+            // Check if the path is "Result" or "ArbResult"
+            let segment = match type_path.path.segments.last() {
+                Some(segment) => segment,
+                None => {
+                    emit_error!(ty.span(), "Expected a type path with segments, found none");
+                    return get_default_output(ty);
+                }
+            };
+            match segment.ident.to_string().as_str() {
+                "ArbResult" => (
+                    quote! {
+                        stylus_sdk::ArbResult
+                    },
+                    quote! {
+                        let decoded = <<Vec<u8> as #AbiType>::SolType as #SolType>::abi_decode(&call_result);
+                        match decoded {
+                            Ok(decoded) => Ok(decoded),
+                            Err(err) => Err("unable to decode to Vec<u8>".into()),
+                        }
+                    },
+                ),
+                "Result" => {
+                    // Extract the generic arguments
+                    let args = match &segment.arguments {
+                        syn::PathArguments::AngleBracketed(args) => args,
+                        _ => {
+                            emit_error!(
+                                ty.span(),
+                                "Expected Result to have generic arguments, found none"
+                            );
+                            return get_default_output(ty);
+                        }
+                    };
+
+                    // Get the first generic argument (T in Result<T, E>)
+                    if args.args.is_empty() {
+                        emit_error!(
+                            ty.span(),
+                            "Expected Result to have at least one generic argument"
+                        );
+                        return get_default_output(ty);
+                    }
+                    if let syn::GenericArgument::Type(ok_type) = &args.args[0] {
+                        get_default_output(ok_type)
+                    } else {
+                        emit_error!(
+                            ty.span(),
+                            "Expected Result to have a type as the first generic argument"
+                        );
+                        get_default_output(ty)
+                    }
+                }
+                _ => get_default_output(ty),
+            }
+        }
+    }
 }
 
 impl PublicImpl {
@@ -117,6 +200,7 @@ impl PublicImpl {
         };
 
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl<S, #generic_params> #Router<S, #iface> for #self_ty
             where
                 S: stylus_sdk::stylus_core::storage::TopLevelStorage + core::borrow::BorrowMut<Self> + stylus_sdk::stylus_core::ValueDenier + stylus_sdk::stylus_core::ConstructorGuard,
@@ -169,6 +253,76 @@ impl PublicImpl {
             }
         })
     }
+
+    pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
+        let client_funcs = self
+        .funcs
+        .iter()
+        .map(|func| {
+            let func_name = func.name.clone();
+
+            let (context, call) = func.purity.get_context_and_call();
+
+            let inputs = func.inputs.iter().map(|input| {
+                let name = input.name.clone();
+                let ty = input.ty.clone();
+                quote! { #name: #ty }
+            });
+            let inputs_names = func.inputs.iter().map(|input| {
+                input.name.clone()
+            });
+            let inputs_types = func.inputs.iter().map(|input| {
+                let ty = input.ty.clone();
+                quote! { #ty }
+            });
+
+            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
+
+            let function_selector = func.function_selector();
+
+            quote! {
+                pub fn #func_name(
+                    &self,
+                    host: &dyn stylus_sdk::stylus_core::host::Host,
+                    context: impl #context,
+                    #(#inputs,)*
+                ) -> #output_type {
+                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
+                    use stylus_sdk::function_selector;
+                    let mut calldata = Vec::from(#function_selector);
+                    calldata.extend(inputs);
+                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
+                    #output_decoding
+                }
+            }
+        })
+        .collect::<proc_macro2::TokenStream>();
+
+        let struct_path = self.self_ty.clone();
+
+        let mut output = quote! {
+            #[cfg(feature = "contract-client-gen")]
+            impl #struct_path {
+                #client_funcs
+            }
+        };
+
+        // If the impl does not implement a trait, we add a constructor for the contract client
+        if self.trait_.is_none() {
+            output.extend(quote! {
+                #[cfg(feature = "contract-client-gen")]
+                impl #struct_path {
+                    pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
+                        Self {
+                            #STYLUS_CONTRACT_ADDRESS_FIELD: address,
+                        }
+                    }
+                }
+            });
+        }
+
+        output
+    }
 }
 
 #[derive(Debug)]
@@ -189,6 +343,7 @@ pub struct PublicFn<E: FnExtension> {
     pub has_self: bool,
     pub inputs: Vec<PublicFnArg<E::FnArgExt>>,
     pub input_span: Span,
+    pub output: syn::ReturnType,
     pub output_span: Span,
 
     #[allow(dead_code)]
@@ -196,15 +351,22 @@ pub struct PublicFn<E: FnExtension> {
 }
 
 impl<E: FnExtension> PublicFn<E> {
+    pub fn function_selector(&self) -> syn::Expr {
+        let sol_name = syn::LitStr::new(&self.sol_name.as_string(), self.sol_name.span());
+        let arg_types = self.arg_types();
+        parse_quote! {
+            function_selector!(#sol_name #(, #arg_types )*)
+        }
+    }
+
     pub fn selector_name(&self) -> syn::Ident {
         syn::Ident::new(&format!("__SELECTOR_{}", self.name), self.name.span())
     }
 
     fn selector_value(&self) -> syn::Expr {
-        let sol_name = syn::LitStr::new(&self.sol_name.as_string(), self.sol_name.span());
-        let arg_types = self.arg_types();
+        let function_selector = self.function_selector();
         parse_quote! {
-            u32::from_be_bytes(function_selector!(#sol_name #(, #arg_types )*))
+            u32::from_be_bytes(#function_selector)
         }
     }
 
@@ -357,6 +519,7 @@ impl<E: FnExtension> PublicFn<E> {
 
 pub struct PublicFnArg<E: FnArgExtension> {
     pub ty: syn::Type,
+    pub name: syn::Ident,
     #[allow(dead_code)]
     pub extension: E,
 }

@@ -53,6 +53,7 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
             });
         }
         parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics #AbiType for #name #ty_generics #where_clause {
                 type SolType = Self;
 
@@ -114,6 +115,7 @@ mod tests {
         };
         let result = DeriveAbiTypeGenerator::<()>::from(item).impl_abi_type();
         let expected = parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
             impl<T> stylus_sdk::abi::AbiType for Foo<T>
             where T: Bar {
                 type SolType = Self;
