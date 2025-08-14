@@ -62,6 +62,7 @@ jobs:
           - "first_app"
           - "function"
           - "hello_world"
+          - "inheritance"
           - "mapping"
           - "nested_structs"
           - "primitive_data_types"
