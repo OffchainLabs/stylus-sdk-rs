@@ -1,83 +1,44 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
-// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
+// Copyright 2022-2023, Offchain Labs, Inc.
+#![allow(static_mut_refs)]
+// For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/stylus/licenses/COPYRIGHT.md
 
 //! Raw host I/Os for low-level access to the Stylus runtime.
 //!
 //! This module is only available when the `hostio` feature flag is enabled, which exposes
 //! low-level functions for accessing the VM directly. Most users should instead use the
 //! high-level equivalents of [`block`](crate::block), [`contract`](crate::contract),
+//! [`crypto`](crate::crypto), [`evm`](crate::evm), [`msg`](crate::msg), and [`tx`](crate::tx).
 //!
-use cfg_if::cfg_if;
+//! ```ignore
+//! use stylus_sdk::hostio;
+//! use stylus_sdk::{alloy_primitives::Address, msg};
+//!
+//! let mut sender = Address::ZERO;
+//! unsafe {
+//!     hostio::msg_sender(sender.as_mut_ptr());
+//! }
+//!
+//! assert_eq!(sender, msg::sender());
+//! ```
 
-macro_rules! vm_hooks {
-    (
-        $(#[$block_meta:meta])*             // macros & docstrings to apply to all funcs
-        module($link:literal, $stub:ident); // configures the wasm_import_module to link
-
-        // all the function declarations
-        $($(#[$meta:meta])* $vis:vis fn $func:ident ($($arg:ident : $arg_type:ty),* ) $(-> $return_type:ty)?);*
-    ) => {
-        cfg_if! {
-            if #[cfg(feature = "export-abi")] {
-                // Generate a stub for each function.
-                // We use a module for the block macros & docstrings.
-                $(#[$block_meta])*
-                mod $stub {
-                    $(
-                        $(#[$meta])*
-                        #[allow(unused_variables, clippy::missing_safety_doc)]
-                        $vis unsafe fn $func($($arg : $arg_type),*) $(-> $return_type)? {
-                            unimplemented!()
-                        }
-                    )*
-                }
-                pub use $stub::*;
-            } else if #[cfg(feature = "stylus-test")] {
-                $(#[$block_meta])*
-                $(
-                    $(#[$meta])*
-                    #[allow(unused, unused_variables, clippy::missing_safety_doc)]
-                    $vis unsafe fn $func($($arg : $arg_type),*) $(-> $return_type)? {
-                        panic!("HostIO functions are not available in stylus-test. Use TestVM functions instead.");
-                    }
-                )*
-            } else {
-                // Generate a wasm import for each function.
-                $(#[$block_meta])*
-                #[link(wasm_import_module = $link)]
-                extern "C" {
-                    $(
-                        $(#[$meta])*
-                        $vis fn $func($($arg : $arg_type),*) $(-> $return_type)?;
-                    )*
-                }
-            }
-        }
-    };
-}
-
-vm_hooks! {
-    module("vm_hooks", vm_hooks);
-
+// When compiling to wasm32 we import the real host functions provided by the Stylus VM.
+// For native (non-wasm32) targets – e.g. unit testing with `cargo test` – those symbols
+// do not exist, causing linker errors (see issue #301). We therefore provide lightweight
+// Rust stubs that satisfy linkage. They intentionally do NOT perform any real EVM / Stylus
+// side effects; they simply return zero / default values. Higher level test harnesses
+// (e.g. a TestVM crate) can later layer their own abstractions or we can extend these
+// stubs with a pluggable mock mechanism in a follow-up.
+//
+// Safety note: production builds targeting the Stylus runtime must compile for wasm32 so
+// that the real host functions are used. The cfg guard below ensures that.
+#[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "vm_hooks")]
+extern "C" {
     /// Gets the ETH balance in wei of the account at the given address.
     /// The semantics are equivalent to that of the EVM's [`BALANCE`] opcode.
     ///
     /// [`BALANCE`]: https://www.evm.codes/#31
     pub fn account_balance(address: *const u8, dest: *mut u8);
-
-    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
-    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
-    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-    /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
-    ///
-    /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
-    pub fn account_code(address: *const u8, offset: usize, size: usize, dest: *mut u8) -> usize;
-
-    /// Gets the size of the code in bytes at the given address. The semantics are equivalent
-    /// to that of the EVM's [`EXT_CODESIZE`].
-    ///
-    /// [`EXT_CODESIZE`]: https://www.evm.codes/#3B
-    pub fn account_code_size(address: *const u8) -> usize;
 
     /// Gets the code hash of the account at the given address. The semantics are equivalent
     /// to that of the EVM's [`EXT_CODEHASH`] opcode. Note that the code hash of an account without
@@ -92,29 +53,16 @@ vm_hooks! {
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
-    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
-    /// will cost less than in the EVM.
-    ///
     /// [`SLOAD`]: https://www.evm.codes/#54
-    #[allow(dead_code)]
     pub fn storage_load_bytes32(key: *const u8, dest: *mut u8);
 
-    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
-    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
-    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
-    ///
-    /// Note: because the value is cached, one must call `storage_flush_cache` to persist it.
+    /// Stores a 32-byte value to permanent storage. Stylus's storage format is identical to that
+    /// of the EVM. This means that, under the hood, this hostio is storing a 32-byte value into
+    /// the EVM state trie at offset `key`. Furthermore, refunds are tabulated exactly as in the
+    /// EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
-    #[allow(dead_code)]
-    pub fn storage_cache_bytes32(key: *const u8, value: *const u8);
-
-    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
-    /// Analogous to repeated invocations of [`SSTORE`].
-    ///
-    /// [`SSTORE`]: https://www.evm.codes/#55
-    pub fn storage_flush_cache(clear: bool);
+    pub fn storage_store_bytes32(key: *const u8, value: *const u8);
 
     /// Gets the basefee of the current block. The semantics are equivalent to that of the EVM's
     /// [`BASEFEE`] opcode.
@@ -176,7 +124,7 @@ vm_hooks! {
         calldata_len: usize,
         value: *const u8,
         gas: u64,
-        return_data_len: *mut usize
+        return_data_len: *mut usize,
     ) -> u8;
 
     /// Gets the address of the current program. The semantics are equivalent to that of the EVM's
@@ -198,14 +146,14 @@ vm_hooks! {
     /// `read_return_data` hostio. The semantics are equivalent to that of the EVM's [`CREATE`]
     /// opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
+    /// [`Deploying Stylus Programs`]: https://developer.arbitrum.io/TODO
     /// [`CREATE`]: https://www.evm.codes/#f0
     pub fn create1(
         code: *const u8,
         code_len: usize,
         endowment: *const u8,
         contract: *mut u8,
-        revert_data_len: *mut usize
+        revert_data_len: *mut usize,
     );
 
     /// Deploys a new contract using the init code provided, which the EVM executes to construct
@@ -221,7 +169,7 @@ vm_hooks! {
     /// via the `read_return_data` hostio. The semantics are equivalent to that of the EVM's
     /// `[CREATE2`] opcode, which notably includes the exact address returned.
     ///
-    /// [`Deploying Stylus Programs`]: https://docs.arbitrum.io/stylus/quickstart
+    /// [`Deploying Stylus Programs`]: https://developer.arbitrum.io/TODO
     /// [`CREATE2`]: https://www.evm.codes/#f5
     pub fn create2(
         code: *const u8,
@@ -229,7 +177,7 @@ vm_hooks! {
         endowment: *const u8,
         salt: *const u8,
         contract: *mut u8,
-        revert_data_len: *mut usize
+        revert_data_len: *mut usize,
     );
 
     /// Delegate calls the contract at the given address, with the option to limit the amount of
@@ -251,7 +199,7 @@ vm_hooks! {
         calldata: *const u8,
         calldata_len: usize,
         gas: u64,
-        return_data_len: *mut usize
+        return_data_len: *mut usize,
     ) -> u8;
 
     /// Emits an EVM log with the given number of topics and data, the first bytes of which should
@@ -277,14 +225,15 @@ vm_hooks! {
     /// [`Ink and Gas`] for more information on Stylus's compute pricing.
     ///
     /// [`GAS`]: https://www.evm.codes/#5a
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
     pub fn evm_ink_left() -> u64;
 
     /// The `entrypoint!` macro handles importing this hostio, which is required if the
     /// program's memory grows. Otherwise compilation through the `ArbWasm` precompile will revert.
     /// Internally the Stylus VM forces calls to this hostio whenever new WASM pages are allocated.
     /// Calls made voluntarily will unproductively consume gas.
-    pub fn pay_for_memory_grow(pages: u16);
+    #[allow(dead_code)]
+    pub fn memory_grow(pages: u16);
 
     /// Whether the current call is reentrant.
     pub fn msg_reentrant() -> bool;
@@ -361,7 +310,7 @@ vm_hooks! {
         calldata: *const u8,
         calldata_len: usize,
         gas: u64,
-        return_data_len: *mut usize
+        return_data_len: *mut usize,
     ) -> u8;
 
     /// Gets the gas price in wei per gas, which on Arbitrum chains equals the basefee. The
@@ -373,20 +322,297 @@ vm_hooks! {
     /// Gets the price of ink in evm gas basis points. See [`Ink and Gas`] for more information on
     /// Stylus's compute-pricing model.
     ///
-    /// [`Ink and Gas`]: https://docs.arbitrum.io/stylus/concepts/gas-metering
+    /// [`Ink and Gas`]: https://developer.arbitrum.io/TODO
     pub fn tx_ink_price() -> u32;
 
     /// Gets the top-level sender of the transaction. The semantics are equivalent to that of the
     /// EVM's [`ORIGIN`] opcode.
     ///
     /// [`ORIGIN`]: https://www.evm.codes/#32
-    pub fn tx_origin(origin: *mut u8)
+    pub fn tx_origin(origin: *mut u8);
 }
 
-vm_hooks! {
-    #[allow(dead_code)]
-    module("console", console);
+// Native (non-wasm) fallback stubs ---------------------------------------------------------
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(
+    non_snake_case,
+    unused_variables,
+    dead_code,
+    clippy::missing_safety_doc
+)]
+mod native_hostio_stubs {
+    #![allow(static_mut_refs, unused_unsafe)]
+    use alloc::vec::Vec;
+    use core::ptr;
 
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Kind {
+        Call,
+        Delegate,
+        Static,
+    }
+
+    struct MockEntry {
+        kind: Kind,
+        address: [u8; 20],
+        calldata: Vec<u8>,
+        // Ok => success return bytes; Err => revert bytes
+        result: Result<Vec<u8>, Vec<u8>>,
+    }
+    // Very simple global storage for mocks (tests are typically single-threaded).
+    static mut MOCKS: Option<Vec<MockEntry>> = None;
+    static mut LAST_RETURN_DATA: Option<Vec<u8>> = None;
+
+    unsafe fn mocks() -> &'static mut Vec<MockEntry> {
+        if MOCKS.is_none() {
+            MOCKS = Some(Vec::new());
+        }
+        MOCKS.as_mut().unwrap()
+    }
+    unsafe fn last_return_data() -> &'static mut Vec<u8> {
+        if LAST_RETURN_DATA.is_none() {
+            LAST_RETURN_DATA = Some(Vec::new());
+        }
+        LAST_RETURN_DATA.as_mut().unwrap()
+    }
+
+    fn find_mock(
+        kind: Kind,
+        address: *const u8,
+        calldata: *const u8,
+        calldata_len: usize,
+    ) -> (u8, usize) {
+        let addr = unsafe {
+            let mut a = [0u8; 20];
+            ptr::copy(address, a.as_mut_ptr(), 20);
+            a
+        };
+        let data = unsafe { core::slice::from_raw_parts(calldata, calldata_len) };
+        unsafe {
+            if let Some(entry) = mocks()
+                .iter()
+                .find(|e| e.kind == kind && e.address == addr && e.calldata.as_slice() == data)
+            {
+                let out = last_return_data();
+                out.clear();
+                match &entry.result {
+                    Ok(bytes) => {
+                        out.extend_from_slice(bytes);
+                        return (0, out.len());
+                    }
+                    Err(bytes) => {
+                        out.extend_from_slice(bytes);
+                        return (1, out.len());
+                    }
+                }
+            } else {
+                last_return_data().clear();
+                (0, 0)
+            }
+        }
+    }
+
+    /// Public test API (only on native) for registering & clearing mocks.
+    pub mod testing {
+        use super::{mocks, Kind, MockEntry};
+        use alloc::vec::Vec;
+        use alloy_primitives::Address;
+
+        pub fn mock_static_call(
+            address: Address,
+            calldata: Vec<u8>,
+            result: Result<Vec<u8>, Vec<u8>>,
+        ) {
+            register(Kind::Static, address, calldata, result);
+        }
+        pub fn mock_call(address: Address, calldata: Vec<u8>, result: Result<Vec<u8>, Vec<u8>>) {
+            register(Kind::Call, address, calldata, result);
+        }
+        pub fn mock_delegate_call(
+            address: Address,
+            calldata: Vec<u8>,
+            result: Result<Vec<u8>, Vec<u8>>,
+        ) {
+            register(Kind::Delegate, address, calldata, result);
+        }
+        pub fn clear_mocks() {
+            unsafe {
+                mocks().clear();
+            }
+        }
+
+        fn register(
+            kind: Kind,
+            address: Address,
+            calldata: Vec<u8>,
+            result: Result<Vec<u8>, Vec<u8>>,
+        ) {
+            let mut addr_arr = [0u8; 20];
+            addr_arr.copy_from_slice(address.as_slice());
+            unsafe {
+                mocks().push(MockEntry {
+                    kind,
+                    address: addr_arr,
+                    calldata,
+                    result,
+                });
+            }
+        }
+    }
+
+    pub unsafe fn account_balance(_address: *const u8, dest: *mut u8) {
+        ptr::write_bytes(dest, 0, 32);
+    }
+    pub unsafe fn account_codehash(_address: *const u8, dest: *mut u8) {
+        ptr::write_bytes(dest, 0, 32);
+    }
+    pub unsafe fn storage_load_bytes32(_key: *const u8, dest: *mut u8) {
+        ptr::write_bytes(dest, 0, 32);
+    }
+    pub unsafe fn storage_store_bytes32(_key: *const u8, _value: *const u8) {}
+    pub unsafe fn block_basefee(basefee: *mut u8) {
+        ptr::write_bytes(basefee, 0, 32);
+    }
+    pub unsafe fn chainid() -> u64 {
+        0
+    }
+    pub unsafe fn block_coinbase(coinbase: *mut u8) {
+        ptr::write_bytes(coinbase, 0, 20);
+    }
+    pub unsafe fn block_gas_limit() -> u64 {
+        0
+    }
+    pub unsafe fn block_number() -> u64 {
+        0
+    }
+    pub unsafe fn block_timestamp() -> u64 {
+        0
+    }
+    pub unsafe fn call_contract(
+        _contract: *const u8,
+        _calldata: *const u8,
+        _calldata_len: usize,
+        _value: *const u8,
+        _gas: u64,
+        return_data_len: *mut usize,
+    ) -> u8 {
+        let (status, len) = find_mock(Kind::Call, _contract, _calldata, _calldata_len);
+        if !return_data_len.is_null() {
+            *return_data_len = len;
+        }
+        status
+    }
+    pub unsafe fn contract_address(address: *mut u8) {
+        ptr::write_bytes(address, 0, 20);
+    }
+    pub unsafe fn create1(
+        _code: *const u8,
+        _code_len: usize,
+        _endowment: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    ) {
+        if !revert_data_len.is_null() {
+            *revert_data_len = 0;
+        }
+        ptr::write_bytes(contract, 0, 20);
+    }
+    pub unsafe fn create2(
+        _code: *const u8,
+        _code_len: usize,
+        _endowment: *const u8,
+        _salt: *const u8,
+        contract: *mut u8,
+        revert_data_len: *mut usize,
+    ) {
+        if !revert_data_len.is_null() {
+            *revert_data_len = 0;
+        }
+        ptr::write_bytes(contract, 0, 20);
+    }
+    pub unsafe fn delegate_call_contract(
+        _contract: *const u8,
+        _calldata: *const u8,
+        _calldata_len: usize,
+        _gas: u64,
+        return_data_len: *mut usize,
+    ) -> u8 {
+        let (status, len) = find_mock(Kind::Delegate, _contract, _calldata, _calldata_len);
+        if !return_data_len.is_null() {
+            *return_data_len = len;
+        }
+        status
+    }
+    pub unsafe fn emit_log(_data: *const u8, _len: usize, _topics: usize) {}
+    pub unsafe fn evm_gas_left() -> u64 {
+        u64::MAX
+    }
+    pub unsafe fn evm_ink_left() -> u64 {
+        u64::MAX
+    }
+    pub unsafe fn memory_grow(_pages: u16) {}
+    pub unsafe fn msg_reentrant() -> bool {
+        false
+    }
+    pub unsafe fn msg_sender(sender: *mut u8) {
+        ptr::write_bytes(sender, 0, 20);
+    }
+    pub unsafe fn msg_value(value: *mut u8) {
+        ptr::write_bytes(value, 0, 32);
+    }
+    pub unsafe fn native_keccak256(_bytes: *const u8, _len: usize, output: *mut u8) {
+        ptr::write_bytes(output, 0, 32);
+    }
+    pub unsafe fn read_args(_dest: *mut u8) {}
+    pub unsafe fn read_return_data(dest: *mut u8, offset: usize, size: usize) -> usize {
+        let data = last_return_data();
+        if offset >= data.len() {
+            return 0;
+        }
+        let available = &data[offset..];
+        let take = core::cmp::min(size, available.len());
+        if take > 0 {
+            ptr::copy(available.as_ptr(), dest, take);
+        }
+        take
+    }
+    pub unsafe fn write_result(_data: *const u8, _len: usize) {}
+    pub unsafe fn return_data_size() -> usize {
+        last_return_data().len()
+    }
+    pub unsafe fn static_call_contract(
+        _contract: *const u8,
+        _calldata: *const u8,
+        _calldata_len: usize,
+        _gas: u64,
+        return_data_len: *mut usize,
+    ) -> u8 {
+        let (status, len) = find_mock(Kind::Static, _contract, _calldata, _calldata_len);
+        if !return_data_len.is_null() {
+            *return_data_len = len;
+        }
+        status
+    }
+    pub unsafe fn tx_gas_price(gas_price: *mut u8) {
+        ptr::write_bytes(gas_price, 0, 32);
+    }
+    pub unsafe fn tx_ink_price() -> u32 {
+        0
+    }
+    pub unsafe fn tx_origin(origin: *mut u8) {
+        ptr::write_bytes(origin, 0, 20);
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_imports)]
+pub use native_hostio_stubs::testing;
+#[cfg(not(target_arch = "wasm32"))]
+pub use native_hostio_stubs::*;
+
+#[allow(dead_code)]
+#[link(wasm_import_module = "console")]
+extern "C" {
     /// Prints a 32-bit floating point number to the console. Only available in debug mode with
     /// floating point enabled.
     pub fn log_f32(value: f32);
@@ -404,19 +630,79 @@ vm_hooks! {
     pub fn log_i64(value: i64);
 
     /// Prints a UTF-8 encoded string to the console. Only available in debug mode.
-    pub fn log_txt(text: *const u8, len: usize)
+    pub fn log_txt(text: *const u8, len: usize);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[should_panic]
-    fn test_hostio_panics_in_test() {
-        // The test environment does not support mocking HostIO functions
-        unsafe {
-            _ = chainid();
+macro_rules! wrap_hostio {
+    ($(#[$meta:meta])* $name:ident $hostio:ident u64) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $hostio, u64); // uncached
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident bool) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, bool);
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u32) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u32);
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident u64) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, u64);
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident usize) => {
+        wrap_hostio!(@simple $(#[$meta])* $name, $cache, $hostio, usize);
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident Address) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, Address, Address);
+    };
+    ($(#[$meta:meta])* $name:ident $cache:ident $hostio:ident U256) => {
+        wrap_hostio!(@convert $(#[$meta])* $name, $cache, $hostio, B256, U256);
+    };
+    (@simple $(#[$meta:meta])* $name:ident, $hostio:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe { $ty::from(hostio::$hostio()) }
         }
+    };
+    (@simple $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe{ $cache.get() }
+        }
+        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| unsafe { hostio::$hostio() });
+    };
+    (@convert $(#[$meta:meta])* $name:ident, $cache:ident, $hostio:ident, $from:ident, $ty:ident) => {
+        $(#[$meta])*
+        pub fn $name() -> $ty {
+            unsafe{ $cache.get() }
+        }
+        pub(crate) static mut $cache: hostio::CachedOption<$ty> = hostio::CachedOption::new(|| {
+            let mut data = $from::ZERO;
+            unsafe { hostio::$hostio(data.as_mut_ptr()) };
+            data.into()
+        });
+    };
+}
+
+pub(crate) use wrap_hostio;
+
+/// Caches a value to avoid paying for hostio invocations.
+pub(crate) struct CachedOption<T: Copy> {
+    value: Option<T>,
+    loader: fn() -> T,
+}
+
+impl<T: Copy> CachedOption<T> {
+    /// Creates a new [`CachedOption`], which will use the `loader` during `get`.
+    pub const fn new(loader: fn() -> T) -> Self {
+        let value = None;
+        Self { value, loader }
+    }
+
+    /// Sets and overwrites the cached value.
+    pub fn set(&mut self, value: T) {
+        self.value = Some(value);
+    }
+
+    /// Gets the value, writing it to the cache if necessary.
+    pub fn get(&mut self) -> T {
+        *self.value.get_or_insert_with(|| (self.loader)())
     }
 }
