@@ -237,7 +237,7 @@ fn verify_sol_name(
         Some("receive")
     } else if name_low == "fallback" && !matches!(kind, FnKind::Fallback { .. }) {
         Some("fallback")
-    } else if (name_low == "constructor" || name_low == "stylusconstructor")
+    } else if (name_low == "constructor" || name_low == "stylus_constructor")
         && !matches!(kind, FnKind::Constructor)
     {
         Some("constructor")

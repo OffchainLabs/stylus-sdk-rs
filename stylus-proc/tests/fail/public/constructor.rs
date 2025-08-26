@@ -14,7 +14,7 @@ impl Contract {
     #[receive]
     #[constructor]
     fn init() {}
-    
+
     // error: fallback, receive, and constructor can't have custom selector
     #[constructor]
     #[selector(name = "foo")]
@@ -28,12 +28,8 @@ impl Contract {
     fn constructor() {}
 
     // error: constructor function can only be defined using the corresponding attribute
-    fn stylus_constructor() {}
-
-    // error: constructor function can only be defined using the corresponding attribute
-    #[selector(name = "stylusConstructor")]
+    #[selector(name = "stylus_constructor")]
     fn foo() {}
 }
 
 fn main() {}
-
