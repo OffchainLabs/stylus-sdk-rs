@@ -19,7 +19,6 @@ stylus-tools = { path = "../../stylus-tools" }
 callee = { path = "../callee", version = "0.1.0", features = ["contract-client-gen"] }
 
 [features]
-default = ["debug"]
 export-abi = ["stylus-sdk/export-abi"]
 integration-tests = ["stylus-tools/integration-tests"]
 contract-client-gen = []
