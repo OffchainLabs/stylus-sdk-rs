@@ -23,13 +23,7 @@ error: constructor function can only be defined using the corresponding attribut
    |     ^^
 
 error: constructor function can only be defined using the corresponding attribute
-  --> tests/fail/public/constructor.rs:31:5
+  --> tests/fail/public/constructor.rs:32:5
    |
-31 |     fn stylus_constructor() {}
-   |     ^^
-
-error: constructor function can only be defined using the corresponding attribute
-  --> tests/fail/public/constructor.rs:35:5
-   |
-35 |     fn foo() {}
+32 |     fn foo() {}
    |     ^^
