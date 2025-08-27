@@ -31,6 +31,7 @@ macro_rules! vm_hooks {
                         }
                     )*
                 }
+                #[allow(unused_imports)]
                 pub use $stub::*;
             } else if #[cfg(feature = "stylus-test")] {
                 $(#[$block_meta])*
