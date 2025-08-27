@@ -135,7 +135,7 @@ pub fn underscore_if_sol(name: &str) -> String {
         "" => "".to_string(),
 
         // other types
-        "address" | "bool" | "int" | "uint" => underscore(),
+        "address" | "bytes" | "bool" | "int" | "uint" => underscore(),
 
         // other words
         "is" | "contract" | "interface" => underscore(),
