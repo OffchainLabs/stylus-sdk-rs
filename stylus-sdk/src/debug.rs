@@ -17,7 +17,7 @@
 pub fn console_log<T: AsRef<str>>(text: T) {
     let text = text.as_ref();
     #[cfg(feature = "stylus-test")]
-    println!("{}", text);
+    println!("{text}");
     #[cfg(not(feature = "stylus-test"))]
     unsafe {
         crate::hostio::log_txt(text.as_ptr(), text.len())
