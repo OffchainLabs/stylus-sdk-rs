@@ -19,7 +19,9 @@ pub fn console_log<T: AsRef<str>>(text: T) {
     #[cfg(feature = "stylus-test")]
     println!("{}", text);
     #[cfg(not(feature = "stylus-test"))]
-    unsafe { crate::hostio::log_txt(text.as_ptr(), text.len()) };
+    unsafe {
+        crate::hostio::log_txt(text.as_ptr(), text.len())
+    };
 }
 
 /// Prints to the console when executing in a debug environment. Otherwise does nothing.

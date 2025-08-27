@@ -9,9 +9,8 @@ use stylus_sdk::alloy_sol_types::sol;
 /// Import items from the SDK. The prelude contains common traits and macros.
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
-    evm,
+    console, evm,
     prelude::*,
-    console,
 };
 // Define some persistent storage using the Solidity ABI.
 // `Counter` will be the entrypoint.
