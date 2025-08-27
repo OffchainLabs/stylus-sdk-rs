@@ -3,7 +3,7 @@
 
 //! Types relating to method definitions.
 
-/// State mutability of a contract fuction. This is currently used for checking whether contracts
+/// State mutability of a contract function. This is currently used for checking whether contracts
 /// are allowed to override a function from another contract they inherit from.
 /// Users should not need this type outside of proc macros.
 #[derive(Debug, Clone, Copy)]
