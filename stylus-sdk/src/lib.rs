@@ -26,7 +26,10 @@
 #![doc(html_logo_url = "https://arbitrum.io/assets/stylus/Arbitrum_Stylus-Logomark.png")]
 #![warn(missing_docs)]
 // Only allow the standard library in tests and for exports
-#![cfg_attr(not(any(test, feature = "export-abi")), no_std)]
+#![cfg_attr(
+    not(any(test, feature = "export-abi", feature = "stylus-test")),
+    no_std
+)]
 
 /// Use an efficient WASM allocator.
 ///

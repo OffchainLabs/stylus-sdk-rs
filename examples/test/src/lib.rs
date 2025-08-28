@@ -9,7 +9,7 @@ use stylus_sdk::alloy_sol_types::sol;
 /// Import items from the SDK. The prelude contains common traits and macros.
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
-    evm,
+    console, evm,
     prelude::*,
 };
 // Define some persistent storage using the Solidity ABI.
@@ -31,6 +31,9 @@ event CounterUpdated(address indexed user, uint256 prev_value, uint256 new_value
 /// Declare that `Counter` is a contract with the following external methods.
 #[public]
 impl Counter {
+    pub fn calling_console_doesnt_panic_in_test(&self) {
+        console!("console called successfully");
+    }
     pub fn owner(&self) -> Address {
         self.owner.get()
     }
@@ -186,6 +189,14 @@ impl Counter {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_console() {
+        use stylus_sdk::testing::*;
+        let vm = TestVM::default();
+        let contract = Counter::from(&vm);
+        contract.calling_console_doesnt_panic_in_test();
+    }
 
     #[test]
     fn test_counter() {
