@@ -104,7 +104,7 @@ impl Hasher {
         data: Bytes,
         timestamp: U256,
     ) -> FixedBytes<32> {
-        // set the data to arrary and concat it directly
+        // set the data to array and concat it directly
         let tx_hash_data_encode_packed = [
             &target.to_vec(),
             &value.to_be_bytes_vec(),
