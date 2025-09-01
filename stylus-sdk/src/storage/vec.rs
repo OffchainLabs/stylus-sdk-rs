@@ -282,7 +282,9 @@ impl<S: Erase> Erase for StorageVec<S> {
             let mut store = unsafe { self.accessor_unchecked(i) };
             store.erase()
         }
-        self.truncate(0);
+        unsafe {
+            self.truncate(0);
+        }
     }
 }
 
