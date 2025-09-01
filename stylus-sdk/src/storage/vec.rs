@@ -204,10 +204,9 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Shortens the vector, keeping the first `len` elements.
     ///
-    /// Note: this method does not erase any underlying storage.
-    pub fn truncate(&mut self, len: usize) {
+    /// Note: this method does not erase any underlying storage, so it is unsafe
+    pub unsafe fn truncate(&mut self, len: usize) {
         if len < self.len() {
-            // SAFETY: operation leaves only existing values
             unsafe { self.set_len(len) }
         }
     }
