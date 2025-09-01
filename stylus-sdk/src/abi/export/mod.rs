@@ -104,49 +104,60 @@ lazy_static! {
     static ref BYTES_REGEX: Regex = Regex::new(r"^bytes(\d+)$").unwrap();
 }
 
-/// Prepends the string with an underscore if it is a Solidity keyword.
-/// Otherwise, the string is unchanged.
-/// Note: also prepends a space when the input is nonempty.
-pub fn underscore_if_sol(name: &str) -> String {
-    let underscore = || format!(" _{name}");
-
+pub fn is_sol_keyword(name: &str) -> bool {
     if let Some(caps) = UINT_REGEX.captures(name) {
         let bits: usize = caps[1].parse().unwrap();
         if bits.is_multiple_of(8) {
-            return underscore();
+            return true;
         }
     }
 
     if let Some(caps) = INT_REGEX.captures(name) {
         let bits: usize = caps[1].parse().unwrap();
         if bits.is_multiple_of(8) {
-            return underscore();
+            return true;
         }
     }
 
     if let Some(caps) = BYTES_REGEX.captures(name) {
         let bits: usize = caps[1].parse().unwrap();
         if bits <= 32 {
-            return underscore();
+            return true;
         }
     }
 
     match name {
-        "" => "".to_string(),
+        "" => false,
 
         // other types
-        "address" | "bytes" | "bool" | "int" | "uint" => underscore(),
+        "address" | "bytes" | "bool" | "int" | "uint" => true,
 
         // other words
-        "is" | "contract" | "interface" => underscore(),
+        "is" | "contract" | "interface" => true,
 
         // reserved keywords
         "after" | "alias" | "apply" | "auto" | "byte" | "case" | "copyof" | "default"
         | "define" | "final" | "implements" | "in" | "inline" | "let" | "macro" | "match"
         | "mutable" | "null" | "of" | "partial" | "promise" | "reference" | "relocatable"
         | "sealed" | "sizeof" | "static" | "supports" | "switch" | "typedef" | "typeof" | "var" => {
-            underscore()
+            true
         }
+        _ => false,
+    }
+}
+
+/// Prepends the string with an underscore if it is a Solidity keyword.
+/// Otherwise, the string is unchanged.
+/// Note: also prepends a space when the input is nonempty.
+pub fn underscore_if_sol(name: &str) -> String {
+    let underscore = || format!(" _{name}");
+
+    if is_sol_keyword(name) {
+        return underscore();
+    }
+
+    match name {
+        "" => "".to_string(),
         _ => format!(" {name}"),
     }
 }
