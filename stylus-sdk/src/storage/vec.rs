@@ -191,7 +191,11 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Removes and returns an accessor to the last element of the vector, if any.
-    pub fn shrink(&mut self) -> Option<StorageGuardMut<'_, S>> {
+    ///
+    /// # Safety
+    ///
+    /// This fn does not erase any underlying storage.
+    pub unsafe fn shrink(&mut self) -> Option<StorageGuardMut<'_, S>> {
         let index = match self.len() {
             0 => return None,
             x => x - 1,
@@ -204,10 +208,11 @@ impl<S: StorageType> StorageVec<S> {
 
     /// Shortens the vector, keeping the first `len` elements.
     ///
-    /// Note: this method does not erase any underlying storage.
-    pub fn truncate(&mut self, len: usize) {
+    /// # Safety
+    ///
+    /// This fn does not erase any underlying storage.
+    pub unsafe fn truncate(&mut self, len: usize) {
         if len < self.len() {
-            // SAFETY: operation leaves only existing values
             unsafe { self.set_len(len) }
         }
     }
@@ -282,7 +287,9 @@ impl<S: Erase> Erase for StorageVec<S> {
             let mut store = unsafe { self.accessor_unchecked(i) };
             store.erase()
         }
-        self.truncate(0);
+        unsafe {
+            self.truncate(0);
+        }
     }
 }
 
