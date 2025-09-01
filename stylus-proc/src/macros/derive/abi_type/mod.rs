@@ -4,8 +4,10 @@
 use crate::imports::stylus_sdk::abi::{AbiType, ConstString};
 use cfg_if::cfg_if;
 use proc_macro2::TokenStream;
+use proc_macro_error::emit_error;
 use quote::ToTokens;
 use std::marker::PhantomData;
+use stylus_core;
 use syn::{parse::Nothing, parse_macro_input, parse_quote};
 
 cfg_if! {
@@ -39,6 +41,14 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
     fn impl_abi_type(&self) -> syn::ItemImpl {
         let name = &self.item.ident;
         let name_str = name.to_string();
+        if stylus_core::is_sol_keyword(&name_str) {
+            emit_error!(
+                name.span(),
+                "struct name cannot be a Solidity keyword: `{}`",
+                name_str
+            );
+        }
+
         let (impl_generics, ty_generics, where_clause) = self.item.generics.split_for_impl();
         let mut fields_selector_abis: Vec<syn::Expr> = Vec::new();
         for (i, item) in self.item.fields.iter().enumerate() {
