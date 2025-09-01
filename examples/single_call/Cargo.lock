@@ -4526,6 +4526,8 @@ dependencies = [
  "alloy-sol-types",
  "cfg-if",
  "dyn-clone",
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
@@ -4542,6 +4544,7 @@ dependencies = [
  "quote",
  "regex",
  "sha3",
+ "stylus-core",
  "syn 2.0.101",
  "syn-solidity",
  "trybuild",
@@ -4558,10 +4561,8 @@ dependencies = [
  "derivative",
  "hex",
  "keccak-const",
- "lazy_static",
  "mini-alloc",
  "rclite",
- "regex",
  "stylus-core",
  "stylus-proc",
  "stylus-test",
