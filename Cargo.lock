@@ -4680,6 +4680,8 @@ dependencies = [
  "alloy-sol-types",
  "cfg-if",
  "dyn-clone",
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
@@ -4717,11 +4719,9 @@ dependencies = [
  "derivative",
  "hex",
  "keccak-const",
- "lazy_static",
  "mini-alloc",
  "paste",
  "rclite",
- "regex",
  "sha3",
  "stylus-core",
  "stylus-proc",

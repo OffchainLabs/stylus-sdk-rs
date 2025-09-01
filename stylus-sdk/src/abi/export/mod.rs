@@ -10,8 +10,7 @@
 
 use clap::{Parser, Subcommand};
 use core::fmt;
-use lazy_static::lazy_static;
-use regex::Regex;
+use stylus_core;
 
 #[doc(hidden)]
 pub mod internal;
@@ -98,61 +97,13 @@ fn print_constructor_signature<T: GenerateAbi>() {
     print!("{}", AbiPrinter(T::fmt_constructor_signature));
 }
 
-lazy_static! {
-    static ref UINT_REGEX: Regex = Regex::new(r"^uint(\d+)$").unwrap();
-    static ref INT_REGEX: Regex = Regex::new(r"^int(\d+)$").unwrap();
-    static ref BYTES_REGEX: Regex = Regex::new(r"^bytes(\d+)$").unwrap();
-}
-
-pub fn is_sol_keyword(name: &str) -> bool {
-    if let Some(caps) = UINT_REGEX.captures(name) {
-        let bits: usize = caps[1].parse().unwrap();
-        if bits.is_multiple_of(8) {
-            return true;
-        }
-    }
-
-    if let Some(caps) = INT_REGEX.captures(name) {
-        let bits: usize = caps[1].parse().unwrap();
-        if bits.is_multiple_of(8) {
-            return true;
-        }
-    }
-
-    if let Some(caps) = BYTES_REGEX.captures(name) {
-        let bits: usize = caps[1].parse().unwrap();
-        if bits <= 32 {
-            return true;
-        }
-    }
-
-    match name {
-        "" => false,
-
-        // other types
-        "address" | "bytes" | "bool" | "int" | "uint" => true,
-
-        // other words
-        "is" | "contract" | "interface" => true,
-
-        // reserved keywords
-        "after" | "alias" | "apply" | "auto" | "byte" | "case" | "copyof" | "default"
-        | "define" | "final" | "implements" | "in" | "inline" | "let" | "macro" | "match"
-        | "mutable" | "null" | "of" | "partial" | "promise" | "reference" | "relocatable"
-        | "sealed" | "sizeof" | "static" | "supports" | "switch" | "typedef" | "typeof" | "var" => {
-            true
-        }
-        _ => false,
-    }
-}
-
 /// Prepends the string with an underscore if it is a Solidity keyword.
 /// Otherwise, the string is unchanged.
 /// Note: also prepends a space when the input is nonempty.
 pub fn underscore_if_sol(name: &str) -> String {
     let underscore = || format!(" _{name}");
 
-    if is_sol_keyword(name) {
+    if stylus_core::is_sol_keyword(name) {
         return underscore();
     }
 
