@@ -191,7 +191,8 @@ impl<S: StorageType> StorageVec<S> {
     }
 
     /// Removes and returns an accessor to the last element of the vector, if any.
-    pub fn shrink(&mut self) -> Option<StorageGuardMut<'_, S>> {
+    /// Note: this method does not erase any underlying storage, so it is unsafe.
+    pub unsafe fn shrink(&mut self) -> Option<StorageGuardMut<'_, S>> {
         let index = match self.len() {
             0 => return None,
             x => x - 1,
