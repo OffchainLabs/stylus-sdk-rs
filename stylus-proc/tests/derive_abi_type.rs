@@ -113,4 +113,5 @@ fn decode() {
 fn abi_type_failures() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/fail/derive_abi_type/missing_sol_macro.rs");
+    t.compile_fail("tests/fail/derive_abi_type/keyword_as_struct_name.rs");
 }

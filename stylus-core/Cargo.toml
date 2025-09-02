@@ -15,6 +15,8 @@ alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 cfg-if.workspace = true
 dyn-clone = "1.0.17"
+regex.workspace = true
+lazy_static.workspace = true
 
 [dev-dependencies]
 
