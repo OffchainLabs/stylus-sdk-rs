@@ -182,19 +182,45 @@ impl PublicImpl {
         // Determine trait dynamic interface with associated types
         let iface = match &self.trait_ {
             Some(trait_) => {
-                if !self.associated_types.is_empty() {
-                    let assoc_types_formatted = self
-                        .associated_types
-                        .iter()
-                        .map(|(name, value)| {
-                            quote! { #name = #value }
-                        })
-                        .collect::<Vec<_>>();
+                // If trait_ is something like foo::MyTrait<u32, u256>, trait_path_without_generics will be foo::MyTrait
+                let trait_path_without_generics = {
+                    let mut path = trait_.clone();
+                    if let Some(last_segment) = path.segments.last_mut() {
+                        last_segment.arguments = syn::PathArguments::None;
+                    }
+                    path
+                };
 
-                    &parse_quote! { dyn #trait_ < #(#assoc_types_formatted),* > }
+                // Extract generic arguments from trait_ if present (e.g., "u32, u256" from the previous example)
+                let generic_args: Vec<proc_macro2::TokenStream> =
+                    if let Some(last_segment) = trait_.segments.last() {
+                        if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                            args.args.iter().map(|arg| quote::quote! { #arg }).collect()
+                        } else {
+                            // No generic arguments
+                            Vec::new()
+                        }
+                    } else {
+                        Vec::new()
+                    };
+
+                let associated_types: Vec<proc_macro2::TokenStream> = self
+                    .associated_types
+                    .iter()
+                    .map(|(name, value)| quote::quote! { #name = #value })
+                    .collect();
+
+                let combined_types = if !generic_args.is_empty() && !associated_types.is_empty() {
+                    quote! { < #(#generic_args),* , #(#associated_types),* > }
+                } else if !generic_args.is_empty() {
+                    quote! { < #(#generic_args),* > }
+                } else if !associated_types.is_empty() {
+                    quote! { < #(#associated_types),* > }
                 } else {
-                    &parse_quote! { dyn #trait_ }
-                }
+                    quote! {}
+                };
+
+                &parse_quote! { dyn #trait_path_without_generics  #combined_types }
             }
             None => self_ty,
         };
