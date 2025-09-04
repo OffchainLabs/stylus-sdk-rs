@@ -281,7 +281,10 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let client_funcs = self
+        let (client_funcs_definitions, client_funcs_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = self
         .funcs
         .iter()
         .map(|func| {
@@ -306,13 +309,17 @@ impl PublicImpl {
 
             let function_selector = func.function_selector();
 
-            quote! {
-                pub fn #func_name(
+            let signature = quote! {
+                fn #func_name(
                     &self,
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
                     #(#inputs,)*
-                ) -> #output_type {
+                ) -> #output_type
+            };
+
+            let definition = quote! {
+                #signature {
                     let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     use stylus_sdk::function_selector;
                     let mut calldata = Vec::from(#function_selector);
@@ -320,22 +327,60 @@ impl PublicImpl {
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
                     #output_decoding
                 }
-            }
+            };
+            let declaration = quote! {
+                #signature;
+            };
+            (definition, declaration)
         })
-        .collect::<proc_macro2::TokenStream>();
+        .unzip();
+
+        let (associated_types_definitions, associated_types_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = self
+            .associated_types
+            .iter()
+            .map(|(name, value)| {
+                let defintion = quote::quote! { type #name = #value; };
+                let declaration = quote::quote! { type #name: #AbiType; };
+                (defintion, declaration)
+            })
+            .unzip();
 
         let struct_path = self.self_ty.clone();
 
-        let mut output = quote! {
-            #[cfg(feature = "contract-client-gen")]
-            impl #struct_path {
-                #client_funcs
-            }
-        };
+        let output = if let Some(trait_path) = &self.trait_ {
+            // If it implements a trait then we define a new trait with associated types.
+            // In that way client_funcs can use the associated types, e.g., Self::AssociatedType.
 
-        // If the impl does not implement a trait, we add a constructor for the contract client
-        if self.trait_.is_none() {
-            output.extend(quote! {
+            let in_trait_name = trait_path.segments.last().unwrap().ident.to_string();
+            let out_trait = syn::Ident::new(
+                &format!("{}ContractClientGen", in_trait_name),
+                Span::call_site(),
+            );
+            quote! {
+                #[cfg(feature = "contract-client-gen")]
+                pub trait #out_trait {
+                    #(#associated_types_declarations)*
+                    #(#client_funcs_declarations)*
+                }
+
+                #[cfg(feature = "contract-client-gen")]
+                impl #out_trait for #struct_path {
+                    #(#associated_types_definitions)*
+                    #(#client_funcs_definitions)*
+                }
+            }
+        } else {
+            // If the impl does not implement a trait, we just output the functions directly,
+            // and also add a constructor for the contract client
+            quote! {
+                #[cfg(feature = "contract-client-gen")]
+                impl #struct_path {
+                    #(#client_funcs_definitions)*
+                }
+
                 #[cfg(feature = "contract-client-gen")]
                 impl #struct_path {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
@@ -344,9 +389,8 @@ impl PublicImpl {
                         }
                     }
                 }
-            });
-        }
-
+            }
+        };
         output
     }
 }

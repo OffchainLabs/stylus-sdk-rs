@@ -10,18 +10,19 @@
 
 extern crate alloc;
 
+use stylus_sdk::abi::AbiType;
 use stylus_sdk::prelude::*;
 
 #[storage]
 #[entrypoint]
-struct Contract {}
+pub struct Contract {}
 
 #[public]
 #[implements(MyTrait<u32, u32, Output = u32>)]
 impl Contract {}
 
-trait MyTrait<Input1, Input2> {
-    type Output;
+pub trait MyTrait<Input1, Input2> {
+    type Output: AbiType;
     fn foo(&self, input1: Input1, input2: Input2) -> Self::Output;
 }
 
