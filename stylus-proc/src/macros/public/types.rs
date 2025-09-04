@@ -356,7 +356,7 @@ impl PublicImpl {
 
             let in_trait_name = trait_path.segments.last().unwrap().ident.to_string();
             let out_trait = syn::Ident::new(
-                &format!("{}ContractClientGen", in_trait_name),
+                &format!("{in_trait_name}ContractClientGen"),
                 Span::call_site(),
             );
             quote! {
