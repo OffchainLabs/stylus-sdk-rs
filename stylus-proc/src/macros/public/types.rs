@@ -378,16 +378,13 @@ impl PublicImpl {
             quote! {
                 #[cfg(feature = "contract-client-gen")]
                 impl #struct_path {
-                    #(#client_funcs_definitions)*
-                }
-
-                #[cfg(feature = "contract-client-gen")]
-                impl #struct_path {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self {
                             #STYLUS_CONTRACT_ADDRESS_FIELD: address,
                         }
                     }
+
+                    #(#client_funcs_definitions)*
                 }
             }
         };
