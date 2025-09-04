@@ -309,8 +309,14 @@ impl PublicImpl {
 
             let function_selector = func.function_selector();
 
+            let func_visibility = if self.trait_.is_some() {
+                quote! {}
+            } else {
+                quote! { pub }
+            };
+
             let signature = quote! {
-                fn #func_name(
+                #func_visibility fn #func_name(
                     &self,
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
