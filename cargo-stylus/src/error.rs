@@ -51,6 +51,33 @@ impl From<stylus_tools::Error> for CargoStylusError {
     }
 }
 
+impl From<stylus_tools::core::build::BuildError> for CargoStylusError {
+    fn from(err: stylus_tools::core::build::BuildError) -> Self {
+        Self {
+            error: err.into(),
+            exit_code: ExitCode::FAILURE,
+        }
+    }
+}
+
+impl From<stylus_tools::core::check::CheckError> for CargoStylusError {
+    fn from(err: stylus_tools::core::check::CheckError) -> Self {
+        Self {
+            error: err.into(),
+            exit_code: ExitCode::FAILURE,
+        }
+    }
+}
+
+impl From<stylus_tools::core::deployment::DeploymentError> for CargoStylusError {
+    fn from(err: stylus_tools::core::deployment::DeploymentError) -> Self {
+        Self {
+            error: err.into(),
+            exit_code: ExitCode::FAILURE,
+        }
+    }
+}
+
 impl From<stylus_tools::core::network::NetworkError> for CargoStylusError {
     fn from(err: stylus_tools::core::network::NetworkError) -> Self {
         Self {

@@ -2,10 +2,10 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::Address;
-use stylus_tools::{core::activation::ActivationConfig, ops};
+use stylus_tools::ops;
 
 use crate::{
-    common_args::{AuthArgs, DataFeeArgs, ProviderArgs},
+    common_args::{ActivationArgs, AuthArgs, ProviderArgs},
     error::CargoStylusResult,
 };
 
@@ -19,18 +19,16 @@ pub struct Args {
     estimate_gas: bool,
 
     #[command(flatten)]
-    auth: AuthArgs,
+    activation: ActivationArgs,
     #[command(flatten)]
-    data_fee: DataFeeArgs,
+    auth: AuthArgs,
     #[command(flatten)]
     provider: ProviderArgs,
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
-    let config = ActivationConfig {
-        data_fee_bump_percent: args.data_fee.bump_percent,
-    };
+    let config = args.activation.config();
     if args.estimate_gas {
         ops::activate::estimate_gas(args.address, &config, &provider).await?;
     } else {

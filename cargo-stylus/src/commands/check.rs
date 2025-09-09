@@ -1,16 +1,17 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::path::PathBuf;
+use std::{iter, path::PathBuf};
 
 use alloy::primitives::Address;
+use itertools::izip;
 use stylus_tools::{
-    core::{activation::ActivationConfig, check::CheckConfig, network, project::ProjectHash},
+    core::{network, project::ProjectHash},
     ops,
 };
 
 use crate::{
-    common_args::{BuildArgs, DataFeeArgs, ProviderArgs},
+    common_args::{ActivationArgs, BuildArgs, CheckArgs, ProjectArgs, ProviderArgs},
     error::CargoStylusResult,
 };
 
@@ -18,16 +19,22 @@ use crate::{
 pub struct Args {
     /// The WASM to check (defaults to any found in the current directory).
     #[arg(long)]
-    wasm_file: Option<PathBuf>,
-    /// Where to deploy and activate the contract (defaults to a random address).
-    // TODO: how will this work for multiple contracts
+    wasm_file: Vec<PathBuf>,
+    /// Where to deploy and activate the contract for wasm file (defaults to a random address).
     #[arg(long)]
-    contract_address: Option<Address>,
+    wasm_file_address: Vec<Address>,
+    /// Where to deploy and activate the contract (defaults to a random address).
+    #[arg(long)]
+    contract_address: Vec<Address>,
 
+    #[command(flatten)]
+    activation: ActivationArgs,
     #[command(flatten)]
     build: BuildArgs,
     #[command(flatten)]
-    data_fee: DataFeeArgs,
+    check: CheckArgs,
+    #[command(flatten)]
+    project: ProjectArgs,
     #[command(flatten)]
     provider: ProviderArgs,
 }
@@ -35,24 +42,34 @@ pub struct Args {
 pub async fn exec(args: Args) -> CargoStylusResult {
     network::check_endpoint(&args.provider.endpoint)?;
     let provider = args.provider.build_provider().await?;
-    let config = CheckConfig {
-        activation: ActivationConfig {
-            data_fee_bump_percent: args.data_fee.bump_percent,
-        },
-        ..Default::default()
-    };
-    if let Some(wasm_file) = args.wasm_file {
+    let config = args.check.config(&args.activation);
+
+    for (wasm_file, address) in izip!(
+        args.wasm_file,
+        args.wasm_file_address
+            .into_iter()
+            .map(Some)
+            .chain(iter::repeat(None))
+    ) {
         ops::check_wasm_file(
             wasm_file,
             ProjectHash::default(),
-            args.contract_address,
+            address,
             &config,
             &provider,
         )
         .await?;
-    } else {
-        ops::check_workspace(&config, &provider).await?;
-    };
+    }
+
+    for (contract, address) in izip!(
+        args.project.contracts()?,
+        args.contract_address
+            .into_iter()
+            .map(Some)
+            .chain(iter::repeat(None))
+    ) {
+        contract.check(address, &config, &provider).await?;
+    }
 
     Ok(())
 }

@@ -1247,10 +1247,12 @@ version = "0.10.0-beta.0"
 dependencies = [
  "alloy",
  "anstyle",
+ "cargo-util-schemas",
  "clap",
  "env_logger",
  "eyre",
  "hex",
+ "itertools 0.14.0",
  "stylus-tools",
  "tokio",
 ]

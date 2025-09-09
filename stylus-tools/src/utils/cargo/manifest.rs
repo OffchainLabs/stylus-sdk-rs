@@ -31,13 +31,19 @@ impl ManifestMut {
     }
 
     /// Make modifications to the `[lib]` table.
-    pub fn lib(&mut self) -> Lib {
+    pub fn lib(&mut self) -> Lib<'_> {
         let entry = self.doc.entry("lib");
         let item = entry.or_insert_with(|| Table::new().into());
         Lib { item }
     }
 
-    pub fn profile(&mut self, name: &str) -> Result<Profile, CargoManifestError> {
+    pub fn features(&mut self) -> Features<'_> {
+        let entry = self.doc.entry("features");
+        let item = entry.or_insert_with(|| Table::new().into());
+        Features { item }
+    }
+
+    pub fn profile(&mut self, name: &str) -> Result<Profile<'_>, CargoManifestError> {
         // Create the profile table if it does not exist
         let profile_table = self
             .doc
@@ -78,6 +84,30 @@ impl Lib<'_> {
             .as_array_mut()
             .ok_or(CargoManifestError::Invalid)?;
         array_extend_unique_strs(array, items);
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct Features<'a> {
+    item: &'a mut Item,
+}
+
+impl Features<'_> {
+    pub fn extend_feature<'a>(
+        &mut self,
+        name: &str,
+        deps: impl IntoIterator<Item = &'a str>,
+    ) -> Result<(), CargoManifestError> {
+        let array = self
+            .item
+            .as_table_mut()
+            .ok_or(CargoManifestError::Invalid)?
+            .entry(name)
+            .or_insert_with(|| Array::new().into())
+            .as_array_mut()
+            .ok_or(CargoManifestError::Invalid)?;
+        array_extend_unique_strs(array, deps);
         Ok(())
     }
 }

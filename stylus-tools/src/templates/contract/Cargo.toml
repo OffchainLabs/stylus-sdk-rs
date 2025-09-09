@@ -15,6 +15,7 @@ stylus-sdk = { version = "0.8.4", features = ["stylus-test"] }
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 debug = ["stylus-sdk/debug"]
+contract-client-gen = []
 
 [[bin]]
 name = "stylus-hello-world"

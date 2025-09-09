@@ -19,7 +19,7 @@ pub async fn check_workspace(config: &CheckConfig, provider: &impl Provider) -> 
     let packages = metadata.workspace_default_packages();
     for package in packages {
         let contract = Contract::try_from(package)?;
-        check_contract(&contract, config, provider).await?;
+        check_contract(&contract, None, config, provider).await?;
     }
     Ok(())
 }

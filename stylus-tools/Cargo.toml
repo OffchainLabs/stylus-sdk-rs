@@ -12,6 +12,7 @@ version.workspace = true
 
 [dependencies]
 alloy = { workspace = true, features = ["contract", "getrandom", "rpc-types", "signer-local", "sol-types"] }
+cargo-util-schemas.workspace = true
 eyre.workspace = true
 hex.workspace = true
 regex.workspace = true
@@ -25,7 +26,6 @@ anyhow = "1"
 brotli2 = "0.3.2"
 bytesize = "1.2.0"
 cargo_metadata = "0.20"
-cargo-util-schemas = "0.2"
 escargot = "0.5"
 log = "0.4"
 rust-toolchain-file = "0.1"

@@ -4,7 +4,9 @@
 use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
 
 use crate::{
-    common_args::{AuthArgs, BuildArgs, ProviderArgs},
+    common_args::{
+        ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
+    },
     error::CargoStylusResult,
 };
 
@@ -52,12 +54,24 @@ pub struct Args {
     #[command(flatten)]
     auth: AuthArgs,
     #[command(flatten)]
+    activation: ActivationArgs,
+    #[command(flatten)]
     build: BuildArgs,
+    #[command(flatten)]
+    check: CheckArgs,
+    #[command(flatten)]
+    deploy: DeployArgs,
+    #[command(flatten)]
+    project: ProjectArgs,
     #[command(flatten)]
     provider: ProviderArgs,
 }
 
-pub async fn exec(_args: Args) -> CargoStylusResult {
-    //ops::deploy().await?;
+pub async fn exec(args: Args) -> CargoStylusResult {
+    let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
+    let config = args.deploy.config(&args.activation, &args.check);
+    for contract in args.project.contracts()? {
+        contract.deploy(&config, &provider).await?;
+    }
     Ok(())
 }

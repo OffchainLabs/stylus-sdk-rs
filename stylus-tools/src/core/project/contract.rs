@@ -1,20 +1,33 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::path::PathBuf;
+
 use alloy::{
-    primitives::{B256, U256},
-    providers::Provider,
+    primitives::{Address, B256, U256},
+    providers::{Provider, WalletProvider},
 };
 use cargo_metadata::{semver::Version, Package, TargetKind};
 
 use crate::{
+    core::{
+        build::{build_contract, BuildConfig, BuildError},
+        check::{check_contract, CheckConfig, CheckError},
+        deployment::{deploy, DeploymentConfig, DeploymentError},
+        manifest,
+        reflection::ReflectionConfig,
+    },
     error::decode_contract_error,
+    ops,
     precompiles::{self, ArbWasm::ArbWasmErrors},
     utils::toolchain::get_toolchain_channel,
 };
 
 #[derive(Debug)]
 pub struct Contract {
+    // Metadata package
+    pub package: Package,
+
     // Toolchain metadata
     stable: bool,
 
@@ -24,6 +37,18 @@ pub struct Contract {
 }
 
 impl Contract {
+    pub fn is_contract(package: &Package) -> bool {
+        if let Some(stylus_manifest_path) = package
+            .manifest_path
+            .parent()
+            .map(|p| p.join(manifest::FILENAME))
+        {
+            stylus_manifest_path.exists()
+        } else {
+            false
+        }
+    }
+
     pub fn stable(&self) -> bool {
         self.stable
     }
@@ -53,6 +78,35 @@ impl Contract {
             }
         }
     }
+
+    pub fn build(&self, config: &BuildConfig) -> Result<PathBuf, BuildError> {
+        build_contract(self, config)
+    }
+
+    pub async fn check(
+        &self,
+        address: Option<Address>,
+        config: &CheckConfig,
+        provider: &impl Provider,
+    ) -> Result<ContractStatus, CheckError> {
+        check_contract(self, address, config, provider).await
+    }
+
+    pub async fn deploy(
+        &self,
+        config: &DeploymentConfig,
+        provider: &(impl Provider + WalletProvider),
+    ) -> Result<(), DeploymentError> {
+        deploy(self, config, provider).await
+    }
+
+    pub fn export_abi(&self, config: &ReflectionConfig) -> eyre::Result<()> {
+        ops::export_abi(self.package.name.as_ref(), config)
+    }
+
+    pub fn print_constructor(&self, config: &ReflectionConfig) -> eyre::Result<()> {
+        ops::print_constructor(self.package.name.as_ref(), config)
+    }
 }
 
 impl TryFrom<&Package> for Contract {
@@ -71,6 +125,7 @@ impl TryFrom<&Package> for Contract {
             // If that doesn't work, then we can use the package name, and break normally.
             .unwrap_or_else(|| package.name.to_string());
         Ok(Self {
+            package: package.clone(),
             stable,
             version,
             name,

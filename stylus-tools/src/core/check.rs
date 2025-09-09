@@ -48,12 +48,13 @@ pub enum CheckError {
 /// Returns whether the WASM is already up-to-date and activated onchain, and the data fee.
 pub async fn check_contract(
     contract: &Contract,
+    address: Option<Address>,
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
     let wasm_file = build_contract(contract, &config.build)?;
     let project_hash = hash_project(&config.project)?;
-    let status = check_wasm_file(&wasm_file, project_hash, None, config, provider).await?;
+    let status = check_wasm_file(&wasm_file, project_hash, address, config, provider).await?;
     Ok(status)
 }
 

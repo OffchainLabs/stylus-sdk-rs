@@ -7,6 +7,7 @@ pub mod cache;
 pub mod check;
 pub mod codegen;
 pub mod deployment;
+pub mod manifest;
 pub mod message;
 pub mod network;
 pub mod project;

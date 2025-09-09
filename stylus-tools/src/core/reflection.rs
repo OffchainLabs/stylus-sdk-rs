@@ -6,6 +6,8 @@
 //! This uses the mechanism of running a Stylus contract crate as a binary to return information
 //! about the contract. This does not depend on a deployment of the contract.
 
+use std::path::PathBuf;
+
 use alloy::json_abi::JsonAbi;
 
 use crate::Result;
@@ -13,4 +15,11 @@ use crate::Result;
 /// Export a Solidity ABI for a Stylus contract
 pub fn abi() -> Result<JsonAbi> {
     todo!()
+}
+
+#[derive(Debug)]
+pub struct ReflectionConfig {
+    pub file: Option<PathBuf>,
+    pub json: bool,
+    pub rust_features: Option<Vec<String>>,
 }

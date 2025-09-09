@@ -12,12 +12,36 @@ use alloy::{
         Signer,
     },
 };
+use cargo_util_schemas::manifest::PackageName;
 use eyre::{eyre, Context};
+use stylus_tools::core::{
+    activation::ActivationConfig,
+    build::BuildConfig,
+    check::CheckConfig,
+    deployment::DeploymentConfig,
+    project::{contract::Contract, workspace::Workspace},
+    reflection::ReflectionConfig,
+};
 
 use crate::{
     constants::DEFAULT_ENDPOINT,
     utils::{convert_gwei_to_wei, decode0x},
 };
+
+#[derive(Debug, clap::Args)]
+pub struct ActivationArgs {
+    /// Percent to bump the estimated activation data fee by
+    #[arg(long, default_value = "20")]
+    pub data_fee_bump_percent: u64,
+}
+
+impl ActivationArgs {
+    pub fn config(&self) -> ActivationConfig {
+        ActivationConfig {
+            data_fee_bump_percent: self.data_fee_bump_percent,
+        }
+    }
+}
 
 #[derive(Debug, clap::Args)]
 pub struct AuthArgs {
@@ -36,45 +60,6 @@ pub struct AuthArgs {
     /// Optional max fee per gas in gwei units.
     #[arg(long)]
     max_fee_per_gas_gwei: Option<String>,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct BuildArgs {
-    /// Specifies the features to use when building the Stylus binary.
-    #[arg(long)]
-    pub features: Vec<String>,
-    /// The path to source files to include in the project hash, which is included in the contract
-    /// deployment init code transaction to be used for verification of deployment integrity.
-    ///
-    /// If not provided, all .rs files and Cargo.toml and Cargo.lock files in project's directory
-    /// tree are included.
-    // TODO: where is this default set?
-    #[arg(long)]
-    source_files_for_project_hash: Vec<String>,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct DataFeeArgs {
-    /// Percent to bump the estimated activation data fee by
-    #[arg(long("data-fee-bump-percent"), default_value = "20")]
-    pub bump_percent: u64,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct ProviderArgs {
-    /// Arbitrum RPC endpoint
-    #[arg(short, long, default_value = DEFAULT_ENDPOINT)]
-    pub endpoint: String,
-}
-
-#[derive(Debug, clap::Args)]
-pub struct VerificationArgs {
-    /// If specified, will not run the command in a reproducible docker container.
-    ///
-    /// Useful for local builds, but at the risk of not having a reproducible contract for
-    /// verification purposes.
-    #[arg(long)]
-    no_verify: bool,
 }
 
 impl AuthArgs {
@@ -117,6 +102,82 @@ impl AuthArgs {
     }
 }
 
+#[derive(Debug, clap::Args)]
+pub struct BuildArgs {
+    /// Specifies the features to use when building the Stylus binary.
+    #[arg(long)]
+    pub features: Vec<String>,
+    /// The path to source files to include in the project hash, which is included in the contract
+    /// deployment init code transaction to be used for verification of deployment integrity.
+    ///
+    /// If not provided, all .rs files and Cargo.toml and Cargo.lock files in project's directory
+    /// tree are included.
+    // TODO: where is this default set?
+    #[arg(long)]
+    source_files_for_project_hash: Vec<String>,
+}
+
+impl BuildArgs {
+    pub fn config(&self) -> BuildConfig {
+        BuildConfig {
+            features: self.features.clone(),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct CheckArgs {}
+
+impl CheckArgs {
+    pub fn config(&self, activation: &ActivationArgs) -> CheckConfig {
+        CheckConfig {
+            activation: activation.config(),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct DeployArgs {}
+
+impl DeployArgs {
+    pub fn config(&self, activate: &ActivationArgs, check: &CheckArgs) -> DeploymentConfig {
+        DeploymentConfig {
+            check: check.config(activate),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct ProjectArgs {
+    #[arg(long)]
+    contract: Vec<PackageName>,
+}
+
+impl ProjectArgs {
+    pub fn contracts(&self) -> eyre::Result<Vec<Contract>> {
+        let workspace = Workspace::current()?;
+        if self.contract.is_empty() {
+            Ok(workspace
+                .default_contracts()
+                .collect::<Result<Vec<_>, _>>()?)
+        } else {
+            workspace
+                .filter_contracts(self.contract.clone().into_iter())
+                .map_err(Into::into)
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct ProviderArgs {
+    /// Arbitrum RPC endpoint
+    #[arg(short, long, default_value = DEFAULT_ENDPOINT)]
+    pub endpoint: String,
+}
+
 impl ProviderArgs {
     pub async fn build_provider(&self) -> eyre::Result<impl Provider> {
         let provider = ProviderBuilder::new().connect(&self.endpoint).await?;
@@ -136,4 +197,37 @@ impl ProviderArgs {
             .await?;
         Ok(provider)
     }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct ReflectionArgs {
+    /// The output file (defaults to stdout).
+    #[arg(long)]
+    output: Option<PathBuf>,
+    /// Write a JSON ABI instead using solc. Requires solc.
+    #[arg(long)]
+    json: bool,
+    /// Rust crate's features list. Required to include feature specific abi.
+    #[arg(long)]
+    rust_features: Option<Vec<String>>,
+}
+
+impl ReflectionArgs {
+    pub fn config(&self) -> ReflectionConfig {
+        ReflectionConfig {
+            file: self.output.clone(),
+            json: self.json,
+            rust_features: self.rust_features.clone(),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct VerificationArgs {
+    /// If specified, will not run the command in a reproducible docker container.
+    ///
+    /// Useful for local builds, but at the risk of not having a reproducible contract for
+    /// verification purposes.
+    #[arg(long)]
+    no_verify: bool,
 }
