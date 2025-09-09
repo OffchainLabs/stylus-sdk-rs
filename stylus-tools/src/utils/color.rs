@@ -34,7 +34,7 @@ pub trait Color {
 #[rustfmt::skip]
 impl<T> Color for T where T: Display {
     fn color(&self, color: &str) -> String {
-        format!("{color}{}{CLEAR}", self)
+        format!("{color}{self}{CLEAR}")
     }
 
     fn blue(&self)     -> String { self.color(BLUE)     }
@@ -74,7 +74,7 @@ pub trait DebugColor {
 #[rustfmt::skip]
 impl<T> DebugColor for T where T: Debug {
     fn debug_color(&self, color: &str) -> String {
-        format!("{color}{:?}{CLEAR}", self)
+        format!("{color}{self:?}{CLEAR}")
     }
 
     fn debug_blue(&self)     -> String { self.debug_color(BLUE)     }

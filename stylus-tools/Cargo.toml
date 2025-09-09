@@ -13,8 +13,10 @@ version.workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["contract", "getrandom", "rpc-types", "signer-local", "sol-types"] }
 cargo-util-schemas.workspace = true
+clap.workspace = true
 eyre.workspace = true
 hex.workspace = true
+log.workspace = true
 regex.workspace = true
 reqwest.workspace = true
 testcontainers = { workspace = true, optional = true }
@@ -27,7 +29,6 @@ brotli2 = "0.3.2"
 bytesize = "1.2.0"
 cargo_metadata = "0.20"
 escargot = "0.5"
-log = "0.4"
 rust-toolchain-file = "0.1"
 rustc-host = "0.1"
 serde = { version = "1.0", features = ["derive"] }

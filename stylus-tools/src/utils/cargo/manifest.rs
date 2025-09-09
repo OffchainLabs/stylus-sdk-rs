@@ -63,6 +63,23 @@ impl ManifestMut {
     }
 }
 
+#[derive(Debug)]
+pub struct Features<'a> {
+    item: &'a mut Item,
+}
+
+impl Features<'_> {
+    pub fn extend_feature<'a>(
+        &mut self,
+        feature: &str,
+        deps: impl IntoIterator<Item = &'a str>,
+    ) -> Result<&mut Self, CargoManifestError> {
+        let array = get_or_create_array(self.item, feature)?;
+        array_extend_unique_strs(array, deps);
+        Ok(self)
+    }
+}
+
 /// The `[lib]` table in a cargo manifest.
 #[derive(Debug)]
 pub struct Lib<'a> {
@@ -75,41 +92,28 @@ impl Lib<'_> {
         &mut self,
         items: impl IntoIterator<Item = &'a str>,
     ) -> Result<(), CargoManifestError> {
-        let array = self
-            .item
-            .as_table_mut()
-            .ok_or(CargoManifestError::Invalid)?
-            .entry("crate-type")
-            .or_insert_with(|| Array::new().into())
-            .as_array_mut()
-            .ok_or(CargoManifestError::Invalid)?;
+        let array = get_or_create_array(self.item, "crate-type")?;
         array_extend_unique_strs(array, items);
         Ok(())
     }
 }
 
-#[derive(Debug)]
-pub struct Features<'a> {
-    item: &'a mut Item,
-}
-
-impl Features<'_> {
-    pub fn extend_feature<'a>(
-        &mut self,
-        name: &str,
-        deps: impl IntoIterator<Item = &'a str>,
-    ) -> Result<(), CargoManifestError> {
-        let array = self
-            .item
-            .as_table_mut()
-            .ok_or(CargoManifestError::Invalid)?
-            .entry(name)
-            .or_insert_with(|| Array::new().into())
-            .as_array_mut()
-            .ok_or(CargoManifestError::Invalid)?;
-        array_extend_unique_strs(array, deps);
-        Ok(())
-    }
+/// Get or create an array inside a given table.
+///
+/// If the array exists, it is extended with the given items, checking for uniqueness. Otherwise,
+/// the array will bei initialized with the given items.
+fn get_or_create_array<'a>(
+    table_item: &'a mut Item,
+    key: &'a str,
+) -> Result<&'a mut Array, CargoManifestError> {
+    let array = table_item
+        .as_table_mut()
+        .ok_or(CargoManifestError::Invalid)?
+        .entry(key)
+        .or_insert_with(|| Array::new().into())
+        .as_array_mut()
+        .ok_or(CargoManifestError::Invalid)?;
+    Ok(array)
 }
 
 /// Add unique strings to an array.

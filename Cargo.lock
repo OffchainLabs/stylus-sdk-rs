@@ -1243,7 +1243,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-stylus-beta"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy",
  "anstyle",
@@ -1253,6 +1253,8 @@ dependencies = [
  "eyre",
  "hex",
  "itertools 0.14.0",
+ "log",
+ "simple_logger",
  "stylus-tools",
  "tokio",
 ]
@@ -1377,6 +1379,16 @@ name = "colorchoice"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
+
+[[package]]
+name = "colored"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
+dependencies = [
+ "lazy_static",
+ "windows-sys 0.59.0",
+]
 
 [[package]]
 name = "const-hex"
@@ -3096,20 +3108,11 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "mini-alloc"
-version = "0.10.0-beta.0"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b620761d4c29ede39bb1351c4360dba54d3b414d9fb460d37cba4c98b37a0b9d"
 dependencies = [
  "cfg-if",
- "wasm-bindgen-test",
-]
-
-[[package]]
-name = "minicov"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f27fe9f1cc3c22e1687f9446c2083c4c5fc7f0bcf1c7a86bdbded14985895b4b"
-dependencies = [
- "cc",
- "walkdir",
 ]
 
 [[package]]
@@ -3219,6 +3222,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.104",
+]
+
+[[package]]
+name = "num_threads"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c7398b9c8b70908f6371f47ed36737907c87c52af34c268fed0bf0ceb92ead9"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -4239,15 +4251,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "same-file"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
-dependencies = [
- "winapi-util",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4619,6 +4622,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
+name = "simple_logger"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8c5dfa5e08767553704aa0ffd9d9794d527103c736aba9854773851fd7497eb"
+dependencies = [
+ "colored",
+ "log",
+ "time",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4724,17 +4739,19 @@ dependencies = [
 
 [[package]]
 name = "stylus-core"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "cfg-if",
  "dyn-clone",
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
 name = "stylus-proc"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4758,7 +4775,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4767,11 +4784,9 @@ dependencies = [
  "derivative",
  "hex",
  "keccak-const",
- "lazy_static",
  "mini-alloc",
  "paste",
  "rclite",
- "regex",
  "sha3",
  "stylus-core",
  "stylus-proc",
@@ -4781,7 +4796,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-test"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-provider",
@@ -4793,7 +4808,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-tools"
-version = "0.10.0-beta.0"
+version = "0.10.0-beta.1"
 dependencies = [
  "alloy",
  "anyhow",
@@ -4802,6 +4817,7 @@ dependencies = [
  "cargo-util-schemas",
  "cargo_metadata",
  "cfg-if",
+ "clap",
  "escargot",
  "eyre",
  "hex",
@@ -5046,7 +5062,9 @@ checksum = "8a7619e19bc266e0f9c5e6686659d394bc57973859340060a69221e57dbc0c40"
 dependencies = [
  "deranged",
  "itoa",
+ "libc",
  "num-conv",
+ "num_threads",
  "powerfmt",
  "serde",
  "time-core",
@@ -5493,16 +5511,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "walkdir"
-version = "2.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
-dependencies = [
- "same-file",
- "winapi-util",
-]
-
-[[package]]
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5618,30 +5626,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "wasm-bindgen-test"
-version = "0.3.50"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66c8d5e33ca3b6d9fa3b4676d774c5778031d27a578c2b007f905acf816152c3"
-dependencies = [
- "js-sys",
- "minicov",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test-macro",
-]
-
-[[package]]
-name = "wasm-bindgen-test-macro"
-version = "0.3.50"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17d5042cc5fa009658f9a7333ef24291b1291a25b6382dd68862a7f3b969f69b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
 ]
 
 [[package]]

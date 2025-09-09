@@ -4,7 +4,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use proc_macro_error::emit_error;
-use quote::{quote, ToTokens};
+use quote::ToTokens;
 use syn::{parse_macro_input, parse_quote};
 use syn_solidity::{visit, Spanned, Visit};
 
@@ -107,21 +107,7 @@ impl Interface {
         let selector = build_selector(name, params.params.iter().map(|p| &p.type_info.sol_type));
         let [selector0, selector1, selector2, selector3] = selector;
 
-        // determine which context and kind of call to use
-        let (context, call) = match purity {
-            Purity::Pure | Purity::View => (
-                quote!(stylus_sdk::stylus_core::calls::StaticCallContext),
-                quote!(stylus_sdk::call::static_call),
-            ),
-            Purity::Write => (
-                quote!(stylus_sdk::stylus_core::calls::NonPayableCallContext),
-                quote!(stylus_sdk::call::call),
-            ),
-            Purity::Payable => (
-                quote!(stylus_sdk::stylus_core::calls::MutatingCallContext),
-                quote!(stylus_sdk::call::call),
-            ),
-        };
+        let (context, call) = purity.get_context_and_call();
 
         let sol_args = params
             .params

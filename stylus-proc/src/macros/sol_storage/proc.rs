@@ -97,16 +97,25 @@ impl Parse for SolidityTy {
             let content;
             let _ = parenthesized!(content in input);
 
-            // key => value
-            let key = content.parse::<PrimitiveKey>()?.0;
+            // parse "key_type => value_type" or "key_type key_name => value_type value_name"
+
+            let key_ty = content.parse::<PrimitiveKey>()?.0;
+            // checks for optional key name and ignores it
+            if !content.peek(Token![=>]) {
+                let _key_name = content.parse::<Ident>()?;
+            }
             let _: Token![=>] = content.parse()?;
-            let value = content.parse::<SolidityTy>()?.0;
+            let value_ty = content.parse::<SolidityTy>()?.0;
+            // checks for optional value name and ignores it
+            if !content.is_empty() {
+                let _value_name = content.parse::<Ident>()?;
+            }
 
             let ty = format!(
                 "{}<{}, {}>",
                 sdk!("StorageMap"),
-                quote!(#key),
-                quote!(#value)
+                quote!(#key_ty),
+                quote!(#value_ty)
             );
             path = syn::parse_str(&ty)?;
         } else {

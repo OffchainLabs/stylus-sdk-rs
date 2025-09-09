@@ -17,12 +17,28 @@ FEATURES=$(echo "$FEATURES" | grep . | sort | uniq | grep -v default) # cleanup
 FEATURES=$(echo "$FEATURES" | grep -v integration-tests)
 
 # Remove trybuild tests on nightly because they depend on the compiler output.
-if [[ "${CFG_RELEASE_CHANNEL-}" == "nightly"* ]]; then
-    FEATURES=$(echo "$FEATURES" | grep -v trybuild)
+FEATURES=$(echo "$FEATURES" | grep -v trybuild)
+
+# Remove contract-client-gen feature.
+# This feature is tested individually since it considerably change the structure of the output code.
+FEATURES=$(echo "$FEATURES" | grep -v contract-client-gen)
+
+FEATURES=$(echo "$FEATURES" | tr ' ' ',')
+
+test() {
+    local features="$1"
+    echo "Testing with features: $features"
+    local targets="$2"
+
+    cargo check --locked -F "$features"
+    cargo test --no-default-features $targets -F "$features"
+}
+
+test "$FEATURES" ""
+# disables doctests when testing contract-client-gen
+test contract-client-gen "--lib --bins --tests --benches"
+
+# Run trybuild tests separately without other features
+if [[ "${CFG_RELEASE_CHANNEL-}" != "nightly"* ]]; then
+    cargo test -p stylus-proc -F trybuild-tests
 fi
-
-FEATURES=$(echo $FEATURES | tr ' ' ',')
-echo "testing features: $FEATURES"
-
-cargo check --locked -F $FEATURES
-cargo test --no-default-features -F $FEATURES

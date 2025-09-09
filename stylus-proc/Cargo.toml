@@ -24,13 +24,13 @@ sha3.workspace = true
 syn.workspace = true
 syn-solidity.workspace = true
 trybuild.workspace = true
+stylus-core.workspace = true
 
 [dev-dependencies]
 paste.workspace = true
 pretty_assertions.workspace = true
 prettyplease.workspace = true
 stylus-sdk = { workspace = true, features = ["stylus-test"] }
-stylus-core.workspace = true
 
 [features]
 default = ["trybuild-tests"]
@@ -38,6 +38,7 @@ export-abi = ["stylus-sdk/export-abi"]
 reentrant = []
 stylus-test = ["stylus-sdk/stylus-test"]
 trybuild-tests = []
+contract-client-gen = []
 
 [package.metadata.docs.rs]
 features = ["export-abi"]

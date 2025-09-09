@@ -28,7 +28,7 @@ sol_interface! {
     }
 }
 
-#[cfg(feature = "trybuild-tests")]
+#[cfg(all(not(feature = "contract-client-gen"), feature = "trybuild-tests"))]
 #[test]
 fn sol_interface_failures() {
     let t = trybuild::TestCases::new();

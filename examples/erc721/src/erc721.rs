@@ -36,7 +36,7 @@ sol_storage! {
     /// Erc721 implements all ERC-721 methods
     pub struct Erc721<T: Erc721Params> {
         /// Token id to owner map
-        mapping(uint256 => address) owners;
+        mapping(uint256 tokenid => address owner) owners;
         /// User to balance map
         mapping(address => uint256) balances;
         /// Token id to approved user map

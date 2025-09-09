@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 use std::{fmt::Display, num::NonZeroU16, str::FromStr};
 
+use quote::quote;
 use syn::{parse_quote, Token};
 
 use crate::imports::alloy_sol_types::sol_data;
@@ -26,6 +27,23 @@ impl Purity {
                 _ => (Self::Pure, false),
             },
             _ => (Self::Pure, false),
+        }
+    }
+
+    pub fn get_context_and_call(&self) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
+        match self {
+            Purity::Pure | Purity::View => (
+                quote!(stylus_sdk::stylus_core::calls::StaticCallContext),
+                quote!(stylus_sdk::call::static_call),
+            ),
+            Purity::Write => (
+                quote!(stylus_sdk::stylus_core::calls::NonPayableCallContext),
+                quote!(stylus_sdk::call::call),
+            ),
+            Purity::Payable => (
+                quote!(stylus_sdk::stylus_core::calls::MutatingCallContext),
+                quote!(stylus_sdk::call::call),
+            ),
         }
     }
 }

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.88.0
       - name: Get latest cargo-stylus version
         id: get-version
         shell: bash
@@ -47,6 +47,8 @@ jobs:
           - "abi_encode"
           - "arrays"
           - "call"
+          - "caller"
+          - "callee"
           - "constants"
           - "constructor"
           - "custom_storage_slots"
@@ -60,6 +62,7 @@ jobs:
           - "first_app"
           - "function"
           - "hello_world"
+          - "inheritance"
           - "mapping"
           - "nested_structs"
           - "primitive_data_types"

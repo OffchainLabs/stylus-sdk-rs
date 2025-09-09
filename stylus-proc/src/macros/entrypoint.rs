@@ -4,13 +4,15 @@
 use cfg_if::cfg_if;
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::{abort, emit_error};
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    token::Comma,
 };
 
-use crate::consts::STRUCT_ENTRYPOINT_FN;
+use crate::consts::{STRUCT_ENTRYPOINT_FN, STYLUS_CONTRACT_ADDRESS_FIELD};
 
 /// Implementation for the [`#[entrypoint]`][crate::entrypoint] macro.
 pub fn entrypoint(
@@ -25,6 +27,25 @@ pub fn entrypoint(
     entrypoint.into_token_stream().into()
 }
 
+pub fn add_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
+    let field: syn::Field =
+        parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
+    let mut named_fields = Punctuated::<syn::Field, Comma>::new();
+    named_fields.push(field);
+
+    match &mut item_struct.fields {
+        syn::Fields::Unnamed(_) => Err(syn::Error::new_spanned(
+            &item_struct.ident,
+            "[entrypoint] only supports named and unit structs.",
+        )),
+        _ => {
+            item_struct.fields = syn::Fields::Named(parse_quote! { { #named_fields } });
+            item_struct.semi_token = None; // Named structs do not have a semicolon at the end
+            Ok(())
+        }
+    }
+}
+
 struct Entrypoint {
     kind: EntrypointKind,
     user_entrypoint_fn: Option<syn::ItemFn>,
@@ -34,12 +55,18 @@ impl Parse for Entrypoint {
         let item: syn::Item = input.parse()?;
         let kind = match item {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
-            syn::Item::Struct(item) => EntrypointKind::Struct(EntrypointStruct {
-                top_level_storage_impl: top_level_storage_impl(&item),
-                struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
-                print_from_args_fn: print_from_args_fn(&item.ident),
-                item,
-            }),
+            syn::Item::Struct(item) => {
+                let mut item_contract_client_gen = item.clone();
+                add_stylus_contract_address(&mut item_contract_client_gen)?;
+
+                EntrypointKind::Struct(EntrypointStruct {
+                    top_level_storage_impl: top_level_storage_impl(&item),
+                    struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
+                    print_from_args_fn: print_from_args_fn(&item.ident),
+                    item,
+                    item_contract_client_gen,
+                })
+            }
             _ => abort!(item, "not a struct or fn"),
         };
 
@@ -97,6 +124,7 @@ impl ToTokens for EntrypointFn {
 
 struct EntrypointStruct {
     item: syn::ItemStruct,
+    item_contract_client_gen: syn::ItemStruct,
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
     print_from_args_fn: Option<syn::ItemFn>,
@@ -104,7 +132,15 @@ struct EntrypointStruct {
 
 impl ToTokens for EntrypointStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+        });
         self.item.to_tokens(tokens);
+        tokens.extend(quote! {
+            #[cfg(feature = "contract-client-gen")]
+        });
+        self.item_contract_client_gen.to_tokens(tokens);
+
         self.top_level_storage_impl.to_tokens(tokens);
         self.struct_entrypoint_fn.to_tokens(tokens);
         self.print_from_args_fn.to_tokens(tokens);
@@ -115,12 +151,14 @@ fn top_level_storage_impl(item: &syn::ItemStruct) -> syn::ItemImpl {
     let name = &item.ident;
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
     parse_quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
         unsafe impl #impl_generics stylus_sdk::stylus_core::storage::TopLevelStorage for #name #ty_generics #where_clause {}
     }
 }
 
 fn struct_entrypoint_fn(name: &Ident) -> syn::ItemFn {
     parse_quote! {
+        #[cfg(not(feature = "contract-client-gen"))]
         fn #STRUCT_ENTRYPOINT_FN(input: alloc::vec::Vec<u8>, host: stylus_sdk::host::VM) -> stylus_sdk::ArbResult {
             stylus_sdk::abi::router_entrypoint::<#name, #name>(input, host)
         }
@@ -136,6 +174,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
             let deny_reentrant = deny_reentrant();
             Some(parse_quote! {
                 #[no_mangle]
+                #[cfg(not(feature = "contract-client-gen"))]
                 pub extern "C" fn user_entrypoint(len: usize) -> usize {
                     let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
                     #deny_reentrant

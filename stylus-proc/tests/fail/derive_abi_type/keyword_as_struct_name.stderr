@@ -1,0 +1,13 @@
+error: struct name cannot be a Solidity keyword: `uint256`
+  --> tests/fail/derive_abi_type/keyword_as_struct_name.rs:10:8
+   |
+10 | struct uint256 {
+   |        ^^^^^^^
+
+warning: type `uint256` should have an upper camel case name
+  --> tests/fail/derive_abi_type/keyword_as_struct_name.rs:10:8
+   |
+10 | struct uint256 {
+   |        ^^^^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Uint256`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default

@@ -13,8 +13,8 @@ const METADATA_LENGTH: usize = 1;
 const PRELUDE_LENGTH: usize = INITCODE_LENGTH + METADATA_LENGTH;
 
 /// Calldata to send in deployment transaction.
-#[derive(Debug)]
-pub struct DeploymentCalldata(Vec<u8>);
+#[derive(Debug, PartialEq)]
+pub struct DeploymentCalldata(pub Vec<u8>);
 
 impl DeploymentCalldata {
     /// Prepares an EVM bytecode prelude for contract creation.

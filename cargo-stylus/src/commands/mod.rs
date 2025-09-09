@@ -76,7 +76,7 @@ pub async fn exec(cmd: Command) -> CargoStylusResult {
         Command::Init(args) => init::exec(args),
         Command::New(args) => new::exec(args),
         Command::Replay(args) => replay::exec(args),
-        Command::Simulate(args) => simulate::exec(args),
+        Command::Simulate(args) => simulate::exec(args).await,
         Command::Trace(args) => trace::exec(args).await,
         Command::Verify(args) => verify::exec(args).await,
     }

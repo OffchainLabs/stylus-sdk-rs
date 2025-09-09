@@ -16,7 +16,16 @@
 #[cfg(feature = "debug")]
 pub fn console_log<T: AsRef<str>>(text: T) {
     let text = text.as_ref();
-    unsafe { crate::hostio::log_txt(text.as_ptr(), text.len()) };
+    use cfg_if::cfg_if;
+    cfg_if! {
+        if #[cfg(feature = "stylus-test")] {
+            println!("{text}");
+        } else {
+            unsafe {
+                crate::hostio::log_txt(text.as_ptr(), text.len())
+            };
+        }
+    }
 }
 
 /// Prints to the console when executing in a debug environment. Otherwise does nothing.

@@ -18,6 +18,7 @@ stylus-tools = { path = "../../stylus-tools" }
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 integration-tests = ["stylus-tools/integration-tests"]
+contract-client-gen = []
 
 [lib]
 crate-type = ["lib", "cdylib"]

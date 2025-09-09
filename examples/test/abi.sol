@@ -7,6 +7,8 @@
 pragma solidity ^0.8.23;
 
 interface ICounter  {
+    function callingConsoleDoesntPanicInTest() external view;
+
     function owner() external view returns (address);
 
     function number() external view returns (uint256);

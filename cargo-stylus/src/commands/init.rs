@@ -31,7 +31,7 @@ pub fn exec(args: Args) -> CargoStylusResult {
                 ProjectKind::Contract
             }
         }
-        (true, true) => Err(eyre!("cannot specify both --contract and --workspace"))?,
+        (true, true) => return Err(eyre!("cannot specify both --contract and --workspace").into()),
     };
     ops::init(args.path, kind)?;
     Ok(())
