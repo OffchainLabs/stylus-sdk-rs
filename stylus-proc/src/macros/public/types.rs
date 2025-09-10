@@ -182,19 +182,45 @@ impl PublicImpl {
         // Determine trait dynamic interface with associated types
         let iface = match &self.trait_ {
             Some(trait_) => {
-                if !self.associated_types.is_empty() {
-                    let assoc_types_formatted = self
-                        .associated_types
-                        .iter()
-                        .map(|(name, value)| {
-                            quote! { #name = #value }
-                        })
-                        .collect::<Vec<_>>();
+                // If trait_ is something like foo::MyTrait<u32, u256>, trait_path_without_generics will be foo::MyTrait
+                let trait_path_without_generics = {
+                    let mut path = trait_.clone();
+                    if let Some(last_segment) = path.segments.last_mut() {
+                        last_segment.arguments = syn::PathArguments::None;
+                    }
+                    path
+                };
 
-                    &parse_quote! { dyn #trait_ < #(#assoc_types_formatted),* > }
+                // Extract generic arguments from trait_ if present (e.g., "u32, u256" from the previous example)
+                let generic_args: Vec<proc_macro2::TokenStream> =
+                    if let Some(last_segment) = trait_.segments.last() {
+                        if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                            args.args.iter().map(|arg| quote::quote! { #arg }).collect()
+                        } else {
+                            // No generic arguments
+                            Vec::new()
+                        }
+                    } else {
+                        Vec::new()
+                    };
+
+                let associated_types: Vec<proc_macro2::TokenStream> = self
+                    .associated_types
+                    .iter()
+                    .map(|(name, value)| quote::quote! { #name = #value })
+                    .collect();
+
+                let combined_types = if !generic_args.is_empty() && !associated_types.is_empty() {
+                    quote! { < #(#generic_args),* , #(#associated_types),* > }
+                } else if !generic_args.is_empty() {
+                    quote! { < #(#generic_args),* > }
+                } else if !associated_types.is_empty() {
+                    quote! { < #(#associated_types),* > }
                 } else {
-                    &parse_quote! { dyn #trait_ }
-                }
+                    quote! {}
+                };
+
+                &parse_quote! { dyn #trait_path_without_generics  #combined_types }
             }
             None => self_ty,
         };
@@ -255,7 +281,10 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let client_funcs = self
+        let (client_funcs_definitions, client_funcs_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = self
         .funcs
         .iter()
         .map(|func| {
@@ -280,13 +309,23 @@ impl PublicImpl {
 
             let function_selector = func.function_selector();
 
-            quote! {
-                pub fn #func_name(
+            let func_visibility = if self.trait_.is_some() {
+                quote! {}
+            } else {
+                quote! { pub }
+            };
+
+            let signature = quote! {
+                #func_visibility fn #func_name(
                     &self,
                     host: &dyn stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
                     #(#inputs,)*
-                ) -> #output_type {
+                ) -> #output_type
+            };
+
+            let definition = quote! {
+                #signature {
                     let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
                     use stylus_sdk::function_selector;
                     let mut calldata = Vec::from(#function_selector);
@@ -294,22 +333,55 @@ impl PublicImpl {
                     let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
                     #output_decoding
                 }
-            }
+            };
+            let declaration = quote! {
+                #signature;
+            };
+            (definition, declaration)
         })
-        .collect::<proc_macro2::TokenStream>();
+        .unzip();
+
+        let (associated_types_definitions, associated_types_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = self
+            .associated_types
+            .iter()
+            .map(|(name, value)| {
+                let defintion = quote::quote! { type #name = #value; };
+                let declaration = quote::quote! { type #name: #AbiType; };
+                (defintion, declaration)
+            })
+            .unzip();
 
         let struct_path = self.self_ty.clone();
 
-        let mut output = quote! {
-            #[cfg(feature = "contract-client-gen")]
-            impl #struct_path {
-                #client_funcs
-            }
-        };
+        let output = if let Some(trait_path) = &self.trait_ {
+            // If it implements a trait then we define a new trait with associated types.
+            // In that way client_funcs can use the associated types, e.g., Self::AssociatedType.
 
-        // If the impl does not implement a trait, we add a constructor for the contract client
-        if self.trait_.is_none() {
-            output.extend(quote! {
+            let in_trait_name = trait_path.segments.last().unwrap().ident.to_string();
+            let out_trait = syn::Ident::new(
+                &format!("{in_trait_name}ContractClientGen"),
+                Span::call_site(),
+            );
+            quote! {
+                #[cfg(feature = "contract-client-gen")]
+                pub trait #out_trait {
+                    #(#associated_types_declarations)*
+                    #(#client_funcs_declarations)*
+                }
+
+                #[cfg(feature = "contract-client-gen")]
+                impl #out_trait for #struct_path {
+                    #(#associated_types_definitions)*
+                    #(#client_funcs_definitions)*
+                }
+            }
+        } else {
+            // If the impl does not implement a trait, we just output the functions directly,
+            // and also add a constructor for the contract client
+            quote! {
                 #[cfg(feature = "contract-client-gen")]
                 impl #struct_path {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
@@ -317,10 +389,11 @@ impl PublicImpl {
                             #STYLUS_CONTRACT_ADDRESS_FIELD: address,
                         }
                     }
-                }
-            });
-        }
 
+                    #(#client_funcs_definitions)*
+                }
+            }
+        };
         output
     }
 }

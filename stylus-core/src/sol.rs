@@ -30,8 +30,6 @@ pub fn is_sol_keyword(name: &str) -> bool {
     }
 
     match name {
-        "" => false,
-
         // other types
         "address" | "bytes" | "bool" | "int" | "uint" => true,
 
