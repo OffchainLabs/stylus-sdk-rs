@@ -26,6 +26,7 @@ use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, Sup
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_core::*;
+use traits::StorageUtils;
 
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
@@ -199,17 +200,19 @@ macro_rules! gen_int_checked_ops {
     };
 }
 
-impl<const B: usize, const L: usize> StorageUint<B, L>
+impl<const B: usize, const L: usize> StorageUtils for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
+    type Value = Uint<B, L>;
+
     /// Gets the underlying [`alloy_primitives::Uint`] in persistent storage.
-    pub fn get(&self) -> Uint<B, L> {
+    fn get(&self) -> Uint<B, L> {
         unsafe { Storage::get_uint(self.__stylus_host.clone(), self.slot, self.offset.into()) }
     }
 
     /// Sets the underlying [`alloy_primitives::Uint`] in persistent storage.
-    pub fn set(&mut self, value: Uint<B, L>) {
+    fn set(&mut self, value: Uint<B, L>) {
         unsafe {
             Storage::set_uint(
                 self.__stylus_host.clone(),
@@ -219,7 +222,12 @@ where
             )
         };
     }
+}
 
+impl<const B: usize, const L: usize> StorageUint<B, L>
+where
+    IntBitCount<B>: SupportedInt,
+{
     gen_int_wrap_ops! {
         /// Add to the underlying value, wrapping around if overflow.
         /// Returns the new value.
@@ -368,17 +376,19 @@ where
     }
 }
 
-impl<const B: usize, const L: usize> StorageSigned<B, L>
+impl<const B: usize, const L: usize> StorageUtils for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
+    type Value = Signed<B, L>;
+
     /// Gets the underlying [`Signed`] in persistent storage.
-    pub fn get(&self) -> Signed<B, L> {
+    fn get(&self) -> Signed<B, L> {
         unsafe { Storage::get_signed(self.__stylus_host.clone(), self.slot, self.offset.into()) }
     }
 
     /// Gets the underlying [`Signed`] in persistent storage.
-    pub fn set(&mut self, value: Signed<B, L>) {
+    fn set(&mut self, value: Signed<B, L>) {
         unsafe {
             Storage::set_signed(
                 self.__stylus_host.clone(),
@@ -463,14 +473,16 @@ impl<const N: usize> HostAccess for StorageFixedBytes<N> {
     }
 }
 
-impl<const N: usize> StorageFixedBytes<N> {
+impl<const N: usize> StorageUtils for StorageFixedBytes<N> {
+    type Value = FixedBytes<N>;
+
     /// Gets the underlying [`FixedBytes`] in persistent storage.
-    pub fn get(&self) -> FixedBytes<N> {
+    fn get(&self) -> FixedBytes<N> {
         unsafe { Storage::get(self.__stylus_host.clone(), self.slot, self.offset.into()) }
     }
 
     /// Gets the underlying [`FixedBytes`] in persistent storage.
-    pub fn set(&mut self, value: FixedBytes<N>) {
+    fn set(&mut self, value: FixedBytes<N>) {
         unsafe {
             Storage::set(
                 self.__stylus_host.clone(),
@@ -589,16 +601,18 @@ where
     }
 }
 
-impl StorageBool {
+impl StorageUtils for StorageBool {
+    type Value = bool;
+
     /// Gets the underlying [`bool`] in persistent storage.
-    pub fn get(&self) -> bool {
+    fn get(&self) -> bool {
         let data =
             unsafe { Storage::get_byte(self.__stylus_host.clone(), self.slot, self.offset.into()) };
         data != 0
     }
 
     /// Gets the underlying [`bool`] in persistent storage.
-    pub fn set(&mut self, value: bool) {
+    fn set(&mut self, value: bool) {
         unsafe {
             Storage::set_byte(
                 self.__stylus_host.clone(),
@@ -689,16 +703,18 @@ where
     }
 }
 
-impl StorageAddress {
+impl StorageUtils for StorageAddress {
+    type Value = Address;
+
     /// Gets the underlying [`Address`] in persistent storage.
-    pub fn get(&self) -> Address {
+    fn get(&self) -> Address {
         unsafe {
             Storage::get::<20>(self.__stylus_host.clone(), self.slot, self.offset.into()).into()
         }
     }
 
     /// Gets the underlying [`Address`] in persistent storage.
-    pub fn set(&mut self, value: Address) {
+    fn set(&mut self, value: Address) {
         unsafe {
             Storage::set::<20>(
                 self.__stylus_host.clone(),
@@ -792,16 +808,18 @@ where
     }
 }
 
-impl StorageBlockNumber {
+impl StorageUtils for StorageBlockNumber {
+    type Value = BlockNumber;
+
     /// Gets the underlying [`BlockNumber`] in persistent storage.
-    pub fn get(&self) -> BlockNumber {
+    fn get(&self) -> BlockNumber {
         let data =
             unsafe { Storage::get::<8>(self.__stylus_host.clone(), self.slot, self.offset.into()) };
         u64::from_be_bytes(data.0)
     }
 
     /// Sets the underlying [`BlockNumber`] in persistent storage.
-    pub fn set(&mut self, value: BlockNumber) {
+    fn set(&mut self, value: BlockNumber) {
         let value = FixedBytes::from(value.to_be_bytes());
         unsafe {
             Storage::set::<8>(
@@ -895,14 +913,16 @@ where
     }
 }
 
-impl StorageBlockHash {
+impl StorageUtils for StorageBlockHash {
+    type Value = BlockHash;
+
     /// Gets the underlying [`BlockHash`] in persistent storage.
-    pub fn get(&self) -> BlockHash {
+    fn get(&self) -> BlockHash {
         Storage::get_word(self.__stylus_host.clone(), self.slot)
     }
 
     /// Sets the underlying [`BlockHash`] in persistent storage.
-    pub fn set(&mut self, value: BlockHash) {
+    fn set(&mut self, value: BlockHash) {
         unsafe { Storage::set_word(self.__stylus_host.clone(), self.slot, value) }
     }
 }
@@ -942,6 +962,22 @@ impl Erase for StorageBlockHash {
 impl From<StorageBlockHash> for BlockHash {
     fn from(value: StorageBlockHash) -> Self {
         value.get()
+    }
+}
+
+/// StorageUtils implementation for PhantomData<T>
+/// PhantomData doesn't actually store anything, so these are no-ops
+impl<T> StorageUtils for PhantomData<T> {
+    type Value = (); // PhantomData doesn't store any actual value
+
+    /// PhantomData doesn't store anything, so get returns unit
+    fn get(&self) -> Self::Value {
+        ()
+    }
+
+    /// PhantomData doesn't store anything, so set is a no-op
+    fn set(&mut self, _value: Self::Value) {
+        // No-op: PhantomData doesn't actually store data
     }
 }
 
