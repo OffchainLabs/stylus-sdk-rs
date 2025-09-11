@@ -9,6 +9,8 @@ use core::{
 };
 
 /// Maximum length of a [`ConstString`] in bytes.
+/// This can be increased in future versions if needed for specific use cases,
+/// such as if structs with longer selector ABIs are required.
 pub const MAX_CONST_STRING_LENGTH: usize = 1024;
 
 /// Represents a string with a bounded length at compile time.
