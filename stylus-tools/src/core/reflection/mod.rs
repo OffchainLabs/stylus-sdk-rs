@@ -6,7 +6,7 @@
 //! This uses the mechanism of running a Stylus contract crate as a binary to return information
 //! about the contract. This does not depend on a deployment of the contract.
 
-use std::process::Stdio;
+use std::{path::PathBuf, process::Stdio};
 
 pub use abi::abi;
 pub use constructor::constructor;
@@ -38,6 +38,13 @@ fn reflect(command: &str, mut features: Vec<String>) -> Result<Vec<u8>, Reflecti
         return Err(ReflectionError::FailedToRunContract(out));
     }
     Ok(output.stdout)
+}
+
+#[derive(Debug)]
+pub struct ReflectionConfig {
+    pub file: Option<PathBuf>,
+    pub json: bool,
+    pub rust_features: Option<Vec<String>>,
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -7,30 +7,31 @@
 
 use std::{
     io::Write,
-    path::PathBuf,
     process::{self, Command, Stdio},
 };
 
 use alloy::json_abi::Constructor;
 use eyre::{Result, WrapErr};
 
-use crate::utils::{solc, sys};
+use crate::{
+    core::reflection::ReflectionConfig,
+    utils::{solc, sys},
+};
 
 /// Exports Solidity ABIs by running the contract natively.
-pub fn export_abi(
-    file: Option<PathBuf>,
-    json: bool,
-    rust_features: Option<Vec<String>>,
-) -> Result<()> {
-    if json {
+pub fn export_abi(package: &str, config: &ReflectionConfig) -> Result<()> {
+    if config.json {
         solc::check_exists()?;
     }
 
-    let features = rust_features.map(|feature_list| feature_list.join(","));
-    let mut output = run_export("abi", features)?;
+    let features = config
+        .rust_features
+        .clone()
+        .map(|feature_list| feature_list.join(","));
+    let mut output = run_export(package, "abi", features)?;
 
     // convert the ABI to a JSON file via solc
-    if json {
+    if config.json {
         let solc = Command::new("solc")
             .stdin(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -45,39 +46,44 @@ pub fn export_abi(
         output = solc.wait_with_output()?.stdout;
     }
 
-    let mut out = sys::file_or_stdout(file)?;
+    let mut out = sys::file_or_stdout(config.file.clone())?;
     out.write_all(&output)?;
     Ok(())
 }
 
 /// Print the constructor signature
-pub fn print_constructor(file: Option<PathBuf>, rust_features: Option<Vec<String>>) -> Result<()> {
-    let features = rust_features.map(|feature_list| feature_list.join(","));
-    let output = run_export("constructor", features)?;
+pub fn print_constructor(package: &str, config: &ReflectionConfig) -> Result<()> {
+    let features = config
+        .rust_features
+        .clone()
+        .map(|feature_list| feature_list.join(","));
+    let output = run_export(package, "constructor", features)?;
     if !std::str::from_utf8(&output)?.starts_with("constructor") {
         return Ok(());
     }
-    let mut file = sys::file_or_stdout(file)?;
+    let mut file = sys::file_or_stdout(config.file.clone())?;
     file.write_all(&output)?;
     Ok(())
 }
 
 /// Gets the constructor signature of the Stylus contract using the export binary.
 /// If the contract doesn't have a constructor, returns None.
-pub fn get_constructor_signature() -> Result<Option<Constructor>> {
+pub fn get_constructor_signature(package: &str) -> Result<Option<Constructor>> {
     greyln!("checking whether the contract has a constructor...");
-    let output = run_export("constructor", None)?;
+    let output = run_export(package, "constructor", None)?;
     let output = String::from_utf8(output)?;
     parse_constructor(&output)
 }
 
-fn run_export(command: &str, features: Option<String>) -> Result<Vec<u8>> {
+fn run_export(package: &str, command: &str, features: Option<String>) -> Result<Vec<u8>> {
     let target = format!("--target={}", sys::host_arch()?);
     let features = format!("--features=export-abi,{}", features.unwrap_or_default());
 
     let output = Command::new("cargo")
         .stderr(Stdio::inherit())
         .arg("run")
+        .arg("--package")
+        .arg(package)
         .arg("--quiet")
         .arg(features)
         .arg(target)

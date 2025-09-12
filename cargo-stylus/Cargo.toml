@@ -13,6 +13,7 @@ rust-version.workspace = true
 
 [dependencies]
 alloy.workspace = true
+cargo-util-schemas.workspace = true
 eyre.workspace = true
 hex.workspace = true
 log.workspace = true
@@ -21,4 +22,5 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 anstyle = "1.0.10"
 clap = { version = "4.5.39", features = ["derive"] }
+itertools = "0.14"
 simple_logger = "5.0"

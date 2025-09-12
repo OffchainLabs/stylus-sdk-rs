@@ -37,6 +37,12 @@ impl ManifestMut {
         Lib { item }
     }
 
+    pub fn features(&mut self) -> Features<'_> {
+        let entry = self.doc.entry("features");
+        let item = entry.or_insert_with(|| Table::new().into());
+        Features { item }
+    }
+
     pub fn profile(&mut self, name: &str) -> Result<Profile<'_>, CargoManifestError> {
         // Create the profile table if it does not exist
         let profile_table = self
@@ -54,12 +60,6 @@ impl ManifestMut {
             .as_table_mut()
             .ok_or(CargoManifestError::Invalid)?;
         Ok(Profile { table })
-    }
-
-    pub fn features(&mut self) -> Features<'_> {
-        let entry = self.doc.entry("features");
-        let item = entry.or_insert_with(|| Table::new().into());
-        Features { item }
     }
 }
 

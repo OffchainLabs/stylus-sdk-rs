@@ -28,7 +28,7 @@ pub struct Args {
 
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
-    let config = args.activation.into_config();
+    let config = args.activation.config();
     if args.estimate_gas {
         ops::activate::estimate_gas(args.address, &config, &provider).await?;
     } else {

@@ -8,9 +8,11 @@ use alloy::{
     rpc::types::{TransactionReceipt, TransactionRequest},
 };
 
-use super::{check::CheckConfig, contract::Contract};
 use crate::{
-    core::{check::check_contract, contract::ContractStatus},
+    core::{
+        check::{check_contract, CheckConfig},
+        project::contract::{Contract, ContractStatus},
+    },
     utils::color::{Color, DebugColor},
 };
 use prelude::DeploymentCalldata;
@@ -117,7 +119,7 @@ pub async fn deploy(
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<(), DeploymentError> {
-    let status = check_contract(contract, &config.check, provider).await?;
+    let status = check_contract(contract, None, &config.check, provider).await?;
     let from_address = provider.default_signer_address();
     debug!(@grey, "sender address: {}", from_address.debug_lavender());
     let data_fee = status.suggest_fee() + config.constructor_value;

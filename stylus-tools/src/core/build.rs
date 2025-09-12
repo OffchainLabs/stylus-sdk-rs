@@ -6,7 +6,7 @@ use std::{path::PathBuf, process::Stdio};
 use cargo_metadata::MetadataCommand;
 use escargot::Cargo;
 
-use super::contract::Contract;
+use crate::core::project::contract::Contract;
 
 const WASM_TARGET: &str = "wasm32-unknown-unknown";
 const OPT_LEVEL_Z_CONFIG: &str = "profile.release.opt-level='z'";

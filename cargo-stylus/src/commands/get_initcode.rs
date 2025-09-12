@@ -20,7 +20,7 @@ pub struct Args {
 }
 
 pub fn exec(args: Args) -> CargoStylusResult {
-    let build_config = args.build.into_config();
+    let build_config = args.build.config();
     let writer = match args.output {
         Some(path) => fs::File::create(path).wrap_err("failed to create output file")?,
         None => todo!(),

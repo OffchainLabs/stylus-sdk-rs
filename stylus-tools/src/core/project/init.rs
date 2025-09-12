@@ -88,6 +88,14 @@ fn init_package_manifest(path: impl AsRef<Path>) -> Result<(), InitError> {
     let mut manifest = ManifestMut::read(path.as_ref().join("Cargo.toml"))?;
     manifest.lib().extend_crate_type(["lib", "cdylib"])?;
 
+    // Add [features] section
+    let mut features = manifest.features();
+    features.extend_feature("default", ["mini-alloc"])?;
+    features.extend_feature("export-abi", ["stylus-sdk/export-abi"])?;
+    features.extend_feature("debug", ["stylus-sdk/debug"])?;
+    features.extend_feature("mini-alloc", ["stylus-sdk/mini-alloc"])?;
+    features.extend_feature("contract-client-gen", [])?;
+
     // Add [profile.release] section
     let mut release = manifest.profile("release")?;
     release.set_default("codegen-units", 1);

@@ -41,6 +41,7 @@ trybuild = "1.0"
 
 # stylus tools
 alloy = { version = "1.0.1", features = ["essentials", "json-rpc", "provider-debug-api", "provider-trace-api", "signer-keystore"] }
+cargo-util-schemas = "0.2"
 eyre = "0.6"
 log = "0.4"
 reqwest = "0.12"

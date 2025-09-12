@@ -12,8 +12,16 @@ use alloy::{
         Signer,
     },
 };
+use cargo_util_schemas::manifest::PackageName;
 use eyre::{eyre, Context};
-use stylus_tools::core::{activation::ActivationConfig, build::BuildConfig};
+use stylus_tools::core::{
+    activation::ActivationConfig,
+    build::BuildConfig,
+    check::CheckConfig,
+    deployment::DeploymentConfig,
+    project::{contract::Contract, workspace::Workspace},
+    reflection::ReflectionConfig,
+};
 
 use crate::{
     constants::DEFAULT_ENDPOINT,
@@ -28,7 +36,7 @@ pub struct ActivationArgs {
 }
 
 impl ActivationArgs {
-    pub fn into_config(self) -> ActivationConfig {
+    pub fn config(&self) -> ActivationConfig {
         ActivationConfig {
             data_fee_bump_percent: self.data_fee_bump_percent,
         }
@@ -110,10 +118,55 @@ pub struct BuildArgs {
 }
 
 impl BuildArgs {
-    pub fn into_config(self) -> BuildConfig {
+    pub fn config(&self) -> BuildConfig {
         BuildConfig {
-            features: self.features,
+            features: self.features.clone(),
             ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct CheckArgs {}
+
+impl CheckArgs {
+    pub fn config(&self, activation: &ActivationArgs) -> CheckConfig {
+        CheckConfig {
+            activation: activation.config(),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct DeployArgs {}
+
+impl DeployArgs {
+    pub fn config(&self, activate: &ActivationArgs, check: &CheckArgs) -> DeploymentConfig {
+        DeploymentConfig {
+            check: check.config(activate),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct ProjectArgs {
+    #[arg(long)]
+    contract: Vec<PackageName>,
+}
+
+impl ProjectArgs {
+    pub fn contracts(&self) -> eyre::Result<Vec<Contract>> {
+        let workspace = Workspace::current()?;
+        if self.contract.is_empty() {
+            Ok(workspace
+                .default_contracts()
+                .collect::<Result<Vec<_>, _>>()?)
+        } else {
+            workspace
+                .filter_contracts(self.contract.clone().into_iter())
+                .map_err(Into::into)
         }
     }
 }
@@ -143,6 +196,29 @@ impl ProviderArgs {
             .connect(&self.endpoint)
             .await?;
         Ok(provider)
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct ReflectionArgs {
+    /// The output file (defaults to stdout).
+    #[arg(long)]
+    output: Option<PathBuf>,
+    /// Write a JSON ABI instead using solc. Requires solc.
+    #[arg(long)]
+    json: bool,
+    /// Rust crate's features list. Required to include feature specific abi.
+    #[arg(long)]
+    rust_features: Option<Vec<String>>,
+}
+
+impl ReflectionArgs {
+    pub fn config(&self) -> ReflectionConfig {
+        ReflectionConfig {
+            file: self.output.clone(),
+            json: self.json,
+            rust_features: self.rust_features.clone(),
+        }
     }
 }
 

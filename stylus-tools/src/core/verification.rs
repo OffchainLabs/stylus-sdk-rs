@@ -8,10 +8,7 @@ use alloy::{
 };
 
 use crate::{
-    core::{
-        check::check_contract, contract::Contract, deployment::prelude::DeploymentCalldata,
-        reflection,
-    },
+    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
     utils::cargo,
 };
 
@@ -25,7 +22,7 @@ pub async fn verify(
         .await?
         .ok_or(VerificationError::NoCodeAtAddress)?;
     cargo::clean()?;
-    let status = check_contract(contract, &Default::default(), provider).await?;
+    let status = contract.check(None, &Default::default(), provider).await?;
     let deployment_data = DeploymentCalldata::new(status.code());
     let calldata = DeploymentCalldata(tx.input().to_vec());
     if let Some(deployer_address) = tx.to() {
