@@ -47,9 +47,7 @@ impl Decoder {
         // Check the result
         match TxIdHashType::abi_decode_params(&tx_hash_data_encode) {
             Ok(res) => Ok(res == tx_hash_data),
-            Err(_) => {
-                return Err(DecoderError::DecodedFailed(DecodedFailed {}));
-            }
+            Err(_) => Err(DecoderError::DecodedFailed(DecodedFailed {})),
         }
     }
 }

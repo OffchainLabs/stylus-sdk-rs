@@ -55,7 +55,7 @@ impl Hasher {
         // encode the tuple
         let tx_hash_data_encode = TxIdHashType::abi_encode_sequence(&tx_hash_data);
         // hash the encoded data
-        keccak(tx_hash_data_encode).into()
+        keccak(tx_hash_data_encode)
     }
 
     // This should always return true
@@ -70,9 +70,7 @@ impl Hasher {
         // Check the result
         match TxIdHashType::abi_decode_sequence(&tx_hash_data_encode) {
             Ok(res) => Ok(res == tx_hash_data),
-            Err(_) => {
-                return Err(HasherError::DecodedFailed(DecodedFailed {}));
-            }
+            Err(_) => Err(HasherError::DecodedFailed(DecodedFailed {})),
         }
     }
 
@@ -92,7 +90,7 @@ impl Hasher {
         // encode the tuple
         let tx_hash_data_encode_packed = TxIdHashType::abi_encode_packed(&tx_hash_data);
         // hash the encoded data
-        keccak(tx_hash_data_encode_packed).into()
+        keccak(tx_hash_data_encode_packed)
     }
 
     // Packed encode the data and hash it, the same result with the above one
@@ -105,16 +103,15 @@ impl Hasher {
         timestamp: U256,
     ) -> FixedBytes<32> {
         // set the data to arrary and concat it directly
-        let tx_hash_data_encode_packed = [
-            &target.to_vec(),
+        let tx_hash_data_encode_packed: &[&[u8]] = &[
+            target.as_ref(),
             &value.to_be_bytes_vec(),
             func.as_bytes(),
-            &data.to_vec(),
+            data.as_ref(),
             &timestamp.to_be_bytes_vec(),
-        ]
-        .concat();
+        ];
         // hash the encoded data
-        keccak(tx_hash_data_encode_packed).into()
+        keccak(tx_hash_data_encode_packed.concat())
     }
 
     // The func example: "transfer(address,uint256)"
@@ -123,10 +120,9 @@ impl Hasher {
         let tx_data = (address, amount);
         let data = TransferType::abi_encode_sequence(&tx_data);
         // Get function selector
-        let hashed_function_selector: FixedBytes<32> = keccak(func.as_bytes().to_vec()).into();
+        let hashed_function_selector: FixedBytes<32> = keccak(func.as_bytes());
         // Combine function selector and input data (use abi_packed way)
-        let calldata = [&hashed_function_selector[..4], &data].concat();
-        calldata
+        [&hashed_function_selector[..4], &data].concat()
     }
 
     // The func example: "transfer(address,uint256)"
@@ -140,9 +136,9 @@ impl Hasher {
         let tx_data = (address, amount);
         let data = TransferType::abi_encode_sequence(&tx_data);
         // Get function selector
-        let hashed_function_selector: FixedBytes<32> = keccak(func.as_bytes().to_vec()).into();
+        let hashed_function_selector: FixedBytes<32> = keccak(func.as_bytes());
         // Combine function selector and input data (use abi_packed way)
         let calldata = [&hashed_function_selector[..4], &data].concat();
-        keccak(calldata).into()
+        keccak(calldata)
     }
 }

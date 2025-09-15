@@ -45,7 +45,7 @@ pub enum VerifySignatureError {
 }
 
 const ECRECOVER: Address = address!("0000000000000000000000000000000000000001");
-const SIGNED_MESSAGE_HEAD: &'static str = "\x19Ethereum Signed Message:\n32";
+const SIGNED_MESSAGE_HEAD: &str = "\x19Ethereum Signed Message:\n32";
 
 /// Declare that `VerifySignature` is a contract with the following external methods.
 #[public]
@@ -71,14 +71,13 @@ impl VerifySignature {
         message: String,
         nonce: U256,
     ) -> FixedBytes<32> {
-        let message_data = [
-            &to.to_vec(),
+        let message_data: &[&[u8]] = &[
+            to.as_ref(),
             &amount.to_be_bytes_vec(),
             message.as_bytes(),
             &nonce.to_be_bytes_vec(),
-        ]
-        .concat();
-        keccak(message_data).into()
+        ];
+        keccak(message_data.concat())
     }
 
     /* 3. Sign message hash
@@ -94,8 +93,8 @@ impl VerifySignature {
     */
     pub fn get_eth_signed_message_hash(&self, message_hash: FixedBytes<32>) -> FixedBytes<32> {
         let message_to_be_decoded =
-            [SIGNED_MESSAGE_HEAD.as_bytes(), &message_hash.to_vec()].concat();
-        keccak(message_to_be_decoded).into()
+            [SIGNED_MESSAGE_HEAD.as_bytes(), message_hash.as_ref()].concat();
+        keccak(message_to_be_decoded)
     }
 
     /* 4. Verify signature
