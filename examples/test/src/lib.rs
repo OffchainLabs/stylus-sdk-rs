@@ -165,7 +165,7 @@ impl Counter {
         }
         let context = Call::new_mutating(self);
         let return_data = call(self.vm(), context, target, &data)
-            .map_err(|err| format!("{:?}", err).as_bytes().to_vec())?;
+            .map_err(|err| format!("{err:?}").as_bytes().to_vec())?;
         Ok(return_data)
     }
     /// Transfers ownership of the contract to a new address.
@@ -307,7 +307,7 @@ mod test {
         let err = contract
             .call_external_contract(target, call_data.clone())
             .unwrap_err();
-        let expected = format!("Revert({:?})", error_ret).as_bytes().to_vec();
+        let expected = format!("Revert({error_ret:?})").as_bytes().to_vec();
         assert_eq!(err, expected);
     }
 
