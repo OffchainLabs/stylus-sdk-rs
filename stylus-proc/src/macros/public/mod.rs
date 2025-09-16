@@ -54,7 +54,11 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
             public_impl.to_tokens(&mut output);
         }
         syn::Item::Trait(mut item_trait) => {
-            let public_trait = PublicTrait::from(&mut item_trait);
+            let _public_trait = PublicTrait::from(&mut item_trait);
+            output.extend(quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
+            });
+            output.extend(item_trait.into_token_stream());
         }
         _ => {
             emit_error!(item.span(), "expected impl or trait");

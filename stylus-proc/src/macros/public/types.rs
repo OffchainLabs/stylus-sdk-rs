@@ -59,10 +59,14 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub extension: E,
 }
 
-pub struct PublicTrait {
+pub struct PublicTrait<E: InterfaceExtension = Extension> {
+    #[allow(dead_code)]
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
+    #[allow(dead_code)]
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
+    #[allow(dead_code)]
     pub funcs: Vec<PublicFn<E::FnExt>>,
+    #[allow(dead_code)]
     pub associated_types: Vec<syn::Ident>,
 }
 
