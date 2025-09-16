@@ -167,6 +167,11 @@ pub trait AbiType {
 
     /// Whether the type is allowed in calldata
     const CAN_BE_CALLDATA: bool = true;
+
+    /// Encode the rust value as the return of a Stylus function.
+    fn abi_encode_return<RustTy: ?Sized + SolTypeValue<Self::SolType>>(rust: &RustTy) -> Vec<u8> {
+        Self::SolType::abi_encode(rust)
+    }
 }
 
 /// Generates a function selector for the given method and its args.

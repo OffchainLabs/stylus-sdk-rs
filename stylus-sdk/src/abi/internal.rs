@@ -7,7 +7,6 @@
 use crate::{abi::AbiType, console, ArbResult};
 use alloc::vec::Vec;
 use alloy_primitives::U256;
-use alloy_sol_types::SolType;
 use core::fmt;
 
 /// Name used in the constructor storage slot and function selector.
@@ -30,8 +29,7 @@ where
 {
     #[inline(always)]
     fn encode(self) -> ArbResult {
-        // coerce types into a tuple of at least 1 element
-        Ok(<<T as AbiType>::SolType>::abi_encode(&self))
+        Ok(<T as AbiType>::abi_encode_return(&self))
     }
 }
 
