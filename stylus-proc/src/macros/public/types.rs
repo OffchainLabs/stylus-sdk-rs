@@ -78,6 +78,67 @@ fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
     )
 }
 
+fn get_client_funcs<E: InterfaceExtension>(
+    funcs: &Vec<PublicFn<E::FnExt>>,
+    public: bool,
+) -> (Vec<proc_macro2::TokenStream>, Vec<proc_macro2::TokenStream>) {
+    let (client_funcs_definitions, client_funcs_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = funcs
+        .iter()
+        .map(|func| {
+            let func_name = func.name.clone();
+
+            let (context, call) = func.purity.get_context_and_call();
+
+            let inputs = func.inputs.iter().map(|input| {
+                let name = input.name.clone();
+                let ty = input.ty.clone();
+                quote! { #name: #ty }
+            });
+            let inputs_names = func.inputs.iter().map(|input| {
+                input.name.clone()
+            });
+            let inputs_types = func.inputs.iter().map(|input| {
+                let ty = input.ty.clone();
+                quote! { #ty }
+            });
+
+            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
+
+            let function_selector = func.function_selector();
+
+            let funcs_visibility = if public { quote! { pub } } else { quote! {} };
+
+            let signature = quote! {
+                #funcs_visibility fn #func_name(
+                    &self,
+                    host: &dyn stylus_sdk::stylus_core::host::Host,
+                    context: impl #context,
+                    #(#inputs,)*
+                ) -> #output_type
+            };
+
+            let definition = quote! {
+                #signature {
+                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
+                    use stylus_sdk::function_selector;
+                    let mut calldata = Vec::from(#function_selector);
+                    calldata.extend(inputs);
+                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
+                    #output_decoding
+                }
+            };
+            let declaration = quote! {
+                #signature;
+            };
+            (definition, declaration)
+        })
+        .unzip();
+    (client_funcs_definitions, client_funcs_declarations)
+}
+
 fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, TokenStream) {
     match output {
         syn::ReturnType::Default => (
@@ -151,33 +212,7 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
 
 impl PublicTrait {
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let client_funcs_declarations: Vec<proc_macro2::TokenStream> = self
-            .funcs
-            .iter()
-            .map(|func| {
-                let func_name = func.name.clone();
-
-                let (context, _) = func.purity.get_context_and_call();
-
-                let inputs = func.inputs.iter().map(|input| {
-                    let name = input.name.clone();
-                    let ty = input.ty.clone();
-                    quote! { #name: #ty }
-                });
-
-                let (output_type, _) = get_output_type_and_decoding(&func.output);
-
-                let signature = quote! {
-                    fn #func_name(
-                        &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
-                        context: impl #context,
-                        #(#inputs,)*
-                    ) -> #output_type;
-                };
-                signature
-            })
-            .collect();
+        let (_, client_funcs_declarations) = get_client_funcs::<Extension>(&self.funcs, false);
 
         let associated_types_declarations: Vec<proc_macro2::TokenStream> = self
             .associated_types
@@ -355,59 +390,7 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let client_funcs_definitions: Vec<proc_macro2::TokenStream> = self
-        .funcs
-        .iter()
-        .map(|func| {
-            let func_name = func.name.clone();
-
-            let (context, call) = func.purity.get_context_and_call();
-
-            let inputs = func.inputs.iter().map(|input| {
-                let name = input.name.clone();
-                let ty = input.ty.clone();
-                quote! { #name: #ty }
-            });
-            let inputs_names = func.inputs.iter().map(|input| {
-                input.name.clone()
-            });
-            let inputs_types = func.inputs.iter().map(|input| {
-                let ty = input.ty.clone();
-                quote! { #ty }
-            });
-
-            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
-
-            let function_selector = func.function_selector();
-
-            let func_visibility = if self.trait_.is_some() {
-                quote! {}
-            } else {
-                quote! { pub }
-            };
-
-            let signature = quote! {
-                #func_visibility fn #func_name(
-                    &self,
-                    host: &dyn stylus_sdk::stylus_core::host::Host,
-                    context: impl #context,
-                    #(#inputs,)*
-                ) -> #output_type
-            };
-
-            let definition = quote! {
-                #signature {
-                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
-                    use stylus_sdk::function_selector;
-                    let mut calldata = Vec::from(#function_selector);
-                    calldata.extend(inputs);
-                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
-                    #output_decoding
-                }
-            };
-            definition
-        })
-        .collect();
+        let (client_funcs_definitions, _) = get_client_funcs::<Extension>(&self.funcs, !self.trait_.is_some());
 
         let associated_types_definitions: Vec<proc_macro2::TokenStream> = self
             .associated_types
