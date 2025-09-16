@@ -7,6 +7,7 @@
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 
@@ -21,6 +22,7 @@ pub struct Contract {}
 #[implements(MyTrait<u32, u32, Output = u32>)]
 impl Contract {}
 
+#[public]
 pub trait MyTrait<Input1, Input2> {
     type Output: AbiType;
     fn foo(&self, input1: Input1, input2: Input2) -> Self::Output;
