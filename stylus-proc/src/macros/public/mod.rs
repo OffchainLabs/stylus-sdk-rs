@@ -117,7 +117,7 @@ impl From<&mut syn::ItemTrait> for PublicTrait {
         let mut associated_types = Vec::new();
         for item in &node.items {
             if let syn::TraitItem::Type(type_item) = item {
-                associated_types.push(type_item.ident.clone());
+                associated_types.push((type_item.ident.clone(), type_item.bounds.clone()));
             }
         }
 

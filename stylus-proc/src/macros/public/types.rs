@@ -64,7 +64,7 @@ pub struct PublicTrait<E: InterfaceExtension = Extension> {
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
     pub funcs: Vec<PublicFn<E::FnExt>>,
-    pub associated_types: Vec<syn::Ident>,
+    pub associated_types: Vec<(syn::Ident, Punctuated<syn::TypeParamBound, Token![+]>)>,
 }
 
 fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
@@ -217,9 +217,12 @@ impl PublicTrait {
         let associated_types_declarations: Vec<proc_macro2::TokenStream> = self
             .associated_types
             .iter()
-            .map(|name| {
-                let declaration = quote! { type #name: #AbiType; };
-                declaration
+            .map(|(name, original_bounds)| {
+                if original_bounds.is_empty() {
+                    quote! { type #name: #AbiType; }
+                } else {
+                    quote! { type #name: #original_bounds + #AbiType; }
+                }
             })
             .collect();
 
