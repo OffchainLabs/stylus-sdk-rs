@@ -79,7 +79,7 @@ fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
 }
 
 fn get_client_funcs<E: InterfaceExtension>(
-    funcs: &Vec<PublicFn<E::FnExt>>,
+    funcs: &[PublicFn<E::FnExt>],
     public: bool,
 ) -> (Vec<proc_macro2::TokenStream>, Vec<proc_macro2::TokenStream>) {
     let (client_funcs_definitions, client_funcs_declarations): (
@@ -390,7 +390,8 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let (client_funcs_definitions, _) = get_client_funcs::<Extension>(&self.funcs, !self.trait_.is_some());
+        let (client_funcs_definitions, _) =
+            get_client_funcs::<Extension>(&self.funcs, self.trait_.is_none());
 
         let associated_types_definitions: Vec<proc_macro2::TokenStream> = self
             .associated_types
