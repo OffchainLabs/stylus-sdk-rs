@@ -22,6 +22,7 @@ impl Callee {
     fn no_input_no_output(&self) {}
 }
 
+#[public]
 pub trait Trait1<Input1, Input2> {
     type Output: AbiType;
     fn one_input_one_output(&self, input: U256) -> Self::Output;
@@ -63,6 +64,7 @@ impl Trait1<U256, Address> for Callee {
     }
 }
 
+#[public]
 pub trait Trait2 {
     fn outputs_result_ok(&self) -> Result<(U256, U256), Vec<u8>>;
     fn outputs_result_err(&self) -> Result<U256, Vec<u8>>;
