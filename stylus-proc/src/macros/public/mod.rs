@@ -6,7 +6,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned};
+use syn::{parse_macro_input, parse_quote, spanned::Spanned};
 
 use crate::{
     types::Purity,
@@ -32,6 +32,9 @@ cfg_if! {
     }
 }
 
+const STYLUS_PUBLIC_TAG_CHECK_FN_NAME: &str =
+    "__stylus_trait_and_impl_must_be_tagged_with_public_macro";
+
 /// Implementation of the [`#[public]`][crate::public] macro.
 ///
 /// This implementation performs the following steps:
@@ -47,6 +50,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     match item {
         syn::Item::Impl(mut item_impl) => {
             let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
+            add_stylus_public_tag_check_fn_definition(&mut item_impl);
             output.extend(quote! {
                 #[cfg(not(feature = "contract-client-gen"))]
             });
@@ -55,6 +59,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
         }
         syn::Item::Trait(mut item_trait) => {
             let public_trait = PublicTrait::from(&mut item_trait);
+            add_stylus_public_tag_check_fn_declaration(&mut item_trait);
             output.extend(quote! {
                 #[cfg(not(feature = "contract-client-gen"))]
             });
@@ -66,6 +71,23 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
     output.into()
+}
+
+fn add_stylus_public_tag_check_fn_declaration(item_trait: &mut syn::ItemTrait) {
+    let fn_name = syn::Ident::new(STYLUS_PUBLIC_TAG_CHECK_FN_NAME, item_trait.span());
+    let item: syn::TraitItem = parse_quote! {
+        fn #fn_name(&self);
+    };
+    item_trait.items.push(item);
+}
+
+fn add_stylus_public_tag_check_fn_definition(item_impl: &mut syn::ItemImpl) {
+    let fn_name = syn::Ident::new(STYLUS_PUBLIC_TAG_CHECK_FN_NAME, item_impl.span());
+    let item: syn::ImplItem = parse_quote! {
+        fn #fn_name(&self) {
+        }
+    };
+    item_impl.items.push(item);
 }
 
 impl From<&mut syn::ItemTrait> for PublicTrait {

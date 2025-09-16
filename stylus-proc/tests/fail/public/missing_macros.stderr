@@ -1,0 +1,16 @@
+error[E0407]: method `__stylus_trait_and_impl_must_be_tagged_with_public_macro` is not a member of trait `Trait1`
+  --> tests/fail/public/missing_macros.rs:24:1
+   |
+24 | #[public]
+   | ^^^^^^^^^ not a member of trait `Trait1`
+   |
+   = note: this error originates in the attribute macro `public` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0046]: not all trait items implemented, missing: `__stylus_trait_and_impl_must_be_tagged_with_public_macro`
+  --> tests/fail/public/missing_macros.rs:54:1
+   |
+48 | #[public]
+   | --------- `__stylus_trait_and_impl_must_be_tagged_with_public_macro` from trait
+...
+54 | impl Trait3 for Contract {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^ missing `__stylus_trait_and_impl_must_be_tagged_with_public_macro` in implementation
