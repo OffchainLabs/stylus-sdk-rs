@@ -12,11 +12,12 @@ use crate::{
     types::Purity,
     utils::{
         attrs::{check_attr_is_empty, consume_attr, consume_flag},
-        split_item_impl_for_impl,
+        get_generics,
     },
 };
 use types::{
     FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicFn, PublicFnArg, PublicImpl,
+    PublicTrait,
 };
 
 mod attrs;
@@ -39,17 +40,65 @@ cfg_if! {
 /// - Expand those AST items into tokens for output
 pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
     check_attr_is_empty(attr);
-    let mut item_impl = parse_macro_input!(input as syn::ItemImpl);
-    let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
 
-    let mut output = quote! {
-        #[cfg(not(feature = "contract-client-gen"))]
-    };
-    output.extend(item_impl.into_token_stream());
+    let mut output = proc_macro2::TokenStream::new();
 
-    public_impl.to_tokens(&mut output);
-
+    let item = parse_macro_input!(input as syn::Item);
+    match item {
+        syn::Item::Impl(mut item_impl) => {
+            let public_impl = PublicImpl::<Extension>::from(&mut item_impl);
+            output.extend(quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
+            });
+            output.extend(item_impl.into_token_stream());
+            public_impl.to_tokens(&mut output);
+        }
+        syn::Item::Trait(mut item_trait) => {
+            let public_trait = PublicTrait::from(&mut item_trait);
+        }
+        _ => {
+            emit_error!(item.span(), "expected impl or trait");
+        }
+    }
     output.into()
+}
+
+impl From<&mut syn::ItemTrait> for PublicTrait {
+    fn from(node: &mut syn::ItemTrait) -> Self {
+        // collect public functions
+        let funcs = node
+            .items
+            .iter_mut()
+            .filter_map(|item| match item {
+                syn::TraitItem::Fn(func) => Some(PublicFn::from(func)),
+                syn::TraitItem::Const(_) => {
+                    emit_error!(item, "unsupported trait item");
+                    None
+                }
+                _ => {
+                    // allow other item types
+                    None
+                }
+            })
+            .collect();
+
+        let (generic_params, where_clause) = get_generics(&node.generics);
+
+        // Extract associated types
+        let mut associated_types = Vec::new();
+        for item in &node.items {
+            if let syn::TraitItem::Type(type_item) = item {
+                associated_types.push(type_item.ident.clone());
+            }
+        }
+
+        Self {
+            generic_params,
+            where_clause,
+            funcs,
+            associated_types,
+        }
+    }
 }
 
 impl ToTokens for PublicImpl {
@@ -87,7 +136,8 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             })
             .collect();
 
-        let (generic_params, self_ty, where_clause) = split_item_impl_for_impl(node);
+        let self_ty = (*node.self_ty).clone();
+        let (generic_params, where_clause) = get_generics(&node.generics);
         let trait_ = match &node.trait_ {
             Some((_, trait_, _)) => Some(trait_.clone()),
             _ => None,
@@ -111,6 +161,99 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
             implements,
             funcs,
             associated_types,
+            extension,
+        }
+    }
+}
+
+impl<E: FnExtension + Default> From<&mut syn::TraitItemFn> for PublicFn<E> {
+    fn from(node: &mut syn::TraitItemFn) -> Self {
+        // parse attributes
+        let payable = consume_flag(&mut node.attrs, "payable");
+        let selector_override =
+            consume_attr::<attrs::Selector>(&mut node.attrs, "selector").map(|s| s.value.value());
+        let fallback = consume_flag(&mut node.attrs, "fallback");
+        let receive = consume_flag(&mut node.attrs, "receive");
+        let constructor = consume_flag(&mut node.attrs, "constructor");
+
+        let kind = if fallback {
+            // Fallback functions may have two signatures, either
+            // with input calldata and output bytes, or no input and output.
+            FnKind::Fallback {
+                with_args: node.sig.inputs.len() > 1,
+            }
+        } else if receive {
+            FnKind::Receive
+        } else if constructor {
+            FnKind::Constructor
+        } else {
+            FnKind::Function
+        };
+
+        let num_specials = (fallback as i8) + (constructor as i8) + (receive as i8);
+        if num_specials > 1 {
+            emit_error!(
+                node.span(),
+                "function can be only one of fallback, receive or constructor"
+            );
+        }
+        if num_specials > 0 && selector_override.is_some() {
+            emit_error!(
+                node.span(),
+                "fallback, receive, and constructor can't have custom selector"
+            );
+        }
+
+        // name for generated rust, and solidity abi
+        let name = node.sig.ident.clone();
+        let (sol_name, name_err) = verify_sol_name(&kind, name.to_string(), selector_override);
+        if let Some(err) = name_err {
+            emit_error!(node.span(), err);
+        }
+        let sol_name = syn_solidity::SolIdent::new(&sol_name);
+
+        // determine state mutability
+        let (inferred_purity, has_self) = Purity::infer(&node.sig);
+        let purity = if payable || matches!(kind, FnKind::Receive) {
+            Purity::Payable
+        } else {
+            inferred_purity
+        };
+
+        let mut args = node.sig.inputs.iter();
+        if inferred_purity > Purity::Pure {
+            // skip self or storage argument
+            args.next();
+        }
+        let inputs = match kind {
+            FnKind::Function | FnKind::Constructor => args.map(PublicFnArg::from).collect(),
+            _ => Vec::new(),
+        };
+        let input_span = node.sig.inputs.span();
+
+        let output = match &node.sig.output {
+            syn::ReturnType::Default => None,
+            syn::ReturnType::Type(_, ty) => Some(*ty.clone()),
+        };
+        let output_span = output
+            .as_ref()
+            .map(Spanned::span)
+            .unwrap_or(node.sig.output.span());
+
+        let extension: E = E::default();
+        Self {
+            name,
+            sol_name,
+            purity,
+            inferred_purity,
+            kind,
+
+            has_self,
+            inputs,
+            input_span,
+            output: node.sig.output.clone(),
+            output_span,
+
             extension,
         }
     }
@@ -163,7 +306,7 @@ impl<E: FnExtension> From<&mut syn::ImplItemFn> for PublicFn<E> {
         let sol_name = syn_solidity::SolIdent::new(&sol_name);
 
         // determine state mutability
-        let (inferred_purity, has_self) = Purity::infer(node);
+        let (inferred_purity, has_self) = Purity::infer(&node.sig);
         let purity = if payable || matches!(kind, FnKind::Receive) {
             Purity::Payable
         } else {

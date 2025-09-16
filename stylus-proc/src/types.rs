@@ -19,8 +19,8 @@ pub enum Purity {
 impl Purity {
     /// Infer the purity of the function by inspecting the first argument. Also returns whether the
     /// function has a self parameter.
-    pub fn infer(func: &syn::ImplItemFn) -> (Self, bool) {
-        match func.sig.inputs.first() {
+    pub fn infer(sig: &syn::Signature) -> (Self, bool) {
+        match sig.inputs.first() {
             Some(syn::FnArg::Receiver(recv)) => (recv.mutability.into(), true),
             Some(syn::FnArg::Typed(syn::PatType { ty, .. })) => match &**ty {
                 syn::Type::Reference(ty) => (ty.mutability.into(), false),

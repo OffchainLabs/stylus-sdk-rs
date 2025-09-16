@@ -59,6 +59,13 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub extension: E,
 }
 
+pub struct PublicTrait {
+    pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
+    pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
+    pub funcs: Vec<PublicFn<E::FnExt>>,
+    pub associated_types: Vec<syn::Ident>,
+}
+
 fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
     (
         quote! {
