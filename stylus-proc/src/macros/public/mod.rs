@@ -54,11 +54,12 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
             public_impl.to_tokens(&mut output);
         }
         syn::Item::Trait(mut item_trait) => {
-            let _public_trait = PublicTrait::from(&mut item_trait);
+            let public_trait = PublicTrait::from(&mut item_trait);
             output.extend(quote! {
                 #[cfg(not(feature = "contract-client-gen"))]
             });
             output.extend(item_trait.into_token_stream());
+            public_trait.to_tokens(&mut output);
         }
         _ => {
             emit_error!(item.span(), "expected impl or trait");
@@ -69,6 +70,8 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
 
 impl From<&mut syn::ItemTrait> for PublicTrait {
     fn from(node: &mut syn::ItemTrait) -> Self {
+        let ident = node.ident.clone();
+
         // collect public functions
         let funcs = node
             .items
@@ -97,11 +100,18 @@ impl From<&mut syn::ItemTrait> for PublicTrait {
         }
 
         Self {
+            ident,
             generic_params,
             where_clause,
             funcs,
             associated_types,
         }
+    }
+}
+
+impl ToTokens for PublicTrait {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(self.contract_client_gen());
     }
 }
 

@@ -60,13 +60,10 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
 }
 
 pub struct PublicTrait<E: InterfaceExtension = Extension> {
-    #[allow(dead_code)]
+    pub ident: syn::Ident,
     pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
-    #[allow(dead_code)]
     pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
-    #[allow(dead_code)]
     pub funcs: Vec<PublicFn<E::FnExt>>,
-    #[allow(dead_code)]
     pub associated_types: Vec<syn::Ident>,
 }
 
@@ -149,6 +146,72 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
                 _ => get_default_output(ty),
             }
         }
+    }
+}
+
+impl PublicTrait {
+    pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
+        let client_funcs_declarations: Vec<proc_macro2::TokenStream> = self
+            .funcs
+            .iter()
+            .map(|func| {
+                let func_name = func.name.clone();
+
+                let (context, _) = func.purity.get_context_and_call();
+
+                let inputs = func.inputs.iter().map(|input| {
+                    let name = input.name.clone();
+                    let ty = input.ty.clone();
+                    quote! { #name: #ty }
+                });
+
+                let (output_type, _) = get_output_type_and_decoding(&func.output);
+
+                let signature = quote! {
+                    fn #func_name(
+                        &self,
+                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        context: impl #context,
+                        #(#inputs,)*
+                    ) -> #output_type;
+                };
+                signature
+            })
+            .collect();
+
+        let associated_types_declarations: Vec<proc_macro2::TokenStream> = self
+            .associated_types
+            .iter()
+            .map(|name| {
+                let declaration = quote! { type #name: #AbiType; };
+                declaration
+            })
+            .collect();
+
+        let ident = &self.ident;
+
+        let generic_params = if self.generic_params.is_empty() {
+            quote! {}
+        } else {
+            let generic_params = &self.generic_params;
+            quote! { <#generic_params> }
+        };
+
+        let where_clause = if self.where_clause.is_empty() {
+            quote! {}
+        } else {
+            let where_clause = &self.where_clause;
+            quote! { where #where_clause }
+        };
+
+        let output = quote! {
+            #[cfg(feature = "contract-client-gen")]
+            pub trait #ident #generic_params #where_clause {
+                #(#associated_types_declarations)*
+                #(#client_funcs_declarations)*
+            }
+        };
+        output
     }
 }
 
@@ -292,10 +355,7 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let (client_funcs_definitions, client_funcs_declarations): (
-            Vec<proc_macro2::TokenStream>,
-            Vec<proc_macro2::TokenStream>,
-        ) = self
+        let client_funcs_definitions: Vec<proc_macro2::TokenStream> = self
         .funcs
         .iter()
         .map(|func| {
@@ -345,46 +405,25 @@ impl PublicImpl {
                     #output_decoding
                 }
             };
-            let declaration = quote! {
-                #signature;
-            };
-            (definition, declaration)
+            definition
         })
-        .unzip();
+        .collect();
 
-        let (associated_types_definitions, associated_types_declarations): (
-            Vec<proc_macro2::TokenStream>,
-            Vec<proc_macro2::TokenStream>,
-        ) = self
+        let associated_types_definitions: Vec<proc_macro2::TokenStream> = self
             .associated_types
             .iter()
             .map(|(name, value)| {
-                let defintion = quote::quote! { type #name = #value; };
-                let declaration = quote::quote! { type #name: #AbiType; };
-                (defintion, declaration)
+                let definition = quote::quote! { type #name = #value; };
+                definition
             })
-            .unzip();
+            .collect();
 
         let struct_path = self.self_ty.clone();
 
         let output = if let Some(trait_path) = &self.trait_ {
-            // If it implements a trait then we define a new trait with associated types.
-            // In that way client_funcs can use the associated types, e.g., Self::AssociatedType.
-
-            let in_trait_name = trait_path.segments.last().unwrap().ident.to_string();
-            let out_trait = syn::Ident::new(
-                &format!("{in_trait_name}ContractClientGen"),
-                Span::call_site(),
-            );
             quote! {
                 #[cfg(feature = "contract-client-gen")]
-                pub trait #out_trait {
-                    #(#associated_types_declarations)*
-                    #(#client_funcs_declarations)*
-                }
-
-                #[cfg(feature = "contract-client-gen")]
-                impl #out_trait for #struct_path {
+                impl #trait_path for #struct_path {
                     #(#associated_types_definitions)*
                     #(#client_funcs_definitions)*
                 }
