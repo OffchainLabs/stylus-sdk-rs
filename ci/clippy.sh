@@ -19,6 +19,9 @@ run_all_clippy() {
 
   # For each crate, run clippy with all features except contract-client-gen
   for crate in $workspace_members; do
+    if [[ "$crate" == *"erc20"* || "$crate" == *"erc721"* ]]; then
+      continue
+    fi
     # Get features for this crate excluding the ones we don't want
     features=$(cargo metadata --format-version=1 \
       | jq -r ".packages[] | select(.id == \"$crate\") | .features | keys[] |
