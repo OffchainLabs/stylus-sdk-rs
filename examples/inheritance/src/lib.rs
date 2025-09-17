@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -15,6 +16,7 @@ use stylus_sdk::{
 // Traits (interfaces)
 // ──────────────────────────────────────────────────────────────────────────────
 
+#[cfg(not(feature = "contract-client-gen"))]
 trait IErc20 {
     fn name(&self) -> String;
     fn symbol(&self) -> String;
@@ -24,6 +26,7 @@ trait IErc20 {
     fn transfer(&mut self, to: Address, value: U256) -> bool;
 }
 
+#[cfg(not(feature = "contract-client-gen"))]
 trait IOwnable {
     fn owner(&self) -> Address;
     fn transfer_ownership(&mut self, new_owner: Address) -> bool;
@@ -32,6 +35,7 @@ trait IOwnable {
 
 // Extra trait with a “name-like” concept we also want to export.
 // We'll give it a distinct Solidity-visible selector to avoid clobbering ERC-20's `name()`.
+#[cfg(not(feature = "contract-client-gen"))]
 trait IBranding {
     fn brand_name(&self) -> String;
 }

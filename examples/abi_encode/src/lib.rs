@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -25,6 +26,7 @@ use sha3::{Digest, Keccak256};
 #[entrypoint]
 pub struct Encoder;
 
+#[cfg(not(feature = "contract-client-gen"))]
 impl Encoder {
     fn keccak256(&self, data: Bytes) -> FixedBytes<32> {
         // prepare hasher

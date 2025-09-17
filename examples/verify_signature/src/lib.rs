@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -20,6 +21,7 @@ use stylus_sdk::{
     prelude::*,
 };
 
+#[cfg(not(feature = "contract-client-gen"))]
 type ECRECOVERType = (
     SolFixedBytes<32>,
     Uint<8>,
@@ -44,7 +46,9 @@ pub enum VerifySignatureError {
     InvalidSignatureLength(InvalidSignatureLength),
 }
 
+#[cfg(not(feature = "contract-client-gen"))]
 const ECRECOVER: Address = address!("0000000000000000000000000000000000000001");
+#[cfg(not(feature = "contract-client-gen"))]
 const SIGNED_MESSAGE_HEAD: &str = "\x19Ethereum Signed Message:\n32";
 
 /// Declare that `VerifySignature` is a contract with the following external methods.
