@@ -148,7 +148,9 @@ impl Storage {
                 parse_quote! {
                     #[cfg(not(feature = "contract-client-gen"))]
                     impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-                        fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
+                        type Host = dyn stylus_sdk::stylus_core::Host;
+
+                        fn vm(&self) -> &Self::Host {
                             self.__stylus_host.host.as_ref()
                         }
                     }
@@ -156,8 +158,10 @@ impl Storage {
             } else {
                 parse_quote! {
                     #[cfg(not(feature = "contract-client-gen"))]
-                    impl #impl_generics #name #ty_generics #where_clause {
-                        fn vm(&self) -> &stylus_sdk::host::VM {
+                    impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
+                        type Host = stylus_sdk::host::VM;
+
+                        fn vm(&self) -> &Self::Host {
                             &self.__stylus_host
                         }
                     }
