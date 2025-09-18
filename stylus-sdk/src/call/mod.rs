@@ -28,7 +28,7 @@ pub mod transfer;
 
 /// Static calls the contract at the given address.
 pub fn static_call(
-    host: &dyn Host,
+    host: &impl Host,
     context: impl StaticCallContext,
     to: Address,
     data: &[u8],
@@ -50,7 +50,7 @@ pub fn static_call(
 /// Though this function clears any cached values, the other contract may arbitrarily change storage,
 /// spend ether, and do other things one should never blindly allow other contracts to do.
 pub unsafe fn delegate_call(
-    host: &dyn Host,
+    host: &impl Host,
     context: impl MutatingCallContext,
     to: Address,
     data: &[u8],
@@ -65,7 +65,7 @@ pub unsafe fn delegate_call(
 
 /// Calls the contract at the given address.
 pub fn call(
-    host: &dyn Host,
+    host: &impl Host,
     context: impl MutatingCallContext,
     to: Address,
     data: &[u8],

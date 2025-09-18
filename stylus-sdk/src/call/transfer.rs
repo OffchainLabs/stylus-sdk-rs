@@ -25,7 +25,7 @@ use super::RawCall;
 /// #     Ok(())
 /// # }
 /// ```
-pub fn transfer_eth(host: &dyn Host, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+pub fn transfer_eth<H: Host>(host: &H, to: Address, amount: U256) -> Result<(), Vec<u8>> {
     host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
     unsafe {
         RawCall::new_with_value(host, amount)

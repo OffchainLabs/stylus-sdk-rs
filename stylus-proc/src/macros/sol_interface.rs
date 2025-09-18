@@ -125,7 +125,7 @@ impl Interface {
 
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
-            pub fn #rust_name(&self, host: &dyn stylus_sdk::stylus_core::host::Host, context: impl #context #(, #rust_args)*) ->
+            pub fn #rust_name<H: stylus_sdk::stylus_core::host::Host>(&self, host: &H, context: impl #context #(, #rust_args)*) ->
                 Result<<#return_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
             {
                 let args = <(#(#sol_args,)*) as #SolType>::abi_encode_params(&(#(#rust_arg_names,)*));
