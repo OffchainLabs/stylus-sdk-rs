@@ -55,20 +55,14 @@ where
     K: StorageKey,
     V: StorageType,
 {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }

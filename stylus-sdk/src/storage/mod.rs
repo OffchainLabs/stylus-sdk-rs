@@ -141,20 +141,14 @@ impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -346,20 +340,14 @@ impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -468,20 +456,14 @@ pub struct StorageFixedBytes<const N: usize> {
 }
 
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -584,20 +566,14 @@ pub struct StorageBool {
 }
 
 impl HostAccess for StorageBool {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+   type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -692,20 +668,14 @@ pub struct StorageAddress {
 }
 
 impl HostAccess for StorageAddress {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -803,20 +773,14 @@ pub struct StorageBlockNumber {
 }
 
 impl HostAccess for StorageBlockNumber {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -914,20 +878,14 @@ pub struct StorageBlockHash {
 }
 
 impl HostAccess for StorageBlockHash {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = dyn stylus_core::Host;
-        }
-    }
+    type Host = VM;
 
-    fn vm(&self) -> &Self::Host{
+    fn vm(&self) -> &Self::Host {
         cfg_if! {
             if #[cfg(not(feature = "stylus-test"))] {
                 &self.__stylus_host
             } else {
-                self.__stylus_host.host.as_ref()
+                &self.__stylus_host
             }
         }
     }
@@ -1004,11 +962,11 @@ impl From<StorageBlockHash> for BlockHash {
 /// We implement `StorageType` for `PhantomData` so that storage types can be generic.
 impl<T> StorageType for PhantomData<T> {
     type Wraps<'a>
-    = Self
+        = Self
     where
         Self: 'a;
     type WrapsMut<'a>
-    = Self
+        = Self
     where
         Self: 'a;
 
