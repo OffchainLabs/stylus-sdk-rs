@@ -156,8 +156,8 @@ impl Storage {
             } else {
                 parse_quote! {
                     #[cfg(not(feature = "contract-client-gen"))]
-                    impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-                        fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
+                    impl #impl_generics #name #ty_generics #where_clause {
+                        fn vm(&self) -> &stylus_sdk::host::VM {
                             &self.__stylus_host
                         }
                     }
