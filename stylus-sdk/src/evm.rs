@@ -8,7 +8,7 @@ use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 use stylus_core::Host;
 
 /// Emits a typed alloy log.
-pub fn log<T: SolEvent>(host: &dyn Host, event: T) {
+pub fn log<T: SolEvent, H: Host>(host: &H, event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small
 
     let mut topics = [WordToken::default(); 4];
