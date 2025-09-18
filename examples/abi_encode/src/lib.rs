@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -25,6 +26,7 @@ use sha3::{Digest, Keccak256};
 #[entrypoint]
 pub struct Encoder;
 
+#[cfg(not(feature = "contract-client-gen"))]
 impl Encoder {
     fn keccak256(&self, data: Bytes) -> FixedBytes<32> {
         // prepare hasher
@@ -56,8 +58,7 @@ impl Encoder {
         // set the tuple
         let tx_hash_data = (target, value, func, data, timestamp);
         // encode the tuple
-        let tx_hash_data_encode = TxIdHashType::abi_encode_params(&tx_hash_data);
-        tx_hash_data_encode
+        TxIdHashType::abi_encode_params(&tx_hash_data)
     }
 
     // Packed encode the data and hash it, the same result with the following one
@@ -74,8 +75,7 @@ impl Encoder {
         // set the tuple
         let tx_hash_data = (target, value, func, data, timestamp);
         // encode the tuple
-        let tx_hash_data_encode_packed = TxIdHashType::abi_encode_packed(&tx_hash_data);
-        tx_hash_data_encode_packed
+        TxIdHashType::abi_encode_packed(&tx_hash_data)
     }
 
     // Packed encode the data and hash it, the same result with the above one
@@ -88,15 +88,14 @@ impl Encoder {
         timestamp: U256,
     ) -> Vec<u8> {
         // set the data to arrary and concat it directly
-        let tx_hash_data_encode_packed = [
-            &target.to_vec(),
+        let tx_hash_data_encode_packed: &[&[u8]] = &[
+            target.as_ref(),
             &value.to_be_bytes_vec(),
             func.as_bytes(),
-            &data.to_vec(),
+            data.as_ref(),
             &timestamp.to_be_bytes_vec(),
-        ]
-        .concat();
-        tx_hash_data_encode_packed
+        ];
+        tx_hash_data_encode_packed.concat()
     }
 
     // The func example: "transfer(address,uint256)"
@@ -107,7 +106,6 @@ impl Encoder {
         // Get function selector
         let hashed_function_selector = self.keccak256(func.as_bytes().to_vec().into());
         // Combine function selector and input data (use abi_packed way)
-        let calldata = [&hashed_function_selector[..4], &data].concat();
-        calldata
+        [&hashed_function_selector[..4], &data].concat()
     }
 }

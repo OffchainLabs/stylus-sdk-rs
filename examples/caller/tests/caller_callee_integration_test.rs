@@ -64,7 +64,7 @@ mod integration_test {
             .call()
             .await?;
         assert_eq!(ret_multiple_inputs_multiple_outputs._0, U256::from(12));
-        assert_eq!(ret_multiple_inputs_multiple_outputs._1, true);
+        assert!(ret_multiple_inputs_multiple_outputs._1);
         assert_eq!(ret_multiple_inputs_multiple_outputs._2, callee_address);
         assert_eq!(
             ret_multiple_inputs_multiple_outputs._3,
@@ -92,10 +92,7 @@ mod integration_test {
                     .contains("execution reverted, data: \"0x010203\""));
             }
             Ok(_) => {
-                assert!(
-                    false,
-                    "Expected call to fail with specific error, but it succeeded"
-                );
+                panic!("Expected call to fail with specific error, but it succeeded");
             }
         }
 
@@ -110,10 +107,7 @@ mod integration_test {
                     .contains("execution reverted, data: \"0x010203\""));
             }
             Ok(_) => {
-                assert!(
-                    false,
-                    "Expected call to fail with specific error, but it succeeded"
-                );
+                panic!("Expected call to fail with specific error, but it succeeded");
             }
         }
 

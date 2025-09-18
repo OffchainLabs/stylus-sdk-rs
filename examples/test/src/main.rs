@@ -9,5 +9,5 @@ pub extern "C" fn main() {}
 
 #[cfg(feature = "export-abi")]
 fn main() {
-    stylus_test::print_from_args();
+    stylus_test_example::print_from_args();
 }

@@ -70,6 +70,7 @@ const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 
 // These methods aren't public, but are helpers used by public methods.
 // Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
+#[cfg(not(feature = "contract-client-gen"))]
 impl<T: Erc721Params> Erc721<T> {
     /// Requires that msg_sender is authorized to spend a given token
     fn require_authorized_to_spend(

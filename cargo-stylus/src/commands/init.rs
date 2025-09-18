@@ -11,6 +11,7 @@ use crate::error::CargoStylusResult;
 #[derive(Debug, clap::Args)]
 pub struct Args {
     /// Path to existing directory, cargo crate, or cargo workspace
+    #[clap(default_value = ".")]
     path: PathBuf,
     /// Initialize a Stylus contract
     #[arg(long)]

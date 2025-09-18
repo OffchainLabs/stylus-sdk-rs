@@ -1,5 +1,42 @@
 [workspace]
-members = ["stylus-sdk", "stylus-proc", "stylus-test", "stylus-core", "stylus-tools", "cargo-stylus"]
+members = [
+    "stylus-sdk",
+    "stylus-proc",
+    "stylus-test",
+    "stylus-core",
+    "stylus-tools",
+    "cargo-stylus",
+
+    "examples/abi_decode",
+    "examples/abi_encode",
+    "examples/arrays",
+    "examples/call",
+    "examples/callee",
+    "examples/caller",
+    "examples/constants",
+    "examples/constructor",
+    "examples/custom_storage_slots",
+    "examples/delegate_call",
+    "examples/encoding_and_hashing",
+    "examples/erc20",
+    "examples/erc721",
+    "examples/errors",
+    "examples/events",
+    "examples/fallback_receive",
+    "examples/first_app",
+    "examples/function",
+    "examples/hello_world",
+    "examples/inheritance",
+    "examples/mapping",
+    "examples/nested_structs",
+    "examples/primitive_data_types",
+    "examples/sending_ether",
+    "examples/single_call",
+    "examples/storage_data_types",
+    "examples/test",
+    "examples/variables",
+    "examples/verify_signature",
+]
 resolver = "2"
 
 [workspace.package]

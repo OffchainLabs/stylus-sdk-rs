@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -47,9 +48,7 @@ impl Decoder {
         // Check the result
         match TxIdHashType::abi_decode_params(&tx_hash_data_encode) {
             Ok(res) => Ok(res == tx_hash_data),
-            Err(_) => {
-                return Err(DecoderError::DecodedFailed(DecodedFailed {}));
-            }
+            Err(_) => Err(DecoderError::DecodedFailed(DecodedFailed {})),
         }
     }
 }

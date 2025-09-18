@@ -46,7 +46,7 @@ mod integration_test {
 
         contract.setBool(true).send().await?.watch().await?;
         let value = contract.getBool().call().await?;
-        assert_eq!(value, true);
+        assert!(value);
 
         contract.setAddress(OWNER).send().await?.watch().await?;
         let value = contract.getAddress().call().await?;

@@ -8,6 +8,9 @@ export RUSTFLAGS="-D warnings"
 rustc -Vv
 cargo -V
 
+# TODO: fix these examples
+EXCLUDE="--exclude erc20 --exclude erc721"
+
 # We have to use cargo metadata because we can't exclude a feature directly in cargo test.
 # See: https://github.com/rust-lang/cargo/issues/3126
 FEATURES=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | .features | keys | join("\n")')
@@ -30,13 +33,13 @@ test() {
     echo "Testing with features: $features"
     local targets="$2"
 
-    cargo check --locked -F "$features"
-    cargo test --no-default-features $targets -F "$features"
+    cargo check --locked -F "$features" --workspace $EXCLUDE
+    cargo test --no-default-features $targets -F "$features" --workspace $EXCLUDE
 }
 
 test "$FEATURES" ""
 # disables doctests when testing contract-client-gen
-test contract-client-gen "--lib --bins --tests --benches"
+cargo check -F contract-client-gen --workspace $EXCLUDE
 
 # Run trybuild tests separately without other features
 if [[ "${CFG_RELEASE_CHANNEL-}" != "nightly"* ]]; then

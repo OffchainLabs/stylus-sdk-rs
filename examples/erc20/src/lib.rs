@@ -3,6 +3,8 @@
 
 // Only run this as a WASM if the export-abi feature is not set.
 #![cfg_attr(not(any(feature = "export-abi", test)), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
+
 extern crate alloc;
 
 // Modules and imports

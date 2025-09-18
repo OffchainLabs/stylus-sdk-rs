@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -39,6 +40,7 @@ impl ExampleContract {
     }
 }
 
+#[cfg(not(feature = "contract-client-gen"))]
 impl ExampleContract {
     // Internal function to set a new owner
     pub fn set_owner(&mut self, new_owner: Address) {
