@@ -7,7 +7,6 @@ use crate::host::VM;
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
-use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_core::HostAccess;
 
@@ -57,14 +56,9 @@ where
 {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 

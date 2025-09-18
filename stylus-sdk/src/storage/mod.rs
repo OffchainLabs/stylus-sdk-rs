@@ -143,14 +143,9 @@ where
 {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -342,14 +337,9 @@ where
 {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -458,14 +448,9 @@ pub struct StorageFixedBytes<const N: usize> {
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -566,16 +551,11 @@ pub struct StorageBool {
 }
 
 impl HostAccess for StorageBool {
-   type Host = VM;
+    type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -670,14 +650,9 @@ pub struct StorageAddress {
 impl HostAccess for StorageAddress {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -775,14 +750,9 @@ pub struct StorageBlockNumber {
 impl HostAccess for StorageBlockNumber {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -880,14 +850,9 @@ pub struct StorageBlockHash {
 impl HostAccess for StorageBlockHash {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 

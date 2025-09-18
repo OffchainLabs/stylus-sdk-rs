@@ -19,6 +19,7 @@ cfg_if::cfg_if! {
         /// Defines a struct that provides Stylus contracts access to a host VM
         /// environment via the HostAccessor trait defined in stylus_host.
         pub struct VM {
+            /// A WebAssembly host that provides access to the VM onchain.
             pub host: WasmVM,
         }
     } else {

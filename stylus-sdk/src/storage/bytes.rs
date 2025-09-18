@@ -9,7 +9,6 @@ use alloc::{
     vec::Vec,
 };
 use alloy_primitives::{B256, U256, U8};
-use cfg_if::cfg_if;
 use core::{borrow::Borrow, cell::OnceCell};
 use stylus_core::HostAccess;
 
@@ -51,14 +50,9 @@ impl StorageType for StorageBytes {
 impl HostAccess for StorageBytes {
     type Host = VM;
 
+    #[inline]
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                &self.__stylus_host
-            }
-        }
+        &self.__stylus_host
     }
 }
 
@@ -485,22 +479,10 @@ impl StorageType for StorageString {
 }
 
 impl HostAccess for StorageString {
-    cfg_if! {
-        if #[cfg(not(feature = "stylus-test"))] {
-            type Host = VM;
-        } else {
-            type Host = VM;
-        }
-    }
+    type Host = VM;
 
     fn vm(&self) -> &Self::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.0.__stylus_host
-            } else {
-                &self.0.__stylus_host
-            }
-        }
+        &self.0.__stylus_host
     }
 }
 
