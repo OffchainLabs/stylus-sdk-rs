@@ -19,6 +19,7 @@ pub enum Erc20Error {
 }
 
 /// Trait that contains the Erc20 token methods.
+#[public]
 pub trait IErc20 {
     /// Immutable token name
     fn name(&self) -> String;

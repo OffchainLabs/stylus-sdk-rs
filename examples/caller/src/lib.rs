@@ -5,7 +5,7 @@
 
 extern crate alloc;
 
-use callee::{Callee, Trait1ContractClientGen, Trait2ContractClientGen};
+use callee::{Callee, Trait1, Trait2};
 use stylus_sdk::{
     alloy_primitives::{Address, FixedBytes, U256},
     prelude::*,

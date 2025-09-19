@@ -6,7 +6,6 @@
 extern crate alloc;
 
 use stylus_sdk::{
-    abi::AbiType,
     alloy_primitives::{Address, FixedBytes, U256},
     prelude::*,
     ArbResult,
@@ -22,8 +21,9 @@ impl Callee {
     fn no_input_no_output(&self) {}
 }
 
+#[public]
 pub trait Trait1<Input1, Input2> {
-    type Output: AbiType;
+    type Output;
     fn one_input_one_output(&self, input: U256) -> Self::Output;
     fn multiple_inputs_multiple_outputs(
         &self,
@@ -63,6 +63,7 @@ impl Trait1<U256, Address> for Callee {
     }
 }
 
+#[public]
 pub trait Trait2 {
     fn outputs_result_ok(&self) -> Result<(U256, U256), Vec<u8>>;
     fn outputs_result_err(&self) -> Result<U256, Vec<u8>>;
