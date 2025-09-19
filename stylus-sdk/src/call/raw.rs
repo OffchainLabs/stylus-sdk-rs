@@ -49,7 +49,7 @@ impl<'a, H: Host> RawCall<'a, H> {
     /// use stylus_sdk::{alloy_primitives::address, hex};
     /// use stylus_sdk::host::WasmVM;
     ///
-    /// fn do_call(host: &dyn Host) -> Result<(), ()> {
+    /// fn do_call(host: &impl Host) -> Result<(), ()> {
     ///     let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
     ///     let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
     ///

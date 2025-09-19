@@ -37,6 +37,7 @@ dyn_clone::clone_trait_object!(Host);
 
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
+    /// Host type returned by [`Self::vm()`].
     type Host: Host;
 
     /// Provides access to the parametrized host of a contract, giving access

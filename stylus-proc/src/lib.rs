@@ -165,7 +165,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # }
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
-/// pub fn do_call(host: &dyn Host, account: IService, user: Address) -> Result<String, Error> {
+/// pub fn do_call(host: &impl Host, account: IService, user: Address) -> Result<String, Error> {
 ///     let config = Call::new()
 ///         .gas(host.evm_gas_left() / 2)       // limit to half the gas left
 ///         .value(host.msg_value());           // set the callvalue
@@ -236,7 +236,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # mod evm { pub fn gas_left() -> u64 { 100 } }
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
 /// pub fn do_call(
-///     host: &dyn Host,
+///     host: &impl Host,
 ///     account: IService,                   // serializes as an Address
 ///     user: Address,
 /// ) -> Result<String, Error> {

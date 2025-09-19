@@ -17,7 +17,7 @@ use super::RawCall;
 /// # use stylus_sdk::prelude::*;
 /// # use stylus_sdk::stylus_core::host::Host;
 /// # use stylus_sdk::call::transfer::transfer_eth;
-/// # fn wrap(host: &dyn Host) -> Result<(), Vec<u8>> {
+/// # fn wrap(host: &impl Host) -> Result<(), Vec<u8>> {
 /// #   let value = alloy_primitives::U256::ZERO;
 /// #   let recipient = alloy_primitives::Address::ZERO;
 /// transfer_eth(host, recipient, value)?;                 // these two are equivalent
@@ -25,7 +25,7 @@ use super::RawCall;
 /// #     Ok(())
 /// # }
 /// ```
-pub fn transfer_eth<H: Host>(host: &H, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+pub fn transfer_eth(host: &impl Host, to: Address, amount: U256) -> Result<(), Vec<u8>> {
     host.flush_cache(true); // clear the storage to persist changes, invalidating the cache
     unsafe {
         RawCall::new_with_value(host, amount)
