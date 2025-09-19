@@ -4,7 +4,6 @@
 use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 
 use alloy_primitives::U256;
-use cfg_if::cfg_if;
 use core::marker::PhantomData;
 use stylus_core::HostAccess;
 
@@ -48,14 +47,11 @@ impl<S: StorageType, const N: usize> StorageType for StorageArray<S, N> {
 }
 
 impl<S: StorageType, const N: usize> HostAccess for StorageArray<S, N> {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 

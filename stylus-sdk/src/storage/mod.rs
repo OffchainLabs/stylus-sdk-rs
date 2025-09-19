@@ -141,14 +141,11 @@ impl<const B: usize, const L: usize> HostAccess for StorageUint<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -338,14 +335,11 @@ impl<const B: usize, const L: usize> HostAccess for StorageSigned<B, L>
 where
     IntBitCount<B>: SupportedInt,
 {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -452,14 +446,11 @@ pub struct StorageFixedBytes<const N: usize> {
 }
 
 impl<const N: usize> HostAccess for StorageFixedBytes<N> {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -560,14 +551,11 @@ pub struct StorageBool {
 }
 
 impl HostAccess for StorageBool {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -660,14 +648,11 @@ pub struct StorageAddress {
 }
 
 impl HostAccess for StorageAddress {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -763,14 +748,11 @@ pub struct StorageBlockNumber {
 }
 
 impl HostAccess for StorageBlockNumber {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 
@@ -866,14 +848,11 @@ pub struct StorageBlockHash {
 }
 
 impl HostAccess for StorageBlockHash {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 

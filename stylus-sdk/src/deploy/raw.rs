@@ -69,7 +69,7 @@ impl RawDeploy {
     /// For extra flexibility, this method does not clear the global storage cache.
     pub unsafe fn deploy(
         self,
-        host: &dyn Host,
+        host: &impl Host,
         code: &[u8],
         endowment: U256,
     ) -> Result<Address, Vec<u8>> {
