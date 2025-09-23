@@ -338,7 +338,7 @@ mod tests {
                     #[function_attr]
                     pub fn make_payment(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::MutatingCallContext,
                         user: <stylus_sdk::alloy_sol_types::sol_data::Address as stylus_sdk::alloy_sol_types::SolType>::RustType,
                     ) ->
@@ -357,7 +357,7 @@ mod tests {
 
                     pub fn get_constant(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
                         Result<<stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32> as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
@@ -371,7 +371,7 @@ mod tests {
 
                     pub fn get_foo(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
                         Result<<inner::Foo as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
