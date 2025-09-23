@@ -10,7 +10,7 @@ use stylus_core::Host;
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone)]
 #[must_use]
-pub struct RawCall<'a, H: Host> {
+pub struct RawCall<'a, H: Host + ?Sized> {
     kind: CallKind,
     callvalue: U256,
     gas: Option<u64>,
@@ -40,7 +40,7 @@ pub(crate) enum CachePolicy {
     Clear,
 }
 
-impl<'a, H: Host> RawCall<'a, H> {
+impl<'a, H: Host + ?Sized> RawCall<'a, H> {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
