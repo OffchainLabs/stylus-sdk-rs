@@ -19,6 +19,7 @@ derivative.workspace = true
 hex = { workspace = true, default-features = false, features = ["alloc"] }
 keccak-const.workspace = true
 lazy_static.workspace = true
+base64ct = "=1.7.3"
 
 # export-abi
 regex = { workspace = true, optional = true }
