@@ -25,6 +25,9 @@ syn.workspace = true
 syn-solidity.workspace = true
 trybuild.workspace = true
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+alloy-primitives = { version = "=0.8.20", default-features = false , features = ["native-keccak"] }
+
 [dev-dependencies]
 paste.workspace = true
 pretty_assertions.workspace = true
