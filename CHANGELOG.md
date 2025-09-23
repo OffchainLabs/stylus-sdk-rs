@@ -2,6 +2,29 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.9.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.1) - 2025-09-23
+
+### Fixed
+
+- Fix segfault when testing with the keccak function in alloy.
+
+## [0.9.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.0) - 2025-05-20
+
+### Changed
+
+- Fix formatting by @amsanghi in #222
+- Add Stylus constructors by @gligneul in #184
+- first pass implementation of trait based inheritance by @rory-ocl in #223
+- Fix Cargo Stylus Replay by @gligneul in #225
+- Update CHANGELOG.md (main) by @gligneul in #228
+- Remove mark_used function to reduce binary size by @gligneul in #235
+- Port 0.8.3 changes to main by @gligneul in #231
+- add StorageU96 int alias by @0xNeshi in #234
+- Remove the HostIO-caching feature by @gligneul in #237
+- Add a README to Stylus Test by @rauljordan in #239
+- Be more strict with special function names by @gligneul in #242
+- Resolve Audit Feedback Related to TestVM and Fallbacks by @rauljordan in #241
+
 ## [0.8.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.3) - 2025-03-18
 
 ### Fixed
