@@ -255,7 +255,7 @@ impl MeteringAccess for VM {
     }
 }
 
-impl LogAccess for VM {
+impl RawLogAccess for VM {
     #[inline]
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         self.host.emit_log(input, num_topics)
@@ -353,7 +353,7 @@ impl StorageAccess for WasmVM {
     }
 }
 
-impl LogAccess for WasmVM {
+impl RawLogAccess for WasmVM {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         unsafe { hostio::emit_log(input.as_ptr(), input.len(), num_topics) }
     }

@@ -68,14 +68,11 @@ impl PaymentTracker {
         self.balances.setter(sender).set(current_balance + amount);
 
         // Log the event
-        log(
-            self.vm(),
-            EtherReceived {
-                sender,
-                amount,
-                method: "receive".to_string(),
-            },
-        );
+        self.vm().log(EtherReceived {
+            sender,
+            amount,
+            method: "receive".to_string(),
+        });
 
         Ok(())
     }
@@ -100,36 +97,27 @@ impl PaymentTracker {
             let current_balance = self.balances.get(sender);
             self.balances.setter(sender).set(current_balance + amount);
 
-            log(
-                self.vm(),
-                EtherReceived {
-                    sender,
-                    amount,
-                    method: "fallback".to_string(),
-                },
-            );
+            self.vm().log(EtherReceived {
+                sender,
+                amount,
+                method: "fallback".to_string(),
+            });
         }
 
         // Log the fallback trigger with calldata - convert to bytes properly
-        log(
-            self.vm(),
-            FallbackTriggered {
-                sender,
-                amount,
-                data: calldata.to_vec().into(),
-            },
-        );
+        self.vm().log(FallbackTriggered {
+            sender,
+            amount,
+            data: calldata.to_vec().into(),
+        });
 
         // If calldata has at least 4 bytes, extract the function selector
         if calldata.len() >= 4 {
             let selector = [calldata[0], calldata[1], calldata[2], calldata[3]];
-            log(
-                self.vm(),
-                UnknownFunctionCalled {
-                    sender,
-                    selector: FixedBytes(selector),
-                },
-            );
+            self.vm().log(UnknownFunctionCalled {
+                sender,
+                selector: FixedBytes(selector),
+            });
         }
 
         // Return empty bytes (successful execution)

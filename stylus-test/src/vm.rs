@@ -644,7 +644,7 @@ impl MeteringAccess for TestVM {
     }
 }
 
-impl LogAccess for TestVM {
+impl RawLogAccess for TestVM {
     fn emit_log(&self, input: &[u8], num_topics: usize) {
         let (topics_data, data) = input.split_at(num_topics * 32);
         let mut topics = Vec::with_capacity(num_topics);

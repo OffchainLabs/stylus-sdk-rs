@@ -27,16 +27,13 @@ pub struct Events {}
 impl Events {
     fn user_main(&self, _input: Vec<u8>) -> ArbResult {
         // emits a 'Log' event, defined above in the sol! macro
-        evm::log(
-            self.vm(),
-            Log {
-                sender: Address::from([0x11; 20]),
-                message: "Hello world!".to_string(),
-            },
-        );
+        self.vm().log(Log {
+            sender: Address::from([0x11; 20]),
+            message: "Hello world!".to_string(),
+        });
 
         // no data, but event will still log to the chain
-        evm::log(self.vm(), AnotherLog {});
+        self.vm().log(AnotherLog {});
 
         // set up local variables
         let user = Address::from([0x22; 20]);

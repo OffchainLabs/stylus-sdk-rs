@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 use stylus_core::Host;
 
+// TODO#q: remove it?
 /// Emits a typed alloy log.
 pub fn log<T: SolEvent>(host: &impl Host, event: T) {
     // According to the alloy docs, encode_topics_raw fails only if the array is too small

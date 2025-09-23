@@ -51,14 +51,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
     }
     /// Sets a number in storage to a user-specified value.
     pub fn mul_number(&mut self, new_number: U256) {
@@ -68,14 +65,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
     }
     /// Sets a number in storage to a user-specified value.
     pub fn add_number(&mut self, new_number: U256) {
@@ -85,14 +79,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
     }
     /// Increments `number` and updates its value in storage.
     pub fn increment(&mut self) {
@@ -103,14 +94,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
     }
     /// Decrements `number` and updates its value in storage.
     /// Returns an error if the number is already zero.
@@ -125,14 +113,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
 
         Ok(())
     }
@@ -145,14 +130,11 @@ impl Counter {
         self.last_updated
             .set(U256::from(self.vm().block_timestamp()));
         // Emit an event
-        evm::log(
-            self.vm(),
-            CounterUpdated {
-                user: self.vm().msg_sender(),
-                prev_value: prev,
-                new_value: self.number.get(),
-            },
-        );
+        self.vm().log(CounterUpdated {
+            user: self.vm().msg_sender(),
+            prev_value: prev,
+            new_value: self.number.get(),
+        });
     }
     // External call example
     pub fn call_external_contract(
