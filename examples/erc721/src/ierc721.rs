@@ -30,6 +30,7 @@ pub enum Erc721Error {
 }
 
 // Trait that contains the Erc721 methods.
+#[public]
 pub trait IErc721 {
     /// Immutable NFT name.
     fn name(&self) -> Result<String, Erc721Error>;
