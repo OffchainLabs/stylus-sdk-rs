@@ -2960,6 +2960,7 @@ version = "0.9.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "base64ct",
  "cfg-if",
  "clap",
  "derivative",
