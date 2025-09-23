@@ -16,6 +16,9 @@ alloy-sol-types.workspace = true
 cfg-if.workspace = true
 dyn-clone = "1.0.17"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+alloy-primitives = { version = "=0.8.20", default-features = false , features = ["native-keccak"] }
+
 [dev-dependencies]
 
 [features]
