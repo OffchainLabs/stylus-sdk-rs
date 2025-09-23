@@ -10,7 +10,7 @@ use stylus_core::Host;
 /// For safe calls, see [`Call`](super::Call).
 #[derive(Clone)]
 #[must_use]
-pub struct RawCall<'a> {
+pub struct RawCall<'a, H: Host + ?Sized> {
     kind: CallKind,
     callvalue: U256,
     gas: Option<u64>,
@@ -18,7 +18,7 @@ pub struct RawCall<'a> {
     size: Option<usize>,
     #[allow(unused)]
     cache_policy: CachePolicy,
-    host: &'a dyn Host,
+    host: &'a H,
 }
 
 /// What kind of call to perform.
@@ -40,7 +40,7 @@ pub(crate) enum CachePolicy {
     Clear,
 }
 
-impl<'a> RawCall<'a> {
+impl<'a, H: Host + ?Sized> RawCall<'a, H> {
     /// Begin configuring the raw call, similar to how [`std::fs::OpenOptions`][OpenOptions] works.
     ///
     /// ```no_run
@@ -49,7 +49,7 @@ impl<'a> RawCall<'a> {
     /// use stylus_sdk::{alloy_primitives::address, hex};
     /// use stylus_sdk::host::WasmVM;
     ///
-    /// fn do_call(host: &dyn Host) -> Result<(), ()> {
+    /// fn do_call(host: &impl Host) -> Result<(), ()> {
     ///     let contract = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");
     ///     let calldata = &hex::decode("eddecf107b5740cef7f5a01e3ea7e287665c4e75").unwrap();
     ///
@@ -65,7 +65,7 @@ impl<'a> RawCall<'a> {
     /// ```
     ///
     /// [OpenOptions]: https://doc.rust-lang.org/stable/std/fs/struct.OpenOptions.html
-    pub fn new(host: &'a dyn Host) -> Self {
+    pub fn new(host: &'a H) -> Self {
         Self {
             host,
             cache_policy: CachePolicy::default(),
@@ -78,7 +78,7 @@ impl<'a> RawCall<'a> {
     }
 
     /// Configures a call that supplies callvalue, denominated in wei.
-    pub fn new_with_value(host: &'a dyn Host, callvalue: U256) -> Self {
+    pub fn new_with_value(host: &'a H, callvalue: U256) -> Self {
         Self {
             host,
             callvalue,
@@ -93,7 +93,7 @@ impl<'a> RawCall<'a> {
     /// Begin configuring a [`delegate call`].
     ///
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
-    pub fn new_delegate(host: &'a dyn Host) -> Self {
+    pub fn new_delegate(host: &'a H) -> Self {
         Self {
             host,
             cache_policy: CachePolicy::default(),
@@ -108,7 +108,7 @@ impl<'a> RawCall<'a> {
     /// Begin configuring a [`static call`].
     ///
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
-    pub fn new_static(host: &'a dyn Host) -> Self {
+    pub fn new_static(host: &'a H) -> Self {
         Self {
             host,
             cache_policy: CachePolicy::default(),

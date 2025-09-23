@@ -114,7 +114,7 @@ fn get_client_funcs<E: InterfaceExtension>(
             let signature = quote! {
                 #funcs_visibility fn #func_name(
                     &self,
-                    host: &dyn stylus_sdk::stylus_core::host::Host,
+                    host: &impl stylus_sdk::stylus_core::host::Host,
                     context: impl #context,
                     #(#inputs,)*
                 ) -> #output_type
