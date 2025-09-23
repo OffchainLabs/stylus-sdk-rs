@@ -2985,6 +2985,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-provider",
  "alloy-sol-types",
+ "base64ct",
  "stylus-core",
  "tokio",
  "url",

@@ -17,6 +17,7 @@ stylus-core.workspace = true
 tokio = { version = "1.12.0", features = ["full"] }
 alloy-provider = "0.11.0"
 url = "2.5.4"
+base64ct = "=1.7.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 alloy-primitives = { version = "=0.8.20", default-features = false , features = ["native-keccak"] }
