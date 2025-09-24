@@ -155,7 +155,7 @@ impl InterfaceExtension for InterfaceAbi {
                     use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                     use std::collections::HashSet;
                     write!(f, "interface I{}{}", #name, #is_clause)?;
-                    write!(f, "  {{")?;
+                    write!(f, " {{")?;
                     #abi
                     #type_decls
                     writeln!(f, "}}")?;
