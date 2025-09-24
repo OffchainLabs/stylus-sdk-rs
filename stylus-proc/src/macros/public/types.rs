@@ -211,18 +211,6 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
 }
 
 impl PublicTrait {
-    pub fn struct_for_export_abi(&self) -> proc_macro2::TokenStream {
-        let in_trait_name = self.ident.to_string();
-        let ident = syn::Ident::new(
-            &format!("{in_trait_name}StylusAbiStruct"),
-            Span::call_site(),
-        );
-        quote! {
-            #[cfg(feature = "export-abi")]
-            pub struct #ident;
-        }
-    }
-
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
         let (_, client_funcs_declarations) = get_client_funcs::<Extension>(&self.funcs, false);
 
@@ -402,6 +390,22 @@ impl PublicImpl {
                 }
             }
         })
+    }
+
+    pub fn struct_for_export_abi(&self) -> proc_macro2::TokenStream {
+        if self.trait_.is_none() {
+            return quote! {};
+        }
+
+        let in_trait_name = self.trait_.as_ref().unwrap().get_ident().unwrap().to_string();
+        let ident = syn::Ident::new(
+            &format!("{in_trait_name}StylusAbiStruct"),
+            Span::call_site(),
+        );
+        quote! {
+            #[cfg(feature = "export-abi")]
+            pub struct #ident;
+        }
     }
 
     pub fn print_from_args_fn(&self) -> proc_macro2::TokenStream {
