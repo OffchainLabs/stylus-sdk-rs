@@ -11,7 +11,6 @@ use alloc::vec;
 use stylus_sdk::alloy_sol_types::sol;
 use stylus_sdk::{
     alloy_primitives::{Address, FixedBytes, U256},
-    evm::log,
     prelude::*,
     ArbResult,
 };
