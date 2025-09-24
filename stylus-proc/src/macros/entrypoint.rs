@@ -62,7 +62,6 @@ impl Parse for Entrypoint {
                 EntrypointKind::Struct(EntrypointStruct {
                     top_level_storage_impl: top_level_storage_impl(&item),
                     struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
-                    print_from_args_fn: print_from_args_fn(&item.ident),
                     item,
                     item_contract_client_gen,
                 })
@@ -127,7 +126,6 @@ struct EntrypointStruct {
     item_contract_client_gen: syn::ItemStruct,
     top_level_storage_impl: syn::ItemImpl,
     struct_entrypoint_fn: syn::ItemFn,
-    print_from_args_fn: Option<syn::ItemFn>,
 }
 
 impl ToTokens for EntrypointStruct {
@@ -143,7 +141,6 @@ impl ToTokens for EntrypointStruct {
 
         self.top_level_storage_impl.to_tokens(tokens);
         self.struct_entrypoint_fn.to_tokens(tokens);
-        self.print_from_args_fn.to_tokens(tokens);
     }
 }
 
@@ -213,21 +210,6 @@ fn deny_reentrant() -> Option<syn::ExprIf> {
                     return 1; // revert
                 }
             })
-        }
-    }
-}
-
-fn print_from_args_fn(ident: &syn::Ident) -> Option<syn::ItemFn> {
-    let _ = ident;
-    cfg_if! {
-        if #[cfg(feature = "export-abi")] {
-            Some(parse_quote! {
-                pub fn print_from_args() {
-                    stylus_sdk::abi::export::print_from_args::<#ident>();
-                }
-            })
-        } else {
-            None
         }
     }
 }

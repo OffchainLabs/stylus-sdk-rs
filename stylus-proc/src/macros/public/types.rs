@@ -392,6 +392,20 @@ impl PublicImpl {
         })
     }
 
+    pub fn print_from_args_fn(&self) -> proc_macro2::TokenStream {
+        if self.trait_.is_some() {
+            return quote! {};
+        }
+        // if self represents a `impl<T> MyStruct<T> { ... }`, then we want to generate print_from_args
+        let ident = &self.self_ty;
+        quote! {
+            #[cfg(feature = "export-abi")]
+            pub fn print_from_args() {
+                stylus_sdk::abi::export::print_from_args::<#ident>();
+            }
+        }
+    }
+
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
         let (client_funcs_definitions, _) =
             get_client_funcs::<Extension>(&self.funcs, self.trait_.is_none());
