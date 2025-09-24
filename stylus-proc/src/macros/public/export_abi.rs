@@ -27,6 +27,7 @@ impl InterfaceExtension for InterfaceAbi {
             where_clause,
             funcs,
             trait_,
+            implements,
             ..
         } = iface;
 
@@ -128,6 +129,22 @@ impl InterfaceExtension for InterfaceAbi {
             self_ty.clone()
         };
 
+        let implements_names = implements.iter().map(|ty| {
+            let name = match ty {
+                syn::Type::Path(path) => {
+                    path.path.segments.last().unwrap().ident.clone().to_string()
+                }
+                _ => todo!(),
+            };
+            format!("I{name}")
+        });
+        let is_clause = if implements_names.len() > 0 {
+            let names = implements_names.collect::<Vec<_>>().join(", ");
+            format!(" is {names}")
+        } else {
+            String::new()
+        };
+
         parse_quote! {
             impl<#generic_params> stylus_sdk::abi::GenerateAbi for #struct_ty where #where_clause {
                 const NAME: &'static str = #name;
@@ -137,7 +154,7 @@ impl InterfaceExtension for InterfaceAbi {
                     use stylus_sdk::abi::internal::write_solidity_returns;
                     use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                     use std::collections::HashSet;
-                    write!(f, "interface I{}", #name)?;
+                    write!(f, "interface I{}{}", #name, #is_clause)?;
                     write!(f, "  {{")?;
                     #abi
                     #type_decls
