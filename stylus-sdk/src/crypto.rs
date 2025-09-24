@@ -3,9 +3,6 @@
 
 //! VM-accelerated cryptography.
 //!
-//! See also [`block`](crate::block), [`contract`](crate::contract), [`evm`](crate::evm),
-//! [`msg`](crate::msg), and [`tx`](crate::tx).
-//!
 //! ```no_run
 //! use stylus_sdk::crypto;
 //! use stylus_sdk::alloy_primitives::address;
