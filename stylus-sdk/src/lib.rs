@@ -66,7 +66,6 @@ pub mod debug;
 pub mod call;
 pub mod crypto;
 pub mod deploy;
-pub mod evm;
 pub mod host;
 pub mod methods;
 pub mod prelude;
