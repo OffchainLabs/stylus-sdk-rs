@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IMapping  {
+interface IMapping {
     function getMyMap(address target) external view returns (bool);
 
     function setMyMap(address target, bool new_value) external;

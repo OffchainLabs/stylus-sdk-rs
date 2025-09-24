@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IExampleContract  {
+interface IExampleContract {
     function execute(address target, bytes calldata data) external view returns (bytes memory);
 
     function simpleCall(address account, address user) external returns (string memory);

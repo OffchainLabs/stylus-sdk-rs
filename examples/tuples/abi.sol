@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface ITuples  {
+interface ITuples {
     function numbers() external returns (uint256, uint256, uint256);
 
     function bytesAndNumber() external returns (bytes memory, uint256);

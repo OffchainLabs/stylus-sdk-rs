@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IArrays  {
+interface IArrays {
     function push(uint256 i) external;
 
     function getElement(uint256 index) external view returns (uint256);

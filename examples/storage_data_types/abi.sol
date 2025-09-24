@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IData  {
+interface IData {
     function getBool() external view returns (bool);
 
     function getAddress() external view returns (address);

@@ -6,6 +6,6 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IEvents  {
+interface IEvents {
     function userMain(uint8[] memory _input) external view returns (uint8[] memory);
 }

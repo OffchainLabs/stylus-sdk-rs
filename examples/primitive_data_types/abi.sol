@@ -6,6 +6,6 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IData  {
+interface IData {
     function userMain(uint8[] memory _input) external pure returns (uint8[] memory);
 }
