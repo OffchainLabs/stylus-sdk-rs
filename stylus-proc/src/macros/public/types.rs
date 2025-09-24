@@ -426,6 +426,7 @@ impl PublicImpl {
         quote! {
             #[cfg(feature = "export-abi")]
             pub fn print_from_args() {
+                stylus_sdk::abi::export::handle_license_and_pragma();
                 stylus_sdk::abi::export::print_from_args::<#self_ty>();
                 #(stylus_sdk::abi::export::print_from_args::<#implements>();)*
             }
