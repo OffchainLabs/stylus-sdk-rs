@@ -134,6 +134,7 @@ impl From<&mut syn::ItemTrait> for PublicTrait {
 impl ToTokens for PublicTrait {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.contract_client_gen());
+        tokens.extend(self.struct_for_export_abi());
     }
 }
 
@@ -142,9 +143,7 @@ impl ToTokens for PublicImpl {
         tokens.extend(self.contract_client_gen());
         tokens.extend(self.print_from_args_fn());
         self.impl_router().to_tokens(tokens);
-        if self.trait_.is_none() {
-            Extension::codegen(self).to_tokens(tokens);
-        }
+        Extension::codegen(self).to_tokens(tokens);
     }
 }
 

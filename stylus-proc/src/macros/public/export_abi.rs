@@ -3,7 +3,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::parse_quote;
+use syn::{parse_quote, parse_str};
 
 use crate::types::Purity;
 
@@ -26,12 +26,17 @@ impl InterfaceExtension for InterfaceAbi {
             self_ty,
             where_clause,
             funcs,
+            trait_,
             ..
         } = iface;
 
-        let name = match self_ty {
-            syn::Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
-            _ => todo!(),
+        let name = if trait_.is_some() {
+            trait_.as_ref().unwrap().segments.last().unwrap().ident.to_string()
+        } else {
+            match self_ty {
+                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
+                _ => todo!(),
+            }
         };
 
         let mut types = Vec::new();
@@ -115,8 +120,16 @@ impl InterfaceExtension for InterfaceAbi {
             })
             .next();
 
+        let struct_ty = if trait_.is_some() {
+            let name = format!("{name}StylusAbiStruct");
+            let my_type: syn::Type = parse_str(&name).expect("Failed to parse string into a syn::Type");
+            my_type
+        } else {
+            self_ty.clone()
+        };
+
         parse_quote! {
-            impl<#generic_params> stylus_sdk::abi::GenerateAbi for #self_ty where #where_clause {
+            impl<#generic_params> stylus_sdk::abi::GenerateAbi for #struct_ty where #where_clause {
                 const NAME: &'static str = #name;
 
                 fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

@@ -4,8 +4,8 @@ use proc_macro2::{Span, TokenStream};
 use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
-    parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
-    Token,
+    parse::Nothing, parse_quote, parse_quote_spanned, parse_str, punctuated::Punctuated,
+    spanned::Spanned, Token,
 };
 
 use crate::{
@@ -211,6 +211,18 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
 }
 
 impl PublicTrait {
+    pub fn struct_for_export_abi(&self) -> proc_macro2::TokenStream {
+        let in_trait_name = self.ident.to_string();
+        let ident = syn::Ident::new(
+            &format!("{in_trait_name}StylusAbiStruct"),
+            Span::call_site(),
+        );
+        quote! {
+            #[cfg(feature = "export-abi")]
+            pub struct #ident;
+        }
+    }
+
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
         let (_, client_funcs_declarations) = get_client_funcs::<Extension>(&self.funcs, false);
 
@@ -396,12 +408,26 @@ impl PublicImpl {
         if self.trait_.is_some() {
             return quote! {};
         }
+
         // if self represents a `impl<T> MyStruct<T> { ... }`, then we want to generate print_from_args
-        let ident = &self.self_ty;
+        let self_ty = &self.self_ty;
+        let implements = self.implements.iter().map(|ty| {
+            let in_type_name = match ty {
+                syn::Type::Path(path) => {
+                    path.path.segments.last().unwrap().ident.clone().to_string()
+                }
+                _ => todo!(),
+            };
+            let out_type_name = format!("{in_type_name}StylusAbiStruct");
+            let my_type: syn::Type =
+                parse_str(&out_type_name).expect("Failed to parse string into a syn::Type");
+            my_type
+        });
         quote! {
             #[cfg(feature = "export-abi")]
             pub fn print_from_args() {
-                stylus_sdk::abi::export::print_from_args::<#ident>();
+                stylus_sdk::abi::export::print_from_args::<#self_ty>();
+                #(stylus_sdk::abi::export::print_from_args::<#implements>();)*
             }
         }
     }
