@@ -420,6 +420,9 @@ impl PublicImpl {
         if self.trait_.is_some() {
             return quote! {};
         }
+        if !self.generic_params.is_empty() {
+            return quote! {};
+        }
 
         // if self represents a `impl MyStruct { ... }`, then we want to generate print_from_args
         let self_ty = &self.self_ty;
