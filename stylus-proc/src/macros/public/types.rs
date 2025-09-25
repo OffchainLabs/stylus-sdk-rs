@@ -9,7 +9,7 @@ use syn::{
 };
 
 use crate::{
-    consts::STYLUS_CONTRACT_ADDRESS_FIELD,
+    consts::{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, STYLUS_CONTRACT_ADDRESS_FIELD},
     imports::{
         alloy_sol_types::SolType,
         stylus_sdk::abi::{AbiType, Router},
@@ -411,7 +411,7 @@ impl PublicImpl {
             .ident
             .to_string();
         let ident = syn::Ident::new(
-            &format!("{trait_name}StylusAbiStruct"),
+            &format!("{trait_name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}"),
             Span::call_site(),
         );
         quote! {
@@ -436,11 +436,10 @@ impl PublicImpl {
                 syn::Type::Path(path) => path.path.segments.last().unwrap().ident.to_string(),
                 _ => todo!(),
             };
-            let out_type_name = format!("{in_type_name}StylusAbiStruct");
+            let out_type_name = format!("{in_type_name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}");
             let ty: syn::Type =
                 parse_str(&out_type_name).expect("Failed to parse string into a syn::Type");
             ty
-
         });
         quote! {
             #[cfg(feature = "export-abi")]

@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_quote, parse_str};
 
-use crate::types::Purity;
+use crate::{consts::STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, types::Purity};
 
 use super::types::{FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicImpl};
 
@@ -131,9 +131,8 @@ impl InterfaceExtension for InterfaceAbi {
             .next();
 
         let struct_ty = if trait_.is_some() {
-            let name = format!("{name}StylusAbiStruct");
-            let ty: syn::Type =
-                parse_str(&name).expect("Failed to parse string into a syn::Type");
+            let name = format!("{name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}");
+            let ty: syn::Type = parse_str(&name).expect("Failed to parse string into a syn::Type");
             ty
         } else {
             self_ty.clone()
@@ -141,9 +140,7 @@ impl InterfaceExtension for InterfaceAbi {
 
         let implements_names = implements.iter().map(|ty| {
             let name = match ty {
-                syn::Type::Path(path) => {
-                    path.path.segments.last().unwrap().ident.to_string()
-                }
+                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.to_string(),
                 _ => todo!(),
             };
             format!("I{name}")
