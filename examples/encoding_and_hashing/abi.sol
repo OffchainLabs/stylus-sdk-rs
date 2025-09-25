@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IHasher  {
+interface IHasher {
     function encodeAndHash(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (bytes32);
 
     function encodeAndDecode(address _address, uint256 amount) external view returns (bool);

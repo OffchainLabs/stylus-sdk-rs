@@ -6,4 +6,27 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IContract  {}
+interface IContract is IIErc20, IIOwnable, IIBranding {}
+interface IIErc20 {
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
+    function decimals() external view returns (uint256);
+
+    function totalSupply() external view returns (uint256);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    function transfer(address to, uint256 value) external returns (bool);
+}
+interface IIOwnable {
+    function owner() external view returns (address);
+
+    function transferOwnership(address new_owner) external returns (bool);
+
+    function renounceOwnership() external returns (bool);
+}
+interface IIBranding {
+    function displayName() external view returns (string memory);
+}

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IExampleContract  {
+interface IExampleContract {
     function setData(uint256 value) external;
 
     function getData() external view returns (uint256);

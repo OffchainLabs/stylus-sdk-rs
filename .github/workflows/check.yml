@@ -48,9 +48,11 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
-      # contract-client-gen feature considerably change the structure of the output code.
-      # So it is checked individually.
-      - name: Run clippy excluding contract-client-gen feature
-        run: ./ci/clippy.sh --all-excluding-contract-client-gen
+      # contract-client-gen and export-abi features considerably change the structure of the output code.
+      # So they are checked individually.
+      - name: Run clippy excluding contract-client-gen and export-abi features
+        run: ./ci/clippy.sh --all-excluding-special-features
       - name: Run clippy on stylus-proc with contract-client-gen feature
         run: ./ci/clippy.sh --contract-client-gen
+      - name: Run clippy on stylus-proc with export-abi feature
+        run: ./ci/clippy.sh --export-abi

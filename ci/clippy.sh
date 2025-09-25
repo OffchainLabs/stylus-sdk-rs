@@ -7,12 +7,13 @@ usage() {
   echo ""
   echo "Options:"
   echo "  -c, --contract-client-gen                 Run clippy on stylus-proc with contract-client-gen feature"
-  echo "  -a, --all-excluding-contract-client-gen   Run clippy excluding contract-client-gen feature"
+  echo "  -e, --export-abi                          Run clippy on stylus-proc with export-abi feature"
+  echo "  -a, --all-excluding-special-features      Run clippy excluding contract-client-gen and export-abi features"
   echo "  -h, --help                                Display this help message"
 }
 
 run_all_clippy() {
-  echo "Running clippy on all packages excluding contract-client-gen feature..."
+  echo "Running clippy on all packages excluding contract-client-gen and export-abi features..."
 
   # Get all crates in the workspace
   workspace_members=$(cargo metadata --format-version=1 | jq -r '.workspace_members[] | split(" ")[0]')
@@ -22,7 +23,7 @@ run_all_clippy() {
     # Get features for this crate excluding the ones we don't want
     features=$(cargo metadata --format-version=1 \
       | jq -r ".packages[] | select(.id == \"$crate\") | .features | keys[] |
-              select(. != \"contract-client-gen\")" \
+              select(. != \"contract-client-gen\" and . != \"export-abi\")" \
       | tr '\n' ',' | sed 's/,$//')
 
     echo "Running clippy on $crate with features: $features"
@@ -39,6 +40,11 @@ run_contract_client_gen_clippy() {
   cargo clippy -p stylus-proc --no-default-features --features "contract-client-gen" --all-targets -- -D warnings
 }
 
+run_export_abi_clippy() {
+  echo "Running clippy on stylus-proc with export-abi feature..."
+  cargo clippy -p stylus-proc --no-default-features --features "export-abi" --all-targets -- -D warnings
+}
+
 if [ $# -eq 0 ]; then
   usage
 fi
@@ -50,7 +56,10 @@ case "$1" in
   -c | --contract-client-gen)
     run_contract_client_gen_clippy
     ;;
-  -a | --all-excluding-contract-client-gen)
+  -e | --export-abi)
+    run_export_abi_clippy
+    ;;
+  -a | --all-excluding-special-features)
     run_all_clippy
     ;;
   *)

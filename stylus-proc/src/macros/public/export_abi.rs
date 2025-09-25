@@ -3,9 +3,9 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::parse_quote;
+use syn::{parse_quote, parse_str};
 
-use crate::types::Purity;
+use crate::{consts::STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, types::Purity};
 
 use super::types::{FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicImpl};
 
@@ -26,12 +26,27 @@ impl InterfaceExtension for InterfaceAbi {
             self_ty,
             where_clause,
             funcs,
+            trait_,
+            implements,
             ..
         } = iface;
 
-        let name = match self_ty {
-            syn::Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
-            _ => todo!(),
+        let name = if trait_.is_some() {
+            trait_
+                .as_ref()
+                .unwrap()
+                .segments
+                .last()
+                .unwrap()
+                .ident
+                .to_string()
+        } else {
+            match self_ty {
+                syn::Type::Path(path) => {
+                    path.path.segments.last().unwrap().ident.clone().to_string()
+                }
+                _ => todo!(),
+            }
         };
 
         let mut types = Vec::new();
@@ -115,8 +130,30 @@ impl InterfaceExtension for InterfaceAbi {
             })
             .next();
 
+        let struct_ty = if trait_.is_some() {
+            let name = format!("{name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}");
+            let ty: syn::Type = parse_str(&name).expect("Failed to parse string into a syn::Type");
+            ty
+        } else {
+            self_ty.clone()
+        };
+
+        let implements_names = implements.iter().map(|ty| {
+            let name = match ty {
+                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.to_string(),
+                _ => todo!(),
+            };
+            format!("I{name}")
+        });
+        let is_clause = if implements_names.len() > 0 {
+            let names = implements_names.collect::<Vec<_>>().join(", ");
+            format!(" is {names}")
+        } else {
+            String::new()
+        };
+
         parse_quote! {
-            impl<#generic_params> stylus_sdk::abi::GenerateAbi for #self_ty where #where_clause {
+            impl<#generic_params> stylus_sdk::abi::GenerateAbi for #struct_ty where #where_clause {
                 const NAME: &'static str = #name;
 
                 fn fmt_abi(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -124,8 +161,8 @@ impl InterfaceExtension for InterfaceAbi {
                     use stylus_sdk::abi::internal::write_solidity_returns;
                     use stylus_sdk::abi::export::{underscore_if_sol, internal::{InnerType, InnerTypes}};
                     use std::collections::HashSet;
-                    write!(f, "interface I{}", #name)?;
-                    write!(f, "  {{")?;
+                    write!(f, "interface I{}{}", #name, #is_clause)?;
+                    write!(f, " {{")?;
                     #abi
                     #type_decls
                     writeln!(f, "}}")?;

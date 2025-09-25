@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IVerifySignature  {
+interface IVerifySignature {
     function getMessageHash(address to, uint256 amount, string calldata message, uint256 nonce) external view returns (bytes32);
 
     function getEthSignedMessageHash(bytes32 message_hash) external view returns (bytes32);
