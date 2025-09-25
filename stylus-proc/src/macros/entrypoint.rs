@@ -1,7 +1,6 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use cfg_if::cfg_if;
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::{abort, emit_error};
 use quote::{quote, ToTokens};
@@ -201,7 +200,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
 /// Revert on reentrancy unless explicitly enabled
 #[cfg(not(feature = "stylus-test"))]
 fn deny_reentrant() -> Option<syn::ExprIf> {
-    cfg_if! {
+    cfg_if::cfg_if! {
         if #[cfg(feature = "reentrant")] {
             None
         } else {
