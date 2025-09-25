@@ -1,7 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-//! Integration test for the `#[public]` macro using composition based inheritance.
+//! Test for the `#[public]` macro using composition based inheritance and associated types.
 //!
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
