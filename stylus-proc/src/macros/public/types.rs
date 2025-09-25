@@ -425,9 +425,7 @@ impl PublicImpl {
         let self_ty = &self.self_ty;
         let implements = self.implements.iter().map(|ty| {
             let in_type_name = match ty {
-                syn::Type::Path(path) => {
-                    path.path.segments.last().unwrap().ident.to_string()
-                }
+                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.to_string(),
                 _ => todo!(),
             };
             let out_type_name = format!("{in_type_name}StylusAbiStruct");
