@@ -61,7 +61,10 @@ pub fn print_from_args<T: GenerateAbi>() {
         None => {
             print!("{}", AbiPrinter(T::fmt_abi));
         }
-        Some(ExportCommands::Abi { license: _, pragma: _ }) => {
+        Some(ExportCommands::Abi {
+            license: _,
+            pragma: _,
+        }) => {
             print!("{}", AbiPrinter(T::fmt_abi));
         }
         Some(ExportCommands::Constructor) => {
