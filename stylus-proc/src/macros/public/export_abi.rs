@@ -32,10 +32,19 @@ impl InterfaceExtension for InterfaceAbi {
         } = iface;
 
         let name = if trait_.is_some() {
-            trait_.as_ref().unwrap().segments.last().unwrap().ident.to_string()
+            trait_
+                .as_ref()
+                .unwrap()
+                .segments
+                .last()
+                .unwrap()
+                .ident
+                .to_string()
         } else {
             match self_ty {
-                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.clone().to_string(),
+                syn::Type::Path(path) => {
+                    path.path.segments.last().unwrap().ident.clone().to_string()
+                }
                 _ => todo!(),
             }
         };
@@ -123,7 +132,8 @@ impl InterfaceExtension for InterfaceAbi {
 
         let struct_ty = if trait_.is_some() {
             let name = format!("{name}StylusAbiStruct");
-            let my_type: syn::Type = parse_str(&name).expect("Failed to parse string into a syn::Type");
+            let my_type: syn::Type =
+                parse_str(&name).expect("Failed to parse string into a syn::Type");
             my_type
         } else {
             self_ty.clone()
