@@ -397,7 +397,15 @@ impl PublicImpl {
             return quote! {};
         }
 
-        let in_trait_name = self.trait_.as_ref().unwrap().get_ident().unwrap().to_string();
+        let in_trait_name = self
+            .trait_
+            .as_ref()
+            .unwrap()
+            .segments
+            .last()
+            .unwrap()
+            .ident
+            .to_string();
         let ident = syn::Ident::new(
             &format!("{in_trait_name}StylusAbiStruct"),
             Span::call_site(),
@@ -420,8 +428,9 @@ impl PublicImpl {
         let self_ty = &self.self_ty;
         let implements = self.implements.iter().map(|ty| {
             let in_type_name = match ty {
-                syn::Type::Path(path) => {
-                    path.path.segments.last().unwrap().ident.clone().to_string()
+                syn::Type::Path(_path) => {
+                    // path.path.segments.last().unwrap().ident.clone().to_string()
+                    "hey".to_string()
                 }
                 _ => todo!(),
             };
