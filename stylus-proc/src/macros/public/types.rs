@@ -392,12 +392,16 @@ impl PublicImpl {
         })
     }
 
+    // For each trait T tagged as #[public], a struct TStylusAbiStruct is generated
+    // when the "export-abi" feature is enabled. This struct will later be bounded
+    // to the GenerateAbi trait, to then be able to output the solidity ABI related to
+    // the trait T.
     pub fn struct_for_export_abi(&self) -> proc_macro2::TokenStream {
         if self.trait_.is_none() {
             return quote! {};
         }
 
-        let in_trait_name = self
+        let trait_name = self
             .trait_
             .as_ref()
             .unwrap()
@@ -407,7 +411,7 @@ impl PublicImpl {
             .ident
             .to_string();
         let ident = syn::Ident::new(
-            &format!("{in_trait_name}StylusAbiStruct"),
+            &format!("{trait_name}StylusAbiStruct"),
             Span::call_site(),
         );
         quote! {
