@@ -428,7 +428,8 @@ impl PublicImpl {
             return quote! {};
         }
 
-        // if self represents a `impl MyStruct { ... }`, then we want to generate print_from_args
+        // if self represents a `impl MyStruct { ... }`, that can be tagged with a #implements
+        // attribute, then we want to generate print_from_args.
         let self_ty = &self.self_ty;
         let implements = self.implements.iter().map(|ty| {
             let in_type_name = match ty {
@@ -436,9 +437,10 @@ impl PublicImpl {
                 _ => todo!(),
             };
             let out_type_name = format!("{in_type_name}StylusAbiStruct");
-            let my_type: syn::Type =
+            let ty: syn::Type =
                 parse_str(&out_type_name).expect("Failed to parse string into a syn::Type");
-            my_type
+            ty
+
         });
         quote! {
             #[cfg(feature = "export-abi")]
