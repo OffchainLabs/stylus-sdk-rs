@@ -110,3 +110,5 @@ This project is licensed under either of
 at your option.
 
 The [SPDX](https://spdx.dev) license identifier for this project is `MIT OR Apache-2.0`.
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OffchainLabs/stylus-sdk-rs)
