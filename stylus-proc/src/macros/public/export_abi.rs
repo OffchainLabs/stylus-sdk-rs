@@ -132,9 +132,9 @@ impl InterfaceExtension for InterfaceAbi {
 
         let struct_ty = if trait_.is_some() {
             let name = format!("{name}StylusAbiStruct");
-            let my_type: syn::Type =
+            let ty: syn::Type =
                 parse_str(&name).expect("Failed to parse string into a syn::Type");
-            my_type
+            ty
         } else {
             self_ty.clone()
         };
@@ -142,7 +142,7 @@ impl InterfaceExtension for InterfaceAbi {
         let implements_names = implements.iter().map(|ty| {
             let name = match ty {
                 syn::Type::Path(path) => {
-                    path.path.segments.last().unwrap().ident.clone().to_string()
+                    path.path.segments.last().unwrap().ident.to_string()
                 }
                 _ => todo!(),
             };
