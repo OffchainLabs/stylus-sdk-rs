@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use alloy::{
-    primitives::{Address, B256, U256},
+    primitives::{Address, TxHash, B256, U256},
     providers::{Provider, WalletProvider},
 };
 use cargo_metadata::{semver::Version, Package, TargetKind};
@@ -16,6 +16,7 @@ use crate::{
         deployment::{deploy, DeploymentConfig, DeploymentError},
         manifest,
         reflection::ReflectionConfig,
+        verification::{self, VerificationStatus},
     },
     error::decode_contract_error,
     ops,
@@ -102,6 +103,15 @@ impl Contract {
 
     pub fn export_abi(&self, config: &ReflectionConfig) -> eyre::Result<()> {
         ops::export_abi(self.package.name.as_ref(), config)
+    }
+
+    pub async fn verify(
+        &self,
+        tx_hash: TxHash,
+        provider: &impl Provider,
+    ) -> eyre::Result<VerificationStatus> {
+        let status = verification::verify(self, tx_hash, provider).await?;
+        Ok(status)
     }
 
     pub fn print_constructor(&self, config: &ReflectionConfig) -> eyre::Result<()> {
