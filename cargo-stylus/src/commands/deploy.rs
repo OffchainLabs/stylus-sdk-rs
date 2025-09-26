@@ -2,10 +2,14 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
+use cargo_util_schemas::manifest::PackageName;
+use eyre::eyre;
+use stylus_tools::core::project::workspace::Workspace;
 
+use crate::error::CargoStylusError;
 use crate::{
     common_args::{
-        ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
+        ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProviderArgs,
     },
     error::CargoStylusResult,
 };
@@ -61,8 +65,8 @@ pub struct Args {
     check: CheckArgs,
     #[command(flatten)]
     deploy: DeployArgs,
-    #[command(flatten)]
-    project: ProjectArgs,
+    #[arg(long)]
+    contract: Option<PackageName>,
     #[command(flatten)]
     provider: ProviderArgs,
 }
@@ -70,8 +74,17 @@ pub struct Args {
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
     let config = args.deploy.config(&args.activation, &args.check);
-    for contract in args.project.contracts()? {
-        contract.deploy(&config, &provider).await?;
-    }
+    let workspace = Workspace::current().unwrap();
+
+    let contract = args
+        .contract
+        .map(|n| workspace.contract(n))
+        .unwrap_or(workspace.root_contract())
+        .map(|c| c.map_err(|err| CargoStylusError::from(eyre!("Contract failed {:?}", err))))
+        .unwrap_or(Err(CargoStylusError::from(eyre!("Contract not found"))))?;
+
+    println!("Deploying contract {:?} from package {:?}", contract, contract.package);
+    contract.deploy(&config, &provider).await?;
+
     Ok(())
 }

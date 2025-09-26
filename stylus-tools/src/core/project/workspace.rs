@@ -32,6 +32,20 @@ impl Workspace {
         Self::try_from(metadata)
     }
 
+    pub fn root_contract(&self) -> Option<Result<Contract, ContractError>> {
+        self.metadata
+            .root_package()
+            .filter(|p| Contract::is_contract(p))
+            .map(Contract::try_from)
+    }
+
+    pub fn contract(&self, contract_name: PackageName) -> Option<Result<Contract, ContractError>> {
+        self.contracts().find(|c| match c {
+            Ok(c) => c.package.name == contract_name,
+            Err(_) => false,
+        })
+    }
+
     pub fn default_contracts(&self) -> impl Iterator<Item = Result<Contract, ContractError>> + '_ {
         self.metadata
             .workspace_default_packages()
