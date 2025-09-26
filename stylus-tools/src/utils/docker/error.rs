@@ -9,6 +9,9 @@ const CANNOT_CONNECT: &str = "Cannot connect to the Docker daemon";
 
 #[derive(Debug, thiserror::Error)]
 pub enum DockerError {
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+
     #[error("Failed to execute Docker command: {0}")]
     CommandExecution(io::Error),
     #[error("Wait failed: {0}")]
@@ -21,6 +24,18 @@ pub enum DockerError {
     CannotConnect(String),
     #[error("Docker error: {0}")]
     Docker(String),
+
+    #[error("unable to determine host OS type")]
+    UnableToDetermineOsType,
+    #[error("unable to determine kernel version")]
+    UnableToDetermineKernelVersion,
+    #[error(
+        "Reproducible cargo stylus commands on Windows are only supported \
+            in Windows Linux Subsystem (WSL). Please install within WSL. \
+            To instead opt out of reproducible builds, add the --no-verify \
+            flag to your commands."
+    )]
+    WSLRequired,
 }
 
 impl DockerError {
