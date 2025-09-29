@@ -3,7 +3,6 @@
 
 use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
-use stylus_tools::ops::activate::contract;
 use crate::{
     common_args::{
         ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
@@ -74,7 +73,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         return Err(CargoStylusError::from(eyre!("Multi-contract deployment only allowed for no-arg constructors")))
     }
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
-    let config = args.deploy.config(&args.activation, &args.check);
+    let config = args.deploy.config(&args.activation, &args.check, args.auth.get_max_fee_per_gas_wei()?, args.estimate_gas, args.no_activate);
     for contract in args.project.contracts()? {
         contract.deploy(&config, &provider).await?;
     }

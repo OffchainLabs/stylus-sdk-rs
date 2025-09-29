@@ -33,20 +33,22 @@ pub async fn estimate_gas(
     let gas = activation::estimate_gas(address, config, provider).await?;
     let gas_price = provider.get_gas_price().await?;
 
+    print_gas_estimate("activation", gas, gas_price)
+}
+
+pub fn print_gas_estimate(name: &str, gas: u64, gas_price: u128) -> eyre::Result<()> {
     greyln!("estimates");
-    greyln!("activation tx gas: {}", gas.debug_lavender());
+    greyln!("{} tx gas: {}", name, gas.debug_lavender());
     greyln!(
         "gas price: {} gwei",
         format_units(gas_price, "gwei")?.debug_lavender()
     );
-
     let total_cost = gas_price.checked_mul(gas.into()).unwrap_or_default();
     let eth_estimate = format_units(total_cost, "ether")?;
-
     greyln!(
-        "activation tx total cost: {} ETH",
+        "{} tx total cost: {} ETH",
+        name,
         eth_estimate.debug_lavender()
     );
-
     Ok(())
 }
