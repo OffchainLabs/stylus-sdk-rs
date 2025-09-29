@@ -2,17 +2,15 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
-use cargo_util_schemas::manifest::PackageName;
 use eyre::eyre;
-use stylus_tools::core::project::workspace::Workspace;
-
-use crate::error::CargoStylusError;
+use stylus_tools::ops::activate::contract;
 use crate::{
     common_args::{
-        ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProviderArgs,
+        ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
     },
     error::CargoStylusResult,
 };
+use crate::error::CargoStylusError;
 
 // TODO: this should be in stylus-tools
 pub const STYLUS_DEPLOYER_ADDRESS: Address = address!("6ac4839Bfe169CadBBFbDE3f29bd8459037Bf64e");
@@ -65,26 +63,20 @@ pub struct Args {
     check: CheckArgs,
     #[command(flatten)]
     deploy: DeployArgs,
-    #[arg(long)]
-    contract: Option<PackageName>,
+    #[command(flatten)]
+    project: ProjectArgs,
     #[command(flatten)]
     provider: ProviderArgs,
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
+    if args.project.contracts()?.len() > 1 && !args.constructor_args.is_empty() {
+        return Err(CargoStylusError::from(eyre!("Multi-contract deployment only allowed for no-arg constructors")))
+    }
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
     let config = args.deploy.config(&args.activation, &args.check);
-    let workspace = Workspace::current().unwrap();
-
-    let contract = args
-        .contract
-        .map(|n| workspace.contract(n))
-        .unwrap_or(workspace.root_contract())
-        .map(|c| c.map_err(|err| CargoStylusError::from(eyre!("Contract failed {:?}", err))))
-        .unwrap_or(Err(CargoStylusError::from(eyre!("Contract not found"))))?;
-
-    println!("Deploying contract {:?} from package {:?}", contract, contract.package);
-    contract.deploy(&config, &provider).await?;
-
+    for contract in args.project.contracts()? {
+        contract.deploy(&config, &provider).await?;
+    }
     Ok(())
 }
