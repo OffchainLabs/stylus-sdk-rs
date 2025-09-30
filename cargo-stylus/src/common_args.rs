@@ -3,6 +3,7 @@
 
 use std::{fs, path::PathBuf};
 
+use alloy::primitives::Address;
 use alloy::{
     network::EthereumWallet,
     primitives::FixedBytes,
@@ -142,12 +143,25 @@ impl CheckArgs {
 pub struct DeployArgs {}
 
 impl DeployArgs {
-    pub fn config(&self, activate: &ActivationArgs, check: &CheckArgs, max_fee_per_gas_gwei: Option<u128>, estimate_gas: bool, no_activate: bool) -> DeploymentConfig {
+    pub fn config(
+        &self,
+        activate: &ActivationArgs,
+        check: &CheckArgs,
+        max_fee_per_gas_gwei: Option<u128>,
+        estimate_gas: bool,
+        no_activate: bool,
+        deployer_address: Address,
+        constructor_args: Vec<String>,
+        deployer_salt: alloy::primitives::B256,
+    ) -> DeploymentConfig {
         DeploymentConfig {
             check: check.config(activate),
             max_fee_per_gas_gwei,
             estimate_gas,
             no_activate,
+            deployer_address,
+            constructor_args,
+            deployer_salt,
             ..Default::default()
         }
     }
