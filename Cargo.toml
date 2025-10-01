@@ -22,7 +22,7 @@ keccak-const = "0.2.0"
 lazy_static = "1.5.0"
 mini-alloc = "1.0.0"
 sha3 = "0.10.8"
-rclite = "0.2.4"
+rclite = "=0.2.7"
 
 # proc macros
 convert_case = "0.6.0"

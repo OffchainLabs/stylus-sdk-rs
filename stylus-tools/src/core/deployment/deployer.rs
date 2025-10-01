@@ -102,7 +102,7 @@ pub async fn parse_tx_calldata(
     constructor_calldata.extend(calldata_args);
 
     let tx_calldata = StylusDeployer::new(Address::ZERO, provider)
-        .deploy(
+        .deploy_call(
             DeploymentCalldata::new(contract_code).into(),
             constructor_calldata.into(),
             constructor_value,
