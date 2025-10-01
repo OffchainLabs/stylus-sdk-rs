@@ -4,7 +4,9 @@
 use crate::core::activation;
 use crate::core::activation::ActivationError;
 use crate::core::cache::format_gas;
-use crate::core::deployment::deployer::{get_address_from_receipt, parse_tx_calldata, DeployerError};
+use crate::core::deployment::deployer::{
+    get_address_from_receipt, parse_tx_calldata, DeployerError,
+};
 use crate::core::deployment::DeploymentError::{
     InvalidConstructor, NoContractAddress, ReadConstructorFailure,
 };
@@ -203,7 +205,7 @@ pub async fn deploy(
 
             let tx_calldata = parse_tx_calldata(
                 status.code(),
-                &constructor,
+                constructor,
                 config.constructor_value,
                 config.constructor_args.clone(),
                 config.deployer_salt,
@@ -241,7 +243,9 @@ pub async fn deploy(
     let receipt = req.exec(&provider).await?;
 
     let contract_addr = match &constructor {
-        None => receipt.contract_address.ok_or(NoContractAddress("in receipt".to_string())),
+        None => receipt
+            .contract_address
+            .ok_or(NoContractAddress("in receipt".to_string())),
         Some(_) => get_address_from_receipt(&receipt),
     }?;
 

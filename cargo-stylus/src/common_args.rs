@@ -142,6 +142,7 @@ impl CheckArgs {
 #[derive(Debug, clap::Args)]
 pub struct DeployArgs {}
 
+#[allow(clippy::too_many_arguments)]
 impl DeployArgs {
     pub fn config(
         &self,

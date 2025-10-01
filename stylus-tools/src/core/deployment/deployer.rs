@@ -1,21 +1,22 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::core::deployment::prelude::DeploymentCalldata;
+use crate::core::deployment::DeploymentError;
+use crate::core::deployment::DeploymentError::NoContractAddress;
+use alloy::dyn_abi::{DynSolValue, JsonAbiExt, Specifier};
+use alloy::json_abi::Constructor;
+use alloy::primitives::B256;
+use alloy::rpc::types::TransactionReceipt;
 use alloy::{
     primitives::{address, Address, U256},
     providers::Provider,
     rpc::types::TransactionRequest,
     sol,
-    sol_types::SolCall, sol_types::SolEvent,
+    sol_types::SolCall,
+    sol_types::SolEvent,
 };
-use alloy::dyn_abi::{DynSolValue, JsonAbiExt, Specifier};
-use alloy::json_abi::Constructor;
-use alloy::primitives::B256;
-use alloy::rpc::types::TransactionReceipt;
 use eyre::{Context, ErrReport};
-use crate::core::deployment::DeploymentError;
-use crate::core::deployment::DeploymentError::NoContractAddress;
-use crate::core::deployment::prelude::DeploymentCalldata;
 
 pub const ADDRESS: Address = address!("cEcba2F1DC234f70Dd89F2041029807F8D03A990");
 
@@ -101,7 +102,7 @@ pub async fn parse_tx_calldata(
     constructor_calldata.extend(calldata_args);
 
     let tx_calldata = StylusDeployer::new(Address::ZERO, provider)
-        .deploy_call(
+        .deploy(
             DeploymentCalldata::new(contract_code).into(),
             constructor_calldata.into(),
             constructor_value,
@@ -127,7 +128,7 @@ pub fn get_address_from_receipt(receipt: &TransactionReceipt) -> Result<Address,
             if log.data().data.len() != 32 {
                 return Err(NoContractAddress("from ContractDeployed log".to_string()));
             }
-            return Ok(Address::from_slice(&log.data().data[12..32]));
+            Ok(Address::from_slice(&log.data().data[12..32]))
         })
         .unwrap_or_else(|| Err(NoContractAddress("from receipt logs".to_string())))
 }

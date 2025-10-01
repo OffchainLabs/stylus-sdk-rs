@@ -8,7 +8,7 @@ use crate::{
     },
     error::CargoStylusResult,
 };
-use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
+use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
 use stylus_tools::core::deployment::deployer::ADDRESS;
 
