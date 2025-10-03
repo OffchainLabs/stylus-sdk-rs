@@ -3,9 +3,8 @@
 
 //! Run commands from the Docker CLI.
 
-#![allow(dead_code)]
-
 use std::{
+    ffi::OsStr,
     process::{Command, Stdio},
     str,
 };
@@ -14,15 +13,33 @@ use super::{error::DockerError, json};
 
 const DOCKER_PROGRAM: &str = "docker";
 
+#[derive(Debug)]
+pub struct DockerBuild {
+    pub child: std::process::Child,
+}
+
+impl DockerBuild {
+    pub fn file(&mut self) -> impl std::io::Write + '_ {
+        self.child.stdin.as_mut().unwrap()
+    }
+
+    pub fn wait(mut self) -> Result<(), DockerError> {
+        self.child.wait().map_err(DockerError::WaitFailure)?;
+        Ok(())
+    }
+}
+
 /// Start a Docker build.
-pub fn build(tag: &str) {
-    let _child = Command::new(DOCKER_PROGRAM)
+pub fn build(tag: &str) -> Result<DockerBuild, DockerError> {
+    let child = Command::new(DOCKER_PROGRAM)
         .arg("build")
         .args(["--tag", tag])
         .arg(".")
         .args(["--file", "-"])
         .stdin(Stdio::piped())
-        .spawn();
+        .spawn()
+        .map_err(DockerError::CommandExecution)?;
+    Ok(DockerBuild { child })
 }
 
 /// List local Docker images.
@@ -53,12 +70,13 @@ pub fn run(
     network: Option<&str>,
     volumes: &[(&str, &str)],
     workdir: Option<&str>,
+    args: impl IntoIterator<Item = impl AsRef<OsStr>>,
 ) -> Result<(), DockerError> {
     // TODO: builder pattern
     // TODO: --mount instead of --volume
     // TODO: check return code
     let mut cmd = Command::new(DOCKER_PROGRAM);
-    cmd.args(["run", image]);
+    cmd.arg("run");
     if let Some(network) = network {
         cmd.args(["--network", network]);
     }
@@ -68,6 +86,8 @@ pub fn run(
     for (host_path, container_path) in volumes {
         cmd.args(["--volume", &format!("{host_path}:{container_path}")]);
     }
+    cmd.arg(image);
+    cmd.args(args);
     cmd.spawn()
         .map_err(DockerError::CommandExecution)?
         .wait()
