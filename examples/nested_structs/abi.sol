@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface INestedStructs  {
+interface INestedStructs {
     function addUser(address _address, string calldata name) external;
 
     function addDogs(address user, Dog[] memory dogs) external;

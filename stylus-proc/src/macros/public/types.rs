@@ -4,12 +4,12 @@ use proc_macro2::{Span, TokenStream};
 use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{
-    parse::Nothing, parse_quote, parse_quote_spanned, punctuated::Punctuated, spanned::Spanned,
-    Token,
+    parse::Nothing, parse_quote, parse_quote_spanned, parse_str, punctuated::Punctuated,
+    spanned::Spanned, Token,
 };
 
 use crate::{
-    consts::STYLUS_CONTRACT_ADDRESS_FIELD,
+    consts::{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, STYLUS_CONTRACT_ADDRESS_FIELD},
     imports::{
         alloy_sol_types::SolType,
         stylus_sdk::abi::{AbiType, Router},
@@ -390,6 +390,65 @@ impl PublicImpl {
                 }
             }
         })
+    }
+
+    // For each trait T tagged as #[public], a struct TStylusAbiStruct is generated
+    // when the "export-abi" feature is enabled. This struct will later be bounded
+    // to the GenerateAbi trait, to then be able to output the solidity ABI related to
+    // the trait T.
+    pub fn struct_for_export_abi(&self) -> proc_macro2::TokenStream {
+        if self.trait_.is_none() {
+            return quote! {};
+        }
+
+        let trait_name = self
+            .trait_
+            .as_ref()
+            .unwrap()
+            .segments
+            .last()
+            .unwrap()
+            .ident
+            .to_string();
+        let ident = syn::Ident::new(
+            &format!("{trait_name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}"),
+            Span::call_site(),
+        );
+        quote! {
+            #[cfg(feature = "export-abi")]
+            pub struct #ident;
+        }
+    }
+
+    pub fn print_from_args_fn(&self) -> proc_macro2::TokenStream {
+        if self.trait_.is_some() {
+            return quote! {};
+        }
+        if !self.generic_params.is_empty() {
+            return quote! {};
+        }
+
+        // if self represents a `impl MyStruct { ... }`, that can be tagged with a #implements
+        // attribute, then we want to generate print_from_args.
+        let self_ty = &self.self_ty;
+        let implements = self.implements.iter().map(|ty| {
+            let in_type_name = match ty {
+                syn::Type::Path(path) => path.path.segments.last().unwrap().ident.to_string(),
+                _ => todo!(),
+            };
+            let out_type_name = format!("{in_type_name}{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI}");
+            let ty: syn::Type =
+                parse_str(&out_type_name).expect("Failed to parse string into a syn::Type");
+            ty
+        });
+        quote! {
+            #[cfg(feature = "export-abi")]
+            pub fn print_from_args() {
+                stylus_sdk::abi::export::handle_license_and_pragma();
+                stylus_sdk::abi::export::print_from_args::<#self_ty>();
+                #(stylus_sdk::abi::export::print_from_args::<#implements>();)*
+            }
+        }
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {

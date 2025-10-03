@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface ICounter  {
+interface ICounter {
     function get() external view returns (uint256);
 
     function setCount(uint256 count) external;

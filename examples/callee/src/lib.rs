@@ -16,15 +16,14 @@ use stylus_sdk::{
 pub struct Callee {}
 
 #[public]
-#[implements(Trait1<U256, Address, Output = U256>, Trait2)]
+#[implements(Trait1<U256, Address>, Trait2)]
 impl Callee {
     fn no_input_no_output(&self) {}
 }
 
 #[public]
 pub trait Trait1<Input1, Input2> {
-    type Output;
-    fn one_input_one_output(&self, input: U256) -> Self::Output;
+    fn one_input_one_output(&self, input: U256) -> U256;
     fn multiple_inputs_multiple_outputs(
         &self,
         input1: Input1,
@@ -36,9 +35,7 @@ pub trait Trait1<Input1, Input2> {
 
 #[public]
 impl Trait1<U256, Address> for Callee {
-    type Output = U256;
-
-    fn one_input_one_output(&self, input: U256) -> Self::Output {
+    fn one_input_one_output(&self, input: U256) -> U256 {
         input.saturating_add(U256::from(1))
     }
 

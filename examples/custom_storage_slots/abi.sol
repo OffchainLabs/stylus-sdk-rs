@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IContract  {
+interface IContract {
     function setNumber(uint256 number) external;
 
     function number() external view returns (uint256);
