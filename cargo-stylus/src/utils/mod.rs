@@ -7,6 +7,7 @@ use eyre::bail;
 
 use style::{BOLD, ERROR};
 
+pub mod hostio;
 mod style;
 
 pub fn convert_gwei_to_wei(fee_str: &str) -> eyre::Result<u128> {

@@ -1,6 +1,8 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::collections::VecDeque;
+
 use alloy::{
     eips::BlockId,
     network::TransactionBuilder,
@@ -13,10 +15,15 @@ use alloy::{
         TransactionRequest,
     },
 };
-
+use eyre::bail;
 use serde_json::{Map, Value};
 
 use frame::{ActivationTraceFrame, TraceFrame};
+
+use crate::{
+    core::tracing::hostio::Hostio,
+    utils::color::{Color, DebugColor},
+};
 
 pub mod frame;
 pub mod hostio;
@@ -73,6 +80,13 @@ impl Trace {
         })
     }
 
+    pub fn reader(self) -> FrameReader {
+        FrameReader {
+            steps: self.top_frame.steps.clone().into(),
+            frame: self.top_frame,
+        }
+    }
+
     pub async fn simulate(
         config: &SimulateConfig,
         provider: &impl Provider,
@@ -117,6 +131,63 @@ impl Trace {
 
     pub fn json(&self) -> &Value {
         &self.json
+    }
+
+    pub fn tx(&self) -> &TransactionRequest {
+        &self.tx
+    }
+}
+
+#[derive(Debug)]
+pub struct FrameReader {
+    frame: TraceFrame,
+    steps: VecDeque<Hostio>,
+}
+
+impl FrameReader {
+    fn next(&mut self) -> eyre::Result<Hostio> {
+        match self.steps.pop_front() {
+            Some(item) => Ok(item),
+            None => bail!("No next hostio"),
+        }
+    }
+
+    pub fn next_hostio(&mut self, expected: &'static str) -> Hostio {
+        fn detected(reader: &FrameReader, expected: &'static str) {
+            let expected = expected.red();
+            let which = match reader.frame.address {
+                Some(call) => format!("call to {}", call.red()),
+                None => "contract deployment".to_string(),
+            };
+            println!("{}", "\n════════ Divergence ════════".red());
+            println!("Divegence detected while simulating a {which} via local assembly.");
+            println!("The simulated environment expected a call to the {expected} Host I/O.",);
+        }
+
+        loop {
+            let Ok(hostio) = self.next() else {
+                detected(self, expected);
+                println!("However, no such call is made onchain. Are you sure this the right contract?\n");
+                panic!();
+            };
+
+            if hostio.kind.name() == expected {
+                return hostio;
+            }
+
+            let kind = hostio.kind;
+            let name = kind.name();
+            match name {
+                "pay_for_memory_grow" | "user_entrypoint" | "user_returned" => continue,
+                _ => {
+                    detected(self, expected);
+                    println!("However, onchain there's a call to {name}. Are you sure this the right contract?\n");
+                    println!("expected: {}", expected.red());
+                    println!("but have: {}\n", kind.debug_red());
+                    panic!();
+                }
+            }
+        }
     }
 }
 

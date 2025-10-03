@@ -2,20 +2,18 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{Address, B256, U256};
+use sneks::SimpleSnakeNames;
 
 use super::frame::TraceFrame;
 
-//#[derive(Clone, Debug, Eq, PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Hostio {
     pub kind: HostioKind,
     pub start_ink: u64,
     pub end_ink: u64,
 }
 
-//#[allow(dead_code)]
-//#[derive(Clone, Debug, Eq, PartialEq, SimpleSnakeNames)]
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, SimpleSnakeNames)]
 pub enum HostioKind {
     UserEntrypoint {
         args_len: u32,

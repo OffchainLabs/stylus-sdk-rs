@@ -9,19 +9,16 @@ use serde_json::Value;
 
 use super::{hostio::Hostio, TracingError};
 
-//#[derive(Serialize, Deserialize)]
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct ActivationTraceFrame {
     address: Value,
 }
 
-//#[derive(Clone, Debug, PartialEq, Eq)]
-#[derive(Debug)]
-#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TraceFrame {
-    steps: Vec<Hostio>,
-    address: Option<Address>,
+    pub(crate) steps: Vec<Hostio>,
+    pub(crate) address: Option<Address>,
 }
 
 impl TraceFrame {

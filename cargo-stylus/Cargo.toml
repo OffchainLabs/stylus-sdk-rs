@@ -22,5 +22,10 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 anstyle = "1.0.10"
 clap = { version = "4.5.39", features = ["derive"] }
+function_name = "0.3"
 itertools = "0.14"
+lazy_static = "1.5"
+libloading = "0.8"
+parking_lot = "0.12"
+rustc-host = "0.1"
 simple_logger = "5.0"
