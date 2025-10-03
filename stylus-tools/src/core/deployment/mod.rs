@@ -1,13 +1,17 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy::{
-    network::TransactionBuilder,
-    primitives::{Address, TxHash, U256},
-    providers::{Provider, WalletProvider},
-    rpc::types::{TransactionReceipt, TransactionRequest},
+use crate::core::activation;
+use crate::core::activation::ActivationError;
+use crate::core::cache::format_gas;
+use crate::core::deployment::deployer::{
+    get_address_from_receipt, parse_tx_calldata, DeployerError,
 };
-
+use crate::core::deployment::DeploymentError::{
+    InvalidConstructor, NoContractAddress, ReadConstructorFailure,
+};
+use crate::ops::activate::print_gas_estimate;
+use crate::ops::get_constructor_signature;
 use crate::{
     core::{
         check::{check_contract, CheckConfig},
@@ -15,6 +19,15 @@ use crate::{
     },
     utils::color::{Color, DebugColor},
 };
+use alloy::json_abi::StateMutability::Payable;
+use alloy::{
+    network::TransactionBuilder,
+    primitives::{Address, TxHash, U256},
+    providers::{Provider, WalletProvider},
+    rpc::types::{TransactionReceipt, TransactionRequest},
+};
+
+use alloy::primitives::B256;
 use prelude::DeploymentCalldata;
 
 pub mod deployer;
@@ -23,7 +36,13 @@ pub mod prelude;
 #[derive(Debug, Default)]
 pub struct DeploymentConfig {
     pub check: CheckConfig,
+    pub max_fee_per_gas_gwei: Option<u128>,
+    pub estimate_gas: bool,
+    pub no_activate: bool,
     pub constructor_value: U256,
+    pub deployer_address: Address,
+    pub constructor_args: Vec<String>,
+    pub deployer_salt: B256,
 }
 
 #[derive(Debug)]
@@ -33,14 +52,28 @@ pub struct DeploymentRequest {
 }
 
 impl DeploymentRequest {
-    pub fn new(sender: Address, code: &[u8]) -> Self {
-        let deploy_code = DeploymentCalldata::new(code);
-        let tx = TransactionRequest::default()
-            .with_from(sender)
-            .with_deploy_code(deploy_code);
+    pub fn new_with_args(
+        sender: Address,
+        deployer: Address,
+        tx_value: U256,
+        tx_calldata: Vec<u8>,
+        max_fee_per_gas_wei: Option<u128>,
+    ) -> Self {
         Self {
-            tx,
-            max_fee_per_gas_wei: None,
+            tx: TransactionRequest::default()
+                .with_to(deployer)
+                .with_from(sender)
+                .with_value(tx_value)
+                .with_input(tx_calldata),
+            max_fee_per_gas_wei,
+        }
+    }
+    pub fn new(sender: Address, code: &[u8], max_fee_per_gas_wei: Option<u128>) -> Self {
+        Self {
+            tx: TransactionRequest::default()
+                .with_from(sender)
+                .with_deploy_code(DeploymentCalldata::new(code)),
+            max_fee_per_gas_wei,
         }
     }
 
@@ -111,6 +144,17 @@ pub enum DeploymentError {
     },
     #[error("deploy tx reverted {}", .tx_hash.debug_red())]
     Reverted { tx_hash: TxHash },
+    #[error("{0}")]
+    DeployerFailure(#[from] DeployerError),
+    #[error("{0}")]
+    ActivationFailure(#[from] ActivationError),
+    // TODO: Can this error occur?
+    #[error("missing address: {0}")]
+    NoContractAddress(String),
+    #[error("failed to get constructor signature")]
+    ReadConstructorFailure,
+    #[error("invalid constructor: {0}")]
+    InvalidConstructor(String),
 }
 
 /// Deploys a stylus contract, activating if needed.
@@ -138,6 +182,99 @@ pub async fn deploy(
             });
         }
     }
+
+    let constructor = get_constructor_signature(contract.package.name.as_str())
+        .map_err(|_| ReadConstructorFailure)?;
+
+    let req = match &constructor {
+        None => DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei),
+        Some(constructor) => {
+            if constructor.state_mutability != Payable && !config.constructor_value.is_zero() {
+                return Err(InvalidConstructor(
+                    "attempting to send Ether to non-payable constructor".to_string(),
+                ));
+            }
+            if config.constructor_args.len() != constructor.inputs.len() {
+                return Err(InvalidConstructor(format!(
+                    "mismatch number of constructor arguments (want {:?} ({}); got {})",
+                    constructor.inputs,
+                    constructor.inputs.len(),
+                    config.constructor_args.len(),
+                )));
+            }
+
+            let tx_calldata = parse_tx_calldata(
+                status.code(),
+                constructor,
+                config.constructor_value,
+                config.constructor_args.clone(),
+                config.deployer_salt,
+                &provider,
+            )
+            .await
+            .map_err(|err| InvalidConstructor(err.to_string()))?;
+
+            DeploymentRequest::new_with_args(
+                from_address,
+                config.deployer_address,
+                data_fee,
+                tx_calldata,
+                config.max_fee_per_gas_gwei,
+            )
+        }
+    };
+
+    if config.estimate_gas {
+        let gas = req
+            .estimate_gas(&provider)
+            .await
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        let gas_price = req
+            .fee_per_gas(&provider)
+            .await
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        print_gas_estimate("deployment", gas, gas_price)
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        // TODO: Is this part needed?
+        let nonce = provider.get_transaction_count(from_address).await?;
+        let _ = from_address.create(nonce);
+        return Ok(());
+    }
+    let receipt = req.exec(&provider).await?;
+
+    let contract_addr = match &constructor {
+        None => receipt
+            .contract_address
+            .ok_or(NoContractAddress("in receipt".to_string())),
+        Some(_) => get_address_from_receipt(&receipt),
+    }?;
+
+    info!(@grey, "deployed code at address: {}", contract_addr.debug_lavender());
+    debug!(@grey, "gas used: {}", format_gas(receipt.gas_used.into()));
+    info!(@grey, "deployment tx hash: {}", receipt.transaction_hash.debug_lavender());
+
+    if constructor.is_some() {
+    } else if matches!(status, ContractStatus::Active { .. }) {
+        greyln!("wasm already activated!")
+    } else if config.no_activate {
+        mintln!(
+            r#"NOTE:
+        You must activate the stylus contract before calling it. To do so, we recommend running:
+        cargo stylus activate --address {}"#,
+            hex::encode(contract_addr)
+        )
+    } else {
+        activation::activate_contract(contract_addr, &config.check.activation, provider).await?;
+    }
+
+    mintln!(
+        r#"NOTE:
+        We recommend running cargo stylus cache bid {} 0 to cache your activated contract in ArbOS.
+        Cached contracts benefit from cheaper calls.
+        To read more about the Stylus contract cache, see:
+        https://docs.arbitrum.io/stylus/how-tos/caching-contracts"#,
+        hex::encode(contract_addr)
+    );
 
     Ok(())
 }
