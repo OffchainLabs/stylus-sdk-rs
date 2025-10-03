@@ -41,9 +41,10 @@ mod integration_test {
         let number = contract.number().call().await?;
         assert_eq!(U256::from(1), number);
 
+        let estimate = contract.addNumber(U256::from(3)).estimate_gas().await?;
         contract
             .addNumber(U256::from(3))
-            .gas(3_000_000)
+            .gas((11 * estimate) / 10)
             .send()
             .await?
             .watch()
@@ -51,9 +52,10 @@ mod integration_test {
         let number = contract.number().call().await?;
         assert_eq!(U256::from(4), number);
 
+        let estimate = contract.mulNumber(U256::from(2)).estimate_gas().await?;
         contract
             .mulNumber(U256::from(2))
-            .gas(3_000_000)
+            .gas((11 * estimate) / 10)
             .send()
             .await?
             .watch()
@@ -61,9 +63,10 @@ mod integration_test {
         let number = contract.number().call().await?;
         assert_eq!(U256::from(8), number);
 
+        let estimate = contract.setNumber(U256::from(100)).estimate_gas().await?;
         contract
             .setNumber(U256::from(100))
-            .gas(3_000_000)
+            .gas((11 * estimate) / 10)
             .send()
             .await?
             .watch()
