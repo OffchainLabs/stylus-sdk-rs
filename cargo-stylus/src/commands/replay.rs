@@ -105,8 +105,10 @@ pub async fn exec(args: Args) -> eyre::Result<()> {
 
     let trace = Trace::new(args.trace.tx, &args.trace.config, &provider).await?;
 
-    let mut config = BuildConfig::default();
-    config.features = args.features.unwrap_or_else(|| vec![]);
+    let config = BuildConfig {
+        features: args.features.unwrap_or_default(),
+        ..Default::default()
+    };
     let _wasm = contract.build(&config)?;
 
     let target_dir = Workspace::current()?.metadata.target_directory;
