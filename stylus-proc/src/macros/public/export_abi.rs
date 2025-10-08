@@ -28,6 +28,7 @@ impl InterfaceExtension for InterfaceAbi {
             funcs,
             trait_,
             implements,
+            associated_types,
             ..
         } = iface;
 
@@ -52,6 +53,7 @@ impl InterfaceExtension for InterfaceAbi {
         let mut types = Vec::new();
         for item in funcs {
             if let Some(ty) = &item.extension.output {
+                let ty = get_associated_type(ty, associated_types).unwrap_or(ty);
                 types.push(ty);
             }
         }
@@ -81,6 +83,7 @@ impl InterfaceExtension for InterfaceAbi {
             });
 
             let sol_outs = if let Some(ty) = &func.extension.output {
+                let ty = get_associated_type(ty, associated_types).unwrap_or(ty);
                 quote!(write_solidity_returns::<#ty>(f)?;)
             } else {
                 quote!()
@@ -176,6 +179,21 @@ impl InterfaceExtension for InterfaceAbi {
             }
         }
     }
+}
+
+fn get_associated_type<'a>(
+    ty: &syn::Type,
+    associated_types: &'a [(syn::Ident, syn::Type)],
+) -> Option<&'a syn::Type> {
+    if let syn::Type::Path(type_path) = ty {
+        if let Some(last_type_segment) = type_path.path.segments.last() {
+            return associated_types
+                .iter()
+                .find(|(ident, _)| last_type_segment.ident == *ident)
+                .map(|(_, value)| value);
+        }
+    }
+    None
 }
 
 #[derive(Debug, Default)]
