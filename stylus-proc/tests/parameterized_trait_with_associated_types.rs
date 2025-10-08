@@ -5,8 +5,6 @@
 //!
 //! Currently this simply checks that a contract using this macro can compile successfully.
 
-// For now export-abi doesn't support associated types
-#![cfg(not(feature = "export-abi"))]
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
