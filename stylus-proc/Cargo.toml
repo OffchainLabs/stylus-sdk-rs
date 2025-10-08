@@ -31,6 +31,8 @@ paste.workspace = true
 pretty_assertions.workspace = true
 prettyplease.workspace = true
 stylus-sdk = { workspace = true, features = ["stylus-test"] }
+contract_abi = {path = "./tests/contract_abi"}
+assert_cmd = "2.0"
 
 [features]
 default = ["trybuild-tests"]

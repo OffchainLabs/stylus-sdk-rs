@@ -1,0 +1,19 @@
+[package]
+name = "contract_abi"
+keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
+description = "E2E Testing contract for stylus-sdk"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+stylus-sdk = { path = "../../../stylus-sdk", workspace = true }
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+contract-client-gen = []
