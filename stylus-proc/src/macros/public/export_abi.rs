@@ -113,7 +113,7 @@ impl InterfaceExtension for InterfaceAbi {
                         let name = arg.extension.pattern_ident.as_ref().map(ToString::to_string).unwrap_or_default();
                         let ty = &arg.ty;
                         quote! {
-                            write!(f, "{}{}{}", #comma, <#ty as AbiType>::EXPORT_ABI_ARG, underscore_if_sol(#name))?;
+                            write!(f, "{}{}{}", #comma, <#ty as AbiType>::EXPORT_ABI_RET, underscore_if_sol(#name))?;
                         }
                     });
                     let sol_purity = match func.purity {
