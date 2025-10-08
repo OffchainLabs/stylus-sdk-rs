@@ -24,3 +24,6 @@ anstyle = "1.0.10"
 clap = { version = "4.5.39", features = ["derive"] }
 itertools = "0.14"
 simple_logger = "5.0"
+
+[dev-dependencies]
+assert_cmd = "2.0"
