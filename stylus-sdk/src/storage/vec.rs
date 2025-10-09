@@ -6,7 +6,6 @@ use super::{
 };
 use crate::{crypto, host::VM};
 use alloy_primitives::U256;
-use cfg_if::cfg_if;
 use core::{cell::OnceCell, marker::PhantomData};
 use stylus_core::HostAccess;
 
@@ -48,14 +47,11 @@ impl<S: StorageType> StorageType for StorageVec<S> {
 }
 
 impl<S: StorageType> HostAccess for StorageVec<S> {
-    fn vm(&self) -> &dyn stylus_core::Host {
-        cfg_if! {
-            if #[cfg(not(feature = "stylus-test"))] {
-                &self.__stylus_host
-            } else {
-                self.__stylus_host.host.as_ref()
-            }
-        }
+    type Host = VM;
+
+    #[inline]
+    fn vm(&self) -> &Self::Host {
+        &self.__stylus_host
     }
 }
 

@@ -6,6 +6,8 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
+use alloy_sol_types::abi::token::WordToken;
+use alloy_sol_types::{SolEvent, TopicList};
 use dyn_clone::DynClone;
 
 /// The host trait defines methods a Stylus contract can use to interact
@@ -27,7 +29,7 @@ pub trait Host:
     + MemoryAccess
     + MessageAccess
     + MeteringAccess
-    + LogAccess
+    + RawLogAccess
     + DynClone
 {
 }
@@ -37,9 +39,12 @@ dyn_clone::clone_trait_object!(Host);
 
 /// Defines a trait that allows a Stylus contract to access its host safely.
 pub trait HostAccess {
+    /// Host type returned by [`Self::vm()`].
+    type Host: Host;
+
     /// Provides access to the parametrized host of a contract, giving access
     /// to all the desired hostios from the user.
-    fn vm(&self) -> &dyn Host;
+    fn vm(&self) -> &Self::Host;
 }
 
 /// Defines a trait that can deny access to a contract router method if a message value is
@@ -438,7 +443,7 @@ pub trait MeteringAccess {
 }
 
 /// Provides access to the ability to emit logs from a Stylus contract.
-pub trait LogAccess {
+pub trait RawLogAccess {
     /// Emits an EVM log with the given number of topics and data, the first bytes of which should
     /// be the 32-byte-aligned topic data. The semantics are equivalent to that of the EVM's
     /// [`LOG0`], [`LOG1`], [`LOG2`], [`LOG3`], and [`LOG4`] opcodes based on the number of topics
@@ -453,3 +458,36 @@ pub trait LogAccess {
     /// Emits a raw log from topics and data.
     fn raw_log(&self, topics: &[B256], data: &[u8]) -> Result<(), &'static str>;
 }
+
+/// Provides access to the ability to emit typed logs from a Stylus contract.
+pub trait LogAccess: RawLogAccess {
+    /// Emits a typed alloy log.
+    ///
+    /// ```rust,ignore
+    /// sol! {
+    ///    event Transfer(
+    ///        address indexed from,
+    ///        address indexed to,
+    ///        uint256 indexed token_id
+    ///    );
+    /// }
+    ///
+    /// self.vm().log(Transfer { from, to, token_id });
+    /// ```
+    fn log<T: SolEvent>(&self, event: T) {
+        // According to the alloy docs, encode_topics_raw fails only if the array is too small
+
+        let mut topics = [WordToken::default(); 4];
+        event.encode_topics_raw(&mut topics).unwrap();
+
+        let count = T::TopicList::COUNT;
+        let mut bytes = Vec::with_capacity(32 * count);
+        for topic in &topics[..count] {
+            bytes.extend_from_slice(topic.as_slice());
+        }
+        event.encode_data_to(&mut bytes);
+        self.emit_log(&bytes, count)
+    }
+}
+
+impl<T: RawLogAccess> LogAccess for T {}

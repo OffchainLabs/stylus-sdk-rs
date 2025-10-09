@@ -172,7 +172,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
                 #[no_mangle]
                 #[cfg(not(feature = "contract-client-gen"))]
                 pub extern "C" fn user_entrypoint(len: usize) -> usize {
-                    let host = stylus_sdk::host::VM(stylus_sdk::host::WasmVM{});
+                    let host = stylus_sdk::host::VM { host: stylus_sdk::host::WasmVM{}};
                     #deny_reentrant
 
                     // The following call is a noop to ensure that pay_for_memory_grow is
