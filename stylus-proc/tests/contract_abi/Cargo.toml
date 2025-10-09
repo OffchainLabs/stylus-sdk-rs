@@ -1,19 +1,33 @@
 [package]
 name = "contract_abi"
-keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
-description = "E2E Testing contract for stylus-sdk"
-
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-version.workspace = true
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
-alloy-primitives.workspace = true
-alloy-sol-types.workspace = true
-stylus-sdk = { path = "../../../stylus-sdk", workspace = true }
+alloy-primitives = "1.0.1"
+alloy-sol-types = "1.0.1"
+stylus-sdk = { path = "../../../stylus-sdk" }
+
+[dev-dependencies]
+alloy = { version = "1.0", features = ["contract", "signer-local", "rpc-types", "sha3-keccak"] }
+eyre = "0.6"
+tokio = "1.44"
+stylus-sdk = { path = "../../../stylus-sdk", features = ["stylus-test"] }
+stylus-tools = { path = "../../../stylus-tools" }
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]
 contract-client-gen = []
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = "s"
+
+[workspace]

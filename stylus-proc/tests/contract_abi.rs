@@ -1,8 +1,6 @@
-use assert_cmd::Command;
-
 #[test]
 fn test_constructor_cmd() {
-    Command::new("cargo")
+    assert_cmd::Command::new("cargo")
         .current_dir("tests/contract_abi")
         .arg("run")
         .arg("--features")
@@ -16,7 +14,7 @@ fn test_constructor_cmd() {
 
 #[test]
 fn test_export_abi_cmd() {
-    Command::new("cargo")
+    assert_cmd::Command::new("cargo")
         .current_dir("tests/contract_abi")
         .arg("run")
         .arg("--features")
@@ -35,7 +33,9 @@ fn test_export_abi_cmd() {
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface ICounter {
+interface ICounter is ITrait1, ITrait2 {
+    function noInputNoOutput() external view;
+
     function numbers() external view returns (uint256, uint256);
 
     function mixed(MixedInput input) external;
@@ -43,6 +43,24 @@ interface ICounter {
     function mixedResult() external view returns (MixedResult);
 
     struct MixedResult {uint256 number;string text;uint256 number2;}
+}
+interface ITrait1 {
+    function oneInputOneOutput(uint256 input) external view returns (uint256);
+
+    function multipleInputsMultipleOutputs(uint256 input1, address input2) external view returns (uint256, bool, address, bytes32);
+
+    function mutable() external returns (bool);
+
+    function fails() external view;
+}
+interface ITrait2 {
+    function outputsResultOk() external view returns (uint256, uint256);
+
+    function outputsResultErr() external view returns (uint256);
+
+    function outputsArbresultOk() external view returns (uint8[] memory);
+
+    function outputsArbresultErr() external view returns (uint8[] memory);
 }\n",
         );
 }
