@@ -59,6 +59,14 @@ pub struct PublicImpl<E: InterfaceExtension = Extension> {
     pub extension: E,
 }
 
+pub struct PublicTrait<E: InterfaceExtension = Extension> {
+    pub ident: syn::Ident,
+    pub generic_params: Punctuated<syn::GenericParam, Token![,]>,
+    pub where_clause: Punctuated<syn::WherePredicate, Token![,]>,
+    pub funcs: Vec<PublicFn<E::FnExt>>,
+    pub associated_types: Vec<(syn::Ident, Punctuated<syn::TypeParamBound, Token![+]>)>,
+}
+
 fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
     (
         quote! {
@@ -68,6 +76,67 @@ fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
             Ok(<<#ty as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
         },
     )
+}
+
+fn get_client_funcs<E: InterfaceExtension>(
+    funcs: &[PublicFn<E::FnExt>],
+    public: bool,
+) -> (Vec<proc_macro2::TokenStream>, Vec<proc_macro2::TokenStream>) {
+    let (client_funcs_definitions, client_funcs_declarations): (
+            Vec<proc_macro2::TokenStream>,
+            Vec<proc_macro2::TokenStream>,
+        ) = funcs
+        .iter()
+        .map(|func| {
+            let func_name = func.name.clone();
+
+            let (context, call) = func.purity.get_context_and_call();
+
+            let inputs = func.inputs.iter().map(|input| {
+                let name = input.name.clone();
+                let ty = input.ty.clone();
+                quote! { #name: #ty }
+            });
+            let inputs_names = func.inputs.iter().map(|input| {
+                input.name.clone()
+            });
+            let inputs_types = func.inputs.iter().map(|input| {
+                let ty = input.ty.clone();
+                quote! { #ty }
+            });
+
+            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
+
+            let function_selector = func.function_selector();
+
+            let funcs_visibility = if public { quote! { pub } } else { quote! {} };
+
+            let signature = quote! {
+                #funcs_visibility fn #func_name(
+                    &self,
+                    host: &impl stylus_sdk::stylus_core::host::Host,
+                    context: impl #context,
+                    #(#inputs,)*
+                ) -> #output_type
+            };
+
+            let definition = quote! {
+                #signature {
+                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
+                    use stylus_sdk::function_selector;
+                    let mut calldata = Vec::from(#function_selector);
+                    calldata.extend(inputs);
+                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
+                    #output_decoding
+                }
+            };
+            let declaration = quote! {
+                #signature;
+            };
+            (definition, declaration)
+        })
+        .unzip();
+    (client_funcs_definitions, client_funcs_declarations)
 }
 
 fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, TokenStream) {
@@ -138,6 +207,49 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
                 _ => get_default_output(ty),
             }
         }
+    }
+}
+
+impl PublicTrait {
+    pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
+        let (_, client_funcs_declarations) = get_client_funcs::<Extension>(&self.funcs, false);
+
+        let associated_types_declarations: Vec<proc_macro2::TokenStream> = self
+            .associated_types
+            .iter()
+            .map(|(name, original_bounds)| {
+                if original_bounds.is_empty() {
+                    quote! { type #name: #AbiType; }
+                } else {
+                    quote! { type #name: #original_bounds + #AbiType; }
+                }
+            })
+            .collect();
+
+        let ident = &self.ident;
+
+        let generic_params = if self.generic_params.is_empty() {
+            quote! {}
+        } else {
+            let generic_params = &self.generic_params;
+            quote! { <#generic_params> }
+        };
+
+        let where_clause = if self.where_clause.is_empty() {
+            quote! {}
+        } else {
+            let where_clause = &self.where_clause;
+            quote! { where #where_clause }
+        };
+
+        let output = quote! {
+            #[cfg(feature = "contract-client-gen")]
+            pub trait #ident #generic_params #where_clause {
+                #(#associated_types_declarations)*
+                #(#client_funcs_declarations)*
+            }
+        };
+        output
     }
 }
 
@@ -281,99 +393,24 @@ impl PublicImpl {
     }
 
     pub fn contract_client_gen(&self) -> proc_macro2::TokenStream {
-        let (client_funcs_definitions, client_funcs_declarations): (
-            Vec<proc_macro2::TokenStream>,
-            Vec<proc_macro2::TokenStream>,
-        ) = self
-        .funcs
-        .iter()
-        .map(|func| {
-            let func_name = func.name.clone();
+        let (client_funcs_definitions, _) =
+            get_client_funcs::<Extension>(&self.funcs, self.trait_.is_none());
 
-            let (context, call) = func.purity.get_context_and_call();
-
-            let inputs = func.inputs.iter().map(|input| {
-                let name = input.name.clone();
-                let ty = input.ty.clone();
-                quote! { #name: #ty }
-            });
-            let inputs_names = func.inputs.iter().map(|input| {
-                input.name.clone()
-            });
-            let inputs_types = func.inputs.iter().map(|input| {
-                let ty = input.ty.clone();
-                quote! { #ty }
-            });
-
-            let (output_type, output_decoding) = get_output_type_and_decoding(&func.output);
-
-            let function_selector = func.function_selector();
-
-            let func_visibility = if self.trait_.is_some() {
-                quote! {}
-            } else {
-                quote! { pub }
-            };
-
-            let signature = quote! {
-                #func_visibility fn #func_name(
-                    &self,
-                    host: &dyn stylus_sdk::stylus_core::host::Host,
-                    context: impl #context,
-                    #(#inputs,)*
-                ) -> #output_type
-            };
-
-            let definition = quote! {
-                #signature {
-                    let inputs = <<(#(#inputs_types,)*) as #AbiType>::SolType as #SolType>::abi_encode_params(&(#(#inputs_names,)*));
-                    use stylus_sdk::function_selector;
-                    let mut calldata = Vec::from(#function_selector);
-                    calldata.extend(inputs);
-                    let call_result = #call(host, context, self.#STYLUS_CONTRACT_ADDRESS_FIELD, &calldata)?;
-                    #output_decoding
-                }
-            };
-            let declaration = quote! {
-                #signature;
-            };
-            (definition, declaration)
-        })
-        .unzip();
-
-        let (associated_types_definitions, associated_types_declarations): (
-            Vec<proc_macro2::TokenStream>,
-            Vec<proc_macro2::TokenStream>,
-        ) = self
+        let associated_types_definitions: Vec<proc_macro2::TokenStream> = self
             .associated_types
             .iter()
             .map(|(name, value)| {
-                let defintion = quote::quote! { type #name = #value; };
-                let declaration = quote::quote! { type #name: #AbiType; };
-                (defintion, declaration)
+                let definition = quote::quote! { type #name = #value; };
+                definition
             })
-            .unzip();
+            .collect();
 
         let struct_path = self.self_ty.clone();
 
         let output = if let Some(trait_path) = &self.trait_ {
-            // If it implements a trait then we define a new trait with associated types.
-            // In that way client_funcs can use the associated types, e.g., Self::AssociatedType.
-
-            let in_trait_name = trait_path.segments.last().unwrap().ident.to_string();
-            let out_trait = syn::Ident::new(
-                &format!("{in_trait_name}ContractClientGen"),
-                Span::call_site(),
-            );
             quote! {
                 #[cfg(feature = "contract-client-gen")]
-                pub trait #out_trait {
-                    #(#associated_types_declarations)*
-                    #(#client_funcs_declarations)*
-                }
-
-                #[cfg(feature = "contract-client-gen")]
-                impl #out_trait for #struct_path {
+                impl #trait_path for #struct_path {
                     #(#associated_types_definitions)*
                     #(#client_funcs_definitions)*
                 }

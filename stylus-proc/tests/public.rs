@@ -54,4 +54,5 @@ fn test_public_failures() {
     t.compile_fail("tests/fail/public/generated.rs");
     t.compile_fail("tests/fail/public/macro_errors.rs");
     t.compile_fail("tests/fail/public/constructor.rs");
+    t.compile_fail("tests/fail/public/missing_macros.rs");
 }

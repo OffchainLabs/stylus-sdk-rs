@@ -34,6 +34,7 @@ struct Erc20 {
     total_supply: StorageU256,
 }
 
+#[public]
 trait IErc20 {
     fn name(&self) -> String;
     fn symbol(&self) -> String;
@@ -73,6 +74,7 @@ struct Ownable {
     owner: StorageAddress,
 }
 
+#[public]
 trait IOwnable {
     fn owner(&self) -> Address;
     fn transfer_ownership(&mut self, new_owner: Address) -> bool;
@@ -92,6 +94,7 @@ impl IOwnable for Contract {
     }
 }
 
+#[public]
 trait PureTrait {
     fn pure_method()
     where

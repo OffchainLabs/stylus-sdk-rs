@@ -141,7 +141,7 @@ impl InterfaceExtension for InterfaceAbi {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FnAbi {
     pub output: Option<syn::Type>,
 }

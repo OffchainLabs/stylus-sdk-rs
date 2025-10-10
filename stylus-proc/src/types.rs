@@ -8,8 +8,9 @@ use syn::{parse_quote, Token};
 use crate::imports::alloy_sol_types::sol_data;
 
 /// The purity of a Solidity method
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Purity {
+    #[default]
     Pure,
     View,
     Write,
@@ -19,8 +20,8 @@ pub enum Purity {
 impl Purity {
     /// Infer the purity of the function by inspecting the first argument. Also returns whether the
     /// function has a self parameter.
-    pub fn infer(func: &syn::ImplItemFn) -> (Self, bool) {
-        match func.sig.inputs.first() {
+    pub fn infer(sig: &syn::Signature) -> (Self, bool) {
+        match sig.inputs.first() {
             Some(syn::FnArg::Receiver(recv)) => (recv.mutability.into(), true),
             Some(syn::FnArg::Typed(syn::PatType { ty, .. })) => match &**ty {
                 syn::Type::Reference(ty) => (ty.mutability.into(), false),
@@ -45,12 +46,6 @@ impl Purity {
                 quote!(stylus_sdk::call::call),
             ),
         }
-    }
-}
-
-impl Default for Purity {
-    fn default() -> Self {
-        Self::Pure
     }
 }
 

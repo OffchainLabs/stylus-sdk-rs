@@ -12,26 +12,19 @@ pub mod attrs;
 #[cfg(test)]
 pub mod testing;
 
-/// Like [`syn::Generics::split_for_impl`] but for [`syn::ItemImpl`].
-///
-/// [`syn::Generics::split_for_impl`] does not work in this case because the `name` of the
-/// implemented type is not easy to get, but the type including generics is.
-pub fn split_item_impl_for_impl(
-    node: &syn::ItemImpl,
+pub fn get_generics(
+    generics: &syn::Generics,
 ) -> (
     Punctuated<syn::GenericParam, Token![,]>,
-    syn::Type,
     Punctuated<syn::WherePredicate, Token![,]>,
 ) {
-    let generic_params = node.generics.params.clone();
-    let self_ty = (*node.self_ty).clone();
-    let where_clause = node
-        .generics
+    let generic_params = generics.params.clone();
+    let where_clause = generics
         .where_clause
         .clone()
         .map(|c| c.predicates)
         .unwrap_or_default();
-    (generic_params, self_ty, where_clause)
+    (generic_params, where_clause)
 }
 
 /// Build [function selector](https://solidity-by-example.org/function-selector/) byte array.

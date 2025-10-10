@@ -155,28 +155,19 @@ impl Storage {
     fn impl_host_access(&self) -> syn::ItemImpl {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "stylus-test")] {
-                parse_quote! {
-                    #[cfg(not(feature = "contract-client-gen"))]
-                    impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-                        fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
-                            self.__stylus_host.host.as_ref()
-                        }
-                    }
-                }
-            } else {
-                parse_quote! {
-                    #[cfg(not(feature = "contract-client-gen"))]
-                    impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
-                        fn vm(&self) -> &dyn stylus_sdk::stylus_core::Host {
-                            &self.__stylus_host
-                        }
-                    }
+
+        parse_quote! {
+            #[cfg(not(feature = "contract-client-gen"))]
+            impl #impl_generics stylus_sdk::stylus_core::HostAccess for #name #ty_generics #where_clause {
+                type Host = stylus_sdk::host::VM;
+
+                fn vm(&self) -> &Self::Host {
+                    &self.__stylus_host
                 }
             }
         }
     }
+
     fn impl_value_denier(&self) -> syn::ItemImpl {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -193,6 +184,7 @@ impl Storage {
             }
         }
     }
+
     fn impl_constructor_guard(&self) -> syn::ItemImpl {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -217,6 +209,7 @@ impl Storage {
             }
         }
     }
+
     fn impl_from_vm(&self) -> Option<syn::ItemImpl> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "stylus-test")] {
@@ -248,6 +241,7 @@ impl Storage {
             }
         }
     }
+
     fn impl_vm_access(&self) -> syn::ItemImpl {
         let name = &self.name;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();

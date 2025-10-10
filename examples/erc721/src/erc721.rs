@@ -144,7 +144,7 @@ impl<T: Erc721Params> Erc721<T> {
         // cleaning app the approved mapping for this token
         self.token_approvals.delete(token_id);
 
-        stylus_sdk::evm::log(self.vm(), Transfer { from, to, token_id });
+        self.vm().log(Transfer { from, to, token_id });
         Ok(())
     }
 
@@ -316,14 +316,11 @@ impl<T: Erc721Params> Erc721<T> {
         }
         self.token_approvals.insert(token_id, approved);
 
-        stylus_sdk::evm::log(
-            self.vm(),
-            Approval {
-                approved,
-                owner,
-                token_id,
-            },
-        );
+        self.vm().log(Approval {
+            approved,
+            owner,
+            token_id,
+        });
         Ok(())
     }
 
@@ -338,14 +335,11 @@ impl<T: Erc721Params> Erc721<T> {
             .setter(owner)
             .insert(operator, approved);
 
-        stylus_sdk::evm::log(
-            self.vm(),
-            ApprovalForAll {
-                owner,
-                operator,
-                approved,
-            },
-        );
+        self.vm().log(ApprovalForAll {
+            owner,
+            operator,
+            approved,
+        });
         Ok(())
     }
 

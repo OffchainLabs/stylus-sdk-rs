@@ -5,7 +5,7 @@ pub use build::{build_contract, build_workspace};
 pub use check::{check_wasm_file, check_workspace};
 pub use codegen::c_gen;
 pub use deploy::deploy;
-pub use export_abi::{export_abi, print_constructor};
+pub use export_abi::{export_abi, get_constructor_signature, print_constructor};
 pub use init::init;
 pub use initcode::write_initcode;
 pub use new::new;

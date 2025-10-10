@@ -4,7 +4,11 @@
 use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
 use alloy_primitives::{Address, Bytes, FixedBytes};
-use alloy_sol_types::sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
+use alloy_sol_types::{
+    private::SolTypeValue,
+    sol_data::{self, ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt},
+    SolType,
+};
 
 /// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
 macro_rules! test_type {
@@ -223,6 +227,10 @@ macro_rules! impl_tuple {
                 .concat(ConstString::new(")"));
 
             const CAN_BE_CALLDATA: bool = false;
+
+            fn abi_encode_return<RustTy: ?Sized + SolTypeValue<Self::SolType>>(rust: &RustTy) -> Vec<u8> {
+                Self::SolType::abi_encode_params(rust)
+            }
         }
 
         impl_tuple! { $($rest),* }

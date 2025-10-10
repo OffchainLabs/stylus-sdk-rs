@@ -125,8 +125,11 @@ impl Interface {
 
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
-            pub fn #rust_name(&self, host: &dyn stylus_sdk::stylus_core::host::Host, context: impl #context #(, #rust_args)*) ->
-                Result<<#return_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
+            pub fn #rust_name(
+                &self,
+                host: &impl stylus_sdk::stylus_core::host::Host,
+                context: impl #context #(, #rust_args)*
+            ) -> Result<<#return_type as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
             {
                 let args = <(#(#sol_args,)*) as #SolType>::abi_encode_params(&(#(#rust_arg_names,)*));
                 let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
@@ -335,7 +338,7 @@ mod tests {
                     #[function_attr]
                     pub fn make_payment(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::MutatingCallContext,
                         user: <stylus_sdk::alloy_sol_types::sol_data::Address as stylus_sdk::alloy_sol_types::SolType>::RustType,
                     ) ->
@@ -354,7 +357,7 @@ mod tests {
 
                     pub fn get_constant(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
                         Result<<stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32> as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
@@ -368,7 +371,7 @@ mod tests {
 
                     pub fn get_foo(
                         &self,
-                        host: &dyn stylus_sdk::stylus_core::host::Host,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
                         context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
                     ) ->
                         Result<<inner::Foo as stylus_sdk::alloy_sol_types::SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
