@@ -1,17 +1,19 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy::primitives::{address, utils::parse_ether, Address, B256, U256};
-
+use crate::error::CargoStylusError;
 use crate::{
     common_args::{
         ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
     },
     error::CargoStylusResult,
 };
+use alloy::primitives::{utils::parse_ether, Address, B256, U256};
+use eyre::eyre;
+use stylus_tools::core::deployment::deployer::ADDRESS;
 
 // TODO: this should be in stylus-tools
-pub const STYLUS_DEPLOYER_ADDRESS: Address = address!("6ac4839Bfe169CadBBFbDE3f29bd8459037Bf64e");
+pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
 
 #[derive(Debug, clap::Args)]
 pub struct Args {
@@ -68,8 +70,23 @@ pub struct Args {
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
+    if args.project.contracts()?.len() > 1 && !args.constructor_args.is_empty() {
+        return Err(CargoStylusError::from(eyre!(
+            "Multi-contract deployment only allowed for no-arg constructors"
+        )));
+    }
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
-    let config = args.deploy.config(&args.activation, &args.check);
+    let config = args.deploy.config(
+        &args.activation,
+        &args.check,
+        args.auth.get_max_fee_per_gas_wei()?,
+        args.estimate_gas,
+        args.no_activate,
+        args.deployer_address,
+        args.constructor_args,
+        args.deployer_salt,
+        args.constructor_value,
+    );
     for contract in args.project.contracts()? {
         contract.deploy(&config, &provider).await?;
     }

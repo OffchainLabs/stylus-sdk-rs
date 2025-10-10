@@ -47,7 +47,6 @@ mod integration_test {
             .lowLevelDelegateCall(store_calldata.into(), storage.address().to_owned())
             .send()
             .await?
-            .with_required_confirmations(2)
             .watch()
             .await?;
 

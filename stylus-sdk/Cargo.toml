@@ -23,6 +23,9 @@ keccak-const.workspace = true
 mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
 stylus-core.workspace = true
+ruint = "=1.15.0"
+branches = "=0.2.1"
+rclite = "=0.2.7"
 
 # Ensure these dependencies won't be included in wasm32 target
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

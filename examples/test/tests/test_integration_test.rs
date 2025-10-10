@@ -37,41 +37,38 @@ mod integration_test {
         let number = contract.number().call().await?;
         assert_eq!(U256::ZERO, number);
 
-        contract
-            .increment()
-            .send()
-            .await?
-            .with_required_confirmations(2)
-            .watch()
-            .await?;
+        contract.increment().send().await?.watch().await?;
         let number = contract.number().call().await?;
         assert_eq!(U256::from(1), number);
 
+        let estimate = contract.addNumber(U256::from(3)).estimate_gas().await?;
         contract
             .addNumber(U256::from(3))
+            .gas((11 * estimate) / 10)
             .send()
             .await?
-            .with_required_confirmations(2)
             .watch()
             .await?;
         let number = contract.number().call().await?;
         assert_eq!(U256::from(4), number);
 
+        let estimate = contract.mulNumber(U256::from(2)).estimate_gas().await?;
         contract
             .mulNumber(U256::from(2))
+            .gas((11 * estimate) / 10)
             .send()
             .await?
-            .with_required_confirmations(2)
             .watch()
             .await?;
         let number = contract.number().call().await?;
         assert_eq!(U256::from(8), number);
 
+        let estimate = contract.setNumber(U256::from(100)).estimate_gas().await?;
         contract
             .setNumber(U256::from(100))
+            .gas((11 * estimate) / 10)
             .send()
             .await?
-            .with_required_confirmations(2)
             .watch()
             .await?;
         let number = contract.number().call().await?;

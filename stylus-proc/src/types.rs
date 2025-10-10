@@ -8,8 +8,9 @@ use syn::{parse_quote, Token};
 use crate::imports::alloy_sol_types::sol_data;
 
 /// The purity of a Solidity method
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Purity {
+    #[default]
     Pure,
     View,
     Write,
@@ -45,12 +46,6 @@ impl Purity {
                 quote!(stylus_sdk::call::call),
             ),
         }
-    }
-}
-
-impl Default for Purity {
-    fn default() -> Self {
-        Self::Pure
     }
 }
 

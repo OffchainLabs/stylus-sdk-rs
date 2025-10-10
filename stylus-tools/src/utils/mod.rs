@@ -18,11 +18,12 @@ use crate::Result;
 
 pub mod cargo;
 pub mod color;
+pub mod sys;
+
 pub(crate) mod docker;
 pub(crate) mod git;
 pub(crate) mod solc;
 pub(crate) mod stylus_sdk;
-pub(crate) mod sys;
 pub(crate) mod toolchain;
 pub(crate) mod wasm;
 

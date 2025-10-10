@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 
 use alloy::{
     network::EthereumWallet,
-    primitives::FixedBytes,
+    primitives::{Address, FixedBytes, TxHash, U256},
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::{
         local::{LocalSigner, PrivateKeySigner},
@@ -14,6 +14,7 @@ use alloy::{
 };
 use cargo_util_schemas::manifest::PackageName;
 use eyre::{eyre, Context};
+use stylus_tools::core::tracing::TraceConfig;
 use stylus_tools::core::{
     activation::ActivationConfig,
     build::BuildConfig,
@@ -141,11 +142,29 @@ impl CheckArgs {
 #[derive(Debug, clap::Args)]
 pub struct DeployArgs {}
 
+#[allow(clippy::too_many_arguments)]
 impl DeployArgs {
-    pub fn config(&self, activate: &ActivationArgs, check: &CheckArgs) -> DeploymentConfig {
+    pub fn config(
+        &self,
+        activate: &ActivationArgs,
+        check: &CheckArgs,
+        max_fee_per_gas_gwei: Option<u128>,
+        estimate_gas: bool,
+        no_activate: bool,
+        deployer_address: Address,
+        constructor_args: Vec<String>,
+        deployer_salt: alloy::primitives::B256,
+        constructor_value: U256,
+    ) -> DeploymentConfig {
         DeploymentConfig {
             check: check.config(activate),
-            ..Default::default()
+            max_fee_per_gas_gwei,
+            estimate_gas,
+            no_activate,
+            deployer_address,
+            constructor_args,
+            deployer_salt,
+            constructor_value,
         }
     }
 }
@@ -220,6 +239,16 @@ impl ReflectionArgs {
             rust_features: self.rust_features.clone(),
         }
     }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct TraceArgs {
+    /// Tx to replay.
+    #[arg(short, long)]
+    pub tx: TxHash,
+
+    #[command(flatten)]
+    pub config: TraceConfig,
 }
 
 #[derive(Debug, clap::Args)]

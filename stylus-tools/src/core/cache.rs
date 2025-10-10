@@ -201,7 +201,7 @@ impl From<Result<CacheManager::CacheManagerErrors, ContractDecodeError>> for Cac
     }
 }
 
-fn format_gas(gas: u128) -> String {
+pub fn format_gas(gas: u128) -> String {
     let text = format!("{gas} gas");
     if gas <= 3_000_000 {
         text.mint()
