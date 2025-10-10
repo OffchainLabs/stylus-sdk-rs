@@ -16,6 +16,8 @@ pub const STYLUS_HOST_FIELD: ConstIdent = ConstIdent("__stylus_host");
 
 pub const STYLUS_CONTRACT_ADDRESS_FIELD: ConstIdent = ConstIdent("__stylus_contract_address");
 
+pub const STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI: &str = "StylusAbiStruct";
+
 /// Definition of a constant identifier
 pub struct ConstIdent(&'static str);
 

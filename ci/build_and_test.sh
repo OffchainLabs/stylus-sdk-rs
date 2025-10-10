@@ -16,6 +16,9 @@ EXCLUDE="--exclude erc20 --exclude erc721"
 FEATURES=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | .features | keys | join("\n")')
 FEATURES=$(echo "$FEATURES" | grep . | sort | uniq | grep -v default) # cleanup
 
+# Remove export-abi, this feature is tested in the integration tests CI job.
+FEATURES=$(echo "$FEATURES" | grep -v export-abi)
+
 # Remove integration-test because it runs in another CI job.
 FEATURES=$(echo "$FEATURES" | grep -v integration-tests)
 

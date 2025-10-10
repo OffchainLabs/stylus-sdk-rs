@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IPaymentTracker  {
+interface IPaymentTracker {
     function getBalance(address account) external view returns (uint256);
 
     function getStats() external view returns (uint256, uint256, uint256);

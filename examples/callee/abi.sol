@@ -6,6 +6,24 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface ICallee  {
+interface ICallee is ITrait1, ITrait2 {
     function noInputNoOutput() external view;
+}
+interface ITrait1 {
+    function oneInputOneOutput(uint256 input) external view returns (uint256);
+
+    function multipleInputsMultipleOutputs(uint256 input1, address input2) external view returns (uint256, bool, address, bytes32);
+
+    function mutable() external returns (bool);
+
+    function fails() external view;
+}
+interface ITrait2 {
+    function outputsResultOk() external view returns (uint256, uint256);
+
+    function outputsResultErr() external view returns (uint256);
+
+    function outputsArbresultOk() external view returns (uint8[] memory);
+
+    function outputsArbresultErr() external view returns (uint8[] memory);
 }

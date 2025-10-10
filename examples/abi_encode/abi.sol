@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IEncoder  {
+interface IEncoder {
     function encode(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);
 
     function packedEncode(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);

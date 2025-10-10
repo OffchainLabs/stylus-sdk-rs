@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT-OR-APACHE-2.0
 pragma solidity ^0.8.23;
 
-interface IContract  {
+interface IContract {
     function init() external;
 
     function owner() external view returns (address);
