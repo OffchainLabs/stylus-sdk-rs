@@ -27,6 +27,9 @@ ruint = "=1.15.0"
 branches = "=0.2.1"
 rclite = "=0.2.7"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+alloy-primitives = { workspace = true, features = ["native-keccak"] }
+
 # Ensure these dependencies won't be included in wasm32 target
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rclite = { workspace = true, optional = true }
