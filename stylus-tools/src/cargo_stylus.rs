@@ -105,7 +105,7 @@ impl Deployer {
 
 fn call_deploy<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(args: I) -> Result<Address> {
     let output = Command::new("cargo")
-        .arg("stylus")
+        .arg("stylus-beta")
         .arg("deploy")
         .arg("--no-verify")
         .args(args)
@@ -131,7 +131,7 @@ fn strip_color(s: &str) -> String {
 
 fn extract_deployed_address(s: &str) -> Result<&str> {
     for line in s.lines() {
-        if let Some(rest) = line.strip_prefix("deployed code at address: ") {
+        if let Some((_, rest)) = line.split_once("deployed code at address: ") {
             return Ok(rest);
         }
     }

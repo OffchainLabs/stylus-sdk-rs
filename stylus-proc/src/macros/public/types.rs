@@ -416,11 +416,13 @@ impl PublicImpl {
                 }
             }
         } else {
+            let generic_params = &self.generic_params;
+            let where_clause = &self.where_clause;
             // If the impl does not implement a trait, we just output the functions directly,
             // and also add a constructor for the contract client
             quote! {
                 #[cfg(feature = "contract-client-gen")]
-                impl #struct_path {
+                impl #generic_params #struct_path #where_clause {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self {
                             #STYLUS_CONTRACT_ADDRESS_FIELD: address,

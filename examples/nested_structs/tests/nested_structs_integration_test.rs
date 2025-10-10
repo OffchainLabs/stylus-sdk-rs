@@ -68,7 +68,7 @@ mod integration_test {
             vec![INestedStructs::User {
                 _address: OWNER,
                 name: "foobar".into(),
-                dogs: dogs,
+                dogs,
             }]
         );
 

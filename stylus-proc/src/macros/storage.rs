@@ -9,7 +9,10 @@ use syn::{
     Type,
 };
 
-use crate::{consts::STYLUS_HOST_FIELD, utils::attrs::consume_flag};
+use crate::{
+    consts::{STYLUS_CONTRACT_ADDRESS_FIELD, STYLUS_HOST_FIELD},
+    utils::attrs::consume_flag,
+};
 
 /// Implementation of the [`#[storage]`][crate::storage] macro.
 pub fn storage(
@@ -37,8 +40,16 @@ pub fn storage(
     let expanded_fields = match fields {
         syn::Fields::Named(named_fields) => {
             // Extract the original fields.
-            let original_fields = named_fields.named;
+            let mut original_fields = named_fields.named;
+            for field in original_fields.iter_mut() {
+                if field.ident != Some(STYLUS_CONTRACT_ADDRESS_FIELD.as_ident()) {
+                    field.attrs.push(parse_quote! {
+                        #[cfg(not(feature = "contract-client-gen"))]
+                    });
+                }
+            }
             quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
                 #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
                 #original_fields
             }
@@ -54,6 +65,7 @@ pub fn storage(
         syn::Fields::Unit => {
             // Handle unit structs if needed.
             quote! {
+                #[cfg(not(feature = "contract-client-gen"))]
                 #STYLUS_HOST_FIELD: stylus_sdk::host::VM,
             }
         }

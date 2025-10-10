@@ -3,10 +3,9 @@
 
 use std::{fs, path::PathBuf};
 
-use alloy::primitives::{Address, TxHash};
 use alloy::{
     network::EthereumWallet,
-    primitives::FixedBytes,
+    primitives::{Address, FixedBytes, TxHash, U256},
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::{
         local::{LocalSigner, PrivateKeySigner},
@@ -155,6 +154,7 @@ impl DeployArgs {
         deployer_address: Address,
         constructor_args: Vec<String>,
         deployer_salt: alloy::primitives::B256,
+        constructor_value: U256,
     ) -> DeploymentConfig {
         DeploymentConfig {
             check: check.config(activate),
@@ -164,7 +164,7 @@ impl DeployArgs {
             deployer_address,
             constructor_args,
             deployer_salt,
-            ..Default::default()
+            constructor_value,
         }
     }
 }
