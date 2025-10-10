@@ -1225,6 +1225,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "callee"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "caller"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "callee",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
 name = "camino"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1963,6 +1990,32 @@ dependencies = [
  "serde",
  "serde_core",
  "typeid",
+]
+
+[[package]]
+name = "erc20"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "erc721"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
 ]
 
 [[package]]
@@ -4760,6 +4813,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylus-abi-decode"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-abi-encode"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "sha3",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-arrays"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-call"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-constants"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-constructor"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
 name = "stylus-core"
 version = "0.10.0-beta.1"
 dependencies = [
@@ -4769,6 +4901,175 @@ dependencies = [
  "dyn-clone",
  "lazy_static",
  "regex",
+]
+
+[[package]]
+name = "stylus-custom-storage-slots"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-delegate-call"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-encoding-and-hashing"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-errors"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-events"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-fallback-receive"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-first-app"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-function"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-hello-world"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-inheritance-selectors"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-mapping"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-nested-structs"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-primitive-data-types"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
 ]
 
 [[package]]
@@ -4819,6 +5120,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylus-sending_ether"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-single-call"
+version = "0.1.5"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-storage-data-types"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
 name = "stylus-test"
 version = "0.10.0-beta.1"
 dependencies = [
@@ -4828,6 +5167,19 @@ dependencies = [
  "stylus-core",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "stylus-test-example"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
 ]
 
 [[package]]
@@ -4866,6 +5218,32 @@ dependencies = [
  "wasmparser 0.213.0",
  "wasmprinter",
  "wat",
+]
+
+[[package]]
+name = "stylus-variables"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
+name = "stylus-verify_signature"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
 ]
 
 [[package]]

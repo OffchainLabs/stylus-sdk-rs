@@ -5,6 +5,7 @@
 
 extern crate alloc;
 
+#[allow(unused_imports)]
 use stylus_sdk::{
     alloy_primitives::{Address, FixedBytes, U256},
     prelude::*,

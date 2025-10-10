@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
 extern crate alloc;
 
@@ -25,6 +26,7 @@ impl Contract {
     }
 }
 
+#[cfg(not(feature = "contract-client-gen"))]
 unsafe fn get_storage_slot<VMA: VMAccess>(vma: &VMA) -> StorageU256 {
     StorageU256::new(U256::ZERO, 0, vma.raw_vm())
 }

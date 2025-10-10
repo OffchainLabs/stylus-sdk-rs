@@ -52,6 +52,7 @@ sol_storage! {
 // These methods aren't exposed to other contracts
 // Methods marked as "pub" here are usable outside of the erc20 module (i.e. they're callable from lib.rs)
 // Note: modifying storage will become much prettier soon
+#[cfg(not(feature = "contract-client-gen"))]
 impl<T: Erc20Params> Erc20<T> {
     /// Movement of funds between 2 accounts
     /// (invoked by the public transfer() and transfer_from() functions )
