@@ -81,6 +81,10 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           targets: wasm32-unknown-unknown
           components: rustfmt, rust-src
+      - name: Install cargo-stylus-beta
+        shell: bash
+        run: |
+          cargo install --path ./cargo-stylus
       - name: Download cargo-stylus binary
         uses: actions/download-artifact@v4
         with:

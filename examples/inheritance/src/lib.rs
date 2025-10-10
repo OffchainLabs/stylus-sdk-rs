@@ -16,7 +16,6 @@ use stylus_sdk::{
 // Traits (interfaces)
 // ──────────────────────────────────────────────────────────────────────────────
 
-#[cfg(not(feature = "contract-client-gen"))]
 #[public]
 trait IErc20 {
     fn name(&self) -> String;
@@ -27,7 +26,6 @@ trait IErc20 {
     fn transfer(&mut self, to: Address, value: U256) -> bool;
 }
 
-#[cfg(not(feature = "contract-client-gen"))]
 #[public]
 trait IOwnable {
     fn owner(&self) -> Address;
@@ -37,7 +35,6 @@ trait IOwnable {
 
 // Extra trait with a “name-like” concept we also want to export.
 // We'll give it a distinct Solidity-visible selector to avoid clobbering ERC-20's `name()`.
-#[cfg(not(feature = "contract-client-gen"))]
 #[public]
 trait IBranding {
     fn brand_name(&self) -> String;

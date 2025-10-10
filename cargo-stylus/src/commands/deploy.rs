@@ -85,6 +85,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         args.deployer_address,
         args.constructor_args,
         args.deployer_salt,
+        args.constructor_value,
     );
     for contract in args.project.contracts()? {
         contract.deploy(&config, &provider).await?;
