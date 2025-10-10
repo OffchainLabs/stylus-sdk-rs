@@ -258,5 +258,5 @@ pub struct VerificationArgs {
     /// Useful for local builds, but at the risk of not having a reproducible contract for
     /// verification purposes.
     #[arg(long)]
-    no_verify: bool,
+    pub no_verify: bool,
 }

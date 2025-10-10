@@ -3,20 +3,27 @@
 
 use alloy::primitives::TxHash;
 use eyre::eyre;
-use stylus_tools::ops;
+use itertools::izip;
+use stylus_tools::core::build::reproducible::run_reproducible;
 
 use crate::{
-    common_args::{ProviderArgs, VerificationArgs},
+    common_args::{ProjectArgs, ProviderArgs, VerificationArgs},
     error::CargoStylusResult,
     utils::decode0x,
 };
 
 #[derive(Debug, clap::Args)]
 pub struct Args {
+    /// Cargo stylus version when deploying reproducibly to downloads the corresponding cargo-stylus-base Docker image.
+    /// If not set, uses the default version of the local cargo stylus binary.
+    #[arg(long)]
+    cargo_stylus_version: Option<String>,
     /// Hash of the deployment transaction.
     #[arg(long)]
-    deployment_tx: String,
+    deployment_tx: Vec<String>,
 
+    #[command(flatten)]
+    project: ProjectArgs,
     #[command(flatten)]
     provider: ProviderArgs,
     #[command(flatten)]
@@ -25,11 +32,27 @@ pub struct Args {
 
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider().await?;
-    let hash = decode0x(args.deployment_tx)?;
-    if hash.len() != 32 {
-        return Err(eyre!("Invalid hash").into());
+
+    for (contract, deployment_tx) in izip!(args.project.contracts()?, args.deployment_tx) {
+        if args.verification.no_verify {
+            let hash = decode0x(&deployment_tx)?;
+            if hash.len() != 32 {
+                return Err(eyre!("Invalid hash").into());
+            }
+            let hash = TxHash::from_slice(&hash);
+            contract.verify(hash, &provider).await?;
+        } else {
+            println!("Running in a Docker container for reproducibility, this may take a while",);
+            let mut cli_args: Vec<String> =
+                vec![String::from("verify"), String::from("--no-verify")];
+            cli_args.push(deployment_tx);
+            run_reproducible(
+                &contract.package,
+                args.cargo_stylus_version.clone(),
+                cli_args,
+            )?;
+        }
     }
-    let hash = TxHash::from_slice(&hash);
-    ops::verify(hash, &provider).await?;
+
     Ok(())
 }

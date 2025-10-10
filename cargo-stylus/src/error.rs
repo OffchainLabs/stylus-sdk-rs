@@ -60,6 +60,15 @@ impl From<stylus_tools::core::build::BuildError> for CargoStylusError {
     }
 }
 
+impl From<stylus_tools::core::build::reproducible::ReproducibleBuildError> for CargoStylusError {
+    fn from(err: stylus_tools::core::build::reproducible::ReproducibleBuildError) -> Self {
+        Self {
+            error: err.into(),
+            exit_code: ExitCode::FAILURE,
+        }
+    }
+}
+
 impl From<stylus_tools::core::check::CheckError> for CargoStylusError {
     fn from(err: stylus_tools::core::check::CheckError) -> Self {
         Self {
