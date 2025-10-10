@@ -7,7 +7,7 @@ fn test_constructor_cmd() {
         .arg("constructor")
         .assert()
         .success()
-        .stdout("constructor(uint256 initial_number, string calldata _b) payable\n");
+        .stdout("constructor(uint256 initial_number, string memory _b) payable\n");
 }
 
 #[test]
