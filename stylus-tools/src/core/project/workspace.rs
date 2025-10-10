@@ -22,7 +22,7 @@ pub struct Workspace {
     /// Stylus metadata
     pub manifest: WorkspaceManifest,
     /// Cargo metadata
-    metadata: Metadata,
+    pub metadata: Metadata,
 }
 
 impl Workspace {

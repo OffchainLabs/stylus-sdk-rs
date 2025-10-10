@@ -3,10 +3,9 @@
 
 use std::{fs, path::PathBuf};
 
-use alloy::primitives::{Address, U256};
 use alloy::{
     network::EthereumWallet,
-    primitives::FixedBytes,
+    primitives::{Address, FixedBytes, TxHash, U256},
     providers::{Provider, ProviderBuilder, WalletProvider},
     signers::{
         local::{LocalSigner, PrivateKeySigner},
@@ -15,6 +14,7 @@ use alloy::{
 };
 use cargo_util_schemas::manifest::PackageName;
 use eyre::{eyre, Context};
+use stylus_tools::core::tracing::TraceConfig;
 use stylus_tools::core::{
     activation::ActivationConfig,
     build::BuildConfig,
@@ -239,6 +239,16 @@ impl ReflectionArgs {
             rust_features: self.rust_features.clone(),
         }
     }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct TraceArgs {
+    /// Tx to replay.
+    #[arg(short, long)]
+    pub tx: TxHash,
+
+    #[command(flatten)]
+    pub config: TraceConfig,
 }
 
 #[derive(Debug, clap::Args)]
