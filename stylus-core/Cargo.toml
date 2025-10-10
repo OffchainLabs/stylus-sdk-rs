@@ -18,6 +18,9 @@ dyn-clone = "1.0.17"
 regex.workspace = true
 lazy_static.workspace = true
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+alloy-primitives = { workspace = true, features = ["native-keccak"] }
+
 [dev-dependencies]
 
 [features]
