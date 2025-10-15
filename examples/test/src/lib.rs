@@ -58,7 +58,7 @@ impl Counter {
             new_value: self.number.get(),
         });
     }
-    /// Sets a number in storage to a user-specified value.
+    /// Multiplies `number` by `new_number` and updates its value in storage.
     pub fn mul_number(&mut self, new_number: U256) {
         self.number.set(new_number * self.number.get());
         let prev = self.number.get();
@@ -72,7 +72,7 @@ impl Counter {
             new_value: self.number.get(),
         });
     }
-    /// Sets a number in storage to a user-specified value.
+    /// Increments `number` by `new_number` and updates its value in storage.
     pub fn add_number(&mut self, new_number: U256) {
         self.number.set(new_number + self.number.get());
         let prev = self.number.get();
@@ -86,7 +86,7 @@ impl Counter {
             new_value: self.number.get(),
         });
     }
-    /// Increments `number` and updates its value in storage.
+    /// Increments `number` by 1 and updates its value in storage.
     pub fn increment(&mut self) {
         // Increment the number in storage.
         let prev = self.number.get();
