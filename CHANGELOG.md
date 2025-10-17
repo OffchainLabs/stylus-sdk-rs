@@ -9,9 +9,19 @@ These crates follow [semver](https://semver.org).
 - Introduction of a new library for building and deploying stylus contracts: `stylus-tools`
 - Support for cargo workspaces. Cargo-stylus now supports building and deploying contracts within a cargo workspace. Contracts are marked with a `Stylus.toml` file. Future configuration will be added to this file to facilitate per-contract and workspace-wide configuration options for contracts.
 - Addition of a new `contract-client-gen` feature flag which allows contracts within a crate to be used as a "library" to be called by other contracts.
+- Support for nested structs in return types
+- More convenient integer functions for storage
+- Support for custom storage slots
+- Support for tuples in return types
 
 ### Changed
 
+- Update calls / deploys / logs to use noew hostio model
+- Additional integration tests
+- Upgrade alloy version
+- More example contracts from Stylus By Example
+- Use alloy::Bytes type instead of our own
+- Improvements to CI
 - Move `cargo-stylus` into the `OffchainLabs/stylus-sdk-rs` repo to simplify development and release of new cargo-stylus versions
 - Updates to `cargo stylus new` for creating workspaces and individual contracts (`--workspace` and `--contract` flags respectively)
 - Allow pure functions in trait-based inheritance model
@@ -31,6 +41,11 @@ These crates follow [semver](https://semver.org).
 - Allow parameterized traits with associated types
 - Increase size of `ConstString` used to define potentially long `AbiTypes
 - Support for solidity mapping types in `sol_storage!` macro
+
+### Removed
+
+- Removal of deprecateed code from previous versions
+- Old inheritance model no longer supproted
 
 ## [0.9.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.2) - 2025-09-23
 
