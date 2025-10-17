@@ -34,7 +34,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
         generics
             .type_params_mut()
             .for_each(|ident| ident.bounds.push(parse_quote!(Default)));
-        let (_, ty_generics, where_clause) = generics.split_for_impl();
+        let (impl_generics, _, _) = generics.split_for_impl();
 
         let is_entrypoint = attrs.iter().any(|attr| attr.path().is_ident("entrypoint"));
         let derive = if is_entrypoint {
@@ -47,7 +47,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #derive
-            #vis struct #name #ty_generics #where_clause {
+            #vis struct #name #impl_generics {
                 #fields
             }
         });
