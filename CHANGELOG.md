@@ -2,6 +2,74 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.0)
+
+### New
+
+- Introduction of a new library for building and deploying stylus contracts: `stylus-tools`
+- Support for cargo workspaces. Cargo-stylus now supports building and deploying contracts within a cargo workspace. Contracts are marked with a `Stylus.toml` file. Future configuration will be added to this file to facilitate per-contract and workspace-wide configuration options for contracts.
+- Addition of a new `contract-client-gen` feature flag which allows contracts within a crate to be used as a "library" to be called by other contracts.
+- Support for nested structs in return types
+- More convenient integer functions for storage
+- Support for custom storage slots
+- Support for tuples in return types
+
+### Changed
+
+- Update calls / deploys / logs to use noew hostio model
+- Additional integration tests
+- Upgrade alloy version
+- More example contracts from Stylus By Example
+- Use alloy::Bytes type instead of our own
+- Improvements to CI
+- Move `cargo-stylus` into the `OffchainLabs/stylus-sdk-rs` repo to simplify development and release of new cargo-stylus versions
+- Updates to `cargo stylus new` for creating workspaces and individual contracts (`--workspace` and `--contract` flags respectively)
+- Allow pure functions in trait-based inheritance model
+- Traits used for contract routing inheritance must now use the `#[public]` macro
+- Mini-alloc has been moved to its own crate since it has been stable for some time
+
+### Fixed
+
+- Fix panic when using `alloy_primitives::utils::keccak256()`
+- Proper encoding of tuples containing dynamic length types
+- Add missing definitions in `export-abi` output
+- Support for associated types in `export-abi`
+- Disallow shadowing of constructor function selector
+- Better sanitization of names in `export-abi` output
+- Disallow `AbiType` definitions which shadow solidity reserved type names
+- Fix panic when using `console!` macro in testing environment
+- Allow parameterized traits with associated types
+- Increase size of `ConstString` used to define potentially long `AbiTypes
+- Support for solidity mapping types in `sol_storage!` macro
+
+### Removed
+
+- Removal of deprecateed code from previous versions
+- Old inheritance model no longer supproted
+
+## [0.9.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.2) - 2025-09-23
+
+### Fixed
+
+- Fix segfault when testing with the keccak function in alloy.
+
+## [0.9.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.0) - 2025-05-20
+
+### Changed
+
+- Fix formatting by @amsanghi in #222
+- Add Stylus constructors by @gligneul in #184
+- first pass implementation of trait based inheritance by @rory-ocl in #223
+- Fix Cargo Stylus Replay by @gligneul in #225
+- Update CHANGELOG.md (main) by @gligneul in #228
+- Remove mark_used function to reduce binary size by @gligneul in #235
+- Port 0.8.3 changes to main by @gligneul in #231
+- add StorageU96 int alias by @0xNeshi in #234
+- Remove the HostIO-caching feature by @gligneul in #237
+- Add a README to Stylus Test by @rauljordan in #239
+- Be more strict with special function names by @gligneul in #242
+- Resolve Audit Feedback Related to TestVM and Fallbacks by @rauljordan in #241
+
 ## [0.8.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.8.3) - 2025-03-18
 
 ### Fixed
