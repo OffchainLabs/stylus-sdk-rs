@@ -1,15 +1,18 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::core::deployment::deployer::stylus_constructorCall;
+use crate::core::deployment::deployer::StylusDeployer::deployCall;
+use crate::core::verification::VerificationError::InvalidInitData;
+use crate::{
+    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
+    utils::cargo,
+};
+use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
     primitives::{Address, TxHash},
     providers::Provider,
-};
-
-use crate::{
-    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
-    utils::cargo,
 };
 
 pub async fn verify(
@@ -23,6 +26,15 @@ pub async fn verify(
         .ok_or(VerificationError::NoCodeAtAddress)?;
     cargo::clean()?;
     let status = contract.check(None, &Default::default(), provider).await?;
+
+    let constructor_called = deployCall::abi_decode(tx.input())
+        .unwrap()
+        .initData
+        .starts_with(stylus_constructorCall::SELECTOR.as_slice());
+    if !constructor_called {
+        return Err(InvalidInitData);
+    }
+
     let deployment_data = DeploymentCalldata::new(status.code());
     let calldata = DeploymentCalldata(tx.input().to_vec());
     if let Some(deployer_address) = tx.to() {
@@ -104,4 +116,6 @@ pub enum VerificationError {
     NoCodeAtAddress,
     #[error("Deployment transaction uses constructor but the local project doesn't have one")]
     NoConstructor,
+    #[error("Invalid init data: Constructor not called")]
+    InvalidInitData,
 }

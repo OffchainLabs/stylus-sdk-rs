@@ -1,6 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+#![allow(dead_code)]
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
 #![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
 
