@@ -135,6 +135,7 @@ impl ToTokens for EntrypointStruct {
         self.item.to_tokens(tokens);
         tokens.extend(quote! {
             #[cfg(feature = "contract-client-gen")]
+            #[derive(Default)]
         });
         self.item_contract_client_gen.to_tokens(tokens);
 

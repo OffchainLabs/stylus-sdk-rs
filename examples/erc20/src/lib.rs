@@ -17,6 +17,7 @@ use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
 
 /// Immutable definitions
+#[derive(Default)]
 pub struct StylusTestTokenParams;
 impl Erc20Params for StylusTestTokenParams {
     const NAME: &'static str = "StylusTestToken";

@@ -14,6 +14,18 @@ use crate::{
     utils::attrs::consume_flag,
 };
 
+fn is_phantom_data(ty: &Type) -> bool {
+    if let Type::Path(type_path) = &ty {
+        return type_path
+            .path
+            .segments
+            .last()
+            .map(|s| s.ident == "PhantomData")
+            .unwrap_or(false);
+    }
+    false
+}
+
 /// Implementation of the [`#[storage]`][crate::storage] macro.
 pub fn storage(
     attr: proc_macro::TokenStream,
@@ -42,7 +54,9 @@ pub fn storage(
             // Extract the original fields.
             let mut original_fields = named_fields.named;
             for field in original_fields.iter_mut() {
-                if field.ident != Some(STYLUS_CONTRACT_ADDRESS_FIELD.as_ident()) {
+                if field.ident != Some(STYLUS_CONTRACT_ADDRESS_FIELD.as_ident())
+                    && !is_phantom_data(&field.ty)
+                {
                     field.attrs.push(parse_quote! {
                         #[cfg(not(feature = "contract-client-gen"))]
                     });
