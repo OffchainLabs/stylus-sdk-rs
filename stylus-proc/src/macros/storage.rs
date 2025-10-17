@@ -89,6 +89,8 @@ pub fn storage(
         #(#attrs)*
         #[cfg_attr(feature = "contract-client-gen", derive(Default))]
         #vis struct #ident #generics {
+            #[cfg(feature = "contract-client-gen")]
+            #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
             #expanded_fields
         }
     };

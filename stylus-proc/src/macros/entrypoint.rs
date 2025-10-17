@@ -7,11 +7,9 @@ use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
-    punctuated::Punctuated,
-    token::Comma,
 };
 
-use crate::consts::{STRUCT_ENTRYPOINT_FN, STYLUS_CONTRACT_ADDRESS_FIELD};
+use crate::consts::STRUCT_ENTRYPOINT_FN;
 
 /// Implementation for the [`#[entrypoint]`][crate::entrypoint] macro.
 pub fn entrypoint(
@@ -26,25 +24,6 @@ pub fn entrypoint(
     entrypoint.into_token_stream().into()
 }
 
-pub fn add_stylus_contract_address(item_struct: &mut syn::ItemStruct) -> syn::Result<()> {
-    let field: syn::Field =
-        parse_quote! { #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address };
-    let mut named_fields = Punctuated::<syn::Field, Comma>::new();
-    named_fields.push(field);
-
-    match &mut item_struct.fields {
-        syn::Fields::Unnamed(_) => Err(syn::Error::new_spanned(
-            &item_struct.ident,
-            "[entrypoint] only supports named and unit structs.",
-        )),
-        _ => {
-            item_struct.fields = syn::Fields::Named(parse_quote! { { #named_fields } });
-            item_struct.semi_token = None; // Named structs do not have a semicolon at the end
-            Ok(())
-        }
-    }
-}
-
 struct Entrypoint {
     kind: EntrypointKind,
     user_entrypoint_fn: Option<syn::ItemFn>,
@@ -54,17 +33,12 @@ impl Parse for Entrypoint {
         let item: syn::Item = input.parse()?;
         let kind = match item {
             syn::Item::Fn(item) => EntrypointKind::Fn(EntrypointFn { item }),
-            syn::Item::Struct(item) => {
-                let mut item_contract_client_gen = item.clone();
-                add_stylus_contract_address(&mut item_contract_client_gen)?;
-
-                EntrypointKind::Struct(EntrypointStruct {
-                    top_level_storage_impl: top_level_storage_impl(&item),
-                    struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
-                    item,
-                    item_contract_client_gen,
-                })
-            }
+            syn::Item::Struct(item) => EntrypointKind::Struct(EntrypointStruct {
+                top_level_storage_impl: top_level_storage_impl(&item),
+                struct_entrypoint_fn: struct_entrypoint_fn(&item.ident),
+                item_contract_client_gen: item.clone(),
+                item,
+            }),
             _ => abort!(item, "not a struct or fn"),
         };
 

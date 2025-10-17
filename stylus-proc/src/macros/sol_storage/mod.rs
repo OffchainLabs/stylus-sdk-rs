@@ -1,7 +1,6 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::consts::STYLUS_CONTRACT_ADDRESS_FIELD;
 use proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use proc_macro::TokenStream;
 use quote::quote;
@@ -61,21 +60,10 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 
         let (_, ty_generics, where_clause) = generics.split_for_impl();
 
-        let is_entrypoint = attrs.iter().any(|attr| attr.path().is_ident("entrypoint"));
-        let address_field = if is_entrypoint {
-            quote!()
-        } else {
-            quote! {
-                #[cfg(feature = "contract-client-gen")]
-                #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
-            }
-        };
-
         out.extend(quote! {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #vis struct #name #ty_generics #where_clause {
-                #address_field
                 #fields
             }
         });
