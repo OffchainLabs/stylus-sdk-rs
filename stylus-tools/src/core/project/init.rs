@@ -43,7 +43,7 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
 
     // Add files from template
     copy_from_template_if_dne!(
-        "../../templates/contract" -> path,
+        "templates/contract" -> path,
         "src/lib.rs",
         "src/main.rs",
         "rust-toolchain.toml",
@@ -67,8 +67,8 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
 
     // Add files from template
     copy_from_template_if_dne!(
-        "../../templates/workspace" -> path,
-        "Cargo.toml",
+        "templates/workspace" -> path,
+        "Cargo.toml.tmpl",
         "rust-toolchain.toml",
         "Stylus.toml",
     );
