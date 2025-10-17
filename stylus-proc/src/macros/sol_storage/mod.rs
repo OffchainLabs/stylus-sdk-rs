@@ -1,10 +1,15 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use crate::consts::STYLUS_CONTRACT_ADDRESS_FIELD;
 use proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, punctuated::Punctuated, Token};
+use syn::token::Colon;
+use syn::{
+    parse_macro_input, parse_quote, punctuated::Punctuated, PredicateType, Token, TypeParamBound,
+    WherePredicate,
+};
 
 mod proc;
 
@@ -31,26 +36,50 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             })
             .collect();
 
-        generics
-            .type_params_mut()
-            .for_each(|ident| ident.bounds.push(parse_quote!(Default)));
-        let (impl_generics, _, _) = generics.split_for_impl();
+        // Will work also without, but we get more precise error messages when we enforce the bound on the struct
+        let predicates = generics
+            .type_params()
+            .map(|ident| {
+                (
+                    parse_quote!(#ident),
+                    Punctuated::from_iter::<Vec<TypeParamBound>>(vec![parse_quote!(Default)]),
+                )
+            })
+            .map(|(ident, ty_bounds)| {
+                WherePredicate::Type(PredicateType {
+                    lifetimes: None,
+                    bounded_ty: ident,
+                    colon_token: Colon::default(),
+                    bounds: ty_bounds,
+                })
+            })
+            .collect::<Vec<_>>();
+        let where_clause = generics.make_where_clause();
+        for p in &predicates {
+            where_clause.predicates.push(p.clone());
+        }
+
+        let (_, ty_generics, where_clause) = generics.split_for_impl();
 
         let is_entrypoint = attrs.iter().any(|attr| attr.path().is_ident("entrypoint"));
-        let derive = if is_entrypoint {
-            quote! {} // Already derived by #[entrypoint]
+        let (derive, address_field) = if is_entrypoint {
+            (quote!(), quote!())
         } else {
-            quote! {#[cfg_attr(feature = "contract-client-gen", derive(Default))]}
+            (
+                quote! {#[cfg_attr(feature = "contract-client-gen", derive(Default))]},
+                quote! {
+                    #[cfg(feature = "contract-client-gen")]
+                    #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
+                },
+            )
         };
-        if !is_entrypoint && !generics.params.is_empty() {
-            panic!("Non-entrypoint storage structs must not have generic parameters");
-        }
 
         out.extend(quote! {
             #(#attrs)*
             #[stylus_sdk::stylus_proc::storage]
             #derive
-            #vis struct #name #impl_generics {
+            #vis struct #name #ty_generics #where_clause {
+                #address_field
                 #fields
             }
         });

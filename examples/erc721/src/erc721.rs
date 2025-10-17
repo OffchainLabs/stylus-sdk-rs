@@ -19,7 +19,6 @@ use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
 use stylus_sdk::prelude::*;
-use stylus_sdk::stylus_core::calls::Call;
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -34,7 +33,7 @@ pub trait Erc721Params {
 
 sol_storage! {
     /// Erc721 implements all ERC-721 methods
-    pub struct Erc721<T: Erc721Params> {
+    pub struct Erc721<T> {
         /// Token id to owner map
         mapping(uint256 tokenid => address owner) owners;
         /// User to balance map

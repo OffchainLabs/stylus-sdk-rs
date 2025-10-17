@@ -150,6 +150,8 @@ impl Storage {
                     let mut slot: usize = 0;
                     let accessor = Self {
                         #STYLUS_HOST_FIELD: host.clone(),
+                        #[cfg(feature = "contract-client-gen")]
+                        #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address::ZERO,
                         #init
                     };
                     accessor
@@ -345,6 +347,9 @@ impl StorageField {
         if *ident == STYLUS_HOST_FIELD.as_ident() {
             return None;
         }
+        if *ident == STYLUS_CONTRACT_ADDRESS_FIELD.as_ident() {
+            return None;
+        }
         let ty = &self.ty;
         Some(parse_quote! {
             #ident: {
@@ -373,6 +378,9 @@ impl StorageField {
             return quote! {};
         };
         if *ident == STYLUS_HOST_FIELD.as_ident() {
+            return quote! {};
+        }
+        if *ident == STYLUS_CONTRACT_ADDRESS_FIELD.as_ident() {
             return quote! {};
         }
         quote! {
