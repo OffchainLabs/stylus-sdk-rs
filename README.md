@@ -16,7 +16,7 @@
 
 The Stylus SDK enables smart contract developers to write programs for **Arbitrum chains** written in the [Rust](https://www.rust-lang.org/tools/install) programming language. Stylus programs are compiled to [WebAssembly](https://webassembly.org/) and can then be deployed on-chain to execute alongside Solidity smart contracts. Stylus programs are not only orders of magnitude cheaper and faster but also enable what was thought to be previously impossible for WebAssembly: **EVM-interoperability**.
 
-For information about deploying Rust smart contracts, see the [Cargo Stylus CLI Tool](https://github.com/OffchainLabs/cargo-stylus). For more information about Stylus, see [Stylus: A Gentle Introduction](https://docs.arbitrum.io/stylus/gentle-introduction). For a simpler intro to Stylus Rust development, see the [Quick Start guide](https://docs.arbitrum.io/stylus/quickstart).
+For information about deploying Rust smart contracts, see the [Cargo Stylus CLI Tool](https://github.com/OffchainLabs/stylus-sdk-rs/tree/main/cargo-stylus). For more information about Stylus, see [Stylus: A Gentle Introduction](https://docs.arbitrum.io/stylus/gentle-introduction). For a simpler intro to Stylus Rust development, see the [Quick Start guide](https://docs.arbitrum.io/stylus/quickstart).
 
 Comprehensive documentation on the Rust SDK can be found [here](https://docs.arbitrum.io/stylus/rust-sdk-guide).
 
@@ -96,7 +96,7 @@ The Stylus SDK is just one of the building blocks in creating and deploying WebA
 | [Cargo Stylus CLI][CargoStylus]     | Deploying Stylus programs | Apache 2.0 or MIT |
 
 [HelloWorld]: https://github.com/OffchainLabs/stylus-hello-world
-[CargoStylus]: https://github.com/OffchainLabs/cargo-stylus
+[CargoStylus]: https://github.com/OffchainLabs/stylus-sdk-rs/tree/main/cargo-stylus
 
 ## License
 
