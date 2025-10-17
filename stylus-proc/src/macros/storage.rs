@@ -87,6 +87,7 @@ pub fn storage(
     // Inject the host trait generic into the item struct if not defined.
     let mut host_injected_item: syn::ItemStruct = parse_quote! {
         #(#attrs)*
+        #[cfg_attr(feature = "contract-client-gen", derive(Default))]
         #vis struct #ident #generics {
             #expanded_fields
         }

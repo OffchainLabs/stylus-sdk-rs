@@ -53,6 +53,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
             add_stylus_public_tag_check_fn_definition(&mut item_impl);
             output.extend(quote! {
                 #[cfg(not(feature = "contract-client-gen"))]
+                #[allow(dead_code)]
             });
             output.extend(item_impl.into_token_stream());
             public_impl.to_tokens(&mut output);
@@ -62,6 +63,7 @@ pub fn public(attr: TokenStream, input: TokenStream) -> TokenStream {
             add_stylus_public_tag_check_fn_declaration(&mut item_trait);
             output.extend(quote! {
                 #[cfg(not(feature = "contract-client-gen"))]
+                #[allow(dead_code)]
             });
             output.extend(item_trait.into_token_stream());
             public_trait.to_tokens(&mut output);
