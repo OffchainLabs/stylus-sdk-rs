@@ -20,8 +20,6 @@ For information about deploying Rust smart contracts, see the [Cargo Stylus CLI 
 
 Comprehensive documentation on the Rust SDK can be found [here](https://docs.arbitrum.io/stylus/rust-sdk-guide).
 
-This SDK has been audited in August 2024 at commit [#62bd831](https://github.com/OffchainLabs/stylus-sdk-rs/tree/62bd8318c7f3ab5be954cbc264f85bf2ba3f4b06) by OpenZepplin which can be viewed [here](https://blog.openzeppelin.com/stylus-rust-sdk-audit).
-
 ## Feature highlights
 
 The SDK makes it easy to develop Ethereum ABI-equivalent Stylus contracts in Rust. It provides a full suite of types and shortcuts that abstract away the details of Ethereum's storage layout, making it easy to _just write Rust_. For an in depth exploration of the features, please see comprehensive [Feature Overview][overview].
