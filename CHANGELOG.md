@@ -2,6 +2,36 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.0)
+
+### New
+
+- Introduction of a new library for building and deploying stylus contracts: `stylus-tools`
+- Support for cargo workspaces. Cargo-stylus now supports building and deploying contracts within a cargo workspace. Contracts are marked with a `Stylus.toml` file. Future configuration will be added to this file to facilitate per-contract and workspace-wide configuration options for contracts.
+- Addition of a new `contract-client-gen` feature flag which allows contracts within a crate to be used as a "library" to be called by other contracts.
+
+### Changed
+
+- Move `cargo-stylus` into the `OffchainLabs/stylus-sdk-rs` repo to simplify development and release of new cargo-stylus versions
+- Updates to `cargo stylus new` for creating workspaces and individual contracts (`--workspace` and `--contract` flags respectively)
+- Allow pure functions in trait-based inheritance model
+- Traits used for contract routing inheritance must now use the `#[public]` macro
+- Mini-alloc has been moved to its own crate since it has been stable for some time
+
+### Fixed
+
+- Fix panic when using `alloy_primitives::utils::keccak256()`
+- Proper encoding of tuples containing dynamic length types
+- Add missing definitions in `export-abi` output
+- Support for associated types in `export-abi`
+- Disallow shadowing of constructor function selector
+- Better sanitization of names in `export-abi` output
+- Disallow `AbiType` definitions which shadow solidity reserved type names
+- Fix panic when using `console!` macro in testing environment
+- Allow parameterized traits with associated types
+- Increase size of `ConstString` used to define potentially long `AbiTypes
+- Support for solidity mapping types in `sol_storage!` macro
+
 ## [0.9.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.9.2) - 2025-09-23
 
 ### Fixed
