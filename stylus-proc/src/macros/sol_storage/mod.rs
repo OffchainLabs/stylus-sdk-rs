@@ -42,6 +42,9 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
         } else {
             quote! {#[cfg_attr(feature = "contract-client-gen", derive(Default))]}
         };
+        if !is_entrypoint && !generics.params.is_empty() {
+            panic!("Non-entrypoint storage structs must not have generic parameters");
+        }
 
         out.extend(quote! {
             #(#attrs)*
