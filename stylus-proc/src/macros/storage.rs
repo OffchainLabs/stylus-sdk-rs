@@ -14,6 +14,18 @@ use crate::{
     utils::attrs::consume_flag,
 };
 
+fn is_phantom_data(ty: &Type) -> bool {
+    if let Type::Path(type_path) = &ty {
+        return type_path
+            .path
+            .segments
+            .last()
+            .map(|s| s.ident == "PhantomData")
+            .unwrap_or(false);
+    }
+    false
+}
+
 /// Implementation of the [`#[storage]`][crate::storage] macro.
 pub fn storage(
     attr: proc_macro::TokenStream,
@@ -42,7 +54,9 @@ pub fn storage(
             // Extract the original fields.
             let mut original_fields = named_fields.named;
             for field in original_fields.iter_mut() {
-                if field.ident != Some(STYLUS_CONTRACT_ADDRESS_FIELD.as_ident()) {
+                if field.ident != Some(STYLUS_CONTRACT_ADDRESS_FIELD.as_ident())
+                    && !is_phantom_data(&field.ty)
+                {
                     field.attrs.push(parse_quote! {
                         #[cfg(not(feature = "contract-client-gen"))]
                     });
@@ -73,7 +87,10 @@ pub fn storage(
     // Inject the host trait generic into the item struct if not defined.
     let mut host_injected_item: syn::ItemStruct = parse_quote! {
         #(#attrs)*
+        #[cfg_attr(feature = "contract-client-gen", derive(Default))]
         #vis struct #ident #generics {
+            #[cfg(feature = "contract-client-gen")]
+            #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address,
             #expanded_fields
         }
     };
@@ -136,6 +153,8 @@ impl Storage {
                     let mut slot: usize = 0;
                     let accessor = Self {
                         #STYLUS_HOST_FIELD: host.clone(),
+                        #[cfg(feature = "contract-client-gen")]
+                        #STYLUS_CONTRACT_ADDRESS_FIELD: stylus_sdk::alloy_primitives::Address::ZERO,
                         #init
                     };
                     accessor
@@ -331,6 +350,9 @@ impl StorageField {
         if *ident == STYLUS_HOST_FIELD.as_ident() {
             return None;
         }
+        if *ident == STYLUS_CONTRACT_ADDRESS_FIELD.as_ident() {
+            return None;
+        }
         let ty = &self.ty;
         Some(parse_quote! {
             #ident: {
@@ -359,6 +381,9 @@ impl StorageField {
             return quote! {};
         };
         if *ident == STYLUS_HOST_FIELD.as_ident() {
+            return quote! {};
+        }
+        if *ident == STYLUS_CONTRACT_ADDRESS_FIELD.as_ident() {
             return quote! {};
         }
         quote! {

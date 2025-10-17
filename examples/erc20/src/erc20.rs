@@ -129,7 +129,7 @@ impl<T: Erc20Params> Erc20<T> {
 
 // These methods are public to other contracts
 #[public]
-impl<T: Erc20Params> Erc20<T> {
+impl<T: Erc20Params + Default> Erc20<T> {
     /// Immutable token name
     pub fn name() -> String {
         T::NAME.into()

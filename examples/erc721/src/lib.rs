@@ -18,6 +18,7 @@ use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use stylus_sdk::prelude::*;
 
 /// Immutable definitions
+#[derive(Default)]
 pub struct StylusTestNFTParams;
 impl Erc721Params for StylusTestNFTParams {
     const NAME: &'static str = "StylusTestNFT";

@@ -481,10 +481,12 @@ impl PublicImpl {
             // and also add a constructor for the contract client
             quote! {
                 #[cfg(feature = "contract-client-gen")]
-                impl #generic_params #struct_path #where_clause {
+                #[allow(clippy::needless_update)]
+                impl<#generic_params> #struct_path #where_clause {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self {
                             #STYLUS_CONTRACT_ADDRESS_FIELD: address,
+                            ..Default::default()
                         }
                     }
 

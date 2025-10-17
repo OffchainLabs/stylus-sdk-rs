@@ -19,7 +19,6 @@ use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_sol_types::sol;
 use core::{borrow::BorrowMut, marker::PhantomData};
 use stylus_sdk::prelude::*;
-use stylus_sdk::stylus_core::calls::Call;
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -34,7 +33,7 @@ pub trait Erc721Params {
 
 sol_storage! {
     /// Erc721 implements all ERC-721 methods
-    pub struct Erc721<T: Erc721Params> {
+    pub struct Erc721<T> {
         /// Token id to owner map
         mapping(uint256 tokenid => address owner) owners;
         /// User to balance map
@@ -66,12 +65,13 @@ sol_interface! {
 }
 
 /// Selector for `onERC721Received`, which is returned by contracts implementing `IERC721TokenReceiver`.
+#[allow(dead_code)]
 const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 
 // These methods aren't public, but are helpers used by public methods.
 // Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
 #[cfg(not(feature = "contract-client-gen"))]
-impl<T: Erc721Params> Erc721<T> {
+impl<T: Erc721Params + Default> Erc721<T> {
     /// Requires that msg_sender is authorized to spend a given token
     fn require_authorized_to_spend(
         &self,
@@ -220,7 +220,7 @@ impl<T: Erc721Params> Erc721<T> {
 
 // these methods are public to other contracts
 #[public]
-impl<T: Erc721Params> Erc721<T> {
+impl<T: Erc721Params + Default> Erc721<T> {
     /// Immutable NFT name.
     pub fn name() -> Result<String, Erc721Error> {
         Ok(T::NAME.into())

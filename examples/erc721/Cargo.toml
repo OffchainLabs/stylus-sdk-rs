@@ -22,5 +22,3 @@ contract-client-gen = []
 
 [lib]
 crate-type = ["lib", "cdylib"]
-
-[workspace]
