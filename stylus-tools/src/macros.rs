@@ -4,9 +4,13 @@
 macro_rules! copy_from_template {
     ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
         $(
+            let mut filename = $root.join($files);
+            if filename.extension() == Some(std::ffi::OsStr::new("tmpl")) {
+                filename = filename.file_stem().unwrap().into();
+            }
             std::fs::write(
-                $root.join($files),
-                include_str!(concat!($tmpl, "/", $files)),
+                filename,
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $tmpl, "/", $files)),
             )?;
         )*
     };

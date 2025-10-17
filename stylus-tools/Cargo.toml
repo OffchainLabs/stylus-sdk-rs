@@ -10,6 +10,12 @@ license.workspace = true
 repository.workspace = true
 version.workspace = true
 
+include = [
+    "src/**/*",
+    "precompiles/*.sol",
+    "templates/**",
+]
+
 [dependencies]
 alloy = { workspace = true, features = ["contract", "getrandom", "rpc-types", "signer-local", "sol-types"] }
 cargo-util-schemas.workspace = true
