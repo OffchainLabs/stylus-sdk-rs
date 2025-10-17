@@ -65,6 +65,7 @@ sol_interface! {
 }
 
 /// Selector for `onERC721Received`, which is returned by contracts implementing `IERC721TokenReceiver`.
+#[allow(dead_code)]
 const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 
 // These methods aren't public, but are helpers used by public methods.
