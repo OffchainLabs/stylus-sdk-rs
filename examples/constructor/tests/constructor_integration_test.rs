@@ -59,6 +59,12 @@ interface IContract {
 
         assert_eq!(gas_used, gas_estimate);
 
+        println!("Activating contract at {address} on Nitro ({rpc})...");
+        stylus_tools::Activator::new(rpc.to_owned())
+            .with_contract_address(address.to_string())
+            .activate()?;
+        println!("Activated contract at {address}");
+
         stylus_tools::Verifier::new(rpc.to_owned())
             .with_deployment_tx_hash(tx_hash.to_string())
             .verify()?;

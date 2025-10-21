@@ -23,8 +23,11 @@ pub mod devnet;
 pub use deployer::*;
 pub mod verifier;
 pub use verifier::*;
+mod activator;
 mod checker;
 pub mod exporter;
+
+pub use activator::*;
 pub use checker::*;
 
 pub use error::{Error, Result};
