@@ -17,10 +17,10 @@ pub mod wasm;
 
 pub mod utils;
 
-pub mod cargo_stylus;
+pub mod deployer;
 #[cfg(feature = "integration-tests")]
 pub mod devnet;
-pub use cargo_stylus::*;
+pub use deployer::*;
 pub mod verifier;
 pub use verifier::*;
 pub mod exporter;
