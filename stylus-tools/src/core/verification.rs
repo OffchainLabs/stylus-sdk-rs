@@ -4,9 +4,8 @@
 use crate::core::deployment::deployer::stylus_constructorCall;
 use crate::core::deployment::deployer::StylusDeployer::deployCall;
 use crate::core::verification::VerificationError::InvalidInitData;
-use crate::{
-    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
-    utils::cargo,
+use crate::core::{
+    deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection,
 };
 use alloy::sol_types::SolCall;
 use alloy::{
@@ -24,7 +23,7 @@ pub async fn verify(
         .get_transaction_by_hash(tx_hash)
         .await?
         .ok_or(VerificationError::NoCodeAtAddress)?;
-    cargo::clean()?;
+    // cargo::clean()?;
     let status = contract.check(None, &Default::default(), provider).await?;
 
     let constructor_called = deployCall::abi_decode(tx.input())

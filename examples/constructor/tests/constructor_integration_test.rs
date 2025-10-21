@@ -21,16 +21,38 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IContract {
+    function setNumber(uint256 number) external;
+
+    function number() external view returns (uint256);
+
+    function owner() external view returns (address);
+
+    error Unauthorized();
+}";
+    const EXPECTED_CONSTRUCTOR: &str = "constructor(uint256 initial_number) payable";
+
     #[tokio::test]
     async fn constructor() -> Result<()> {
+        let exporter = stylus_tools::Exporter::new();
+        assert_eq!(exporter.export_abi()?, EXPECTED_ABI);
+        assert_eq!(exporter.export_constructor()?, EXPECTED_CONSTRUCTOR);
+
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
-        let address = stylus_tools::Deployer::new(rpc.to_owned())
+        let (address, tx_hash) = stylus_tools::Deployer::new(rpc.to_owned())
             .with_constructor_args(vec!["0xbeef".to_owned()])
             .with_constructor_value("12.34".to_owned())
             .deploy()?;
         println!("Deployed contract to {address}");
+
+        stylus_tools::Verifier::new(rpc.to_owned())
+            .with_deployment_tx_hash(tx_hash.to_string())
+            .verify()?;
+        println!("Verified contract with tx hash {tx_hash}");
+
         let provider = devnode.create_provider().await?;
 
         // Check balance sent in constructor

@@ -1,10 +1,10 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy::primitives::Address;
+use alloy::primitives::{Address, TxHash};
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
-use std::{env, ffi::OsStr, path::Path, process::Command};
+use std::{env, path::Path, process::Command};
 
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
@@ -70,8 +70,9 @@ impl Deployer {
     }
 
     // Deploy the Stylus contract returning the contract address.
-    pub fn deploy(self) -> Result<Address> {
+    pub fn deploy(self) -> Result<(Address, TxHash)> {
         let mut deploy_args: Vec<String> = Vec::new();
+        deploy_args.push("--no-verify".to_owned());
         deploy_args.push("-e".to_owned());
         deploy_args.push(self.rpc);
         let Some(private_key) = self.private_key else {
@@ -93,35 +94,40 @@ impl Deployer {
             deploy_args.extend_from_slice(&args);
         }
 
-        let original_dir = env::current_dir()?;
-        if let Some(dir) = self.dir {
-            env::set_current_dir(Path::new(&dir))?;
-        }
-        let res = call_deploy(deploy_args);
-        env::set_current_dir(original_dir)?;
-        res
+        let out = call(self.dir, "deploy", deploy_args)?;
+        let out = strip_color(&out);
+        let (address, tx_hash) = extract_deployed_address(&out)?;
+        let address: Address = address
+            .parse()
+            .wrap_err("failed to parse deployment address")?;
+        let tx_hash: TxHash = tx_hash
+            .parse()
+            .wrap_err("failed to parse deployment tx hash")?;
+        Ok((address, tx_hash))
     }
 }
 
-fn call_deploy<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(args: I) -> Result<Address> {
+pub fn call<I: IntoIterator<Item = String>>(
+    dir: Option<String>,
+    func: &str,
+    args: I,
+) -> Result<String> {
+    let original_dir = env::current_dir()?;
+    if let Some(dir) = dir {
+        env::set_current_dir(Path::new(&dir))?;
+    }
     let output = Command::new("cargo")
         .arg("stylus-beta")
-        .arg("deploy")
-        .arg("--no-verify")
+        .arg(func)
         .args(args)
         .output()
-        .wrap_err("failed to run cargo deploy")?;
+        .wrap_err(format!("failed to run cargo stylus {func}"))?;
+    env::set_current_dir(original_dir)?;
     if !output.status.success() {
         let err = String::from_utf8(output.stderr).unwrap_or("failed to decode error".to_owned());
         bail!("failed to run node: {}", err);
     }
-    let out = String::from_utf8(output.stdout).wrap_err("failed to decode stdout")?;
-    let out = strip_color(&out);
-    let address = extract_deployed_address(&out)?;
-    let address: Address = address
-        .parse()
-        .wrap_err("failed to parse deployment address")?;
-    Ok(address)
+    String::from_utf8(output.stdout).wrap_err("failed to decode stdout")
 }
 
 fn strip_color(s: &str) -> String {
@@ -129,11 +135,15 @@ fn strip_color(s: &str) -> String {
     re.replace_all(s, "").into_owned()
 }
 
-fn extract_deployed_address(s: &str) -> Result<&str> {
+fn extract_deployed_address(s: &str) -> Result<(&str, &str)> {
+    let mut address = None;
+    let mut tx_hash = None;
     for line in s.lines() {
         if let Some((_, rest)) = line.split_once("deployed code at address: ") {
-            return Ok(rest);
+            address = Some(rest);
+        } else if let Some((_, rest)) = line.split_once("deployment tx hash: ") {
+            tx_hash = Some(rest);
         }
     }
-    Err(eyre!("deployment address not found"))
+    Option::zip(address, tx_hash).ok_or_else(|| eyre!("deployment address or tx hash not found"))
 }
