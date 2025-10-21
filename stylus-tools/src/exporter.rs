@@ -24,7 +24,7 @@ impl Exporter {
 
     // Export the ABI of the Stylus contract.
     pub fn export_abi(&self) -> Result<String> {
-        let res = call(self.dir.clone(), "export-abi", vec![]);
+        let res = call(&self.dir, "export-abi", vec![]);
         Ok(res?
             .split_once("pragma solidity ^0.8.23;")
             .ok_or_eyre("failed to parse abi")?
@@ -34,7 +34,7 @@ impl Exporter {
     }
 
     pub fn export_constructor(&self) -> Result<String> {
-        let res = call(self.dir.clone(), "constructor", vec![]);
+        let res = call(&self.dir, "constructor", vec![]);
         Ok(res?.trim().to_owned())
     }
 }

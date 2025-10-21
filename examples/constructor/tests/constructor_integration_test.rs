@@ -41,12 +41,23 @@ interface IContract {
 
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, tx_hash) = stylus_tools::Deployer::new(rpc.to_owned())
+
+        println!("Checking contract on Nitro ({rpc})...");
+        stylus_tools::Checker::new(rpc.to_owned()).check()?;
+        println!("Checked contract");
+
+        let deployer = stylus_tools::Deployer::new(rpc.to_owned())
             .with_constructor_args(vec!["0xbeef".to_owned()])
-            .with_constructor_value("12.34".to_owned())
-            .deploy()?;
+            .with_constructor_value("12.34".to_owned());
+        println!("Estimating gas...");
+        let gas_estimate = deployer.estimate_gas()?;
+        println!("Estimated deployment gas: {gas_estimate} ETH");
+
+        println!("Deploying contract to Nitro ({rpc})...");
+        let (address, tx_hash, gas_used) = deployer.deploy()?;
         println!("Deployed contract to {address}");
+
+        assert_eq!(gas_used, gas_estimate);
 
         stylus_tools::Verifier::new(rpc.to_owned())
             .with_deployment_tx_hash(tx_hash.to_string())

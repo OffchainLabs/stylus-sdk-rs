@@ -23,6 +23,9 @@ pub mod devnet;
 pub use deployer::*;
 pub mod verifier;
 pub use verifier::*;
+mod checker;
 pub mod exporter;
+pub use checker::*;
+
 pub use error::{Error, Result};
 pub use exporter::*;

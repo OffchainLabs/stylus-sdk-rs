@@ -38,7 +38,7 @@ impl Verifier {
             bail!("missing deployment tx hash");
         };
         let res = call(
-            self.dir.clone(),
+            &self.dir,
             "verify",
             vec![
                 "--no-verify".to_owned(),
