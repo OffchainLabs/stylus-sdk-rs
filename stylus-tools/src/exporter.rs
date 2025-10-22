@@ -2,26 +2,19 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::call;
+use derive_builder::Builder;
 use eyre::{OptionExt, Result};
 
 /// Defines the configuration for exporting a Stylus contract.
 /// After setting the parameters, call `Exporter::export_abi` or `Exporter::export_constructor` to perform the export.
-#[derive(Default)]
+#[derive(Builder)]
+#[builder(setter(into))]
 pub struct Exporter {
+    #[builder(default)]
     dir: Option<String>,
 }
 
 impl Exporter {
-    // Create the Exporter with default parameters.
-    pub fn new() -> Self {
-        Self { dir: None }
-    }
-
-    pub fn with_contract_dir(mut self, dir: String) -> Self {
-        self.dir = Some(dir);
-        self
-    }
-
     // Export the ABI of the Stylus contract.
     pub fn export_abi(&self) -> Result<String> {
         let res = call(&self.dir, "export-abi", vec![]);

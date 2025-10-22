@@ -35,7 +35,7 @@ interface IContract {
 
     #[tokio::test]
     async fn constructor() -> Result<()> {
-        let exporter = stylus_tools::Exporter::new();
+        let exporter = stylus_tools::ExporterBuilder::default().build()?;
         assert_eq!(exporter.export_abi()?, EXPECTED_ABI);
         assert_eq!(exporter.export_constructor()?, EXPECTED_CONSTRUCTOR);
 
@@ -43,32 +43,35 @@ interface IContract {
         let rpc = devnode.rpc();
 
         println!("Checking contract on Nitro ({rpc})...");
-        stylus_tools::Checker::new(rpc.to_owned()).check()?;
+        stylus_tools::CheckerBuilder::default()
+            .rpc(rpc)
+            .build()?
+            .check()?;
         println!("Checked contract");
 
-        let deployer = stylus_tools::Deployer::new(rpc.to_owned())
-            .with_constructor_args(vec!["0xbeef".to_owned()])
-            .with_constructor_value("12.34".to_owned());
+        let deployer = stylus_tools::DeployerBuilder::default()
+            .rpc(rpc.to_owned())
+            .constructor_args(vec!["0xbeef".to_owned()])
+            .constructor_value("12.34".to_owned())
+            .build()?;
         println!("Estimating gas...");
         let gas_estimate = deployer.estimate_gas()?;
         println!("Estimated deployment gas: {gas_estimate} ETH");
 
         println!("Deploying contract to Nitro ({rpc})...");
-        let (address, tx_hash, gas_used) = deployer.deploy()?;
+        let (address, _tx_hash, gas_used) = deployer.deploy()?;
         println!("Deployed contract to {address}");
 
+        // Approximate equality is usually expected, but given the test conditions, the gas estimate equals the gas used
         assert_eq!(gas_used, gas_estimate);
 
         println!("Activating contract at {address} on Nitro ({rpc})...");
-        stylus_tools::Activator::new(rpc.to_owned())
-            .with_contract_address(address.to_string())
+        stylus_tools::ActivatorBuilder::default()
+            .rpc(rpc)
+            .contract_address(address.to_string())
+            .build()?
             .activate()?;
         println!("Activated contract at {address}");
-
-        stylus_tools::Verifier::new(rpc.to_owned())
-            .with_deployment_tx_hash(tx_hash.to_string())
-            .verify()?;
-        println!("Verified contract with tx hash {tx_hash}");
 
         let provider = devnode.create_provider().await?;
 

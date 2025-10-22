@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{Address, TxHash};
+use derive_builder::Builder;
 use eyre::{bail, Result, WrapErr};
 use regex::Regex;
 use std::iter::once;
@@ -9,67 +10,35 @@ use std::{env, path::Path, process::Command};
 
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
+#[derive(Builder)]
+#[builder(setter(into))]
 pub struct Deployer {
     rpc: String,
+
+    #[builder(default)]
     dir: Option<String>,
-    private_key: Option<String>,
+
+    #[cfg_attr(
+        feature = "integration-tests",
+        builder(default = "crate::devnet::DEVNET_PRIVATE_KEY.to_owned()")
+    )]
+    private_key: String,
+
+    #[cfg_attr(
+        feature = "integration-tests",
+        builder(default = "Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string())")
+    )]
+    #[cfg_attr(not(feature = "integration-tests"), builder(default))]
     stylus_deployer: Option<String>,
+
+    #[builder(default)]
     constructor_value: Option<String>,
+
+    #[builder(default)]
     constructor_args: Option<Vec<String>>,
 }
 
 impl Deployer {
-    // Create the Deployer with default parameters.
-    pub fn new(rpc: String) -> Self {
-        cfg_if::cfg_if! {
-            // When running with integration tests, set the default parameters for the local devnet.
-            if #[cfg(feature = "integration-tests")] {
-                Self {
-                    rpc,
-                    dir: None,
-                    private_key: Some(crate::devnet::DEVNET_PRIVATE_KEY.to_owned()),
-                    stylus_deployer: Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string()),
-                    constructor_value: None,
-                    constructor_args: None,
-                }
-            } else {
-                Self {
-                    rpc,
-                    dir: None,
-                    private_key: None,
-                    stylus_deployer: None,
-                    constructor_value: None,
-                    constructor_args: None,
-                }
-            }
-        }
-    }
-
-    pub fn with_contract_dir(mut self, dir: String) -> Self {
-        self.dir = Some(dir);
-        self
-    }
-
-    pub fn with_private_key(mut self, key: String) -> Self {
-        self.private_key = Some(key);
-        self
-    }
-
-    pub fn with_stylus_deployer(mut self, deployer: Address) -> Self {
-        self.stylus_deployer = Some(deployer.to_string());
-        self
-    }
-
-    pub fn with_constructor_value(mut self, value: String) -> Self {
-        self.constructor_value = Some(value);
-        self
-    }
-
-    pub fn with_constructor_args(mut self, args: Vec<String>) -> Self {
-        self.constructor_args = Some(args);
-        self
-    }
-
     pub fn estimate_gas(&self) -> Result<f64> {
         let deploy_args = self.deploy_args()?;
         let out = call(
@@ -79,7 +48,7 @@ impl Deployer {
         )?;
         let out = strip_color(&out);
 
-        extract_gas_estimate(&out)
+        extract_gas_estimate_result(&out)
     }
 
     // Deploy the Stylus contract returning the contract address.
@@ -88,7 +57,7 @@ impl Deployer {
 
         let out = call(&self.dir, "deploy", deploy_args)?;
         let out = strip_color(&out);
-        let (address, tx_hash, gas_estimate) = extract_deployed_address(&out)?;
+        let (address, tx_hash, gas_estimate) = extract_deploy_result(&out)?;
         let address: Address = address
             .parse()
             .wrap_err("failed to parse deployment address")?;
@@ -99,15 +68,13 @@ impl Deployer {
     }
 
     fn deploy_args(&self) -> Result<Vec<String>> {
-        let mut deploy_args: Vec<String> = Vec::new();
-        deploy_args.push("--no-verify".to_owned());
-        deploy_args.push("-e".to_owned());
-        deploy_args.push(self.rpc.to_owned());
-        let Some(private_key) = &self.private_key else {
-            bail!("missing private key");
-        };
-        deploy_args.push("--private-key".to_owned());
-        deploy_args.push(private_key.to_owned());
+        let mut deploy_args: Vec<String> = vec![
+            "--no-verify".to_owned(),
+            "-e".to_owned(),
+            self.rpc.to_owned(),
+            "--private-key".to_owned(),
+            self.private_key.to_owned(),
+        ];
         if let Some(args) = &self.constructor_args {
             if let Some(value) = &self.constructor_value {
                 deploy_args.push("--constructor-value".to_owned());
@@ -130,7 +97,7 @@ fn strip_color(s: &str) -> String {
     re.replace_all(s, "").into_owned()
 }
 
-fn extract_deployed_address(s: &str) -> Result<(&str, &str, f64)> {
+fn extract_deploy_result(s: &str) -> Result<(&str, &str, f64)> {
     let mut address = None;
     let mut tx_hash = None;
     let mut gas_estimate = None;
@@ -149,7 +116,7 @@ fn extract_deployed_address(s: &str) -> Result<(&str, &str, f64)> {
     }
 }
 
-fn extract_gas_estimate(s: &str) -> Result<f64> {
+fn extract_gas_estimate_result(s: &str) -> Result<f64> {
     for line in s.lines() {
         if let Some(ge) = parse_gas_estimate(line) {
             return Ok(ge);
