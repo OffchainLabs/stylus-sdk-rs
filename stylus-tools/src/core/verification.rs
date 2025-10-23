@@ -42,17 +42,16 @@ pub async fn verify(
     }
     let status = contract.check(None, &Default::default(), provider).await?;
 
-    let constructor_called = deployCall::abi_decode(tx.input())
-        .unwrap()
-        .initData
-        .starts_with(stylus_constructorCall::SELECTOR.as_slice());
-    if !constructor_called {
-        return Err(InvalidInitData);
-    }
-
     let deployment_data = DeploymentCalldata::new(status.code());
     let calldata = DeploymentCalldata(tx.input().to_vec());
     if let Some(deployer_address) = tx.to() {
+        let constructor_called = deployCall::abi_decode(calldata.0.as_slice())
+            .unwrap()
+            .initData
+            .starts_with(stylus_constructorCall::SELECTOR.as_slice());
+        if !constructor_called {
+            return Err(InvalidInitData);
+        }
         verify_constructor_deployment(&calldata, &deployment_data, deployer_address)
     } else {
         Ok(verify_create_deployment(&calldata, &deployment_data))
@@ -68,7 +67,7 @@ fn verify_create_deployment(
     }
 
     let tx_prelude = calldata.prelude();
-    let build_prelude = calldata.prelude();
+    let build_prelude = deployment_data.prelude();
     let prelude_mismatch = if tx_prelude == build_prelude {
         None
     } else {
@@ -78,8 +77,8 @@ fn verify_create_deployment(
         })
     };
 
-    let tx_wasm_length = deployment_data.compressed_wasm().len();
-    let build_wasm_length = calldata.compressed_wasm().len();
+    let tx_wasm_length = calldata.compressed_wasm().len();
+    let build_wasm_length = deployment_data.compressed_wasm().len();
     VerificationStatus::Failure(VerificationFailure {
         prelude_mismatch,
         tx_wasm_length,
