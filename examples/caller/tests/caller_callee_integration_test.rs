@@ -40,17 +40,17 @@ mod integration_test {
         let provider = devnode.create_provider().await?;
 
         println!("Deploying callee contract to Nitro ({rpc})...");
-        let (callee_address, _, _) = stylus_tools::DeployerBuilder::default()
+        let (callee_address, _, _) = stylus_tools::Deployer::builder()
             .rpc(rpc)
             .dir("../callee".to_owned())
-            .build()?
+            .build()
             .deploy()?;
         println!("Deployed callee contract to {callee_address}");
 
         println!("Deploying caller contract to Nitro ({rpc})...");
-        let (caller_address, _, _) = stylus_tools::DeployerBuilder::default()
+        let (caller_address, _, _) = stylus_tools::Deployer::builder()
             .rpc(rpc)
-            .build()?
+            .build()
             .deploy()?;
         println!("Deployed caller contract to {caller_address}");
 

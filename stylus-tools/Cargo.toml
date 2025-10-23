@@ -29,7 +29,7 @@ testcontainers = { workspace = true, optional = true }
 tokio.workspace = true
 trybuild.workspace = true
 cfg-if.workspace = true
-derive_builder = "0.20.2"
+typed-builder = "0.23.0"
 
 anyhow = "1"
 brotli2 = "0.3.2"

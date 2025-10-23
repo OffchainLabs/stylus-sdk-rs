@@ -2,25 +2,27 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::call;
-use derive_builder::Builder;
 use eyre::Result;
+use std::borrow::ToOwned;
+use typed_builder::TypedBuilder;
 
 /// Defines the configuration for activating a Stylus contract.
 /// After setting the parameters, call `Activator::activate` to perform the activation.
-#[derive(Builder)]
-#[builder(setter(into))]
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default, setter(into)))]
 pub struct Activator {
+    #[builder(!default)]
     rpc: String,
-
-    #[builder(default)]
     dir: Option<String>,
 
     #[cfg_attr(
         feature = "integration-tests",
-        builder(default = "crate::devnet::DEVNET_PRIVATE_KEY.to_owned()")
+        builder(default = crate::devnet::DEVNET_PRIVATE_KEY.to_owned())
     )]
+    #[cfg_attr(not(feature = "integration-tests"), builder(!default))]
     private_key: String,
 
+    #[builder(!default)]
     contract_address: String,
 }
 

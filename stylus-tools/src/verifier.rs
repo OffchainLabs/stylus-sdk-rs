@@ -2,18 +2,19 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::call;
-use derive_builder::Builder;
 use eyre::{eyre, Result};
+use typed_builder::TypedBuilder;
 
 /// Defines the configuration for verifying a Stylus contract.
 /// After setting the parameters, call `Verifier::verify` to perform the verification.
-#[derive(Builder)]
-#[builder(setter(into))]
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default, setter(into)))]
 pub struct Verifier {
+    #[builder(!default)]
     rpc: String,
 
-    #[builder(default)]
     dir: Option<String>,
+    #[builder(!default)]
     deployment_tx_hash: String,
 }
 

@@ -22,9 +22,9 @@ mod integration_test {
         let devnode = Node::new().await?;
         let rpc = devnode.rpc();
         println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::DeployerBuilder::default()
+        let (address, _, _) = stylus_tools::Deployer::builder()
             .rpc(rpc)
-            .build()?
+            .build()
             .deploy()?;
         println!("Deployed contract to {address}");
         let provider = devnode.create_provider().await?;

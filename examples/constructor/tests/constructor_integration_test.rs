@@ -35,7 +35,7 @@ interface IContract {
 
     #[tokio::test]
     async fn constructor() -> Result<()> {
-        let exporter = stylus_tools::ExporterBuilder::default().build()?;
+        let exporter = stylus_tools::Exporter::builder().build();
         assert_eq!(exporter.export_abi()?, EXPECTED_ABI);
         assert_eq!(exporter.export_constructor()?, EXPECTED_CONSTRUCTOR);
 
@@ -43,17 +43,14 @@ interface IContract {
         let rpc = devnode.rpc();
 
         println!("Checking contract on Nitro ({rpc})...");
-        stylus_tools::CheckerBuilder::default()
-            .rpc(rpc)
-            .build()?
-            .check()?;
+        stylus_tools::Checker::builder().rpc(rpc).build().check()?;
         println!("Checked contract");
 
-        let deployer = stylus_tools::DeployerBuilder::default()
+        let deployer = stylus_tools::Deployer::builder()
             .rpc(rpc.to_owned())
             .constructor_args(vec!["0xbeef".to_owned()])
             .constructor_value("12.34".to_owned())
-            .build()?;
+            .build();
         println!("Estimating gas...");
         let gas_estimate = deployer.estimate_gas()?;
         println!("Estimated deployment gas: {gas_estimate} ETH");
@@ -66,10 +63,10 @@ interface IContract {
         assert_eq!(gas_used, gas_estimate);
 
         println!("Activating contract at {address} on Nitro ({rpc})...");
-        stylus_tools::ActivatorBuilder::default()
+        stylus_tools::Activator::builder()
             .rpc(rpc)
             .contract_address(address.to_string())
-            .build()?
+            .build()
             .activate()?;
         println!("Activated contract at {address}");
 

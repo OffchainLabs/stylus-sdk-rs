@@ -2,15 +2,14 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::call;
-use derive_builder::Builder;
 use eyre::{OptionExt, Result};
+use typed_builder::TypedBuilder;
 
 /// Defines the configuration for exporting a Stylus contract.
 /// After setting the parameters, call `Exporter::export_abi` or `Exporter::export_constructor` to perform the export.
-#[derive(Builder)]
-#[builder(setter(into))]
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default, setter(into)))]
 pub struct Exporter {
-    #[builder(default)]
     dir: Option<String>,
 }
 

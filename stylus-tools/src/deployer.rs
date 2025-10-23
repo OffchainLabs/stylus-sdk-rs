@@ -2,39 +2,38 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{Address, TxHash};
-use derive_builder::Builder;
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
+use std::borrow::ToOwned;
 use std::iter::once;
 use std::{env, path::Path, process::Command};
+use typed_builder::TypedBuilder;
 
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
-#[derive(Builder)]
-#[builder(setter(into))]
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default, setter(into)))]
 pub struct Deployer {
+    #[builder(!default)]
     rpc: String,
 
-    #[builder(default)]
     dir: Option<String>,
 
     #[cfg_attr(
         feature = "integration-tests",
-        builder(default = "crate::devnet::DEVNET_PRIVATE_KEY.to_owned()")
+        builder(default = crate::devnet::DEVNET_PRIVATE_KEY.to_owned())
     )]
+    #[cfg_attr(not(feature = "integration-tests"), builder(!default))]
     private_key: String,
 
     #[cfg_attr(
         feature = "integration-tests",
-        builder(default = "Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string())")
+        builder(default = Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string()))
     )]
-    #[cfg_attr(not(feature = "integration-tests"), builder(default))]
     stylus_deployer: Option<String>,
 
-    #[builder(default)]
     constructor_value: Option<String>,
 
-    #[builder(default)]
     constructor_args: Option<Vec<String>>,
 }
 
