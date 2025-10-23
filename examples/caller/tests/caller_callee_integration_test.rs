@@ -40,7 +40,7 @@ mod integration_test {
         let provider = devnode.create_provider().await?;
 
         println!("Deploying callee contract to Nitro ({rpc})...");
-        let (callee_address, _, _) = stylus_tools::Deployer::builder()
+        let (callee_address, callee_deployment_tx_hash, _) = stylus_tools::Deployer::builder()
             .rpc(rpc)
             .dir("../callee".to_owned())
             .build()
@@ -48,11 +48,33 @@ mod integration_test {
         println!("Deployed callee contract to {callee_address}");
 
         println!("Deploying caller contract to Nitro ({rpc})...");
-        let (caller_address, _, _) = stylus_tools::Deployer::builder()
+        let (caller_address, caller_deployment_tx_hash, _) = stylus_tools::Deployer::builder()
             .rpc(rpc)
             .build()
             .deploy()?;
         println!("Deployed caller contract to {caller_address}");
+
+        let verify = stylus_tools::Verifier::builder()
+            .rpc(rpc)
+            .deployment_tx_hash(caller_deployment_tx_hash.to_string())
+            .build()
+            .verify();
+        assert!(verify.is_ok(), "Failed to verify caller contract");
+
+        let verify = stylus_tools::Verifier::builder()
+            .rpc(rpc)
+            .deployment_tx_hash(callee_deployment_tx_hash.to_string())
+            .build()
+            .verify();
+        assert!(verify.is_err(), "Provided wrong tx hash for verification");
+
+        let verify = stylus_tools::Verifier::builder()
+            .rpc(rpc)
+            .dir("../callee".to_owned())
+            .deployment_tx_hash(caller_deployment_tx_hash.to_string())
+            .build()
+            .verify();
+        assert!(verify.is_err(), "Provided wrong contract for verification");
 
         let caller = ICaller::ICallerInstance::new(caller_address, provider);
 
