@@ -108,9 +108,10 @@ impl Contract {
     pub async fn verify(
         &self,
         tx_hash: TxHash,
+        skip_clean: bool,
         provider: &impl Provider,
     ) -> eyre::Result<VerificationStatus> {
-        let status = verification::verify(self, tx_hash, provider).await?;
+        let status = verification::verify(self, tx_hash, skip_clean, provider).await?;
         Ok(status)
     }
 

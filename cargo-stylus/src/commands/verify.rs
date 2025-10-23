@@ -22,6 +22,9 @@ pub struct Args {
     #[arg(long)]
     deployment_tx: Vec<String>,
 
+    #[arg(long)]
+    skip_clean: bool,
+
     #[command(flatten)]
     project: ProjectArgs,
     #[command(flatten)]
@@ -40,7 +43,17 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                 return Err(eyre!("Invalid hash").into());
             }
             let hash = TxHash::from_slice(&hash);
-            contract.verify(hash, &provider).await?;
+            match contract.verify(hash, args.skip_clean, &provider).await? {
+                stylus_tools::core::verification::VerificationStatus::Success => {
+                    println!("Verification successful");
+                }
+                stylus_tools::core::verification::VerificationStatus::Failure(failure) => {
+                    println!("Verification failed");
+                    println!("prelude mismatch: {:?}", failure.prelude_mismatch);
+                    println!("tx wasm length: {}", failure.tx_wasm_length);
+                    println!("build wasm length: {}", failure.build_wasm_length);
+                }
+            }
         } else {
             println!("Running in a Docker container for reproducibility, this may take a while",);
             let mut cli_args: Vec<String> =

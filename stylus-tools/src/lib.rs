@@ -17,10 +17,18 @@ pub mod wasm;
 
 pub mod utils;
 
+pub mod deployer;
 #[cfg(feature = "integration-tests")]
 pub mod devnet;
+pub use deployer::*;
+pub mod verifier;
+pub use verifier::*;
+mod activator;
+mod checker;
+pub mod exporter;
 
-pub mod cargo_stylus;
+pub use activator::*;
+pub use checker::*;
 
-pub use cargo_stylus::*;
 pub use error::{Error, Result};
+pub use exporter::*;

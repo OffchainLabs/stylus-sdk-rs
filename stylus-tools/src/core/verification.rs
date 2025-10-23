@@ -10,6 +10,7 @@ use crate::{
     core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
     utils::cargo,
 };
+
 use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
@@ -20,12 +21,16 @@ use alloy::{
 pub async fn verify(
     contract: &Contract,
     tx_hash: TxHash,
+    skip_clean: bool,
     provider: &impl Provider,
 ) -> Result<VerificationStatus, VerificationError> {
     let tx = provider
         .get_transaction_by_hash(tx_hash)
         .await?
         .ok_or(VerificationError::NoCodeAtAddress)?;
+    if !skip_clean {
+        cargo::clean()?;
+    }
     cargo::clean()?;
     let deployment_success = provider
         .get_transaction_receipt(tx_hash)
