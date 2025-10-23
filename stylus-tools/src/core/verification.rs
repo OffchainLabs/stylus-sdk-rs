@@ -1,8 +1,8 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::deployment::deployer::stylus_constructorCall;
 use crate::core::deployment::deployer::StylusDeployer::deployCall;
+use crate::core::deployment::deployer::{stylus_constructorCall, ADDRESS};
 use crate::core::verification::VerificationError::InvalidInitData;
 use crate::core::{
     deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection,
@@ -29,29 +29,44 @@ pub async fn verify(
         cargo::clean()?;
     }
     let status = contract.check(None, &Default::default(), provider).await?;
-
     let deployment_data = DeploymentCalldata::new(status.code());
-    let calldata = DeploymentCalldata(tx.input().to_vec());
-    if let Some(deployer_address) = tx.to() {
-        let constructor_called = deployCall::abi_decode(calldata.0.as_slice())
-            .unwrap()
-            .initData
-            .starts_with(stylus_constructorCall::SELECTOR.as_slice());
-        if !constructor_called {
-            return Err(InvalidInitData);
+
+    match tx.to() {
+        Some(deployer_address) => {
+            verify_constructor_deployment(tx.input(), &deployment_data, deployer_address)
         }
-        verify_constructor_deployment(&calldata, &deployment_data, deployer_address)
-    } else {
-        Ok(verify_create_deployment(&calldata, &deployment_data))
+        _ => verify_create_deployment(&DeploymentCalldata(tx.input().to_vec()), &deployment_data),
     }
+}
+
+fn verify_constructor_deployment(
+    tx_input: &[u8],
+    deployment_data: &DeploymentCalldata,
+    deployer_address: Address,
+) -> Result<VerificationStatus, VerificationError> {
+    let _constructor = reflection::constructor()?.ok_or(VerificationError::NoConstructor)?;
+    let deploy_call = deployCall::abi_decode(tx_input).unwrap();
+    let constructor_called = deploy_call
+        .initData
+        .starts_with(stylus_constructorCall::SELECTOR.as_slice());
+    if !constructor_called {
+        return Err(InvalidInitData);
+    }
+    if deployer_address != ADDRESS {
+        return Err(InvalidInitData);
+    }
+    verify_create_deployment(
+        &DeploymentCalldata(deploy_call.bytecode.to_vec()),
+        deployment_data,
+    )
 }
 
 fn verify_create_deployment(
     calldata: &DeploymentCalldata,
     deployment_data: &DeploymentCalldata,
-) -> VerificationStatus {
+) -> Result<VerificationStatus, VerificationError> {
     if deployment_data == calldata {
-        return VerificationStatus::Success;
+        return Ok(VerificationStatus::Success);
     }
 
     let tx_prelude = calldata.prelude();
@@ -67,20 +82,11 @@ fn verify_create_deployment(
 
     let tx_wasm_length = calldata.compressed_wasm().len();
     let build_wasm_length = deployment_data.compressed_wasm().len();
-    VerificationStatus::Failure(VerificationFailure {
+    Ok(VerificationStatus::Failure(VerificationFailure {
         prelude_mismatch,
         tx_wasm_length,
         build_wasm_length,
-    })
-}
-
-fn verify_constructor_deployment(
-    _calldata: &DeploymentCalldata,
-    _deployment_data: &DeploymentCalldata,
-    _deployer_address: Address,
-) -> Result<VerificationStatus, VerificationError> {
-    let _constructor = reflection::constructor()?.ok_or(VerificationError::NoConstructor)?;
-    todo!()
+    }))
 }
 
 #[derive(Debug)]

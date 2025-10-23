@@ -56,7 +56,7 @@ interface IContract {
         println!("Estimated deployment gas: {gas_estimate} ETH");
 
         println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _tx_hash, gas_used) = deployer.deploy()?;
+        let (address, tx_hash, gas_used) = deployer.deploy()?;
         println!("Deployed contract to {address}");
 
         // Approximate equality is usually expected, but given the test conditions, the gas estimate equals the gas used
@@ -69,6 +69,22 @@ interface IContract {
             .build()
             .activate()?;
         println!("Activated contract at {address}");
+
+        let verify = stylus_tools::Verifier::builder()
+            .rpc(rpc)
+            .deployment_tx_hash(tx_hash.to_string())
+            .build()
+            .verify();
+        assert!(verify.is_ok(), "Failed to verify contract");
+
+        let verify = stylus_tools::Verifier::builder()
+            .rpc(rpc)
+            .dir("../callee".to_owned())
+            .deployment_tx_hash(tx_hash.to_string())
+            .build()
+            .verify();
+        assert!(verify.is_err(), "Should fail verifying wrong contract");
+        println!("Verified contract with tx hash {tx_hash}");
 
         let provider = devnode.create_provider().await?;
 
