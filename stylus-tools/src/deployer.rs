@@ -12,28 +12,30 @@ use typed_builder::TypedBuilder;
 /// Defines the configuration for deploying a Stylus contract.
 /// After setting the parameters, call `Deployer::deploy` to perform the deployement.
 #[derive(TypedBuilder)]
-#[builder(field_defaults(default, setter(into)))]
+#[builder(field_defaults(setter(into)))]
 pub struct Deployer {
-    #[builder(!default)]
     rpc: String,
-
-    dir: Option<String>,
 
     #[cfg_attr(
         feature = "integration-tests",
         builder(default = crate::devnet::DEVNET_PRIVATE_KEY.to_owned())
     )]
-    #[cfg_attr(not(feature = "integration-tests"), builder(!default))]
     private_key: String,
 
     #[cfg_attr(
         feature = "integration-tests",
         builder(default = Some(crate::devnet::addresses::STYLUS_DEPLOYER.to_string()))
     )]
+    #[cfg_attr(not(feature = "integration-tests"), builder(default))]
     stylus_deployer: Option<String>,
 
+    #[builder(default)]
+    dir: Option<String>,
+
+    #[builder(default)]
     constructor_value: Option<String>,
 
+    #[builder(default)]
     constructor_args: Option<Vec<String>>,
 }
 
@@ -49,7 +51,7 @@ impl Deployer {
         extract_gas_estimate_result(&out)
     }
 
-    // Deploy the Stylus contract returning the contract address.
+    // Deploy the Stylus contract
     pub fn deploy(&self) -> Result<(Address, TxHash, f64)> {
         let deploy_args = self.deploy_args()?;
 

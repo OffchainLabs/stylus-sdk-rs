@@ -8,11 +8,11 @@ use typed_builder::TypedBuilder;
 /// Defines the configuration for checking a Stylus contract.
 /// After setting the parameters, call `Checker::check` to perform the check.
 #[derive(TypedBuilder)]
-#[builder(field_defaults(default, setter(into)))]
+#[builder(field_defaults(setter(into)))]
 pub struct Checker {
-    #[builder(!default)]
     rpc: String,
 
+    #[builder(default)]
     dir: Option<String>,
 }
 

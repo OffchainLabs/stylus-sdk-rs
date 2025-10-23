@@ -8,14 +8,14 @@ use typed_builder::TypedBuilder;
 /// Defines the configuration for verifying a Stylus contract.
 /// After setting the parameters, call `Verifier::verify` to perform the verification.
 #[derive(TypedBuilder)]
-#[builder(field_defaults(default, setter(into)))]
+#[builder(field_defaults(setter(into)))]
 pub struct Verifier {
-    #[builder(!default)]
     rpc: String,
 
-    dir: Option<String>,
-    #[builder(!default)]
     deployment_tx_hash: String,
+
+    #[builder(default)]
+    dir: Option<String>,
 }
 
 impl Verifier {

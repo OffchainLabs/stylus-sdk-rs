@@ -9,21 +9,20 @@ use typed_builder::TypedBuilder;
 /// Defines the configuration for activating a Stylus contract.
 /// After setting the parameters, call `Activator::activate` to perform the activation.
 #[derive(TypedBuilder)]
-#[builder(field_defaults(default, setter(into)))]
+#[builder(field_defaults(setter(into)))]
 pub struct Activator {
-    #[builder(!default)]
     rpc: String,
-    dir: Option<String>,
+
+    contract_address: String,
 
     #[cfg_attr(
         feature = "integration-tests",
         builder(default = crate::devnet::DEVNET_PRIVATE_KEY.to_owned())
     )]
-    #[cfg_attr(not(feature = "integration-tests"), builder(!default))]
     private_key: String,
 
-    #[builder(!default)]
-    contract_address: String,
+    #[builder(default)]
+    dir: Option<String>,
 }
 
 impl Activator {
