@@ -3,11 +3,14 @@
 
 use crate::core::deployment::deployer::stylus_constructorCall;
 use crate::core::deployment::deployer::StylusDeployer::deployCall;
-use crate::core::verification::VerificationError::InvalidInitData;
-use crate::core::{
-    deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection,
+use crate::core::verification::VerificationError::{
+    InvalidInitData, TransactionReceiptError, TxNotSuccessful,
 };
-use crate::utils::cargo;
+use crate::{
+    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
+    utils::cargo,
+};
+
 use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
@@ -27,6 +30,15 @@ pub async fn verify(
         .ok_or(VerificationError::NoCodeAtAddress)?;
     if !skip_clean {
         cargo::clean()?;
+    }
+    cargo::clean()?;
+    let deployment_success = provider
+        .get_transaction_receipt(tx_hash)
+        .await?
+        .map(|receipt| receipt.status())
+        .ok_or(TransactionReceiptError)?;
+    if !deployment_success {
+        return Err(TxNotSuccessful);
     }
     let status = contract.check(None, &Default::default(), provider).await?;
 
@@ -121,4 +133,8 @@ pub enum VerificationError {
     NoConstructor,
     #[error("Invalid init data: Constructor not called")]
     InvalidInitData,
+    #[error("Transaction receipt error")]
+    TransactionReceiptError,
+    #[error("Deployment transaction not successful")]
+    TxNotSuccessful,
 }
