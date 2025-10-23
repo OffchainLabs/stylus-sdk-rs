@@ -7,6 +7,7 @@ use crate::core::verification::VerificationError::InvalidInitData;
 use crate::core::{
     deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection,
 };
+use crate::utils::cargo;
 use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
@@ -17,13 +18,16 @@ use alloy::{
 pub async fn verify(
     contract: &Contract,
     tx_hash: TxHash,
+    skip_clean: bool,
     provider: &impl Provider,
 ) -> Result<VerificationStatus, VerificationError> {
     let tx = provider
         .get_transaction_by_hash(tx_hash)
         .await?
         .ok_or(VerificationError::NoCodeAtAddress)?;
-    // cargo::clean()?;
+    if !skip_clean {
+        cargo::clean()?;
+    }
     let status = contract.check(None, &Default::default(), provider).await?;
 
     let constructor_called = deployCall::abi_decode(tx.input())

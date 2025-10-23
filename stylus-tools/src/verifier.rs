@@ -22,6 +22,7 @@ impl Verifier {
     pub fn verify(self) -> Result<()> {
         let verify_args = vec![
             "--no-verify".to_owned(),
+            "--skip-clean".to_owned(),
             "-e".to_owned(),
             self.rpc,
             "--deployment-tx".to_owned(),
