@@ -77,7 +77,7 @@ pub fn image_exists_locally(image_name: &str) -> Result<bool, DockerError> {
         .stdout
         .split(|b| *b == b'\n')
         .filter(|slice| !slice.is_empty()) // Filter out empty lines
-        .map(|slice| serde_json::from_slice(slice).map_err(|error| DockerError::Json(error)))
+        .map(|slice| serde_json::from_slice(slice).map_err(DockerError::Json))
         .collect::<Result<Vec<_>, _>>();
 
     let images = images?;

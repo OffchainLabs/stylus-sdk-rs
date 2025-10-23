@@ -88,11 +88,11 @@ fn create_image(
     );
 
     // Write to temporary file (automatically cleaned up when dropped)
-    let temp_file = NamedTempFile::new().map_err(|e| DockerError::Io(e))?;
+    let temp_file = NamedTempFile::new().map_err(DockerError::Io)?;
     temp_file
         .as_file()
         .write_all(dockerfile_content.as_bytes())
-        .map_err(|e| DockerError::Io(e))?;
+        .map_err(DockerError::Io)?;
 
     // Build using the temporary file
     docker::cmd::build_with_file(&name, temp_file.path())?;
