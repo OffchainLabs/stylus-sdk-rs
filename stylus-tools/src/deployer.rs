@@ -3,7 +3,7 @@
 
 use alloy::primitives::{Address, TxHash};
 use derive_builder::Builder;
-use eyre::{bail, Result, WrapErr};
+use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
 use std::iter::once;
 use std::{env, path::Path, process::Command};
@@ -46,7 +46,6 @@ impl Deployer {
             "deploy",
             once("--estimate-gas".to_owned()).chain(deploy_args),
         )?;
-        let out = strip_color(&out);
 
         extract_gas_estimate_result(&out)
     }
@@ -56,7 +55,6 @@ impl Deployer {
         let deploy_args = self.deploy_args()?;
 
         let out = call(&self.dir, "deploy", deploy_args)?;
-        let out = strip_color(&out);
         let (address, tx_hash, gas_estimate) = extract_deploy_result(&out)?;
         let address: Address = address
             .parse()
@@ -90,11 +88,6 @@ impl Deployer {
         }
         Ok(deploy_args)
     }
-}
-
-fn strip_color(s: &str) -> String {
-    let re = Regex::new(r"\x1b\[[0-9;]*[ABCDHJKSTfGmsu]").unwrap();
-    re.replace_all(s, "").into_owned()
 }
 
 fn extract_deploy_result(s: &str) -> Result<(&str, &str, f64)> {
@@ -152,8 +145,17 @@ pub fn call<I: IntoIterator<Item = String>>(
         .wrap_err(format!("failed to run cargo stylus {func}"))?;
     env::set_current_dir(original_dir)?;
     if !output.status.success() {
-        let err = String::from_utf8(output.stderr).unwrap_or("failed to decode error".to_owned());
-        bail!("failed to run node: {}", err);
+        let err = String::from_utf8(output.stderr)
+            .map(strip_color)
+            .unwrap_or("failed to decode error".to_owned());
+        return Err(eyre!("failed to run node: {}", err));
     }
-    String::from_utf8(output.stdout).wrap_err("failed to decode stdout")
+    String::from_utf8(output.stdout)
+        .map(strip_color)
+        .wrap_err("failed to decode stdout")
+}
+
+fn strip_color(s: impl Into<String>) -> String {
+    let re = Regex::new(r"\x1b\[[0-9;]*[ABCDHJKSTfGmsu]").unwrap();
+    re.replace_all(s.into().as_str(), "").into_owned()
 }

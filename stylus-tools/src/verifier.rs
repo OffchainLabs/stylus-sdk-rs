@@ -3,7 +3,7 @@
 
 use crate::call;
 use derive_builder::Builder;
-use eyre::Result;
+use eyre::{eyre, Result};
 
 /// Defines the configuration for verifying a Stylus contract.
 /// After setting the parameters, call `Verifier::verify` to perform the verification.
@@ -27,6 +27,12 @@ impl Verifier {
             "--deployment-tx".to_owned(),
             self.deployment_tx_hash,
         ];
-        call(&self.dir, "verify", verify_args).map(|_| {})
+        call(&self.dir, "verify", verify_args).and_then(|out| {
+            if out.contains("Verification successful") {
+                Ok(())
+            } else {
+                Err(eyre!(out))
+            }
+        })
     }
 }
