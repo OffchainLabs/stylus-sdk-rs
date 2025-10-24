@@ -10,6 +10,12 @@ use std::{
     process::{Command, Stdio},
 };
 
+pub fn new_command<S: AsRef<OsStr>>(program: S) -> Command {
+    let mut command = Command::new(program);
+    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    command
+}
+
 pub fn command_exists(program: impl AsRef<OsStr>) -> bool {
     Command::new(program)
         .stdout(Stdio::null())

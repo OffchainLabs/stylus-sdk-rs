@@ -106,11 +106,12 @@ pub async fn exec(args: Args) -> eyre::Result<()> {
     let trace = Trace::new(args.trace.tx, &args.trace.config, &provider).await?;
 
     let config = BuildConfig {
-        features: args.features.unwrap_or_default(),
+        features: args.features.clone().unwrap_or_default(),
         ..Default::default()
     };
     let _wasm = contract.build(&config)?;
 
+    build_shared_library(&args.trace.project, args.package, args.features)?;
     let target_dir = Workspace::current()?.metadata.target_directory;
     let library_extension = if macos { ".dylib" } else { ".so" };
     let shared_library = find_shared_library(target_dir.as_ref(), library_extension)?;
@@ -134,6 +135,31 @@ pub async fn exec(args: Args) -> eyre::Result<()> {
             x => println!("call exited with unknown status code: {}", x.red()),
         }
     }
+    Ok(())
+}
+
+pub fn build_shared_library(
+    path: &Path,
+    package: Option<String>,
+    features: Option<Vec<String>>,
+) -> eyre::Result<()> {
+    let mut cargo = sys::new_command("cargo");
+
+    cargo.current_dir(path).arg("build");
+
+    if let Some(f) = features {
+        cargo.arg("--features").arg(f.join(","));
+    }
+    if let Some(p) = package {
+        cargo.arg("--package").arg(p);
+    }
+
+    cargo
+        .arg("--lib")
+        .arg("--locked")
+        .arg("--target")
+        .arg(rustc_host::from_cli()?)
+        .output()?;
     Ok(())
 }
 

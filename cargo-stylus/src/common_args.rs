@@ -246,6 +246,9 @@ pub struct TraceArgs {
     /// Tx to replay.
     #[arg(short, long)]
     pub tx: TxHash,
+    /// Project path.
+    #[arg(short, long, default_value = ".")]
+    pub project: PathBuf,
 
     #[command(flatten)]
     pub config: TraceConfig,
