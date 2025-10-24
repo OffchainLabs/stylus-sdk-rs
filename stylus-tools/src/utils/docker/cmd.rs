@@ -23,8 +23,8 @@ pub fn build_with_file(tag: &str, dockerfile_path: &Path) -> Result<(), DockerEr
         .args(["--tag", tag])
         .args(["--file", dockerfile_path.to_str().unwrap()])
         .arg(".")
-        .stdout(Stdio::inherit()) // Stream stdout to terminal
-        .stderr(Stdio::inherit()) // Stream stderr to terminal
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DockerError::CommandExecution)?;
 
@@ -73,14 +73,12 @@ pub fn image_exists_locally(image_name: &str) -> Result<bool, DockerError> {
     }
 
     // Parse the JSON output to check if any images match the exact image:tag
-    let images: Result<Vec<json::Image>, _> = output
+    let images: Vec<json::Image> = output
         .stdout
         .split(|b| *b == b'\n')
         .filter(|slice| !slice.is_empty()) // Filter out empty lines
         .map(|slice| serde_json::from_slice(slice).map_err(DockerError::Json))
-        .collect::<Result<Vec<_>, _>>();
-
-    let images = images?;
+        .collect::<Result<Vec<_>, _>>()?;
 
     // Check if any image matches the exact repository:tag combination
     let exists = images.iter().any(|image| {

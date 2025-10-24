@@ -31,7 +31,7 @@ pub fn image_exists_locally(image_name: &str) -> Result<bool, DockerError> {
     cmd::image_exists_locally(image_name)
 }
 
-/// Check if a Docker image exists on Docker Hub (remote registry).
+/// Check if a Docker image exists on Docker Hub.
 pub fn image_exists_on_hub(image_name: &str) -> Result<bool, DockerError> {
     cmd::image_exists_on_hub(image_name)
 }
