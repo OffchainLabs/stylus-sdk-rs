@@ -8,8 +8,11 @@ mod integration_test {
         providers::Provider,
         sol,
     };
+    use alloy_primitives::TxHash;
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node};
+    use stylus_tools::devnet::addresses::OWNER;
+    use stylus_tools::utils::testing::ExampleContractTester;
+    use stylus_tools::{Deployer, Verifier};
 
     sol! {
         #[sol(rpc)]
@@ -21,7 +24,10 @@ mod integration_test {
         }
     }
 
-    const EXPECTED_ABI: &str = "\
+    struct ConstructorIntegrationTester {}
+
+    impl ExampleContractTester for ConstructorIntegrationTester {
+        const EXPECTED_ABI: &str = "\
 interface IContract {
     function setNumber(uint256 number) external;
 
@@ -31,61 +37,38 @@ interface IContract {
 
     error Unauthorized();
 }";
-    const EXPECTED_CONSTRUCTOR: &str = "constructor(uint256 initial_number) payable";
+        const EXPECTED_CONSTRUCTOR: &'static str = "constructor(uint256 initial_number) payable";
+
+        fn deployer(rpc: &str) -> Deployer {
+            Deployer::builder()
+                .rpc(rpc.to_owned())
+                .constructor_args(vec!["0xbeef".to_owned()])
+                .constructor_value("12.34".to_owned())
+                .build()
+        }
+
+        fn test_verify(rpc: &str, tx_hash: TxHash) -> Result<()> {
+            let verify = Verifier::builder()
+                .rpc(rpc)
+                .deployment_tx_hash(tx_hash.to_string())
+                .build()
+                .verify();
+            assert!(verify.is_ok(), "Failed to verify contract");
+            let verify = Verifier::builder()
+                .rpc(rpc)
+                .dir("../callee".to_owned())
+                .deployment_tx_hash(tx_hash.to_string())
+                .build()
+                .verify();
+            assert!(verify.is_err(), "Should fail verifying wrong contract");
+            println!("Verified contract with tx hash {tx_hash}");
+            Ok(())
+        }
+    }
 
     #[tokio::test]
     async fn constructor() -> Result<()> {
-        let exporter = stylus_tools::Exporter::builder().build();
-        assert_eq!(exporter.export_abi()?, EXPECTED_ABI);
-        assert_eq!(exporter.export_constructor()?, EXPECTED_CONSTRUCTOR);
-
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-
-        println!("Checking contract on Nitro ({rpc})...");
-        stylus_tools::Checker::builder().rpc(rpc).build().check()?;
-        println!("Checked contract");
-
-        let deployer = stylus_tools::Deployer::builder()
-            .rpc(rpc.to_owned())
-            .constructor_args(vec!["0xbeef".to_owned()])
-            .constructor_value("12.34".to_owned())
-            .build();
-        println!("Estimating gas...");
-        let gas_estimate = deployer.estimate_gas()?;
-        println!("Estimated deployment gas: {gas_estimate} ETH");
-
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, tx_hash, gas_used) = deployer.deploy()?;
-        println!("Deployed contract to {address}");
-
-        // Approximate equality is usually expected, but given the test conditions, the gas estimate equals the gas used
-        assert_eq!(gas_used, gas_estimate);
-
-        println!("Activating contract at {address} on Nitro ({rpc})...");
-        stylus_tools::Activator::builder()
-            .rpc(rpc)
-            .contract_address(address.to_string())
-            .build()
-            .activate()?;
-        println!("Activated contract at {address}");
-
-        let verify = stylus_tools::Verifier::builder()
-            .rpc(rpc)
-            .deployment_tx_hash(tx_hash.to_string())
-            .build()
-            .verify();
-        assert!(verify.is_ok(), "Failed to verify contract");
-
-        let verify = stylus_tools::Verifier::builder()
-            .rpc(rpc)
-            .dir("../callee".to_owned())
-            .deployment_tx_hash(tx_hash.to_string())
-            .build()
-            .verify();
-        assert!(verify.is_err(), "Should fail verifying wrong contract");
-        println!("Verified contract with tx hash {tx_hash}");
-
+        let (devnode, address) = ConstructorIntegrationTester::init().await?;
         let provider = devnode.create_provider().await?;
 
         // Check balance sent in constructor

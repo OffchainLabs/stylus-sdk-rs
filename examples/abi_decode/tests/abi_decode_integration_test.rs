@@ -8,7 +8,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::ExampleContractTester;
 
     sol! {
         #[sol(rpc)]
@@ -18,17 +18,23 @@ mod integration_test {
         }
     }
 
+    struct AbiDecodeIntegrationTester {}
+
+    impl ExampleContractTester for AbiDecodeIntegrationTester {
+        const EXPECTED_ABI: &'static str = "\
+interface IDecoder {
+    function encodeAndDecode(address _address, uint256 amount) external view returns (bool);
+
+    error DecodedFailed();
+}";
+    }
+
     #[tokio::test]
     async fn abi_decode() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = AbiDecodeIntegrationTester::init().await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IDecoder::IDecoderInstance::new(address, provider);
 
         let address = address!("0xfafafafafafafafafafafafafafafafafafafafa");

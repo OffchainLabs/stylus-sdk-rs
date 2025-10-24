@@ -70,6 +70,7 @@ jobs:
           - "single_call"
           - "storage_data_types"
           - "test"
+          - "tuples"
           - "variables"
           - "verify_signature"
     steps:

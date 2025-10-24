@@ -5,7 +5,8 @@
 mod integration_test {
     use alloy::{primitives::U256, sol};
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node};
+    use stylus_tools::devnet::addresses::OWNER;
+    use stylus_tools::utils::testing::ExampleContractTester;
 
     sol! {
         #[sol(rpc)]
@@ -24,17 +25,41 @@ mod integration_test {
         }
     }
 
+    struct ArraysIntegrationTester {}
+
+    impl ExampleContractTester for ArraysIntegrationTester {
+        const EXPECTED_ABI: &'static str = "\
+interface IArrays {
+    function push(uint256 i) external;
+
+    function getElement(uint256 index) external view returns (uint256);
+
+    function getArrLength() external view returns (uint256);
+
+    function remove(uint256 index) external;
+
+    function getArr2Element(uint256 index) external view returns (uint256);
+
+    function getArr2Length() external view returns (uint256);
+
+    function setArr2Value(uint256 index, uint256 value) external;
+
+    function pushArr3Info(uint256 value) external;
+
+    function getArr3Length() external view returns (uint256);
+
+    function getArr3Info(uint256 index) external view returns (address, uint256);
+
+    function findArr3FirstExpectedValue(uint256 expected_value) external view returns (uint256);
+}";
+    }
+
     #[tokio::test]
     async fn arrays() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = ArraysIntegrationTester::init().await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IArrays::IArraysInstance::new(address, provider);
 
         contract
