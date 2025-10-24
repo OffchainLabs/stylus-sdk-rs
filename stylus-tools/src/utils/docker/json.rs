@@ -10,6 +10,8 @@ use serde::Deserialize;
 #[serde(rename_all = "PascalCase")]
 #[allow(dead_code)]
 pub struct Image {
+    pub id: Option<String>,
     pub repository: String,
+    pub created_at: String,
     pub tag: String,
 }
