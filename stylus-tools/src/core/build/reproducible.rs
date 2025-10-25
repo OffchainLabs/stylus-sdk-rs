@@ -48,23 +48,19 @@ fn create_image(
         build.file(),
         "\
             ARG BUILD_PLATFORM=linux/amd64
-            FROM --platform=${{BUILD_PLATFORM}} offchainlabs/cargo-stylus-base:{} AS base
+            FROM --platform=${{BUILD_PLATFORM}} offchainlabs/cargo-stylus-base:{cargo_stylus_version} AS base
             RUN rustup toolchain install {toolchain_version}-x86_64-unknown-linux-gnu 
             RUN rustup default {toolchain_version}-x86_64-unknown-linux-gnu
             RUN rustup target add wasm32-unknown-unknown
             RUN rustup component add rust-src --toolchain {toolchain_version}-x86_64-unknown-linux-gnu
         ",
-        cargo_stylus_version.to_string()
     )?;
     build.wait()?;
     Ok(name)
 }
 
 fn image_name(cargo_stylus_version: &Version, toolchain_version: &str) -> String {
-    format!(
-        "cargo-stylus-base-{}-toolchain-{toolchain_version}",
-        cargo_stylus_version.to_string()
-    )
+    format!("cargo-stylus-base-{cargo_stylus_version}-toolchain-{toolchain_version}")
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -121,7 +117,7 @@ fn select_stylus_version(
         }
     }
 
-    info!(@blue, "Using cargo-stylus version: {}", selected_stylus_version.to_string());
+    info!(@blue, "Using cargo-stylus version: {selected_stylus_version}");
 
     Ok(selected_stylus_version)
 }
