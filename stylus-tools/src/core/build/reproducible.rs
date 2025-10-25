@@ -35,7 +35,7 @@ pub fn run_reproducible(
 
 /// Returns the image name
 fn create_image(
-    cargo_stylus_version: &str,
+    cargo_stylus_version: &Version,
     toolchain_version: &str,
 ) -> Result<String, DockerError> {
     let name = image_name(cargo_stylus_version, toolchain_version);
@@ -48,19 +48,23 @@ fn create_image(
         build.file(),
         "\
             ARG BUILD_PLATFORM=linux/amd64
-            FROM --platform=${{BUILD_PLATFORM}} offchainlabs/cargo-stylus-base:{cargo_stylus_version} AS base
+            FROM --platform=${{BUILD_PLATFORM}} offchainlabs/cargo-stylus-base:{} AS base
             RUN rustup toolchain install {toolchain_version}-x86_64-unknown-linux-gnu 
             RUN rustup default {toolchain_version}-x86_64-unknown-linux-gnu
             RUN rustup target add wasm32-unknown-unknown
             RUN rustup component add rust-src --toolchain {toolchain_version}-x86_64-unknown-linux-gnu
         ",
+        cargo_stylus_version.to_string()
     )?;
     build.wait()?;
     Ok(name)
 }
 
-fn image_name(cargo_stylus_version: &str, toolchain_version: &str) -> String {
-    format!("cargo-stylus-base-{cargo_stylus_version}-toolchain-{toolchain_version}")
+fn image_name(cargo_stylus_version: &Version, toolchain_version: &str) -> String {
+    format!(
+        "cargo-stylus-base-{}-toolchain-{toolchain_version}",
+        cargo_stylus_version.to_string()
+    )
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -77,18 +81,15 @@ pub enum ReproducibleBuildError {
 /// warnings to let the user know the run might not be reproducible.
 fn select_stylus_version(
     cargo_stylus_version: Option<String>,
-) -> Result<String, ReproducibleBuildError> {
+) -> Result<Version, ReproducibleBuildError> {
     let current_version_str = env!("CARGO_PKG_VERSION");
-    let current_version =
+    let mut selected_stylus_version =
         Version::parse(current_version_str).expect("Failed to parse CARGO_PKG_VERSION");
-
-    let mut selected_cargo_stylus_version_str = current_version_str.to_string();
 
     if let Some(user_version_str) = cargo_stylus_version {
         match Version::parse(&user_version_str) {
             Ok(user_version) => {
-                // Compare the user's version with the current tool's version
-                match user_version.cmp(&current_version) {
+                match user_version.cmp(&selected_stylus_version) {
                     Ordering::Less => {
                         warn!(@yellow, "############### OLDER VERSION WARNING ###############");
                         warn!(@yellow, "You have selected cargo-stylus version {}.", user_version_str);
@@ -107,11 +108,11 @@ fn select_stylus_version(
                     }
 
                     Ordering::Equal => {
-                        // Versions match perfectly. No warning needed.
+                        // Versions match. No warning needed.
                     }
                 }
 
-                selected_cargo_stylus_version_str = user_version_str;
+                selected_stylus_version = user_version;
             }
             Err(e) => {
                 warn!(@red, "Invalid version string provided: '{}'. Error: {}", user_version_str, e);
@@ -120,7 +121,36 @@ fn select_stylus_version(
         }
     }
 
-    info!(@blue, "Using cargo-stylus version: {}", selected_cargo_stylus_version_str);
+    info!(@blue, "Using cargo-stylus version: {}", selected_stylus_version.to_string());
 
-    Ok(selected_cargo_stylus_version_str)
+    Ok(selected_stylus_version)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_stylus_version;
+    use cargo_metadata::semver::Version;
+
+    #[test]
+    fn test_select_stylus_version() {
+        let current_version_str = env!("CARGO_PKG_VERSION");
+        let selected_stylus_version = Version::parse(current_version_str).unwrap();
+
+        // Assert that we get system's cargo stylus version if None is passed in
+        let chosen_version = select_stylus_version(None).unwrap();
+        assert_eq!(selected_stylus_version, chosen_version);
+
+        // Assert we get user selected cargo stylus version if it's greater than the system's cargo
+        // stylus version
+        let mut greater_version = selected_stylus_version.clone();
+        greater_version.patch += 1;
+        let chosen_version = select_stylus_version(Some(greater_version.to_string())).unwrap();
+        assert_eq!(greater_version, chosen_version);
+
+        // Assert we get user selected cargo stylus version if it's smaller than the system's cargo
+        // stylus version
+        let smaller_version = Version::parse("0.2.0-rc.0").unwrap();
+        let chosen_version = select_stylus_version(Some(smaller_version.to_string())).unwrap();
+        assert_eq!(smaller_version, chosen_version);
+    }
 }
