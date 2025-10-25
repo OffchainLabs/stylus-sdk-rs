@@ -1,9 +1,9 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::io::Write;
+use std::{cmp::Ordering, io::Write};
 
-use cargo_metadata::Package;
+use cargo_metadata::{semver::Version, Package};
 
 use crate::utils::{
     docker::{self, image_exists, validate_host, DockerError},
@@ -21,9 +21,9 @@ pub fn run_reproducible(
         "Running reproducible Stylus command with toolchain {}",
         toolchain_channel.mint()
     );
-    let cargo_stylus_version =
-        cargo_stylus_version.unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
-    let image_name = create_image(&cargo_stylus_version, &toolchain_channel)?;
+
+    let selected_cargo_stylus_version = select_stylus_version(cargo_stylus_version)?;
+    let image_name = create_image(&selected_cargo_stylus_version, &toolchain_channel)?;
 
     let mut args = vec!["cargo".to_string(), "stylus".to_string()];
     for arg in command_line.into_iter() {
@@ -69,4 +69,58 @@ pub enum ReproducibleBuildError {
     Docker(#[from] DockerError),
     #[error("toolchain error: {0}")]
     Toolchain(#[from] ToolchainError),
+}
+
+/// Returns the selected cargo_stylus_version if `cargo_stylus_version` is Some, otherwise returns
+/// the current version which is defined by env var CARGO_PKG_VERSION. In case there's a version
+/// mismatch between user cargo_stylus_version and cargo `CARGO_PKG_VERSION` we display appropriate
+/// warnings to let the user know the run might not be reproducible.
+fn select_stylus_version(
+    cargo_stylus_version: Option<String>,
+) -> Result<String, ReproducibleBuildError> {
+    let current_version_str = env!("CARGO_PKG_VERSION");
+    let current_version =
+        Version::parse(current_version_str).expect("Failed to parse CARGO_PKG_VERSION");
+
+    let mut selected_cargo_stylus_version_str = current_version_str.to_string();
+
+    if let Some(user_version_str) = cargo_stylus_version {
+        match Version::parse(&user_version_str) {
+            Ok(user_version) => {
+                // Compare the user's version with the current tool's version
+                match user_version.cmp(&current_version) {
+                    Ordering::Less => {
+                        warn!(@yellow, "############### OLDER VERSION WARNING ###############");
+                        warn!(@yellow, "You have selected cargo-stylus version {}.", user_version_str);
+                        warn!(@yellow, "This is OLDER than the current tool's version {}.", current_version_str);
+                        warn!(@yellow, "Using an older, potentially buggy version is not recommended.");
+                        warn!(@yellow, "Please consider using version {} or newer.", current_version_str);
+                        warn!(@yellow, "#####################################################");
+                    }
+
+                    Ordering::Greater => {
+                        warn!(@yellow, "############### VERSION MISMATCH WARNING ###############");
+                        warn!(@yellow, "Selected cargo stylus version {} is NEWER than current cargo stylus version {}", user_version_str, current_version_str);
+                        warn!(@yellow, "This may result in a reproducible build that does not match the original build.");
+                        warn!(@yellow, "Please use the same cargo stylus version as the original build.");
+                        warn!(@yellow, "########################################################");
+                    }
+
+                    Ordering::Equal => {
+                        // Versions match perfectly. No warning needed.
+                    }
+                }
+
+                selected_cargo_stylus_version_str = user_version_str;
+            }
+            Err(e) => {
+                warn!(@red, "Invalid version string provided: '{}'. Error: {}", user_version_str, e);
+                warn!(@red, "Defaulting to current version {}.", current_version_str);
+            }
+        }
+    }
+
+    info!(@blue, "Using cargo-stylus version: {}", selected_cargo_stylus_version_str);
+
+    Ok(selected_cargo_stylus_version_str)
 }
