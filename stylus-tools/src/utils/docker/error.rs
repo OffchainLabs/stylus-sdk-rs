@@ -24,6 +24,16 @@ pub enum DockerError {
     CannotConnect(String),
     #[error("Docker error: {0}")]
     Docker(String),
+    #[error(
+        "Base Docker image '{0}' not found locally nor on Docker Hub.
+            This usually means the version '{1}' is not available on Docker Hub.
+            Available options:
+            1. Visit https://hub.docker.com/r/offchainlabs/cargo-stylus-base/tags for all available versions
+            2. Try using a stable version: cargo stylus --version <stable-version>
+            3. Pull the image manually: docker pull {0}
+            Common stable versions: 0.6.3, 0.6.2"
+    )]
+    ImageNotFound(String, String),
 
     #[error("unable to determine host OS type")]
     UnableToDetermineOsType,

@@ -5301,6 +5301,7 @@ dependencies = [
  "serde_json",
  "sneks",
  "sys-info",
+ "tempfile",
  "testcontainers",
  "thiserror 2.0.17",
  "tiny-keccak",
