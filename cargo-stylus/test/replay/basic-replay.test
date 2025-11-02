@@ -1,0 +1,7 @@
+# Test basic replay functionality with counter contract
+# REQUIRES: stylusdb
+# RUN: cd %{contracts}/counter && %cargo-stylus replay --tx %{counter_tx} --endpoint %{rpc_url} --debugger stylusdb 2>&1 | FileCheck %s
+
+# CHECK: (stylusdb)
+# CHECK: target create
+# CHECK: settings set -- target.run-args {{("stylus"|"stylus-beta")}} "replay"

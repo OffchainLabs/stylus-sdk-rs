@@ -1,0 +1,26 @@
+# Test outputs
+Output/
+*.pyc
+__pycache__/
+
+# Generated config
+lit.site.cfg.py
+
+# Contract build artifacts
+contracts/*/target/
+contracts/*/Cargo.lock
+
+# Deployment artifacts
+.deployed_addresses
+.tx_hashes
+deployment.env
+
+# Python virtual environment
+venv/
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*.orig

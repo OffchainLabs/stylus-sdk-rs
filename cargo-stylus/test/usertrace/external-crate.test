@@ -1,0 +1,10 @@
+# Test usertrace with external crate filtering
+# REQUIRES: stylusdb
+# XFAIL: *
+# RUN: cd %{contracts}/complex && cargo-stylus-venv usertrace --tx %{complex_tx} --endpoint %{rpc_url} --trace-external-usertrace alloy_primitives 2>&1 | FileCheck %s
+
+# CHECK: Tracing contract at address:
+# CHECK: === STYLUS FUNCTION CALL TREE ===
+# CHECK: └─ {{.*}}register_user
+# CHECK: {{.*}}alloy_primitives::
+# CHECK-NOT: stylus_sdk::

@@ -1,0 +1,9 @@
+# Test usertrace with cross-contract calls
+# REQUIRES: stylusdb
+# XFAIL: *
+# RUN: cd %{contracts}/caller && cargo-stylus-venv usertrace --tx %{caller_tx} --endpoint %{rpc_url} 2>&1 | FileCheck %s
+
+# CHECK: Tracing contract at address:
+# CHECK: === STYLUS FUNCTION CALL TREE ===
+# CHECK: └─ {{.*}}call_increment
+# CHECK-SAME: (lib.rs:
