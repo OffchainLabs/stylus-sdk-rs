@@ -148,7 +148,6 @@ pub enum DeploymentError {
     DeployerFailure(#[from] DeployerError),
     #[error("{0}")]
     ActivationFailure(#[from] ActivationError),
-    // TODO: Can this error occur?
     #[error("missing address: {0}")]
     NoContractAddress(String),
     #[error("failed to get constructor signature")]
@@ -253,18 +252,20 @@ pub async fn deploy(
     debug!(@grey, "gas used: {}", format_gas(receipt.gas_used.into()));
     info!(@grey, "deployment tx hash: {}", receipt.transaction_hash.debug_lavender());
 
-    if constructor.is_some() {
-    } else if matches!(status, ContractStatus::Active { .. }) {
-        greyln!("wasm already activated!")
-    } else if config.no_activate {
-        mintln!(
-            r#"NOTE:
-        You must activate the stylus contract before calling it. To do so, we recommend running:
-        cargo stylus activate --address {}"#,
-            hex::encode(contract_addr)
-        )
-    } else {
-        activation::activate_contract(contract_addr, &config.check.activation, provider).await?;
+    if constructor.is_none() {
+        if matches!(status, ContractStatus::Active { .. }) {
+            greyln!("wasm already activated!")
+        } else if config.no_activate {
+            mintln!(
+                r#"NOTE:
+            You must activate the stylus contract before calling it. To do so, we recommend running:
+            cargo stylus activate --address {}"#,
+                hex::encode(contract_addr)
+            )
+        } else {
+            activation::activate_contract(contract_addr, &config.check.activation, provider)
+                .await?;
+        }
     }
 
     mintln!(
