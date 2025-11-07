@@ -1,7 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::path::Path;
+use std::{env, path::Path};
 
 use alloy::{primitives::Address, providers::Provider};
 use bytesize::ByteSize;
@@ -28,6 +28,8 @@ pub struct CheckConfig {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CheckError {
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
     #[error("cargo metadata error: {0}")]
     CargoMetadata(#[from] cargo_metadata::Error),
 
@@ -53,7 +55,8 @@ pub async fn check_contract(
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
     let wasm_file = build_contract(contract, &config.build)?;
-    let project_hash = hash_project(&config.project)?;
+    let dir = env::current_dir()?;
+    let project_hash = hash_project(dir, &config.project, &config.build)?;
     let status = check_wasm_file(&wasm_file, project_hash, address, config, provider).await?;
     Ok(status)
 }
