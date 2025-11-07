@@ -1,0 +1,5 @@
+# Simple test for cargo-stylus replay
+# RUN: cd %{contracts}/counter && %cargo-stylus replay --tx=%{counter_tx} --endpoint=%{rpc_url} 2>&1 | FileCheck %s
+
+# CHECK: {{(Current executable set to|GNU gdb|\(stylusdb\))}}
+# CHECK: {{(Breakpoint|break|target create)}}

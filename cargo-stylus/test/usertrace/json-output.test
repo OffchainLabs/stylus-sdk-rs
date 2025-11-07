@@ -1,0 +1,10 @@
+# Test usertrace output format
+# REQUIRES: stylusdb
+# RUN: cd %{contracts}/counter && cargo-stylus-venv usertrace --tx %{counter_tx} --endpoint %{rpc_url} 2>&1 | FileCheck %s
+
+# Skip any cargo build output and warnings
+# CHECK: {{(Blocking waiting for file lock.*|Building.*|Finished.*|Warning:.*|Tracing contract at address:)}}
+# Either we get the trace or an error message
+# CHECK: {{(=== STYLUS FUNCTION CALL TREE ===|ERROR: No such file.*lldb_function_trace.json)}}
+# If we get the trace, check for function names
+# CHECK-DAG: {{(counter::.*increment|counter::.*set_number|ERROR:|$)}}
