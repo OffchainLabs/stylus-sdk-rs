@@ -11,7 +11,7 @@ interface INestedStructs {
 
     function addDogs(address user, Dog[] memory dogs) external;
 
-    function getUser(address _address) external view returns (User);
+    function getUser(address _address) external view returns (User memory);
 
     function getAllUsers() external view returns (User[] memory);
 

@@ -13,7 +13,7 @@ mod integration_test {
         interface INestedStructs  {
             function addUser(address _address, string calldata name) external;
             function addDogs(address user, Dog[] memory dogs) external;
-            function getUser(address _address) external view returns (User);
+            function getUser(address _address) external view returns (User memory);
             function getAllUsers() external view returns (User[] memory);
             error NotFound();
             error AlreadyExists();
@@ -33,7 +33,7 @@ interface INestedStructs {
 
     function addDogs(address user, Dog[] memory dogs) external;
 
-    function getUser(address _address) external view returns (User);
+    function getUser(address _address) external view returns (User memory);
 
     function getAllUsers() external view returns (User[] memory);
 
