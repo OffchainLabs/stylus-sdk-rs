@@ -1,7 +1,7 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::{fs, path::PathBuf};
+use std::{fs, io, path::PathBuf};
 
 use eyre::Context;
 use stylus_tools::ops;
@@ -22,8 +22,9 @@ pub struct Args {
 pub fn exec(args: Args) -> CargoStylusResult {
     let build_config = args.build.config();
     let writer = match args.output {
-        Some(path) => fs::File::create(path).wrap_err("failed to create output file")?,
-        None => todo!(),
+        Some(path) => &mut fs::File::create(path).wrap_err("failed to create output file")?
+            as &mut dyn io::Write,
+        None => &mut io::stdout(),
     };
     ops::write_initcode(&build_config, writer)?;
     Ok(())
