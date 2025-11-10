@@ -8,7 +8,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::utils::testing::ExampleContractTester;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -20,9 +20,7 @@ mod integration_test {
         }
     }
 
-    struct AbiEncodeIntegrationTester {}
-    impl ExampleContractTester for AbiEncodeIntegrationTester {
-        const EXPECTED_ABI: &'static str = "\
+    const EXPECTED_ABI: &str = "\
 interface IEncoder {
     function encode(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);
 
@@ -32,11 +30,10 @@ interface IEncoder {
 
     function encodeWithSignature(string calldata func, address _address, uint256 amount) external view returns (uint8[] memory);
 }";
-    }
 
     #[tokio::test]
     async fn abi_encode() -> Result<()> {
-        let (devnode, address) = AbiEncodeIntegrationTester::init().await?;
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
 
         // Instantiate contract

@@ -6,7 +6,7 @@ mod integration_test {
     use alloy::{primitives::U256, sol};
     use eyre::Result;
     use stylus_tools::devnet::addresses::OWNER;
-    use stylus_tools::utils::testing::ExampleContractTester;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -25,10 +25,7 @@ mod integration_test {
         }
     }
 
-    struct ArraysIntegrationTester {}
-
-    impl ExampleContractTester for ArraysIntegrationTester {
-        const EXPECTED_ABI: &'static str = "\
+    const EXPECTED_ABI: &str = "\
 interface IArrays {
     function push(uint256 i) external;
 
@@ -52,11 +49,10 @@ interface IArrays {
 
     function findArr3FirstExpectedValue(uint256 expected_value) external view returns (uint256);
 }";
-    }
 
     #[tokio::test]
     async fn arrays() -> Result<()> {
-        let (devnode, address) = ArraysIntegrationTester::init().await?;
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
 
         // Instantiate contract

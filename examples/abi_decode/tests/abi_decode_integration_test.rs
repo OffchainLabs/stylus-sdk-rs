@@ -8,7 +8,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::utils::testing::ExampleContractTester;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -18,20 +18,16 @@ mod integration_test {
         }
     }
 
-    struct AbiDecodeIntegrationTester {}
-
-    impl ExampleContractTester for AbiDecodeIntegrationTester {
-        const EXPECTED_ABI: &'static str = "\
+    const EXPECTED_ABI: &str = "\
 interface IDecoder {
     function encodeAndDecode(address _address, uint256 amount) external view returns (bool);
 
     error DecodedFailed();
 }";
-    }
 
     #[tokio::test]
     async fn abi_decode() -> Result<()> {
-        let (devnode, address) = AbiDecodeIntegrationTester::init().await?;
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
 
         // Instantiate contract
