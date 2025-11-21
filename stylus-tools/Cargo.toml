@@ -36,6 +36,7 @@ brotli2 = "0.3.2"
 bytesize = "1.2.0"
 cargo_metadata = "0.20"
 escargot = "0.5"
+glob = "0.3"
 rust-toolchain-file = "0.1"
 rustc-host = "0.1"
 serde = { version = "1.0", features = ["derive"] }
