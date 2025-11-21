@@ -5,7 +5,6 @@ pub mod activation;
 pub mod build;
 pub mod cache;
 pub mod check;
-pub mod codegen;
 pub mod deployment;
 pub mod manifest;
 pub mod message;
