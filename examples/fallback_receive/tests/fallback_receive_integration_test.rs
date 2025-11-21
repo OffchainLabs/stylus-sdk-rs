@@ -8,7 +8,8 @@ mod integration_test {
         rpc::types::TransactionRequest, sol,
     };
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node};
+    use stylus_tools::devnet::addresses::OWNER;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -18,17 +19,19 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IPaymentTracker {
+    function getBalance(address account) external view returns (uint256);
+
+    function getStats() external view returns (uint256, uint256, uint256);
+}";
+
     #[tokio::test]
     async fn fallback_receive() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IPaymentTracker::IPaymentTrackerInstance::new(address, &provider);
 
         // Call receive
