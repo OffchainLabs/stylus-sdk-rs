@@ -14,7 +14,6 @@ use alloy::{
 };
 use cargo_util_schemas::manifest::PackageName;
 use eyre::{eyre, Context};
-use stylus_tools::core::tracing::TraceConfig;
 use stylus_tools::core::{
     activation::ActivationConfig,
     build::BuildConfig,
@@ -23,6 +22,7 @@ use stylus_tools::core::{
     project::{contract::Contract, workspace::Workspace},
     reflection::ReflectionConfig,
 };
+use stylus_tools::core::{project::ProjectConfig, tracing::TraceConfig};
 
 use crate::{
     constants::DEFAULT_ENDPOINT,
@@ -186,6 +186,12 @@ impl ProjectArgs {
             workspace
                 .filter_contracts(self.contract.clone().into_iter())
                 .map_err(Into::into)
+        }
+    }
+
+    pub fn config(&self) -> ProjectConfig {
+        ProjectConfig {
+            ..Default::default()
         }
     }
 }
