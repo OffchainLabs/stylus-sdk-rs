@@ -390,15 +390,15 @@ impl StorageField {
             let bytes = <#ty as storage::StorageType>::SLOT_BYTES;
             let words = <#ty as storage::StorageType>::REQUIRED_SLOTS;
 
+            if space < bytes {
+                space = 32;
+                total += 1;
+            }
+            space -= bytes;
+
             if words > 0 {
                 total += words;
                 space = 32;
-            } else {
-                if space < bytes {
-                    space = 32;
-                    total += 1;
-                }
-                space -= bytes;
             }
         }
     }
