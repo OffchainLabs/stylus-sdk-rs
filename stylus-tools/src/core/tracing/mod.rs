@@ -136,6 +136,10 @@ impl Trace {
     pub fn tx(&self) -> &TransactionRequest {
         &self.tx
     }
+
+    pub fn address(&self) -> Option<Address> {
+        self.top_frame.address
+    }
 }
 
 #[derive(Debug)]

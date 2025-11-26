@@ -1,0 +1,26 @@
+[package]
+name = "caller"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-primitives = "=0.8.20"
+alloy-sol-types = "=0.8.20"
+mini-alloc = "0.8.3"
+stylus-sdk = "0.8.3"
+
+[features]
+export-abi = ["stylus-sdk/export-abi"]
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+
+[profile.release]
+codegen-units = 1
+strip = true
+lto = true
+panic = "abort"
+opt-level = 3
+
+[workspace]

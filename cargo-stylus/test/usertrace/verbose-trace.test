@@ -1,0 +1,11 @@
+# Test verbose usertrace with SDK calls
+# REQUIRES: stylusdb
+# XFAIL: *
+# RUN: cd %{contracts}/complex && cargo-stylus-venv usertrace --tx %{complex_tx} --endpoint %{rpc_url} --verbose-usertrace 2>&1 | FileCheck %s
+
+# CHECK: Tracing contract at address:
+# CHECK: === STYLUS FUNCTION CALL TREE ===
+# CHECK: └─ {{.*}}register_user
+# CHECK: {{.*}}stylus_sdk::
+# CHECK: {{.*}}msg::sender
+# CHECK: {{.*}}storage::
