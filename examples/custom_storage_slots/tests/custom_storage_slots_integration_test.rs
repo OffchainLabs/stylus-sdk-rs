@@ -5,7 +5,7 @@
 mod integration_test {
     use alloy::{primitives::U256, sol};
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -15,17 +15,19 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IContract {
+    function setNumber(uint256 number) external;
+
+    function number() external view returns (uint256);
+}";
+
     #[tokio::test]
     async fn custom_storage_slots() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IContract::IContractInstance::new(address, provider);
 
         // Change number and check
