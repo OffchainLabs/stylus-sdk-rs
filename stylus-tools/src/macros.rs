@@ -46,7 +46,7 @@ macro_rules! warn {
     (@$color:ident, $($msg:expr),*) => {{
         use crate::utils::color::Color;
         let msg = format!($($msg),*);
-        log::info!("{}", msg.$color())
+        log::warn!("{}", msg.$color())
     }};
 }
 
