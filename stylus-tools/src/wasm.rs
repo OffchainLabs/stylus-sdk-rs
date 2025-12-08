@@ -27,9 +27,9 @@ pub fn process_wasm_file(
 ) -> Result<ProcessedWasm, ProcessWasmFileError> {
     let wasm = fs::read(filename).map_err(ProcessWasmFileError::Read)?;
     let wasm = wasm::remove_dangling_references(wasm)?;
+    let wasm = wasm::strip_user_metadata(wasm).map_err(ProcessWasmFileError::StripUserMetadata)?;
     let wasm = wasm::add_custom_section(wasm, PROJECT_HASH_SECTION_NAME, project_hash)
         .map_err(ProcessWasmFileError::AddProjectHash)?;
-    let wasm = wasm::strip_user_metadata(wasm).map_err(ProcessWasmFileError::StripUserMetadata)?;
     let wasm = wasmer::wat2wasm(&wasm)
         .map_err(ProcessWasmFileError::Wat2Wasm)?
         .to_vec();

@@ -131,9 +131,10 @@ impl BuildArgs {
 pub struct CheckArgs {}
 
 impl CheckArgs {
-    pub fn config(&self, activation: &ActivationArgs) -> CheckConfig {
+    pub fn config(&self, activation: &ActivationArgs, build: &BuildArgs) -> CheckConfig {
         CheckConfig {
             activation: activation.config(),
+            build: build.config(),
             ..Default::default()
         }
     }
@@ -147,6 +148,7 @@ impl DeployArgs {
     pub fn config(
         &self,
         activate: &ActivationArgs,
+        build: &BuildArgs,
         check: &CheckArgs,
         max_fee_per_gas_gwei: Option<u128>,
         estimate_gas: bool,
@@ -157,7 +159,7 @@ impl DeployArgs {
         constructor_value: U256,
     ) -> DeploymentConfig {
         DeploymentConfig {
-            check: check.config(activate),
+            check: check.config(activate, build),
             max_fee_per_gas_gwei,
             estimate_gas,
             no_activate,

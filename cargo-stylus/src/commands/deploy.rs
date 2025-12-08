@@ -12,7 +12,6 @@ use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
 use stylus_tools::core::deployment::deployer::ADDRESS;
 
-// TODO: this should be in stylus-tools
 pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
 
 #[derive(Debug, clap::Args)]
@@ -78,6 +77,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
     let config = args.deploy.config(
         &args.activation,
+        &args.build,
         &args.check,
         args.auth.get_max_fee_per_gas_wei()?,
         args.estimate_gas,

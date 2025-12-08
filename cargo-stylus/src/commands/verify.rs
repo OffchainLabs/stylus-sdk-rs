@@ -56,8 +56,11 @@ pub async fn exec(args: Args) -> CargoStylusResult {
             }
         } else {
             println!("Running in a Docker container for reproducibility, this may take a while",);
-            let mut cli_args: Vec<String> =
-                vec![String::from("verify"), String::from("--no-verify")];
+            let mut cli_args: Vec<String> = vec![
+                String::from("verify"),
+                String::from("--no-verify"),
+                String::from("--deployment-tx"),
+            ];
             cli_args.push(deployment_tx);
             run_reproducible(
                 &contract.package,
