@@ -6,6 +6,7 @@ use crate::core::deployment::deployer::{stylus_constructorCall, ADDRESS};
 use crate::core::verification::VerificationError::{
     InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
 };
+use crate::wasm::ProcessedWasmCode;
 use crate::{
     core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
     utils::cargo,
@@ -40,7 +41,10 @@ pub async fn verify(
         return Err(TxNotSuccessful);
     }
     let status = contract.check(None, &Default::default(), provider).await?;
-    let deployment_data = DeploymentCalldata::new(status.code());
+    let deployment_data = match status.code() {
+        ProcessedWasmCode::Code(code) => DeploymentCalldata::new(code),
+        ProcessedWasmCode::Fragments(_fragments) => todo!("support fragments for verification"),
+    };
 
     match tx.to() {
         Some(deployer_address) => {

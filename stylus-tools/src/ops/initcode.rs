@@ -9,7 +9,7 @@ use crate::{
         deployment::prelude::DeploymentCalldata,
         project::{contract::Contract, hash_project, ProjectConfig},
     },
-    wasm::process_wasm_file,
+    wasm::{process_wasm_file, ProcessedWasmCode},
 };
 
 pub fn write_initcode(
@@ -22,7 +22,10 @@ pub fn write_initcode(
     let dir = env::current_dir()?;
     let project_hash = hash_project(dir, project_config, build_config)?;
     let processed = process_wasm_file(wasm_file, project_hash)?;
-    let initcode = DeploymentCalldata::new(&processed.code);
+    let initcode = match &processed.code {
+        ProcessedWasmCode::Code(code) => DeploymentCalldata::new(code),
+        ProcessedWasmCode::Fragments(_fragments) => todo!("support fragments for initcode"),
+    };
     output.write_all(hex::encode(initcode.0).as_bytes())?;
     Ok(())
 }

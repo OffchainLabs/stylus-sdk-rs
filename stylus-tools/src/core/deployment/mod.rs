@@ -12,6 +12,8 @@ use crate::core::deployment::DeploymentError::{
 };
 use crate::ops::activate::print_gas_estimate;
 use crate::ops::get_constructor_signature;
+use crate::utils::wasm;
+use crate::wasm::{ProcessedWasmCode, ROOT_PREFIX};
 use crate::{
     core::{
         check::{check_contract, CheckConfig},
@@ -187,7 +189,23 @@ pub async fn deploy(
         .map_err(|_| ReadConstructorFailure)?;
 
     let req = match &constructor {
-        None => DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei),
+        None => match status.code() {
+            ProcessedWasmCode::Code(code) => {
+                DeploymentRequest::new(from_address, code, config.max_fee_per_gas_gwei)
+            }
+            ProcessedWasmCode::Fragments(fragments) => {
+                let mut root_code = Vec::new();
+                for fragment in fragments.iter() {
+                    let req =
+                        DeploymentRequest::new(from_address, fragment, config.max_fee_per_gas_gwei);
+                    let receipt = req.exec(&provider).await?;
+                    let address = receipt.contract_address.expect("error handling");
+                    root_code.extend(address);
+                }
+                let root_code = wasm::add_prefix(root_code, ROOT_PREFIX);
+                DeploymentRequest::new(from_address, &root_code, config.max_fee_per_gas_gwei)
+            }
+        },
         Some(constructor) => {
             if constructor.state_mutability != Payable && !config.constructor_value.is_zero() {
                 return Err(InvalidConstructor(
@@ -203,8 +221,14 @@ pub async fn deploy(
                 )));
             }
 
+            let code = match status.code() {
+                ProcessedWasmCode::Code(code) => code,
+                ProcessedWasmCode::Fragments(_fragments) => {
+                    todo!("implement fragments for constructors")
+                }
+            };
             let tx_calldata = parse_tx_calldata(
-                status.code(),
+                code,
                 constructor,
                 config.constructor_value,
                 config.constructor_args.clone(),

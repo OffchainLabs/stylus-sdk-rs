@@ -84,13 +84,17 @@ pub async fn check_wasm_file(
     }
 
     let contract_address = contract_address.unwrap_or_else(Address::random);
-    let fee = activation::data_fee(
-        processed.code.clone(),
-        contract_address,
-        &config.activation,
-        provider,
-    )
-    .await?;
+    /*
+        let fee = activation::data_fee(
+            processed.code.clone(),
+            contract_address,
+            &config.activation,
+            provider,
+        )
+        .await?;
+    */
+    // TODO: proper fee calculation
+    let fee = Default::default();
     Ok(ContractStatus::Ready {
         code: processed.code,
         fee,

@@ -15,10 +15,14 @@ pub const BROTLI_COMPRESSION_LEVEL: u32 = 11;
 
 /// EOF prefix used in Stylus compressed WASMs on-chain
 pub const EOF_PREFIX_NO_DICT: &str = "EFF00000";
+pub const FRAGMENT_PREFIX: &str = "EFF00100";
+pub const ROOT_PREFIX: &str = "EFF00200";
 
 /// Name of the custom wasm section that is added to contracts deployed with cargo stylus
 /// to include a hash of the Rust project's source files for reproducible verification of builds.
 pub const PROJECT_HASH_SECTION_NAME: &str = "project_hash";
+
+pub const MAX_FRAGMENT_SIZE: usize = 24_000;
 
 // TODO: process_wasm() from memory
 pub fn process_wasm_file(
@@ -36,20 +40,50 @@ pub fn process_wasm_file(
 
     let code = wasm::brotli_compress(wasm.as_slice(), BROTLI_COMPRESSION_LEVEL)
         .map_err(ProcessWasmFileError::BrotliCompress)?;
-    let code = wasm::add_prefix(code, EOF_PREFIX_NO_DICT);
-
+    let code = if code.len() <= MAX_FRAGMENT_SIZE {
+        ProcessedWasmCode::Code(wasm::add_prefix(code, EOF_PREFIX_NO_DICT))
+    } else {
+        ProcessedWasmCode::Fragments(
+            code.chunks(MAX_FRAGMENT_SIZE)
+                .map(|c| {
+                    wasm::add_prefix(c.into_iter().cloned().collect::<Vec<_>>(), FRAGMENT_PREFIX)
+                })
+                .collect(),
+        )
+    };
     Ok(ProcessedWasm { wasm, code })
 }
 
 #[derive(Debug)]
 pub struct ProcessedWasm {
     pub wasm: Vec<u8>,
-    pub code: Vec<u8>,
+    pub code: ProcessedWasmCode,
 }
 
 impl ProcessedWasm {
     pub fn codehash(&self) -> B256 {
-        alloy::primitives::keccak256(&self.code)
+        // TODO: proper codehash?
+        match &self.code {
+            ProcessedWasmCode::Code(code) => alloy::primitives::keccak256(code),
+            ProcessedWasmCode::Fragments(fragments) => alloy::primitives::keccak256(
+                fragments.iter().flatten().cloned().collect::<Vec<_>>(),
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ProcessedWasmCode {
+    Code(Vec<u8>),
+    Fragments(Vec<Vec<u8>>),
+}
+
+impl ProcessedWasmCode {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Code(code) => code.len(),
+            Self::Fragments(fragments) => fragments.iter().map(Vec::len).sum(),
+        }
     }
 }
 
