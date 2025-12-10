@@ -3,19 +3,86 @@
 
 #![allow(unused)]
 
+use alloy::primitives::{Address, U256};
 use function_name::named;
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use std::{
     mem::{self, MaybeUninit},
     ptr::copy_nonoverlapping as memcpy,
+    sync::Arc,
 };
 use stylus_tools::core::tracing::{hostio::HostioKind::*, FrameReader};
+
+// Trait for accessing external contract libraries during debugging
+pub trait ExternalContractAccess: Send + Sync {
+    unsafe fn call_external_contract(
+        &self,
+        address: &Address,
+        input_data: &[u8],
+    ) -> Result<(u8, Vec<u8>), Box<dyn std::error::Error>>;
+}
+
+// Structure to save execution state
+#[derive(Clone)]
+pub struct ExecutionState {
+    start_ink: u64,
+    end_ink: u64,
+}
 
 lazy_static! {
     pub static ref FRAME: Mutex<Option<FrameReader>> = Mutex::new(None);
     pub static ref START_INK: Mutex<u64> = Mutex::new(0);
     pub static ref END_INK: Mutex<u64> = Mutex::new(0);
+    pub static ref EXTERNAL_CONTRACT_ACCESS: Mutex<Option<Arc<dyn ExternalContractAccess>>> =
+        Mutex::new(None);
+    pub static ref IN_EXTERNAL_CONTRACT: Mutex<bool> = Mutex::new(false);
+    pub static ref EXTERNAL_CONTRACT_INPUT: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+    pub static ref SAVED_STATE: Mutex<Option<ExecutionState>> = Mutex::new(None);
+}
+
+/// Set the external contract access for debugging
+pub fn set_external_contract_access(access: Arc<dyn ExternalContractAccess>) {
+    let mut guard = EXTERNAL_CONTRACT_ACCESS.lock();
+    *guard = Some(access);
+}
+
+/// Mark that we're entering an external contract
+pub fn enter_external_contract() {
+    // Save current state
+    let state = ExecutionState {
+        start_ink: *START_INK.lock(),
+        end_ink: *END_INK.lock(),
+    };
+    *SAVED_STATE.lock() = Some(state);
+
+    // Mark as in external contract
+    let mut guard = IN_EXTERNAL_CONTRACT.lock();
+    *guard = true;
+}
+
+/// Mark that we're exiting an external contract
+pub fn exit_external_contract() {
+    // Restore saved state
+    if let Some(state) = SAVED_STATE.lock().take() {
+        *START_INK.lock() = state.start_ink;
+        *END_INK.lock() = state.end_ink;
+    }
+
+    // Mark as no longer in external contract
+    let mut guard = IN_EXTERNAL_CONTRACT.lock();
+    *guard = false;
+}
+
+/// Set the input data for external contract execution
+pub fn set_external_contract_input(input: Vec<u8>) {
+    let mut guard = EXTERNAL_CONTRACT_INPUT.lock();
+    *guard = input;
+}
+
+/// Check if we're currently in an external contract
+pub fn is_in_external_contract() -> bool {
+    *IN_EXTERNAL_CONTRACT.lock()
 }
 
 macro_rules! frame {
@@ -788,6 +855,14 @@ static MSG_SENDER: unsafe extern "C" fn(dest: *mut u8) = msg_sender;
 #[named]
 #[no_mangle]
 pub unsafe extern "C" fn msg_value(dest: *mut u8) {
+    // If we're inside an external contract, provide a default value
+    if is_in_external_contract() {
+        // For external contracts, return zero value
+        let zero_value = U256::ZERO.to_be_bytes::<32>();
+        copy!(zero_value, dest);
+        return;
+    }
+
     frame!(MsgValue { value });
     copy!(value, dest);
 }

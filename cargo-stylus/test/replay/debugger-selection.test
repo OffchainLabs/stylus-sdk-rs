@@ -1,0 +1,11 @@
+# Test debugger auto-selection and different debugger options
+
+# Test with lldb if available
+# RUN: if command -v lldb >/dev/null 2>&1; then cd %{contracts}/counter && %cargo-stylus replay --tx %{counter_tx} --endpoint %{rpc_url} --debugger lldb 2>&1 | FileCheck %s --check-prefix=LLDB; fi
+
+# Test auto-detection
+# RUN: cd %{contracts}/counter && %cargo-stylus replay --tx %{counter_tx} --endpoint %{rpc_url} 2>&1 | FileCheck %s --check-prefix=AUTO
+
+# LLDB: Current executable set to
+
+# AUTO: {{(Current executable set to|\(stylusdb\)|GNU gdb)}}
