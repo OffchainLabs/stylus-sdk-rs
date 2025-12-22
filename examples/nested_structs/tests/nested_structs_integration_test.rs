@@ -5,7 +5,8 @@
 mod integration_test {
     use alloy::sol;
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node};
+    use stylus_tools::devnet::addresses::OWNER;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
 
@@ -13,7 +14,7 @@ mod integration_test {
         interface INestedStructs  {
             function addUser(address _address, string calldata name) external;
             function addDogs(address user, Dog[] memory dogs) external;
-            function getUser(address _address) external view returns (User);
+            function getUser(address _address) external view returns (User memory);
             function getAllUsers() external view returns (User[] memory);
             error NotFound();
             error AlreadyExists();
@@ -27,17 +28,33 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface INestedStructs {
+    function addUser(address _address, string calldata name) external;
+
+    function addDogs(address user, Dog[] memory dogs) external;
+
+    function getUser(address _address) external view returns (User memory);
+
+    function getAllUsers() external view returns (User[] memory);
+
+    error NotFound();
+
+    error AlreadyExists();
+
+    error InvalidParam();
+
+    struct Dog {string name;string breed;}
+
+    struct User {address _address;string name;Dog[] dogs;}
+}";
+
     #[tokio::test]
     async fn nested_structs() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = INestedStructs::INestedStructsInstance::new(address, provider);
 
         let dogs = vec![
