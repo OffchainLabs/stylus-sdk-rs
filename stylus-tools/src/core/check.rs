@@ -8,15 +8,15 @@ use bytesize::ByteSize;
 
 use crate::{
     core::{
-        activation::{self, ActivationConfig},
+        activation::ActivationConfig,
         build::{build_contract, BuildConfig},
         project::{
             contract::{Contract, ContractStatus},
             hash_project, ProjectConfig, ProjectHash,
         },
+        wasm::process_wasm_file,
     },
     utils::format_file_size,
-    wasm::process_wasm_file,
 };
 
 #[derive(Debug, Default)]
@@ -42,7 +42,7 @@ pub enum CheckError {
     #[error("{0}")]
     Project(#[from] crate::core::project::ProjectError),
     #[error("{0}")]
-    ProcessWasm(#[from] crate::wasm::ProcessWasmFileError),
+    ProcessWasm(#[from] crate::core::wasm::ProcessWasmFileError),
 }
 
 /// Checks that a contract is valid and can be deployed onchain.
@@ -65,7 +65,7 @@ pub async fn check_wasm_file(
     wasm_file: impl AsRef<Path>,
     project_hash: ProjectHash,
     contract_address: Option<Address>,
-    config: &CheckConfig,
+    _config: &CheckConfig,
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
@@ -78,12 +78,10 @@ pub async fn check_wasm_file(
     debug!(@grey, "connecting to RPC: {:?}", provider.root());
     let codehash = processed.codehash();
     if Contract::exists(codehash, &provider).await? {
-        return Ok(ContractStatus::Active {
-            code: processed.code,
-        });
+        return Ok(ContractStatus::Active { code: processed });
     }
 
-    let contract_address = contract_address.unwrap_or_else(Address::random);
+    let _contract_address = contract_address.unwrap_or_else(Address::random);
     /*
         let fee = activation::data_fee(
             processed.code.clone(),
@@ -96,7 +94,7 @@ pub async fn check_wasm_file(
     // TODO: proper fee calculation
     let fee = Default::default();
     Ok(ContractStatus::Ready {
-        code: processed.code,
+        code: processed,
         fee,
     })
 }

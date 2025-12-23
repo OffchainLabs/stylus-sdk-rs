@@ -1,35 +1,30 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::activation;
-use crate::core::activation::ActivationError;
-use crate::core::cache::format_gas;
-use crate::core::deployment::deployer::{
-    get_address_from_receipt, parse_tx_calldata, DeployerError,
-};
-use crate::core::deployment::DeploymentError::{
-    InvalidConstructor, NoContractAddress, ReadConstructorFailure,
-};
-use crate::ops::activate::print_gas_estimate;
-use crate::ops::get_constructor_signature;
-use crate::utils::wasm;
-use crate::wasm::{ProcessedWasmCode, ROOT_PREFIX};
-use crate::{
-    core::{
-        check::{check_contract, CheckConfig},
-        project::contract::{Contract, ContractStatus},
-    },
-    utils::color::{Color, DebugColor},
-};
-use alloy::json_abi::StateMutability::Payable;
 use alloy::{
+    json_abi::StateMutability::Payable,
     network::TransactionBuilder,
+    primitives::B256,
     primitives::{Address, TxHash, U256},
     providers::{Provider, WalletProvider},
     rpc::types::{TransactionReceipt, TransactionRequest},
 };
 
-use alloy::primitives::B256;
+use crate::{
+    core::{
+        activation::{self, ActivationError},
+        cache::format_gas,
+        check::{check_contract, CheckConfig},
+        deployment::{
+            deployer::{get_address_from_receipt, parse_tx_calldata, DeployerError},
+            DeploymentError::{InvalidConstructor, NoContractAddress, ReadConstructorFailure},
+        },
+        project::contract::{Contract, ContractStatus},
+        wasm::{ContractRoot, ProcessedWasmCode},
+    },
+    ops::{activate::print_gas_estimate, get_constructor_signature},
+    utils::color::{Color, DebugColor},
+};
 use prelude::DeploymentCalldata;
 
 pub mod deployer;
@@ -194,16 +189,16 @@ pub async fn deploy(
                 DeploymentRequest::new(from_address, code, config.max_fee_per_gas_gwei)
             }
             ProcessedWasmCode::Fragments(fragments) => {
-                let mut root_code = Vec::new();
+                let mut addresses = Vec::new();
                 for fragment in fragments.iter() {
                     let req =
                         DeploymentRequest::new(from_address, fragment, config.max_fee_per_gas_gwei);
                     let receipt = req.exec(&provider).await?;
                     let address = receipt.contract_address.expect("error handling");
-                    root_code.extend(address);
+                    addresses.push(address);
                 }
-                let root_code = wasm::add_prefix(root_code, ROOT_PREFIX);
-                DeploymentRequest::new(from_address, &root_code, config.max_fee_per_gas_gwei)
+                let root = ContractRoot::new(status.wasm().len(), addresses);
+                DeploymentRequest::new(from_address, root.contents(), config.max_fee_per_gas_gwei)
             }
         },
         Some(constructor) => {

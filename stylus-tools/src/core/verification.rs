@@ -1,22 +1,27 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::deployment::deployer::StylusDeployer::deployCall;
-use crate::core::deployment::deployer::{stylus_constructorCall, ADDRESS};
-use crate::core::verification::VerificationError::{
-    InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
-};
-use crate::wasm::ProcessedWasmCode;
-use crate::{
-    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
-    utils::cargo,
-};
-
-use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
     primitives::{Address, TxHash},
     providers::Provider,
+    sol_types::SolCall,
+};
+
+use crate::{
+    core::{
+        deployment::{
+            deployer::{stylus_constructorCall, StylusDeployer::deployCall, ADDRESS},
+            prelude::DeploymentCalldata,
+        },
+        project::contract::Contract,
+        reflection,
+        verification::VerificationError::{
+            InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
+        },
+        wasm::ProcessedWasmCode,
+    },
+    utils::cargo,
 };
 
 pub async fn verify(

@@ -17,12 +17,12 @@ use crate::{
         manifest,
         reflection::ReflectionConfig,
         verification::{self, VerificationStatus},
+        wasm::{ProcessedWasm, ProcessedWasmCode},
     },
     error::decode_contract_error,
     ops,
     precompiles::{self, ArbWasm::ArbWasmErrors},
     utils::toolchain::get_toolchain_channel,
-    wasm::ProcessedWasmCode,
 };
 
 #[derive(Debug)]
@@ -159,16 +159,23 @@ pub enum ContractError {
 #[derive(Debug)]
 pub enum ContractStatus {
     /// Contract already exists onchain.
-    Active { code: ProcessedWasmCode },
+    Active { code: ProcessedWasm },
     /// Contract can be activated with the given data fee.
-    Ready { code: ProcessedWasmCode, fee: U256 },
+    Ready { code: ProcessedWasm, fee: U256 },
 }
 
 impl ContractStatus {
+    pub fn wasm(&self) -> &[u8] {
+        match self {
+            Self::Active { code } => &code.wasm,
+            Self::Ready { code, .. } => &code.wasm,
+        }
+    }
+
     pub fn code(&self) -> &ProcessedWasmCode {
         match self {
-            Self::Active { code } => code,
-            Self::Ready { code, .. } => code,
+            Self::Active { code } => &code.code,
+            Self::Ready { code, .. } => &code.code,
         }
     }
 

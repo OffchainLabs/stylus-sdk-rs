@@ -13,3 +13,4 @@ pub mod project;
 pub mod reflection;
 pub mod tracing;
 pub mod verification;
+pub mod wasm;

@@ -3,12 +3,10 @@
 
 use std::{env, io};
 
-use crate::{
-    core::{
-        build::{build_contract, BuildConfig},
-        deployment::prelude::DeploymentCalldata,
-        project::{contract::Contract, hash_project, ProjectConfig},
-    },
+use crate::core::{
+    build::{build_contract, BuildConfig},
+    deployment::prelude::DeploymentCalldata,
+    project::{contract::Contract, hash_project, ProjectConfig},
     wasm::{process_wasm_file, ProcessedWasmCode},
 };
 
