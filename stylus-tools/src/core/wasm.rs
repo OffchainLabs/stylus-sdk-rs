@@ -16,7 +16,7 @@ pub const BROTLI_COMPRESSION_LEVEL: u32 = 11;
 /// EOF prefix used in Stylus compressed WASMs on-chain
 pub const EOF_PREFIX_NO_DICT: &str = "EFF00000";
 /// Prefix used to denote a Stylus contract fragment
-pub const FRAGMENT_PREFIX: &str = "EFF00100";
+pub const FRAGMENT_PREFIX: &str = "EFF001";
 /// Prefix used to denote a Stylus contract root
 pub const ROOT_PREFIX: &str = "EFF00200";
 
