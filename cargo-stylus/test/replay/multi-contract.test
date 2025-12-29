@@ -1,0 +1,6 @@
+# Test multi-contract replay functionality
+# REQUIRES: stylusdb
+# RUN: %cargo-stylus replay --tx %{counter_tx} --endpoint %{rpc_url} --contracts %{counter_address}:%{contracts}/counter --debugger stylusdb 2>&1 | FileCheck %s
+
+# CHECK: Building
+# CHECK: {{(stylusdb|Compiling|Blocking waiting for file lock|target create)}}

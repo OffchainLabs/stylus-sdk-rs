@@ -1,13 +1,16 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::deployment::deployer::stylus_constructorCall;
 use crate::core::deployment::deployer::StylusDeployer::deployCall;
-use crate::core::verification::VerificationError::InvalidInitData;
+use crate::core::deployment::deployer::{stylus_constructorCall, ADDRESS};
+use crate::core::verification::VerificationError::{
+    InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
+};
 use crate::{
     core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
     utils::cargo,
 };
+
 use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
@@ -18,42 +21,67 @@ use alloy::{
 pub async fn verify(
     contract: &Contract,
     tx_hash: TxHash,
+    skip_clean: bool,
     provider: &impl Provider,
 ) -> Result<VerificationStatus, VerificationError> {
     let tx = provider
         .get_transaction_by_hash(tx_hash)
         .await?
         .ok_or(VerificationError::NoCodeAtAddress)?;
-    cargo::clean()?;
+    if !skip_clean {
+        cargo::clean()?;
+    }
+    let deployment_success = provider
+        .get_transaction_receipt(tx_hash)
+        .await?
+        .map(|receipt| receipt.status())
+        .ok_or(TransactionReceiptError)?;
+    if !deployment_success {
+        return Err(TxNotSuccessful);
+    }
     let status = contract.check(None, &Default::default(), provider).await?;
+    let deployment_data = DeploymentCalldata::new(status.code());
 
-    let constructor_called = deployCall::abi_decode(tx.input())
-        .unwrap()
+    match tx.to() {
+        Some(deployer_address) => {
+            verify_constructor_deployment(tx.input(), &deployment_data, deployer_address)
+        }
+        _ => verify_create_deployment(&DeploymentCalldata(tx.input().to_vec()), &deployment_data),
+    }
+}
+
+fn verify_constructor_deployment(
+    tx_input: &[u8],
+    deployment_data: &DeploymentCalldata,
+    deployer_address: Address,
+) -> Result<VerificationStatus, VerificationError> {
+    let _constructor = reflection::constructor()?.ok_or(VerificationError::NoConstructor)?;
+    let deploy_call = deployCall::abi_decode(tx_input).unwrap();
+    let constructor_called = deploy_call
         .initData
         .starts_with(stylus_constructorCall::SELECTOR.as_slice());
     if !constructor_called {
         return Err(InvalidInitData);
     }
-
-    let deployment_data = DeploymentCalldata::new(status.code());
-    let calldata = DeploymentCalldata(tx.input().to_vec());
-    if let Some(deployer_address) = tx.to() {
-        verify_constructor_deployment(&calldata, &deployment_data, deployer_address)
-    } else {
-        Ok(verify_create_deployment(&calldata, &deployment_data))
+    if deployer_address != ADDRESS {
+        return Err(InvalidDeployerAddress);
     }
+    verify_create_deployment(
+        &DeploymentCalldata(deploy_call.bytecode.to_vec()),
+        deployment_data,
+    )
 }
 
 fn verify_create_deployment(
     calldata: &DeploymentCalldata,
     deployment_data: &DeploymentCalldata,
-) -> VerificationStatus {
+) -> Result<VerificationStatus, VerificationError> {
     if deployment_data == calldata {
-        return VerificationStatus::Success;
+        return Ok(VerificationStatus::Success);
     }
 
     let tx_prelude = calldata.prelude();
-    let build_prelude = calldata.prelude();
+    let build_prelude = deployment_data.prelude();
     let prelude_mismatch = if tx_prelude == build_prelude {
         None
     } else {
@@ -63,22 +91,13 @@ fn verify_create_deployment(
         })
     };
 
-    let tx_wasm_length = deployment_data.compressed_wasm().len();
-    let build_wasm_length = calldata.compressed_wasm().len();
-    VerificationStatus::Failure(VerificationFailure {
+    let tx_wasm_length = calldata.compressed_wasm().len();
+    let build_wasm_length = deployment_data.compressed_wasm().len();
+    Ok(VerificationStatus::Failure(VerificationFailure {
         prelude_mismatch,
         tx_wasm_length,
         build_wasm_length,
-    })
-}
-
-fn verify_constructor_deployment(
-    _calldata: &DeploymentCalldata,
-    _deployment_data: &DeploymentCalldata,
-    _deployer_address: Address,
-) -> Result<VerificationStatus, VerificationError> {
-    let _constructor = reflection::constructor()?.ok_or(VerificationError::NoConstructor)?;
-    todo!()
+    }))
 }
 
 #[derive(Debug)]
@@ -118,4 +137,10 @@ pub enum VerificationError {
     NoConstructor,
     #[error("Invalid init data: Constructor not called")]
     InvalidInitData,
+    #[error("Invalid deployer address")]
+    InvalidDeployerAddress,
+    #[error("Transaction receipt error")]
+    TransactionReceiptError,
+    #[error("Deployment transaction not successful")]
+    TxNotSuccessful,
 }

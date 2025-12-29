@@ -41,7 +41,7 @@ pub fn get_toolchain_channel(package: &Package) -> Result<String, ToolchainError
     Ok(channel)
 }
 
-fn find_toolchain_file(dir: impl Into<PathBuf>) -> Result<PathBuf, ToolchainError> {
+pub fn find_toolchain_file(dir: impl Into<PathBuf>) -> Result<PathBuf, ToolchainError> {
     let mut path = dir.into();
     while !path.join(TOOLCHAIN_FILE_NAME).exists() {
         path = path.parent().ok_or(ToolchainError::NotFound)?.to_path_buf();
