@@ -26,7 +26,7 @@ pub fn run_reproducible(
     let selected_cargo_stylus_version = select_stylus_version(cargo_stylus_version)?;
     let image_name = create_image(&selected_cargo_stylus_version, &toolchain_channel)?;
 
-    // TODO: How to know to call `stylus` or `stylus-beta`?
+    /// Currently only calling cargo stylus is supported (not cargo stylus-beta for instance)
     let mut args = vec!["cargo".to_string(), "stylus".to_string()];
     for arg in command_line.into_iter() {
         args.push(arg);
