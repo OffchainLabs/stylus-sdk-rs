@@ -448,6 +448,21 @@ pub unsafe extern "C" fn call_contract(
     assert_eq!(read_bytes(calldata, calldata_len), &*data);
     assert_eq!(read_fixed(value_ptr), value.to_be_bytes::<32>());
     assert_eq!(gas_supplied, gas);
+
+    // Check if we should dispatch to an external contract for multi-contract debugging
+    if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
+        let input_data = read_bytes(calldata, calldata_len);
+
+        enter_external_contract();
+        let result = access.call_external_contract(&address, &input_data);
+        exit_external_contract();
+
+        if let Ok((ext_status, _ext_data)) = result {
+            *return_data_len = outs_len;
+            return ext_status;
+        }
+    }
+
     *return_data_len = outs_len;
     status
 }
@@ -496,6 +511,21 @@ pub unsafe extern "C" fn delegate_call_contract(
     assert_eq!(read_fixed(address_ptr), address);
     assert_eq!(read_bytes(calldata, calldata_len), &*data);
     assert_eq!(gas_supplied, gas);
+
+    // Check if we should dispatch to an external contract for multi-contract debugging
+    if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
+        let input_data = read_bytes(calldata, calldata_len);
+
+        enter_external_contract();
+        let result = access.call_external_contract(&address, &input_data);
+        exit_external_contract();
+
+        if let Ok((ext_status, _ext_data)) = result {
+            *return_data_len = outs_len;
+            return ext_status;
+        }
+    }
+
     *return_data_len = outs_len;
     status
 }
@@ -543,6 +573,21 @@ pub unsafe extern "C" fn static_call_contract(
     assert_eq!(read_fixed(address_ptr), address);
     assert_eq!(read_bytes(calldata, calldata_len), &*data);
     assert_eq!(gas_supplied, gas);
+
+    // Check if we should dispatch to an external contract for multi-contract debugging
+    if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
+        let input_data = read_bytes(calldata, calldata_len);
+
+        enter_external_contract();
+        let result = access.call_external_contract(&address, &input_data);
+        exit_external_contract();
+
+        if let Ok((ext_status, _ext_data)) = result {
+            *return_data_len = outs_len;
+            return ext_status;
+        }
+    }
+
     *return_data_len = outs_len;
     status
 }
