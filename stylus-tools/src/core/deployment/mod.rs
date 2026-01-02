@@ -1,33 +1,30 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::activation;
-use crate::core::activation::ActivationError;
-use crate::core::cache::format_gas;
-use crate::core::deployment::deployer::{
-    get_address_from_receipt, parse_tx_calldata, DeployerError,
-};
-use crate::core::deployment::DeploymentError::{
-    InvalidConstructor, NoContractAddress, ReadConstructorFailure,
-};
-use crate::ops::activate::print_gas_estimate;
-use crate::ops::get_constructor_signature;
-use crate::{
-    core::{
-        check::{check_contract, CheckConfig},
-        project::contract::{Contract, ContractStatus},
-    },
-    utils::color::{Color, DebugColor},
-};
-use alloy::json_abi::StateMutability::Payable;
 use alloy::{
+    json_abi::StateMutability::Payable,
     network::TransactionBuilder,
+    primitives::B256,
     primitives::{Address, TxHash, U256},
     providers::{Provider, WalletProvider},
     rpc::types::{TransactionReceipt, TransactionRequest},
 };
 
-use alloy::primitives::B256;
+use crate::{
+    core::{
+        activation::{self, ActivationError},
+        cache::format_gas,
+        check::{check_contract, CheckConfig},
+        code::{contract::ContractCode, fragments::CodeFragments, Code},
+        deployment::{
+            deployer::{get_address_from_receipt, parse_tx_calldata, DeployerError},
+            DeploymentError::{InvalidConstructor, NoContractAddress, ReadConstructorFailure},
+        },
+        project::contract::{Contract, ContractStatus},
+    },
+    ops::{activate::print_gas_estimate, get_constructor_signature},
+    utils::color::{Color, DebugColor},
+};
 use prelude::DeploymentCalldata;
 
 pub mod deployer;
@@ -187,7 +184,16 @@ pub async fn deploy(
         .map_err(|_| ReadConstructorFailure)?;
 
     let req = match &constructor {
-        None => DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei),
+        None => match status.code() {
+            Code::Contract(contract) => {
+                DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei)
+            }
+            Code::Fragments(fragments) => {
+                let root =
+                    deploy_fragments(fragments, status.wasm().len(), config, provider).await?;
+                DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
+            }
+        },
         Some(constructor) => {
             if constructor.state_mutability != Payable && !config.constructor_value.is_zero() {
                 return Err(InvalidConstructor(
@@ -203,8 +209,16 @@ pub async fn deploy(
                 )));
             }
 
+            let code = match status.code() {
+                Code::Contract(contract) => contract.0.clone(),
+                Code::Fragments(fragments) => {
+                    deploy_fragments(fragments, status.wasm().len(), config, provider)
+                        .await?
+                        .0
+                }
+            };
             let tx_calldata = parse_tx_calldata(
-                status.code(),
+                &code,
                 constructor,
                 config.constructor_value,
                 config.constructor_args.clone(),
@@ -277,4 +291,25 @@ pub async fn deploy(
     );
 
     Ok(())
+}
+
+/// Deploy contract fragments, and return the root contract code
+pub async fn deploy_fragments(
+    fragments: &CodeFragments,
+    uncompressed_code_size: usize,
+    config: &DeploymentConfig,
+    provider: &(impl Provider + WalletProvider),
+) -> Result<ContractCode, DeploymentError> {
+    let from_address = provider.default_signer_address();
+    let mut addresses = Vec::new();
+    for fragment in fragments.as_slice() {
+        let req = DeploymentRequest::new(from_address, &fragment.0, config.max_fee_per_gas_gwei);
+        let receipt = req.exec(&provider).await?;
+        let address = receipt.contract_address.expect("error handling");
+        addresses.push(address);
+    }
+    Ok(ContractCode::new_root_contract(
+        uncompressed_code_size,
+        addresses,
+    ))
 }
