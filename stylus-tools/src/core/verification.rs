@@ -10,6 +10,7 @@ use alloy::{
 
 use crate::{
     core::{
+        code::Code,
         deployment::{
             deployer::{stylus_constructorCall, StylusDeployer::deployCall, ADDRESS},
             prelude::DeploymentCalldata,
@@ -19,7 +20,6 @@ use crate::{
         verification::VerificationError::{
             InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
         },
-        wasm::ProcessedWasmCode,
     },
     utils::cargo,
 };
@@ -47,8 +47,8 @@ pub async fn verify(
     }
     let status = contract.check(None, &Default::default(), provider).await?;
     let deployment_data = match status.code() {
-        ProcessedWasmCode::Code(code) => DeploymentCalldata::new(code),
-        ProcessedWasmCode::Fragments(_fragments) => todo!("support fragments for verification"),
+        Code::Contract(contract) => DeploymentCalldata::new(contract.bytes()),
+        Code::Fragments(_fragments) => todo!("support fragments for verification"),
     };
 
     match tx.to() {

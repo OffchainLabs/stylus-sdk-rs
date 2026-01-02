@@ -15,12 +15,12 @@ use crate::{
         activation::{self, ActivationError},
         cache::format_gas,
         check::{check_contract, CheckConfig},
+        code::{contract::ContractCode, fragments::CodeFragments, Code},
         deployment::{
             deployer::{get_address_from_receipt, parse_tx_calldata, DeployerError},
             DeploymentError::{InvalidConstructor, NoContractAddress, ReadConstructorFailure},
         },
         project::contract::{Contract, ContractStatus},
-        wasm::{ContractRoot, ProcessedWasmCode},
     },
     ops::{activate::print_gas_estimate, get_constructor_signature},
     utils::color::{Color, DebugColor},
@@ -185,20 +185,13 @@ pub async fn deploy(
 
     let req = match &constructor {
         None => match status.code() {
-            ProcessedWasmCode::Code(code) => {
-                DeploymentRequest::new(from_address, code, config.max_fee_per_gas_gwei)
+            Code::Contract(contract) => {
+                DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei)
             }
-            ProcessedWasmCode::Fragments(fragments) => {
-                let mut addresses = Vec::new();
-                for fragment in fragments.iter() {
-                    let req =
-                        DeploymentRequest::new(from_address, fragment, config.max_fee_per_gas_gwei);
-                    let receipt = req.exec(&provider).await?;
-                    let address = receipt.contract_address.expect("error handling");
-                    addresses.push(address);
-                }
-                let root = ContractRoot::new(status.wasm().len(), addresses);
-                DeploymentRequest::new(from_address, root.contents(), config.max_fee_per_gas_gwei)
+            Code::Fragments(fragments) => {
+                let root =
+                    deploy_fragments(fragments, status.wasm().len(), config, provider).await?;
+                DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
             }
         },
         Some(constructor) => {
@@ -217,13 +210,15 @@ pub async fn deploy(
             }
 
             let code = match status.code() {
-                ProcessedWasmCode::Code(code) => code,
-                ProcessedWasmCode::Fragments(_fragments) => {
-                    todo!("implement fragments for constructors")
+                Code::Contract(contract) => contract.0.clone(),
+                Code::Fragments(fragments) => {
+                    deploy_fragments(fragments, status.wasm().len(), config, provider)
+                        .await?
+                        .0
                 }
             };
             let tx_calldata = parse_tx_calldata(
-                code,
+                &code,
                 constructor,
                 config.constructor_value,
                 config.constructor_args.clone(),
@@ -296,4 +291,25 @@ pub async fn deploy(
     );
 
     Ok(())
+}
+
+/// Deploy contract fragments, and return the root contract code
+pub async fn deploy_fragments(
+    fragments: &CodeFragments,
+    uncompressed_code_size: usize,
+    config: &DeploymentConfig,
+    provider: &(impl Provider + WalletProvider),
+) -> Result<ContractCode, DeploymentError> {
+    let from_address = provider.default_signer_address();
+    let mut addresses = Vec::new();
+    for fragment in fragments.as_slice() {
+        let req = DeploymentRequest::new(from_address, &fragment.0, config.max_fee_per_gas_gwei);
+        let receipt = req.exec(&provider).await?;
+        let address = receipt.contract_address.expect("error handling");
+        addresses.push(address);
+    }
+    Ok(ContractCode::new_root_contract(
+        uncompressed_code_size,
+        addresses,
+    ))
 }
