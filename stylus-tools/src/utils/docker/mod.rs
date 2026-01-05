@@ -27,8 +27,13 @@ pub fn validate_host() -> Result<(), DockerError> {
     Ok(())
 }
 
-pub fn image_exists(image_name: &str) -> Result<bool, DockerError> {
-    Ok(!cmd::images(image_name)?.is_empty())
+pub fn image_exists_locally(image_name: &str) -> Result<bool, DockerError> {
+    cmd::image_exists_locally(image_name)
+}
+
+/// Check if a Docker image exists on Docker Hub.
+pub fn image_exists_on_hub(image_name: &str) -> Result<bool, DockerError> {
+    cmd::image_exists_on_hub(image_name)
 }
 
 pub fn run_in_container(
@@ -36,10 +41,13 @@ pub fn run_in_container(
     dir: impl AsRef<Path>,
     args: impl IntoIterator<Item = impl AsRef<OsStr>>,
 ) -> Result<(), DockerError> {
+    let dir_str = dir.as_ref().to_str().unwrap();
+    info!(@grey, "Using directory as entry point {dir_str}");
+
     cmd::run(
         image_name,
         Some("host"),
-        &[(dir.as_ref().to_str().unwrap(), "/source")],
+        &[(dir_str, "/source")],
         Some("/source"),
         args,
     )?;

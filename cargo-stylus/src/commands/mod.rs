@@ -9,6 +9,7 @@ mod cache;
 mod cgen;
 mod check;
 mod constructor;
+mod debug_hook;
 mod deploy;
 mod export_abi;
 mod get_initcode;
@@ -17,6 +18,7 @@ mod new;
 mod replay;
 mod simulate;
 mod trace;
+mod usertrace;
 mod verify;
 
 #[derive(Debug, clap::Subcommand)]
@@ -58,6 +60,9 @@ pub enum Command {
     /// Trace a transaction
     #[clap(visible_alias = "t")]
     Trace(trace::Args),
+    /// Trace a transaction with stylusdb, capturing user function calls
+    #[clap(visible_alias = "ut")]
+    Usertrace(usertrace::Args),
     /// Verify the deployment of a Stylus contract
     Verify(verify::Args),
 }
@@ -78,6 +83,7 @@ pub async fn exec(cmd: Command) -> CargoStylusResult {
         Command::Replay(args) => replay::exec(args).await.map_err(Into::into),
         Command::Simulate(args) => simulate::exec(args).await,
         Command::Trace(args) => trace::exec(args).await,
+        Command::Usertrace(args) => usertrace::exec(args).await.map_err(Into::into),
         Command::Verify(args) => verify::exec(args).await,
     }
 }

@@ -1,0 +1,6 @@
+# Test error handling in replay command
+
+# Test with invalid transaction hash
+# RUN: cd %{contracts}/counter && not %cargo-stylus replay --tx 0xinvalid --endpoint %{rpc_url} 2>&1 | FileCheck %s --check-prefix=INVALID-TX
+
+# INVALID-TX: error: invalid value '0xinvalid' for '--tx <TX>'
