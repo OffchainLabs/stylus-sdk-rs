@@ -9,7 +9,7 @@ use crate::core::code::{prefixes, wasm::CompressedWasm};
 
 /// Fragmented code, with the appropriate prefix bytes
 #[derive(Debug)]
-pub struct CodeFragment(pub Vec<u8>);
+pub struct CodeFragment(Vec<u8>);
 
 impl CodeFragment {
     /// Create code fragment from wasm "chunk", adding the appropriate prefix bytes
@@ -19,11 +19,16 @@ impl CodeFragment {
         code.extend(wasm);
         Self(code)
     }
+
+    /// Get code bytes for this fragment
+    pub fn bytes(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 /// Complete contract worth of code fragments, each prefixed with the appropriate bytes
 #[derive(Debug)]
-pub struct CodeFragments(pub Vec<CodeFragment>);
+pub struct CodeFragments(Vec<CodeFragment>);
 
 impl CodeFragments {
     /// Split wasm code into chunks according to given max size
@@ -47,8 +52,7 @@ impl CodeFragments {
         alloy::primitives::keccak256(
             self.0
                 .iter()
-                .map(|f| f.0.iter().cloned())
-                .flatten()
+                .flat_map(|f| f.0.iter().cloned())
                 .collect::<Vec<_>>(),
         )
     }

@@ -303,7 +303,8 @@ pub async fn deploy_fragments(
     let from_address = provider.default_signer_address();
     let mut addresses = Vec::new();
     for fragment in fragments.as_slice() {
-        let req = DeploymentRequest::new(from_address, &fragment.0, config.max_fee_per_gas_gwei);
+        let req =
+            DeploymentRequest::new(from_address, fragment.bytes(), config.max_fee_per_gas_gwei);
         let receipt = req.exec(&provider).await?;
         let address = receipt.contract_address.expect("error handling");
         addresses.push(address);
