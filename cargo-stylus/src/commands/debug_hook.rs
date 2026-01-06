@@ -121,10 +121,7 @@ impl DebuggerHook for StylusDebuggerHook {
 
     fn on_contract_info(&self, contract_address: &str, is_solidity: bool) {
         let contract_type = if is_solidity { "solidity" } else { "stylus" };
-        self.send_command(&format!(
-            "contract_type {} {}",
-            contract_address, contract_type
-        ));
+        self.send_command(&format!("contract_type {contract_address} {contract_type}"));
     }
 }
 
