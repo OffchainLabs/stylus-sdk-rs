@@ -4397,6 +4397,7 @@ dependencies = [
  "serde_json",
  "sneks",
  "sys-info",
+ "tempfile",
  "thiserror 2.0.17",
  "tiny-keccak",
  "tokio",
