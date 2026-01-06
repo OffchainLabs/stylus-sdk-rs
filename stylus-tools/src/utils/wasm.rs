@@ -42,13 +42,6 @@ pub fn has_custom_section(wasm: impl AsRef<[u8]>, name: &str) -> Result<bool, Bi
     Ok(false)
 }
 
-/// Add prefix for brotli compressed Stylus programs.
-pub fn add_prefix(compressed_wasm: impl IntoIterator<Item = u8>, prefix: &str) -> Vec<u8> {
-    let mut contract_code = hex::decode(prefix).unwrap();
-    contract_code.extend(compressed_wasm);
-    contract_code
-}
-
 /// Take Wasm bytecode and return its brotli compressed bytes.
 pub fn brotli_compress(wasm: impl Read, compression_level: u32) -> io::Result<Vec<u8>> {
     let mut compressor = BrotliEncoder::new(wasm, compression_level);

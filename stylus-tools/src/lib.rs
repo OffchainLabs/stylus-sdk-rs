@@ -13,7 +13,6 @@ pub mod manifest;
 pub mod ops;
 pub mod precompiles;
 pub mod verification;
-pub mod wasm;
 
 pub mod utils;
 
