@@ -80,10 +80,10 @@ pub async fn exec(cmd: Command) -> CargoStylusResult {
         Command::GetInitcode(args) => get_initcode::exec(args),
         Command::Init(args) => init::exec(args),
         Command::New(args) => new::exec(args),
-        Command::Replay(args) => replay::exec(args).await.map_err(Into::into),
+        Command::Replay(args) => replay::exec(args).await,
         Command::Simulate(args) => simulate::exec(args).await,
         Command::Trace(args) => trace::exec(args).await,
-        Command::Usertrace(args) => usertrace::exec(args).await.map_err(Into::into),
+        Command::Usertrace(args) => usertrace::exec(args).await,
         Command::Verify(args) => verify::exec(args).await,
     }
 }

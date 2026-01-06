@@ -7,9 +7,9 @@
 //! using the stylusdb debugger with call tracing enabled.
 
 use alloy::providers::Provider;
-use eyre::{bail, eyre};
+use eyre::{bail};
 use std::{
-    path::{Path, PathBuf},
+    path::{Path},
     process::{Command, Stdio},
 };
 use stylus_tools::{
@@ -18,7 +18,7 @@ use stylus_tools::{
 };
 
 use crate::{
-    commands::replay::{build_shared_library, find_shared_library},
+    commands::replay::find_shared_library,
     common_args::{ProjectArgs, ProviderArgs, TraceArgs},
     error::CargoStylusResult,
     utils::hostio,
@@ -32,10 +32,6 @@ pub struct Args {
     provider: ProviderArgs,
     #[command(flatten)]
     trace: TraceArgs,
-
-    /// Whether to use stable Rust. Note that nightly is needed to expand macros.
-    #[arg(short, long)]
-    stable_rust: bool,
 
     /// Any features that should be passed to cargo build.
     #[arg(short, long)]
@@ -81,7 +77,11 @@ fn derive_crate_name(shared_library: &Path) -> String {
     crate_name.to_string()
 }
 
-pub async fn exec(args: Args) -> eyre::Result<()> {
+pub async fn exec(args: Args) -> CargoStylusResult {
+    exec_inner(args).await.map_err(Into::into)
+}
+
+async fn exec_inner(args: Args) -> eyre::Result<()> {
     let macos = cfg!(target_os = "macos");
     let mut contracts = args.project.contracts()?;
     if contracts.len() != 1 {
