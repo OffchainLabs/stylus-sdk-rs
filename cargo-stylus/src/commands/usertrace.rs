@@ -7,9 +7,9 @@
 //! using the stylusdb debugger with call tracing enabled.
 
 use alloy::providers::Provider;
-use eyre::{bail};
+use eyre::bail;
 use std::{
-    path::{Path},
+    path::Path,
     process::{Command, Stdio},
 };
 use stylus_tools::{
@@ -124,7 +124,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
     }
     crates_to_trace.extend(args.trace_external_usertrace.clone());
     let pattern = format!("^({})::", crates_to_trace.join("|"));
-    let calltrace_cmd = format!("calltrace start '{}'", pattern);
+    let calltrace_cmd = format!("calltrace start '{pattern}'");
 
     // Non-child: spawn stylusdb + pretty-print
     if !args.child {
