@@ -7,9 +7,9 @@
 //! using the stylusdb debugger with call tracing enabled.
 
 use alloy::providers::Provider;
-use eyre::{bail};
+use eyre::bail;
 use std::{
-    path::{Path},
+    path::Path,
     process::{Command, Stdio},
 };
 use stylus_tools::{
