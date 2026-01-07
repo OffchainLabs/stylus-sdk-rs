@@ -105,11 +105,8 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
 
     // Get the receipt & print the to-address
     if let Some(receipt) = provider.get_transaction_receipt(args.trace.tx).await? {
-        if let Some(to_addr) = receipt.to {
-            println!(
-                "Tracing contract at address: \x1b[1;32m{:?}\x1b[0m",
-                to_addr
-            );
+        if let Some(to_address) = receipt.to {
+            println!("Tracing contract at address: \x1b[1;32m{to_address:?}\x1b[0m");
         } else {
             eprintln!("Warning: tx {} has no 'to' address", args.trace.tx);
         }
@@ -124,7 +121,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
     }
     crates_to_trace.extend(args.trace_external_usertrace.clone());
     let pattern = format!("^({})::", crates_to_trace.join("|"));
-    let calltrace_cmd = format!("calltrace start '{}'", pattern);
+    let calltrace_cmd = format!("calltrace start '{pattern}'");
 
     // Non-child: spawn stylusdb + pretty-print
     if !args.child {
