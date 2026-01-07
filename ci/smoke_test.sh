@@ -9,6 +9,8 @@ cargo -V
 
 cargo stylus new counter
 cd counter
+cargo remove stylus-sdk
+cargo add stylus-sdk --path ../stylus-sdk
 echo "[workspace]" >> Cargo.toml
 
 # Use the nitro testnode private key found from the public mnemonic
