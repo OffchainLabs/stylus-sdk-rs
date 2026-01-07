@@ -28,7 +28,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
+          RUSTFLAGS="-C link-args=-rdynamic" cargo install --path ./cargo-stylus
       - name: Archive cargo-stylus binary
         uses: actions/upload-artifact@v4
         with:
