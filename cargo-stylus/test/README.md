@@ -1,6 +1,6 @@
 # Cargo Stylus Test Suite
 
-This directory contains the LLVM lit-based test suite for the `cargo-stylus-beta` replay and usertrace commands.
+This directory contains the LLVM lit-based test suite for the `cargo-stylus` replay and usertrace commands.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This directory contains the LLVM lit-based test suite for the `cargo-stylus-beta
    ```
 4. **FileCheck**: Part of LLVM tools (usually available with LLVM installation)
 5. **stylusdb** (optional): For full replay/usertrace testing
-6. **cargo-stylus-beta**: Install with `cargo install --path cargo-stylus` or build from this project
+6. **cargo-stylus**: Install with `cargo install --path cargo-stylus` or build from this project
 
 ## Running Tests
 
