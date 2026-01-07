@@ -7,10 +7,15 @@ rustc -Vv
 cargo -V
 #cargo stylus --version
 
+REPO_ROOT=$(git rev-parse --show-toplevel)
+TEST_DIR=$(mktemp -d)
+echo "Running smoke test in isolated directory: $TEST_DIR"
+cd "$TEST_DIR"
+
 cargo stylus new counter
 cd counter
 cargo remove stylus-sdk
-cargo add stylus-sdk --path ../stylus-sdk
+cargo add stylus-sdk --path "$REPO_ROOT/stylus-sdk"
 echo "[workspace]" >> Cargo.toml
 
 # Use the nitro testnode private key found from the public mnemonic
