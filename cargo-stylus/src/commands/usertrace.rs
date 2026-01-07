@@ -105,8 +105,8 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
 
     // Get the receipt & print the to-address
     if let Some(receipt) = provider.get_transaction_receipt(args.trace.tx).await? {
-        if let Some(to_addr) = receipt.to {
-            println!("Tracing contract at address: \x1b[1;32m{to_addr:?}\x1b[0m");
+        if let Some(to_address) = receipt.to {
+            println!("Tracing contract at address: \x1b[1;32m{to_address:?}\x1b[0m");
         } else {
             eprintln!("Warning: tx {} has no 'to' address", args.trace.tx);
         }

@@ -63,8 +63,8 @@ impl StylusDebuggerHook {
         // Start listener in background
         let path_clone = socket_path.clone();
         std::thread::spawn(move || {
-            if let Err(e) = Self::listen_for_connection(&path_clone) {
-                eprintln!("Failed to establish debugger connection: {e}");
+            if let Err(err) = Self::listen_for_connection(&path_clone) {
+                eprintln!("Failed to establish debugger connection: {err}");
             }
         });
 
@@ -114,8 +114,8 @@ impl DebuggerHook for StylusDebuggerHook {
 
     fn on_execution_start(&self, contracts: &[(String, String)]) {
         // Send all contract mappings to debugger
-        for (addr, path) in contracts {
-            self.send_command(&format!("contract_add {addr} {path}"));
+        for (address, path) in contracts {
+            self.send_command(&format!("contract_add {address} {path}"));
         }
     }
 

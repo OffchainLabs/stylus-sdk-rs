@@ -104,10 +104,10 @@ impl ContractRegistry {
 
         // Parse Solidity contract addresses
         if let Some(addresses) = solidity_addresses {
-            for addr_str in addresses {
-                let address = addr_str
-                    .parse::<Address>()
-                    .wrap_err_with(|| format!("Invalid Solidity contract address: {addr_str}"))?;
+            for address_str in addresses {
+                let address = address_str.parse::<Address>().wrap_err_with(|| {
+                    format!("Invalid Solidity contract address: {address_str}")
+                })?;
                 solidity_contracts.insert(address);
             }
         }
@@ -167,7 +167,7 @@ impl ContractRegistry {
                 );
                 build_shared_library(&info.path, None, features.clone())?;
             } else {
-                println!("Skipping Solidity contract at {address} (no build needed)",);
+                println!("Skipping Solidity contract at {address} (no build needed)");
             }
         }
         Ok(())
@@ -389,10 +389,10 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
             stylusdb_commands.push("b user_entrypoint".to_string());
         } else {
             // Multi-contract mode - set breakpoints for all contracts using stylusdb-contract
-            for addr in registry.contracts.keys() {
+            for address in registry.contracts.keys() {
                 stylusdb_commands.push("-o".to_string());
                 stylusdb_commands.push(format!(
-                    "stylusdb-contract breakpoint {addr} user_entrypoint",
+                    "stylusdb-contract breakpoint {address} user_entrypoint"
                 ));
             }
             // Still set a general breakpoint for compatibility with GDB/LLDB
@@ -562,7 +562,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
             let provided_addresses: Vec<String> = registry
                 .contracts
                 .keys()
-                .map(|addr| format!("{addr}"))
+                .map(|address| format!("{address}"))
                 .collect();
             bail!(
                 "Main contract at {} is not in the provided --contracts list.\n\
@@ -592,14 +592,14 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         let contracts: Vec<(String, String)> = registry
             .get_all_debug_info()
             .into_iter()
-            .map(|(addr, path)| (format!("{addr}"), path.display().to_string()))
+            .map(|(address, path)| (format!("{address}"), path.display().to_string()))
             .collect();
         hook.on_execution_start(&contracts);
 
         // Send contract type information
-        for (addr, info) in &registry.contracts {
+        for (address, info) in &registry.contracts {
             hook.on_contract_info(
-                &format!("{addr}"),
+                &format!("{address}"),
                 info.contract_type == ContractType::Solidity,
             );
         }
