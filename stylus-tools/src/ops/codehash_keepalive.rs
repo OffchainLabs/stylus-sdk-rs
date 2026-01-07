@@ -17,7 +17,6 @@ pub async fn codehash_keepalive(
         .codehashKeepalive(codehash)
         .call()
         .await
-        .map(|_| ())
         .map_err(|err| eyre!("Failed to keepalive contract: {err:?}"))?;
     greyln!("Successfully kept alive contract with codehash {codehash}");
     Ok(())
