@@ -41,7 +41,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.88.0, nightly-2025-06-26]
+        toolchain: [1.92.0, nightly-2025-06-26]
         test:
           - "abi_decode"
           - "abi_encode"
@@ -81,7 +81,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           targets: wasm32-unknown-unknown
           components: rustfmt, rust-src
-      - name: Install cargo-stylus-beta
+      - name: Install cargo-stylus
         shell: bash
         run: |
           cargo install --path ./cargo-stylus
