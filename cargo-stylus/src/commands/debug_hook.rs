@@ -63,8 +63,8 @@ impl StylusDebuggerHook {
         // Start listener in background
         let path_clone = socket_path.clone();
         std::thread::spawn(move || {
-            if let Err(e) = Self::listen_for_connection(&path_clone) {
-                eprintln!("Failed to establish debugger connection: {}", e);
+            if let Err(err) = Self::listen_for_connection(&path_clone) {
+                eprintln!("Failed to establish debugger connection: {err}");
             }
         });
 
@@ -98,14 +98,14 @@ impl StylusDebuggerHook {
     fn send_command(&self, command: &str) {
         let mut conn_guard = self.connection.lock();
         if let Some(ref mut stream) = *conn_guard {
-            let _ = writeln!(stream, "{}", command);
+            let _ = writeln!(stream, "{command}");
         }
     }
 }
 
 impl DebuggerHook for StylusDebuggerHook {
     fn on_external_call(&self, contract_address: &str) {
-        self.send_command(&format!("switch_context {}", contract_address));
+        self.send_command(&format!("switch_context {contract_address}"));
     }
 
     fn on_return_from_call(&self) {
@@ -114,17 +114,14 @@ impl DebuggerHook for StylusDebuggerHook {
 
     fn on_execution_start(&self, contracts: &[(String, String)]) {
         // Send all contract mappings to debugger
-        for (addr, path) in contracts {
-            self.send_command(&format!("contract_add {} {}", addr, path));
+        for (address, path) in contracts {
+            self.send_command(&format!("contract_add {address} {path}"));
         }
     }
 
     fn on_contract_info(&self, contract_address: &str, is_solidity: bool) {
         let contract_type = if is_solidity { "solidity" } else { "stylus" };
-        self.send_command(&format!(
-            "contract_type {} {}",
-            contract_address, contract_type
-        ));
+        self.send_command(&format!("contract_type {contract_address} {contract_type}"));
     }
 }
 
