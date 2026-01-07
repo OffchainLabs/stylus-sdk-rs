@@ -9,7 +9,8 @@ mod integration_test {
         sol_types::SolCall,
     };
     use eyre::Result;
-    use stylus_tools::devnet::{addresses::OWNER, Node};
+    use stylus_tools::devnet::addresses::OWNER;
+    use stylus_tools::utils::testing::init_test;
 
     const ARB_OWNER_PUBLIC: Address = address!("0x000000000000000000000000000000000000006b");
 
@@ -36,17 +37,37 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IExampleContract {
+    function execute(address target, bytes calldata data) external view returns (bytes memory);
+
+    function simpleCall(address account, address user) external returns (string memory);
+
+    function callWithGasValue(address account, address user) external payable returns (string memory);
+
+    function callPure(address methods) external view;
+
+    function callView(address methods) external view;
+
+    function callWrite(address methods) external;
+
+    function callPayable(address methods) external payable;
+
+    function makeGenericCall(address account, address user) external returns (string memory);
+
+    function executeCall(address _contract, uint8[] memory calldata) external returns (uint8[] memory);
+
+    function executeStaticCall(address _contract, uint8[] memory calldata) external returns (uint8[] memory);
+
+    function rawCallExample(address _contract, uint8[] memory calldata) external returns (uint8[] memory);
+}";
+
     #[tokio::test]
     async fn call() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IExampleContract::IExampleContractInstance::new(address, provider);
 
         let calldata = ArbOwnerPublic::getAllChainOwnersCall {}.abi_encode();
