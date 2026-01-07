@@ -1,7 +1,6 @@
 #[test]
 fn test_constructor_cmd() {
-    assert_cmd::Command::cargo_bin("cargo-stylus")
-        .expect("binary not found")
+    assert_cmd::cargo_bin_cmd!("cargo-stylus")
         .current_dir("tests/contract_abi")
         .arg("stylus")
         .arg("constructor")
@@ -12,8 +11,7 @@ fn test_constructor_cmd() {
 
 #[test]
 fn test_export_abi_cmd() {
-    assert_cmd::Command::cargo_bin("cargo-stylus")
-        .expect("binary not found")
+    assert_cmd::cargo_bin_cmd!("cargo-stylus")
         .current_dir("tests/contract_abi")
         .arg("stylus")
         .arg("export-abi")
