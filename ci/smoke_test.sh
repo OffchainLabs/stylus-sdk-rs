@@ -14,8 +14,7 @@ cd "$TEST_DIR"
 
 cargo stylus new counter
 cd counter
-cargo remove stylus-sdk
-cargo add stylus-sdk --path "$REPO_ROOT/stylus-sdk"
+sed -i "s|stylus-sdk = .*|stylus-sdk = { path = \"$REPO_ROOT/stylus-sdk\" }|" Cargo.toml
 echo "[workspace]" >> Cargo.toml
 
 # Use the nitro testnode private key found from the public mnemonic
