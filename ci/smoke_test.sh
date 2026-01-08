@@ -16,7 +16,6 @@ cargo stylus new counter
 cd counter
 sed -i "s|stylus-sdk = .*|stylus-sdk = { path = \"$REPO_ROOT/stylus-sdk\" }|" Cargo.toml
 cargo update
-sed -i 's/\$lib/counter/g' src/main.rs
 echo "[workspace]" >> Cargo.toml
 
 # Use the nitro testnode private key found from the public mnemonic
