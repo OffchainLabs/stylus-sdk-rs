@@ -6,15 +6,13 @@ This file explains stylus debugging capabilities via `stylusdb`.
 
 To use this, you need to install `stylusdb` tool from [stylusdb](https://github.com/walnuthq/stylusdb).
 
-Install `cargo-stylus-beta` from the stylus-sdk-rs repository:
+Install `cargo-stylus` from crates.io:
 
 ```bash
-git clone https://github.com/OffchainLabs/stylus-sdk-rs.git
-cd stylus-sdk-rs
-cargo install --path cargo-stylus
+cargo install cargo-stylus
 ```
 
-Note: This will install the binary as `cargo-stylus-beta`. Use `cargo stylus-beta` in all commands below.
+Note: This will install the binary as `cargo-stylus`. Use `cargo stylus` in all commands below.
 
 ## How to run it?
 
@@ -33,7 +31,7 @@ git clone https://github.com/OffchainLabs/stylus-hello-world
 cd stylus-hello-world
 export RPC_URL=http://localhost:8547
 export PRIV_KEY=0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
-cargo stylus-beta deploy --private-key=$PRIV_KEY --endpoint=$RPC_URL
+cargo stylus deploy --private-key=$PRIV_KEY --endpoint=$RPC_URL
 ```
 
 and you can expect the output like this
@@ -43,7 +41,7 @@ deployed code at address: 0xda52b25ddb0e3b9cc393b0690ac62245ac772527
 deployment tx hash: 0x307b1d712840327349d561dea948d957362d5d807a1dfa87413023159cbb23f2
 wasm already activated!
 
-NOTE: We recommend running cargo stylus-beta cache bid da52b25ddb0e3b9cc393b0690ac62245ac772527 0 to cache your activated contract in ArbOS.
+NOTE: We recommend running cargo stylus cache bid da52b25ddb0e3b9cc393b0690ac62245ac772527 0 to cache your activated contract in ArbOS.
 Cached contracts benefit from cheaper calls. To read more about the Stylus contract cache, see
 https://docs.arbitrum.io/stylus/concepts/stylus-cache-manager
 $ export ADDR=0xda52b25ddb0e3b9cc393b0690ac62245ac772527
@@ -76,7 +74,7 @@ timeboosted          false
 This is the way of using existing `replay` option, that will attach to either `lldb` or `gdb`:
 
 ```bash
-cargo stylus-beta replay \
+cargo stylus replay \
   --tx=0x88b0ad9daa0b701d868a5f9a0132db7c0402178ba44ed8dec4ba76784c7194fd \
   --endpoint=$RPC_URL
 1 location added to breakpoint 1
@@ -115,7 +113,7 @@ $ source ./myvenv/bin/activate
 We have introduced a new `cargo` option called `usertrace`, that uses similar technology as `replay` option, but it rather attaches to `stylusdb`, instead of well known debuggers.
 
 ``` bash
-$ cargo stylus-beta usertrace \
+$ cargo stylus usertrace \
   --tx=0x88b0ad9daa0b701d868a5f9a0132db7c0402178ba44ed8dec4ba76784c7194fd \
   --endpoint=$RPC_URL
 === STYLUS FUNCTION CALL TREE ===
@@ -142,7 +140,7 @@ You may see the calltrace in form of JSON in:
 By default, it does not follow functions from `stylus_sdk::`, if you want to see those, use `--verbose-usertrace` option, e.g.:
 
 ```bash
-$ cargo stylus-beta usertrace \
+$ cargo stylus usertrace \
   --tx=0x88b0ad9daa0b701d868a5f9a0132db7c0402178ba44ed8dec4ba76784c7194fd \
   --endpoint=$RPC_URL --verbose-usertrace
 ```
@@ -150,7 +148,7 @@ $ cargo stylus-beta usertrace \
 Or, if you want to track calls from other libraries, just use `--trace-external-usertrace` as follows:
 
 ```bash
-cargo stylus-beta usertrace \
+cargo stylus usertrace \
   --tx=0x88b0ad9daa0b701d868a5f9a0132db7c0402178ba44ed8dec4ba76784c7194fd \
   --endpoint=$RPC_URL --verbose-usertrace --trace-external-usertrace="std,core,other_contract"
 ```
@@ -162,13 +160,13 @@ and it will track calls from `std::`, `core` and `other_contract::`.
 To use `stylusdb`, specify `--debugger stylusdb`.
 
 ```bash
-$ cargo stylus-beta replay --debugger stylusdb --tx <TX_HASH> [other args]
+$ cargo stylus replay --debugger stylusdb --tx <TX_HASH> [other args]
 ```
 
 If you want to debug multi-contract transaction, use:
 
 ```bash
-$ cargo stylus-beta replay --debugger stylusdb --tx <TX_HASH> \
+$ cargo stylus replay --debugger stylusdb --tx <TX_HASH> \
   --contracts ADDR:PATH,0xe1080224B632A93951A7CFA33EeEa9Fd81558b5e:../ \
   --endpoint=$RPC_URL
 ...
@@ -269,7 +267,7 @@ In addition to `stylus-contract` commands, you can use standard LLDB commands:
 When debugging transactions that involve calls from Stylus to Solidity contracts, you can use the `--addr-solidity` flag to mark specific addresses as Solidity contracts:
 
 ```bash
-$ cargo stylus-beta replay --debugger stylusdb --tx <TX_HASH> \
+$ cargo stylus replay --debugger stylusdb --tx <TX_HASH> \
   --addr-solidity=0xda52b25ddb0e3b9cc393b0690ac62245ac772527 \
   --endpoint=$RPC_URL
 ```
@@ -298,7 +296,7 @@ When specifying contracts with the `--contracts` flag, you can only provide dire
 **Incorrect usage (will fail):**
 ```bash
 # This will error because ../erc20 is a Solidity contract directory
-cargo stylus-beta replay --debugger stylusdb \
+cargo stylus replay --debugger stylusdb \
   --tx=0xb590941f5de2a2164b76143ef4ca9d27df2d7c718c058fd2bbef4ac56b72d149 \
   --contracts 0xa6e41ffd769491a42a6e5ce453259b93983a22ef:.,0x1294b86822ff4976BfE136cB06CF43eC7FCF2574:../erc20
 ```
@@ -314,7 +312,7 @@ Caused by:
 **Correct usage:**
 ```bash
 # Only specify the Solidity contract address without a path
-cargo stylus-beta replay --debugger stylusdb \
+cargo stylus replay --debugger stylusdb \
   --tx=0xb590941f5de2a2164b76143ef4ca9d27df2d7c718c058fd2bbef4ac56b72d149 \
   --contracts 0xa6e41ffd769491a42a6e5ce453259b93983a22ef:.,0x1294b86822ff4976BfE136cB06CF43eC7FCF2574
 ```

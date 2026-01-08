@@ -9,6 +9,8 @@ jobs:
   setup-cargo-stylus:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v3
       - name: Install stable
         uses: dtolnay/rust-toolchain@1.88.0
       - name: Get latest cargo-stylus version
@@ -17,18 +19,10 @@ jobs:
         run: |
           version=$(cargo info cargo-stylus | grep 'version:' | awk 'NR==1 {print $2; exit}')
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Cache cargo stylus
-        id: cache
-        uses: actions/cache@v4
-        with:
-          key: cargo-stylus-${{ steps.get-version.outputs.version }}
-          path: |
-            ~/.cargo/bin/cargo-stylus
       - name: Install cargo-stylus
-        if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
+          cargo install --path ./cargo-stylus
       - name: Archive cargo-stylus binary
         uses: actions/upload-artifact@v4
         with:
@@ -41,7 +35,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.88.0, nightly-2025-06-26]
+        toolchain: [1.92.0, nightly-2025-06-26]
         test:
           - "abi_decode"
           - "abi_encode"
@@ -81,7 +75,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           targets: wasm32-unknown-unknown
           components: rustfmt, rust-src
-      - name: Install cargo-stylus-beta
+      - name: Install cargo-stylus
         shell: bash
         run: |
           cargo install --path ./cargo-stylus

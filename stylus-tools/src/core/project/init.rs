@@ -40,9 +40,15 @@ pub enum InitError {
 /// Initialize a Stylus contract in an existing Rust crate.
 pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
+    let project = path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .replace("-", "_");
 
     // Add files from template
     copy_from_template_if_dne!(
+        (&project),
         "templates/contract" -> path,
         "src/lib.rs",
         "src/main.rs",
@@ -60,6 +66,11 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
 /// Initialize a Stylus workspace in an existing directory.
 pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
+    let project = path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .replace("-", "_");
 
     // Create standard directories
     create_dir_if_dne(path.join("contracts"))?;
@@ -67,6 +78,7 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
 
     // Add files from template
     copy_from_template_if_dne!(
+        (&project),
         "templates/workspace" -> path,
         "Cargo.toml.tmpl",
         "rust-toolchain.toml",

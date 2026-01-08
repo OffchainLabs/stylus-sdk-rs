@@ -2,25 +2,26 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 macro_rules! copy_from_template {
-    ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
+    ($proj:expr, $tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
         $(
             let mut filename = $root.join($files);
             if filename.extension() == Some(std::ffi::OsStr::new("tmpl")) {
                 filename = filename.file_stem().unwrap().into();
             }
+            let template = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $tmpl, "/", $files));
             std::fs::write(
                 filename,
-                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $tmpl, "/", $files)),
+                template.replace("$lib", $proj),
             )?;
         )*
     };
 }
 
 macro_rules! copy_from_template_if_dne {
-    ($tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
+    (($proj:expr), $tmpl:literal -> $root:ident, $($files:expr),* $(,)?) => {
         $(
             if !$root.join($files).exists() {
-                copy_from_template!($tmpl -> $root, $files);
+                copy_from_template!($proj, $tmpl -> $root, $files);
             }
         )*
     }
