@@ -73,11 +73,13 @@ The Stylus VM supports more than just Rust. In fact, any programming language th
 |:-----------------|:----------------------------|:------------------|
 | [Rust SDK][Rust] | Everything!                 | Apache 2.0 or MIT |
 | [C/C++ SDK][C]   | Cryptography and algorithms | Apache 2.0 or MIT |
-| [AssemblyScript SDK][AssemblyScript] | Educational | Apache 2.0 or MIT |
+| [AssemblyScript SDK][AssemblyScript]* | Educational | Apache 2.0 or MIT |
 | [Bf SDK][Bf]     | Educational                 | Apache 2.0 or MIT |
 | [Cargo Stylus][CargoStylus]     | Deploying Stylus programs | Apache 2.0 or MIT |
 
 Want to write your own? [Join us in the `#stylus` channel on discord][discord]!
+
+_*This SDK is developed and maintained by an independent team._
 
 [Rust]: https://github.com/OffchainLabs/stylus-sdk-rs
 [C]: https://github.com/OffchainLabs/stylus-sdk-c
