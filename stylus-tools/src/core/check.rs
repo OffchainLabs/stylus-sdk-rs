@@ -8,7 +8,7 @@ use bytesize::ByteSize;
 
 use crate::{
     core::{
-        activation::ActivationConfig,
+        activation::{self, ActivationConfig},
         build::{build_contract, BuildConfig},
         code::{
             wasm::{compress_wasm, process_wasm_file},
@@ -22,21 +22,14 @@ use crate::{
     utils::format_file_size,
 };
 
-#[derive(Debug)]
+use super::chain::ChainConfig;
+
+#[derive(Debug, Default)]
 pub struct CheckConfig {
     pub activation: ActivationConfig,
     pub build: BuildConfig,
+    pub chain: ChainConfig,
     pub project: ProjectConfig,
-}
-
-impl Default for CheckConfig {
-    fn default() -> Self {
-        Self {
-            activation: Default::default(),
-            build: Default::default(),
-            project: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -84,7 +77,7 @@ pub async fn check_wasm_file(
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
     let processed = process_wasm_file(wasm_file, project_hash)?;
     let compressed = compress_wasm(&processed)?;
-    let code = Code::split_if_large(&compressed, config.build.max_code_size);
+    let code = Code::split_if_large(&compressed, config.chain.max_code_size);
     match &code {
         Code::Contract(c) => {
             info!(@grey, "contract size: {}", format_file_size(ByteSize::b(c.codesize() as u64), ByteSize::kib(16), ByteSize::kib(24)));
@@ -106,18 +99,14 @@ pub async fn check_wasm_file(
         });
     }
 
-    let _contract_address = contract_address.unwrap_or_else(Address::random);
-    /*
-        let fee = activation::data_fee(
-            processed.code.clone(),
-            contract_address,
-            &config.activation,
-            provider,
-        )
-        .await?;
-    */
-    // TODO: proper fee calculation
-    let fee = Default::default();
+    let contract_address = contract_address.unwrap_or_else(Address::random);
+    let fee = activation::data_fee(
+        Vec::from_iter(processed.bytes().iter().cloned()),
+        contract_address,
+        &config.activation,
+        provider,
+    )
+    .await?;
     Ok(ContractStatus::Ready {
         code,
         fee,

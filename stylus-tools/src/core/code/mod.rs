@@ -13,11 +13,6 @@ pub mod contract;
 pub mod fragments;
 pub mod wasm;
 
-/// Max size for a single chunk of code
-///
-/// If a contract size is greater than this value, it must be split into fragments.
-pub const MAX_CODE_SIZE: usize = 24_576;
-
 /// Prefixes for code chunks on-chain
 pub mod prefixes {
     /// EOF prefix used in Stylus compressed WASMs on-chain

@@ -4,6 +4,7 @@
 pub mod activation;
 pub mod build;
 pub mod cache;
+pub mod chain;
 pub mod check;
 pub mod code;
 pub mod deployment;

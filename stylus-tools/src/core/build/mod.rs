@@ -17,25 +17,10 @@ const UNSTABLE_FLAGS: &[&str] = &[
     "build-std-features=panic_immediate_abort",
 ];
 
-pub const DEFAULT_MAX_CODE_SIZE: u64 = 24_576;
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BuildConfig {
     pub opt_level: OptLevel,
     pub features: Vec<String>,
-
-    /// Maximum size for each code chunk
-    pub max_code_size: u64,
-}
-
-impl Default for BuildConfig {
-    fn default() -> Self {
-        Self {
-            opt_level: OptLevel::default(),
-            features: Vec::default(),
-            max_code_size: DEFAULT_MAX_CODE_SIZE,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default)]

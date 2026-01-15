@@ -43,6 +43,10 @@ pub fn compress_wasm(wasm: &ProcessedWasm) -> Result<CompressedWasm, WasmError> 
 pub struct ProcessedWasm(Vec<u8>);
 
 impl ProcessedWasm {
+    pub fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
