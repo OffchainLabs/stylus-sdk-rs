@@ -13,6 +13,7 @@ pub use verify::verify;
 
 pub mod activate;
 pub mod cache;
+pub mod codehash_keepalive;
 
 mod build;
 mod check;

@@ -1,6 +1,12 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+//! Debugger hook infrastructure for Stylus contract debugging.
+//!
+//! This module provides hooks for debugger integration, including support for
+//! cross-contract context switching. Some methods are scaffolded for future
+//! Solidity interop debugging support.
+
 use eyre::Result;
 use parking_lot::Mutex;
 use std::io::Write;
@@ -8,7 +14,11 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::Arc;
 
-/// Interface for debugger hooks to receive execution events
+/// Interface for debugger hooks to receive execution events.
+///
+/// Note: `on_external_call` and `on_return_from_call` are reserved for future
+/// Stylus <-> Solidity interop debugging support.
+#[allow(dead_code)]
 pub trait DebuggerHook: Send + Sync {
     /// Called when execution enters an external contract
     fn on_external_call(&self, contract_address: &str);
@@ -24,6 +34,7 @@ pub trait DebuggerHook: Send + Sync {
 }
 
 /// No-op implementation for when no debugger is attached
+#[allow(dead_code)]
 pub struct NoOpDebuggerHook;
 
 impl DebuggerHook for NoOpDebuggerHook {
@@ -33,7 +44,12 @@ impl DebuggerHook for NoOpDebuggerHook {
     fn on_contract_info(&self, _contract_address: &str, _is_solidity: bool) {}
 }
 
-/// Stylus debugger hook that communicates via Unix socket
+/// Stylus debugger hook that communicates via Unix socket.
+///
+/// TODO: Windows is not currently a target for stylusdb-based debugging.
+/// This implementation uses Unix sockets and Unix-specific paths (/tmp/).
+/// Windows support would require either Windows Subsystem for Linux (WSL)
+/// or a platform-specific implementation using named pipes.
 pub struct StylusDebuggerHook {
     socket_path: String,
     connection: Arc<Mutex<Option<UnixStream>>>,
@@ -41,13 +57,14 @@ pub struct StylusDebuggerHook {
 
 impl StylusDebuggerHook {
     pub fn new() -> Result<Self> {
+        // Note: Unix-specific path format; not supported on Windows without WSL
         let socket_path = format!("/tmp/stylus_debug_{}.sock", std::process::id());
 
         // Start listener in background
         let path_clone = socket_path.clone();
         std::thread::spawn(move || {
-            if let Err(e) = Self::listen_for_connection(&path_clone) {
-                eprintln!("Failed to establish debugger connection: {}", e);
+            if let Err(err) = Self::listen_for_connection(&path_clone) {
+                eprintln!("Failed to establish debugger connection: {err}");
             }
         });
 
@@ -70,7 +87,9 @@ impl StylusDebuggerHook {
         if let Ok((_stream, _)) = listener.accept() {
             println!("Debugger connected via socket");
             // Store connection for later use
-            // TODO: pass this back
+            // TODO: Pass the stream back to store in self.connection.
+            // This will be needed when Solidity interop debugging is added,
+            // enabling real-time context switching between Stylus and Solidity contracts.
         }
 
         Ok(())
@@ -79,14 +98,14 @@ impl StylusDebuggerHook {
     fn send_command(&self, command: &str) {
         let mut conn_guard = self.connection.lock();
         if let Some(ref mut stream) = *conn_guard {
-            let _ = writeln!(stream, "{}", command);
+            let _ = writeln!(stream, "{command}");
         }
     }
 }
 
 impl DebuggerHook for StylusDebuggerHook {
     fn on_external_call(&self, contract_address: &str) {
-        self.send_command(&format!("switch_context {}", contract_address));
+        self.send_command(&format!("switch_context {contract_address}"));
     }
 
     fn on_return_from_call(&self) {
@@ -95,17 +114,14 @@ impl DebuggerHook for StylusDebuggerHook {
 
     fn on_execution_start(&self, contracts: &[(String, String)]) {
         // Send all contract mappings to debugger
-        for (addr, path) in contracts {
-            self.send_command(&format!("contract_add {} {}", addr, path));
+        for (address, path) in contracts {
+            self.send_command(&format!("contract_add {address} {path}"));
         }
     }
 
     fn on_contract_info(&self, contract_address: &str, is_solidity: bool) {
         let contract_type = if is_solidity { "solidity" } else { "stylus" };
-        self.send_command(&format!(
-            "contract_type {} {}",
-            contract_address, contract_type
-        ));
+        self.send_command(&format!("contract_type {contract_address} {contract_type}"));
     }
 }
 
@@ -125,7 +141,9 @@ pub fn init_debugger_hook(hook: Arc<dyn DebuggerHook>) {
     *guard = Some(hook);
 }
 
-/// Get the current debugger hook
+/// Get the current debugger hook.
+/// Reserved for future Solidity interop debugging support.
+#[allow(dead_code)]
 pub fn get_debugger_hook() -> Option<Arc<dyn DebuggerHook>> {
     DEBUGGER_HOOK.lock().clone()
 }

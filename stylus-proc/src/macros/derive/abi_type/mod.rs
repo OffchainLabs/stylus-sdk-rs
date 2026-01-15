@@ -73,6 +73,8 @@ impl<E: DeriveAbiTypeExtension> DeriveAbiTypeGenerator<E> {
                         .concat(#fields_selector_abis)
                     )*
                     .concat(#ConstString::new(")"));
+
+                const EXPORT_ABI_RET: #ConstString = Self::ABI.concat(#ConstString::new(" memory"));
             }
         }
     }
@@ -136,6 +138,8 @@ mod tests {
                     .concat(stylus_sdk::abi::ConstString::new(","))
                     .concat(<T as stylus_sdk::abi::AbiType>::SELECTOR_ABI)
                     .concat(stylus_sdk::abi::ConstString::new(")"));
+                const EXPORT_ABI_RET: stylus_sdk::abi::ConstString = Self::ABI
+                    .concat(stylus_sdk::abi::ConstString::new(" memory"));
             }
         };
         assert_ast_eq(result, expected);

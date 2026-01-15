@@ -13,6 +13,7 @@ These crates follow [semver](https://semver.org).
 - More convenient integer functions for storage
 - Support for custom storage slots
 - Support for tuples in return types
+- cargo stylus codehash-keepalive command
 
 ### Changed
 

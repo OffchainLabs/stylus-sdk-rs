@@ -1,9 +1,9 @@
 #[test]
 fn test_constructor_cmd() {
-    assert_cmd::Command::cargo_bin("cargo-stylus-beta")
+    assert_cmd::Command::cargo_bin("cargo-stylus")
         .expect("binary not found")
         .current_dir("tests/contract_abi")
-        .arg("stylus-beta")
+        .arg("stylus")
         .arg("constructor")
         .assert()
         .success()
@@ -12,10 +12,10 @@ fn test_constructor_cmd() {
 
 #[test]
 fn test_export_abi_cmd() {
-    assert_cmd::Command::cargo_bin("cargo-stylus-beta")
+    assert_cmd::Command::cargo_bin("cargo-stylus")
         .expect("binary not found")
         .current_dir("tests/contract_abi")
-        .arg("stylus-beta")
+        .arg("stylus")
         .arg("export-abi")
         .assert()
         .success()
@@ -38,7 +38,7 @@ interface ICounter is ITrait1, ITrait2 {
 
     function mixed(MixedInput input) external;
 
-    function mixedResult() external view returns (MixedResult);
+    function mixedResult() external view returns (MixedResult memory);
 
     struct MixedResult {uint256 number;string text;uint256 number2;}
 }

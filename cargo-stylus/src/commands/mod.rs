@@ -1,4 +1,4 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use crate::error::CargoStylusResult;
@@ -8,6 +8,7 @@ mod build;
 mod cache;
 mod cgen;
 mod check;
+mod codehash_keepalive;
 mod constructor;
 mod debug_hook;
 mod deploy;
@@ -37,6 +38,9 @@ pub enum Command {
     /// Check a contract
     #[clap(visible_alias = "c")]
     Check(check::Args),
+    /// Request to keep contract from expiring in the codehash registry
+    #[clap(visible_alias = "k")]
+    CodehashKeepalive(codehash_keepalive::Args),
     /// Print the signature of a contract's constructor
     Constructor(constructor::Args),
     /// Deploy one or more Stylus contracts
@@ -74,16 +78,17 @@ pub async fn exec(cmd: Command) -> CargoStylusResult {
         Command::Cache(command) => cache::exec(command).await,
         Command::Cgen(args) => cgen::exec(args),
         Command::Check(args) => check::exec(args).await,
+        Command::CodehashKeepalive(args) => codehash_keepalive::exec(args).await,
         Command::Constructor(args) => constructor::exec(args),
         Command::Deploy(args) => deploy::exec(args).await,
         Command::ExportAbi(args) => export_abi::exec(args),
         Command::GetInitcode(args) => get_initcode::exec(args),
         Command::Init(args) => init::exec(args),
         Command::New(args) => new::exec(args),
-        Command::Replay(args) => replay::exec(args).await.map_err(Into::into),
+        Command::Replay(args) => replay::exec(args).await,
         Command::Simulate(args) => simulate::exec(args).await,
         Command::Trace(args) => trace::exec(args).await,
-        Command::Usertrace(args) => usertrace::exec(args).await.map_err(Into::into),
+        Command::Usertrace(args) => usertrace::exec(args).await,
         Command::Verify(args) => verify::exec(args).await,
     }
 }
