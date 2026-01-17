@@ -13,6 +13,7 @@ use crate::{
     core::{
         build::{build_contract, BuildConfig, BuildError},
         check::{check_contract, CheckConfig, CheckError},
+        code::{wasm::ProcessedWasm, Code},
         deployment::{deploy, DeploymentConfig, DeploymentError},
         manifest,
         reflection::ReflectionConfig,
@@ -158,15 +159,26 @@ pub enum ContractError {
 #[derive(Debug)]
 pub enum ContractStatus {
     /// Contract already exists onchain.
-    Active { code: Vec<u8> },
+    Active { wasm: ProcessedWasm, code: Code },
     /// Contract can be activated with the given data fee.
-    Ready { code: Vec<u8>, fee: U256 },
+    Ready {
+        wasm: ProcessedWasm,
+        code: Code,
+        fee: U256,
+    },
 }
 
 impl ContractStatus {
-    pub fn code(&self) -> &[u8] {
-        match self {
-            Self::Active { code } => code,
+    pub fn wasm(&self) -> &ProcessedWasm {
+        match &self {
+            Self::Active { wasm, .. } => wasm,
+            Self::Ready { wasm, .. } => wasm,
+        }
+    }
+
+    pub fn code(&self) -> &Code {
+        match &self {
+            Self::Active { code, .. } => code,
             Self::Ready { code, .. } => code,
         }
     }
