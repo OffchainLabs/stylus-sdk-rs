@@ -10,6 +10,7 @@ use crate::{
 };
 use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
+use stylus_tools::core::deployment;
 use stylus_tools::core::deployment::deployer::ADDRESS;
 
 pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
@@ -80,7 +81,6 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         &args.build,
         &args.check,
         args.auth.get_max_fee_per_gas_wei()?,
-        args.estimate_gas,
         args.no_activate,
         args.deployer_address,
         args.constructor_args,
@@ -88,7 +88,11 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         args.constructor_value,
     );
     for contract in args.project.contracts()? {
-        contract.deploy(&config, &provider).await?;
+        if args.estimate_gas {
+            let _gas = deployment::estimate_gas(&contract, &config, &provider).await?;
+        } else {
+            contract.deploy(&config, &provider).await?;
+        }
     }
     Ok(())
 }
