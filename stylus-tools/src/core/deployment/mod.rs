@@ -1,9 +1,12 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::path::Path;
+
 use crate::core::activation;
 use crate::core::activation::ActivationError;
 use crate::core::cache::format_gas;
+use crate::core::check::check_wasm_file;
 use crate::core::deployment::deployer::{
     get_address_from_receipt, parse_tx_calldata, DeployerError,
 };
@@ -266,6 +269,85 @@ pub async fn deploy(
             activation::activate_contract(contract_addr, &config.check.activation, provider)
                 .await?;
         }
+    }
+
+    mintln!(
+        r#"NOTE:
+        We recommend running cargo stylus cache bid {} 0 to cache your activated contract in ArbOS.
+        Cached contracts benefit from cheaper calls.
+        To read more about the Stylus contract cache, see:
+        https://docs.arbitrum.io/stylus/how-tos/caching-contracts"#,
+        hex::encode(contract_addr)
+    );
+
+    Ok(())
+}
+
+/// Deploys a wasm file, activating if needed.
+pub async fn deploy_wasm_file(
+    wasm_file: impl AsRef<Path>,
+    config: &DeploymentConfig,
+    provider: &(impl Provider + WalletProvider),
+) -> Result<(), DeploymentError> {
+    let status =
+        check_wasm_file(wasm_file, Default::default(), None, &config.check, provider).await?;
+    let from_address = provider.default_signer_address();
+    debug!(@grey, "sender address: {}", from_address.debug_lavender());
+    let data_fee = status.suggest_fee() + config.constructor_value;
+
+    if let ContractStatus::Ready { .. } = status {
+        // check balance early
+        let balance = provider
+            .get_balance(from_address)
+            .await
+            .map_err(|_| DeploymentError::FailedToGetBalance)?;
+        if balance < data_fee {
+            return Err(DeploymentError::NotEnoughFunds {
+                from_address,
+                balance,
+                data_fee,
+            });
+        }
+    }
+    let req = DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei);
+
+    if config.estimate_gas {
+        let gas = req
+            .estimate_gas(&provider)
+            .await
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        let gas_price = req
+            .fee_per_gas(&provider)
+            .await
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        print_gas_estimate("deployment", gas, gas_price)
+            .or(Err(DeployerError::GasEstimationFailure))?;
+        // TODO: Is this part needed?
+        let nonce = provider.get_transaction_count(from_address).await?;
+        let _ = from_address.create(nonce);
+        return Ok(());
+    }
+    let receipt = req.exec(&provider).await?;
+
+    let contract_addr = receipt
+        .contract_address
+        .ok_or(NoContractAddress("in receipt".to_string()))?;
+
+    info!(@grey, "deployed code at address: {}", contract_addr.debug_lavender());
+    debug!(@grey, "gas used: {}", format_gas(receipt.gas_used.into()));
+    info!(@grey, "deployment tx hash: {}", receipt.transaction_hash.debug_lavender());
+
+    if matches!(status, ContractStatus::Active { .. }) {
+        greyln!("wasm already activated!")
+    } else if config.no_activate {
+        mintln!(
+            r#"NOTE:
+            You must activate the stylus contract before calling it. To do so, we recommend running:
+            cargo stylus activate --address {}"#,
+            hex::encode(contract_addr)
+        )
+    } else {
+        activation::activate_contract(contract_addr, &config.check.activation, provider).await?;
     }
 
     mintln!(
