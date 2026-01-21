@@ -11,6 +11,7 @@ use crate::{
         activation::{self, ActivationConfig},
         build::{build_contract, BuildConfig},
         code::{
+            contract::ContractCode,
             wasm::{compress_wasm, process_wasm_file},
             Code,
         },
@@ -100,8 +101,18 @@ pub async fn check_wasm_file(
     }
 
     let contract_address = contract_address.unwrap_or_else(Address::random);
+    let contract_code = match &code {
+        Code::Contract(c) => Vec::from_iter(c.bytes().iter().cloned()),
+        Code::Fragments(fs) => {
+            let root = ContractCode::new_root_contract(
+                processed.len(),
+                fs.as_slice().iter().map(|_| Address::ZERO),
+            );
+            Vec::from_iter(root.bytes().iter().cloned())
+        }
+    };
     let fee = activation::data_fee(
-        Vec::from_iter(processed.bytes().iter().cloned()),
+        contract_code,
         contract_address,
         &config.activation,
         provider,
