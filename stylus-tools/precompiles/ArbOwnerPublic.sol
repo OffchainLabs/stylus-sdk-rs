@@ -44,5 +44,9 @@ interface ArbOwnerPublic {
     /// Available in ArbOS version 40 with default as false
     function isCalldataPriceIncreaseEnabled() external view returns (bool);
 
+    /// @notice Get the max amount of stylus contract fragments that can be used to deploy a stylus contract
+    /// @notice Available in ArbOS version 60 and above
+    function getMaxStylusContractFragments() external view returns (uint16);
+
     event ChainOwnerRectified(address rectifiedOwner);
 }

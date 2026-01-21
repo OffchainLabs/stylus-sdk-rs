@@ -21,6 +21,7 @@ use crate::{
         project::contract::{Contract, ContractStatus},
     },
     ops::{activate::print_gas_estimate, get_constructor_signature},
+    precompiles,
     utils::color::{Color, DebugColor},
 };
 use fragments::{deploy_fragments, estimate_fragments_gas, estimate_root_contract_gas};
@@ -92,6 +93,19 @@ pub async fn deploy(
                 balance,
                 data_fee,
             });
+        }
+    }
+
+    if let Code::Fragments(fragments) = status.code() {
+        let arb_owner_public = precompiles::arb_owner_public(provider);
+        let max_fragment_count = arb_owner_public
+            .getMaxStylusContractFragments()
+            .call()
+            .await
+            // Failing this call likely means the chain does not support fragments (old ArbOS)
+            .map_err(|_| DeploymentError::ContractTooLarge)?;
+        if fragments.fragment_count() > max_fragment_count as usize {
+            return Err(DeploymentError::ContractTooLarge);
         }
     }
 
@@ -243,4 +257,6 @@ pub enum DeploymentError {
     ReadConstructorFailure,
     #[error("invalid constructor: {0}")]
     InvalidConstructor(String),
+    #[error("contract too large, cannot deploy")]
+    ContractTooLarge,
 }
