@@ -11,7 +11,6 @@ use crate::{
         activation::{self, ActivationConfig},
         build::{build_contract, BuildConfig},
         code::{
-            contract::ContractCode,
             wasm::{compress_wasm, process_wasm_file},
             Code,
         },
@@ -78,7 +77,7 @@ pub async fn check_wasm_file(
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
     let processed = process_wasm_file(wasm_file, project_hash)?;
     let compressed = compress_wasm(&processed)?;
-    let code = Code::split_if_large(&compressed, config.chain.max_code_size);
+    let code = Code::split_if_large(&compressed, processed.len(), config.chain.max_code_size);
     match &code {
         Code::Contract(c) => {
             info!(@grey, "contract size: {}", format_file_size(ByteSize::b(c.codesize() as u64), ByteSize::kib(16), ByteSize::kib(24)));
@@ -101,23 +100,7 @@ pub async fn check_wasm_file(
     }
 
     let contract_address = contract_address.unwrap_or_else(Address::random);
-    let contract_code = match &code {
-        Code::Contract(c) => Vec::from_iter(c.bytes().iter().cloned()),
-        Code::Fragments(fs) => {
-            let root = ContractCode::new_root_contract(
-                processed.len(),
-                fs.as_slice().iter().map(|_| Address::ZERO),
-            );
-            Vec::from_iter(root.bytes().iter().cloned())
-        }
-    };
-    let fee = activation::data_fee(
-        contract_code,
-        contract_address,
-        &config.activation,
-        provider,
-    )
-    .await?;
+    let fee = activation::data_fee(&code, contract_address, &config.activation, provider).await?;
     Ok(ContractStatus::Ready {
         code,
         fee,

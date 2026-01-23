@@ -28,29 +28,35 @@ impl CodeFragment {
 
 /// Complete contract worth of code fragments, each prefixed with the appropriate bytes
 #[derive(Debug)]
-pub struct CodeFragments(Vec<CodeFragment>);
+pub struct CodeFragments {
+    uncompressed_wasm_size: usize,
+    fragments: Vec<CodeFragment>,
+}
 
 impl CodeFragments {
     /// Split wasm code into chunks according to given max size
-    pub fn new(wasm: &CompressedWasm, max_code_size: u64) -> Self {
+    pub fn new(wasm: &CompressedWasm, uncompressed_wasm_size: usize, max_code_size: u64) -> Self {
         let fragments = wasm
             .bytes()
             // Split into chunks, leaving room for the prefix as well
             .chunks(max_code_size as usize - prefixes::FRAGMENT.len())
             .map(CodeFragment::new)
             .collect();
-        Self(fragments)
+        Self {
+            fragments,
+            uncompressed_wasm_size,
+        }
     }
 
     /// Get a slice containing all fragments
     pub fn as_slice(&self) -> &[CodeFragment] {
-        &self.0
+        &self.fragments
     }
 
     /// Codehash is hash of all fragments together
     pub fn codehash(&self) -> B256 {
         alloy::primitives::keccak256(
-            self.0
+            self.fragments
                 .iter()
                 .flat_map(|f| f.0.iter().cloned())
                 .collect::<Vec<_>>(),
@@ -59,11 +65,16 @@ impl CodeFragments {
 
     /// Length of all code chunks together
     pub fn codesize(&self) -> usize {
-        self.0.iter().map(|f| f.0.len()).sum()
+        self.fragments.iter().map(|f| f.0.len()).sum()
     }
 
     /// Number of fragments
     pub fn fragment_count(&self) -> usize {
-        self.0.len()
+        self.fragments.len()
+    }
+
+    /// Number of bytes in uncompressed wasm
+    pub fn uncompressed_wasm_size(&self) -> usize {
+        self.uncompressed_wasm_size
     }
 }

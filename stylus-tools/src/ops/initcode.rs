@@ -29,7 +29,7 @@ pub fn write_initcode(
     let project_hash = hash_project(dir, project_config, build_config)?;
     let processed = process_wasm_file(&wasm_file, project_hash)?;
     let compressed = compress_wasm(&processed)?;
-    let code = Code::split_if_large(&compressed, chain_config.max_code_size);
+    let code = Code::split_if_large(&compressed, processed.len(), chain_config.max_code_size);
     let contract = match code {
         Code::Contract(contract) => contract,
         Code::Fragments(fragments) => ContractCode::new_root_contract(

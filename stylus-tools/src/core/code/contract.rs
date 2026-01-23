@@ -34,6 +34,10 @@ impl ContractCode {
         Self(code)
     }
 
+    pub fn new_from_code(code: &[u8]) -> Self {
+        Self(code.to_vec())
+    }
+
     /// Get code bytes
     pub fn bytes(&self) -> &[u8] {
         &self.0

@@ -40,18 +40,35 @@ impl Code {
     ) -> Result<Self, WasmError> {
         let processed = process_wasm_file(filename, project_hash)?;
         let compressed = compress_wasm(&processed)?;
-        Ok(Self::split_if_large(&compressed, max_code_size))
+        Ok(Self::split_if_large(
+            &compressed,
+            processed.len(),
+            max_code_size,
+        ))
     }
 
     /// Create code chunks, splitting the contract if it too large
-    pub fn split_if_large(wasm: &CompressedWasm, max_code_size: u64) -> Self {
+    pub fn split_if_large(
+        wasm: &CompressedWasm,
+        uncompressed_wasm_size: usize,
+        max_code_size: u64,
+    ) -> Self {
         if wasm.len() + prefixes::EOF_NO_DICT.len() <= max_code_size as usize {
             // Code will fit within one chunk
             Self::Contract(contract::ContractCode::new(wasm))
         } else {
             // Split code into appropriately sized fragments
-            Self::Fragments(fragments::CodeFragments::new(wasm, max_code_size))
+            Self::Fragments(fragments::CodeFragments::new(
+                wasm,
+                uncompressed_wasm_size,
+                max_code_size,
+            ))
         }
+    }
+
+    /// From code gathered on-chain
+    pub fn new_from_code(code: &[u8]) -> Self {
+        Self::Contract(contract::ContractCode::new_from_code(code))
     }
 
     /// Get codehash of contract or fragments
