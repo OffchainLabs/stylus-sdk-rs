@@ -21,7 +21,7 @@ impl ContractCode {
         uncompressed_wasm_size: usize,
         addresses: impl IntoIterator<Item = Address>,
     ) -> Self {
-        let serialized_wasm_size = uncompressed_wasm_size.to_be_bytes();
+        let serialized_wasm_size = (uncompressed_wasm_size as u32).to_be_bytes();
         let addresses = addresses.into_iter();
         let mut code = Vec::with_capacity(
             prefixes::ROOT_NO_DICT.len()
