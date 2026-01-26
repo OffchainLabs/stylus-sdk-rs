@@ -93,6 +93,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         args.deployer_salt,
         args.constructor_value,
     );
+    #[allow(clippy::collapsible_else_if)]
     if args.estimate_gas {
         if let Some(wasm_file) = args.wasm_file {
             let _gas = deployment::estimate_gas_wasm_file(wasm_file, &config, &provider).await?;
