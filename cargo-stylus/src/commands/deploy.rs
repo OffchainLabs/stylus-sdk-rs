@@ -1,6 +1,8 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::path::PathBuf;
+
 use crate::error::CargoStylusError;
 use crate::{
     common_args::{
@@ -51,6 +53,9 @@ pub struct Args {
     /// The constructor signature when using the --wasm-file flag.
     #[arg(long)]
     constructor_signature: Option<String>,
+    /// Deploy wasm file directly
+    #[arg(long)]
+    wasm_file: Option<PathBuf>,
 
     /// Wallet source to use.
     #[command(flatten)]
@@ -70,7 +75,8 @@ pub struct Args {
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
-    if args.project.contracts()?.len() > 1 && !args.constructor_args.is_empty() {
+    let contracts = args.project.contracts()?;
+    if args.wasm_file.is_none() && contracts.len() > 1 && !args.constructor_args.is_empty() {
         return Err(CargoStylusError::from(eyre!(
             "Multi-contract deployment only allowed for no-arg constructors"
         )));
@@ -87,11 +93,21 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         args.deployer_salt,
         args.constructor_value,
     );
-    for contract in args.project.contracts()? {
-        if args.estimate_gas {
-            let _gas = deployment::estimate_gas(&contract, &config, &provider).await?;
+    if args.estimate_gas {
+        if let Some(wasm_file) = args.wasm_file {
+            let _gas = deployment::estimate_gas_wasm_file(wasm_file, &config, &provider).await?;
         } else {
-            contract.deploy(&config, &provider).await?;
+            for contract in contracts {
+                let _gas = deployment::estimate_gas(&contract, &config, &provider).await?;
+            }
+        }
+    } else {
+        if let Some(wasm_file) = args.wasm_file {
+            deployment::deploy_wasm_file(wasm_file, &config, &provider).await?;
+        } else {
+            for contract in contracts {
+                contract.deploy(&config, &provider).await?;
+            }
         }
     }
     Ok(())
