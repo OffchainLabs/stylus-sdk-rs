@@ -52,8 +52,13 @@ pub async fn estimate_gas(
         }
         Code::Fragments(fragments) => {
             estimate_fragments_gas(fragments, config, provider).await?
-                + estimate_root_contract_gas(fragments, status.wasm().len(), config, provider)
-                    .await?
+                + estimate_root_contract_gas(
+                    fragments,
+                    status.wasm().len() as u32,
+                    config,
+                    provider,
+                )
+                .await?
         }
     };
     gas += status.suggest_fee().to::<u64>() + config.constructor_value.to::<u64>();
@@ -91,8 +96,13 @@ pub async fn estimate_gas_wasm_file(
         }
         Code::Fragments(fragments) => {
             estimate_fragments_gas(fragments, config, provider).await?
-                + estimate_root_contract_gas(fragments, status.wasm().len(), config, provider)
-                    .await?
+                + estimate_root_contract_gas(
+                    fragments,
+                    status.wasm().len() as u32,
+                    config,
+                    provider,
+                )
+                .await?
         }
     };
     gas += status.suggest_fee().to::<u64>();
@@ -160,7 +170,8 @@ pub async fn deploy(
             }
             Code::Fragments(fragments) => {
                 let root =
-                    deploy_fragments(fragments, status.wasm().len(), config, provider).await?;
+                    deploy_fragments(fragments, status.wasm().len() as u32, config, provider)
+                        .await?;
                 DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
             }
         },
@@ -182,7 +193,7 @@ pub async fn deploy(
             let code = match status.code() {
                 Code::Contract(contract) => contract.0.clone(),
                 Code::Fragments(fragments) => {
-                    deploy_fragments(fragments, status.wasm().len(), config, provider)
+                    deploy_fragments(fragments, status.wasm().len() as u32, config, provider)
                         .await?
                         .0
                 }
@@ -293,7 +304,8 @@ pub async fn deploy_wasm_file(
             DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei)
         }
         Code::Fragments(fragments) => {
-            let root = deploy_fragments(fragments, status.wasm().len(), config, provider).await?;
+            let root =
+                deploy_fragments(fragments, status.wasm().len() as u32, config, provider).await?;
             DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
         }
     };
@@ -384,4 +396,6 @@ pub enum DeploymentError {
     InvalidConstructor(String),
     #[error("contract too large, cannot deploy")]
     ContractTooLarge,
+    #[error("missing address from transaction receipt")]
+    MissingReceiptAddress,
 }

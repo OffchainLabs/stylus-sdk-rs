@@ -3,7 +3,7 @@
 
 //! Support for fragmented Stylus contracts
 
-use alloy::primitives::B256;
+use alloy::primitives::{keccak256, B256};
 
 use crate::core::code::{prefixes, wasm::CompressedWasm};
 
@@ -29,13 +29,13 @@ impl CodeFragment {
 /// Complete contract worth of code fragments, each prefixed with the appropriate bytes
 #[derive(Debug)]
 pub struct CodeFragments {
-    uncompressed_wasm_size: usize,
+    uncompressed_wasm_size: u32,
     fragments: Vec<CodeFragment>,
 }
 
 impl CodeFragments {
     /// Split wasm code into chunks according to given max size
-    pub fn new(wasm: &CompressedWasm, uncompressed_wasm_size: usize, max_code_size: u64) -> Self {
+    pub fn new(wasm: &CompressedWasm, uncompressed_wasm_size: u32, max_code_size: u64) -> Self {
         let fragments = wasm
             .bytes()
             // Split into chunks, leaving room for the prefix as well
@@ -55,7 +55,7 @@ impl CodeFragments {
 
     /// Codehash is hash of all fragments together
     pub fn codehash(&self) -> B256 {
-        alloy::primitives::keccak256(
+        keccak256(
             self.fragments
                 .iter()
                 .flat_map(|f| f.0.iter().cloned())
@@ -74,7 +74,7 @@ impl CodeFragments {
     }
 
     /// Number of bytes in uncompressed wasm
-    pub fn uncompressed_wasm_size(&self) -> usize {
+    pub fn uncompressed_wasm_size(&self) -> u32 {
         self.uncompressed_wasm_size
     }
 }

@@ -77,7 +77,11 @@ pub async fn check_wasm_file(
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
     let processed = process_wasm_file(wasm_file, project_hash)?;
     let compressed = compress_wasm(&processed)?;
-    let code = Code::split_if_large(&compressed, processed.len(), config.chain.max_code_size);
+    let code = Code::split_if_large(
+        &compressed,
+        processed.len() as u32,
+        config.chain.max_code_size,
+    );
     match &code {
         Code::Contract(c) => {
             info!(@grey, "contract size: {}", format_file_size(ByteSize::b(c.codesize() as u64), ByteSize::kib(16), ByteSize::kib(24)));

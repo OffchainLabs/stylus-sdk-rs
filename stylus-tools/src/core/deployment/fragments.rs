@@ -12,7 +12,7 @@ use crate::core::code::{contract::ContractCode, fragments::CodeFragments};
 /// Deploy contract fragments, and return the root contract code
 pub async fn deploy_fragments(
     fragments: &CodeFragments,
-    uncompressed_code_size: usize,
+    uncompressed_code_size: u32,
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<ContractCode, DeploymentError> {
@@ -22,7 +22,9 @@ pub async fn deploy_fragments(
         let req =
             DeploymentRequest::new(from_address, fragment.bytes(), config.max_fee_per_gas_gwei);
         let receipt = req.exec(&provider).await?;
-        let address = receipt.contract_address.expect("error handling");
+        let address = receipt
+            .contract_address
+            .ok_or(DeploymentError::MissingReceiptAddress)?;
         addresses.push(address);
     }
     Ok(ContractCode::new_root_contract(
@@ -52,7 +54,7 @@ pub async fn estimate_fragments_gas(
 /// Estimate the gas for deploying the root contract
 pub async fn estimate_root_contract_gas(
     fragments: &CodeFragments,
-    uncompressed_code_size: usize,
+    uncompressed_code_size: u32,
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<u64, DeploymentError> {

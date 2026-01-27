@@ -42,7 +42,7 @@ impl Code {
         let compressed = compress_wasm(&processed)?;
         Ok(Self::split_if_large(
             &compressed,
-            processed.len(),
+            processed.len() as u32,
             max_code_size,
         ))
     }
@@ -50,7 +50,7 @@ impl Code {
     /// Create code chunks, splitting the contract if it too large
     pub fn split_if_large(
         wasm: &CompressedWasm,
-        uncompressed_wasm_size: usize,
+        uncompressed_wasm_size: u32,
         max_code_size: u64,
     ) -> Self {
         if wasm.len() + prefixes::EOF_NO_DICT.len() <= max_code_size as usize {

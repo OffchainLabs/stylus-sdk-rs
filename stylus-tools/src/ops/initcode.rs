@@ -3,13 +3,10 @@
 
 use std::{env, io};
 
-use alloy::primitives::Address;
-
 use crate::core::{
     build::{build_contract, BuildConfig},
     chain::ChainConfig,
     code::{
-        contract::ContractCode,
         wasm::{compress_wasm, process_wasm_file},
         Code,
     },
@@ -29,13 +26,18 @@ pub fn write_initcode(
     let project_hash = hash_project(dir, project_config, build_config)?;
     let processed = process_wasm_file(&wasm_file, project_hash)?;
     let compressed = compress_wasm(&processed)?;
-    let code = Code::split_if_large(&compressed, processed.len(), chain_config.max_code_size);
+    let code = Code::split_if_large(
+        &compressed,
+        processed.len() as u32,
+        chain_config.max_code_size,
+    );
     let contract = match code {
         Code::Contract(contract) => contract,
-        Code::Fragments(fragments) => ContractCode::new_root_contract(
-            processed.len(),
-            fragments.as_slice().iter().map(|_| Address::ZERO),
-        ),
+        Code::Fragments(_fragments) => {
+            return Err(eyre::eyre!(
+                "fragmented contracts not currently supported for initcode retrieval"
+            ));
+        }
     };
     let initcode = DeploymentCalldata::new(contract.bytes());
     output.write_all(hex::encode(initcode.0).as_bytes())?;

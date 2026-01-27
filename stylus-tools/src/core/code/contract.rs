@@ -1,4 +1,4 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloy::primitives::{keccak256, Address, B256};
@@ -18,10 +18,10 @@ impl ContractCode {
     }
 
     pub fn new_root_contract(
-        uncompressed_wasm_size: usize,
+        uncompressed_wasm_size: u32,
         addresses: impl IntoIterator<Item = Address>,
     ) -> Self {
-        let serialized_wasm_size = (uncompressed_wasm_size as u32).to_be_bytes();
+        let serialized_wasm_size = uncompressed_wasm_size.to_be_bytes();
         let addresses = addresses.into_iter();
         let mut code = Vec::with_capacity(
             prefixes::ROOT_NO_DICT.len()
