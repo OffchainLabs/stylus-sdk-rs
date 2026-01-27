@@ -1,21 +1,27 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::deployment::deployer::StylusDeployer::deployCall;
-use crate::core::deployment::deployer::{stylus_constructorCall, ADDRESS};
-use crate::core::verification::VerificationError::{
-    InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
-};
-use crate::{
-    core::{deployment::prelude::DeploymentCalldata, project::contract::Contract, reflection},
-    utils::cargo,
-};
-
-use alloy::sol_types::SolCall;
 use alloy::{
     consensus::Transaction,
     primitives::{Address, TxHash},
     providers::Provider,
+    sol_types::SolCall,
+};
+
+use crate::{
+    core::{
+        code::Code,
+        deployment::{
+            deployer::{stylus_constructorCall, StylusDeployer::deployCall, ADDRESS},
+            prelude::DeploymentCalldata,
+        },
+        project::contract::Contract,
+        reflection,
+        verification::VerificationError::{
+            InvalidDeployerAddress, InvalidInitData, TransactionReceiptError, TxNotSuccessful,
+        },
+    },
+    utils::cargo,
 };
 
 pub async fn verify(
@@ -40,7 +46,10 @@ pub async fn verify(
         return Err(TxNotSuccessful);
     }
     let status = contract.check(None, &Default::default(), provider).await?;
-    let deployment_data = DeploymentCalldata::new(status.code());
+    let deployment_data = match status.code() {
+        Code::Contract(contract) => DeploymentCalldata::new(contract.bytes()),
+        Code::Fragments(_fragments) => todo!("support fragments for verification"),
+    };
 
     match tx.to() {
         Some(deployer_address) => {

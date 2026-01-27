@@ -3,160 +3,122 @@
 
 use std::path::Path;
 
-use crate::core::activation;
-use crate::core::activation::ActivationError;
-use crate::core::cache::format_gas;
-use crate::core::check::check_wasm_file;
-use crate::core::deployment::deployer::{
-    get_address_from_receipt, parse_tx_calldata, DeployerError,
-};
-use crate::core::deployment::DeploymentError::{
-    InvalidConstructor, NoContractAddress, ReadConstructorFailure,
-};
-use crate::ops::activate::print_gas_estimate;
-use crate::ops::get_constructor_signature;
-use crate::{
-    core::{
-        check::{check_contract, CheckConfig},
-        project::contract::{Contract, ContractStatus},
-    },
-    utils::color::{Color, DebugColor},
-};
-use alloy::json_abi::StateMutability::Payable;
 use alloy::{
-    network::TransactionBuilder,
+    json_abi::StateMutability::Payable,
+    primitives::B256,
     primitives::{Address, TxHash, U256},
     providers::{Provider, WalletProvider},
-    rpc::types::{TransactionReceipt, TransactionRequest},
 };
 
-use alloy::primitives::B256;
-use prelude::DeploymentCalldata;
+use crate::{
+    core::{
+        activation::{self, ActivationError},
+        cache::format_gas,
+        check::{check_contract, check_wasm_file, CheckConfig},
+        code::Code,
+        deployment::{
+            deployer::{get_address_from_receipt, parse_tx_calldata, DeployerError},
+            DeploymentError::{InvalidConstructor, NoContractAddress, ReadConstructorFailure},
+        },
+        project::contract::{Contract, ContractStatus},
+    },
+    ops::{activate::print_gas_estimate, get_constructor_signature},
+    precompiles,
+    utils::color::{Color, DebugColor},
+};
+use fragments::{deploy_fragments, estimate_fragments_gas, estimate_root_contract_gas};
+use request::DeploymentRequest;
 
 pub mod deployer;
+pub mod fragments;
 pub mod prelude;
+pub mod request;
 
-#[derive(Debug, Default)]
-pub struct DeploymentConfig {
-    pub check: CheckConfig,
-    pub max_fee_per_gas_gwei: Option<u128>,
-    pub estimate_gas: bool,
-    pub no_activate: bool,
-    pub constructor_value: U256,
-    pub deployer_address: Address,
-    pub constructor_args: Vec<String>,
-    pub deployer_salt: B256,
-}
+/// Estimate gas cost for contract deployment
+pub async fn estimate_gas(
+    contract: &Contract,
+    config: &DeploymentConfig,
+    provider: &(impl Provider + WalletProvider),
+) -> Result<u64, DeploymentError> {
+    let status = check_contract(contract, None, &config.check, provider).await?;
+    let from_address = provider.default_signer_address();
+    debug!(@grey, "sender address: {}", from_address.debug_lavender());
 
-#[derive(Debug)]
-pub struct DeploymentRequest {
-    tx: TransactionRequest,
-    max_fee_per_gas_wei: Option<u128>,
-}
-
-impl DeploymentRequest {
-    pub fn new_with_args(
-        sender: Address,
-        deployer: Address,
-        tx_value: U256,
-        tx_calldata: Vec<u8>,
-        max_fee_per_gas_wei: Option<u128>,
-    ) -> Self {
-        Self {
-            tx: TransactionRequest::default()
-                .with_to(deployer)
-                .with_from(sender)
-                .with_value(tx_value)
-                .with_input(tx_calldata),
-            max_fee_per_gas_wei,
+    let mut gas = match status.code() {
+        Code::Contract(contract) => {
+            let req =
+                DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei);
+            req.estimate_gas(provider).await?
         }
-    }
-    pub fn new(sender: Address, code: &[u8], max_fee_per_gas_wei: Option<u128>) -> Self {
-        Self {
-            tx: TransactionRequest::default()
-                .with_from(sender)
-                .with_deploy_code(DeploymentCalldata::new(code)),
-            max_fee_per_gas_wei,
+        Code::Fragments(fragments) => {
+            estimate_fragments_gas(fragments, config, provider).await?
+                + estimate_root_contract_gas(
+                    fragments,
+                    status.wasm().len() as u32,
+                    config,
+                    provider,
+                )
+                .await?
         }
-    }
+    };
+    gas += status.suggest_fee().to::<u64>() + config.constructor_value.to::<u64>();
 
-    pub async fn estimate_gas(&self, provider: &impl Provider) -> Result<u64, DeploymentError> {
-        Ok(provider.estimate_gas(self.tx.clone()).await?)
-    }
-
-    pub async fn exec(
-        self,
-        provider: &impl Provider,
-    ) -> Result<TransactionReceipt, DeploymentError> {
-        let gas = self.estimate_gas(provider).await?;
-        let max_fee_per_gas = self.fee_per_gas(provider).await?;
-
-        let mut tx = self.tx;
-        tx.gas = Some(gas);
-        tx.max_fee_per_gas = Some(max_fee_per_gas);
-        tx.max_priority_fee_per_gas = Some(0);
-
-        let tx = provider.send_transaction(tx).await?;
-        let tx_hash = *tx.tx_hash();
-        debug!(@grey, "sent deploy tx: {}", tx_hash.debug_lavender());
-
-        let receipt = tx
-            .get_receipt()
+    let gas_price = match config.max_fee_per_gas_gwei {
+        Some(gwei) => gwei,
+        None => provider
+            .get_gas_price()
             .await
-            .or(Err(DeploymentError::FailedToComplete))?;
-        if !receipt.status() {
-            return Err(DeploymentError::Reverted { tx_hash });
-        }
-
-        Ok(receipt)
-    }
-
-    async fn fee_per_gas(&self, provider: &impl Provider) -> Result<u128, DeploymentError> {
-        match self.max_fee_per_gas_wei {
-            Some(wei) => Ok(wei),
-            None => Ok(provider.get_gas_price().await?),
-        }
-    }
+            .or(Err(DeployerError::GasEstimationFailure))?,
+    };
+    print_gas_estimate("deployment", gas, gas_price)
+        .or(Err(DeployerError::GasEstimationFailure))?;
+    let nonce = provider.get_transaction_count(from_address).await?;
+    let _ = from_address.create(nonce);
+    Ok(gas)
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum DeploymentError {
-    #[error("rpc error: {0}")]
-    Rpc(#[from] alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+/// Estimate gas cost for contract deployment
+pub async fn estimate_gas_wasm_file(
+    wasm_file: impl AsRef<Path>,
+    config: &DeploymentConfig,
+    provider: &(impl Provider + WalletProvider),
+) -> Result<u64, DeploymentError> {
+    let status =
+        check_wasm_file(wasm_file, Default::default(), None, &config.check, provider).await?;
+    let from_address = provider.default_signer_address();
+    debug!(@grey, "sender address: {}", from_address.debug_lavender());
 
-    #[error("{0}")]
-    Check(#[from] crate::core::check::CheckError),
+    let mut gas = match status.code() {
+        Code::Contract(contract) => {
+            let req =
+                DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei);
+            req.estimate_gas(provider).await?
+        }
+        Code::Fragments(fragments) => {
+            estimate_fragments_gas(fragments, config, provider).await?
+                + estimate_root_contract_gas(
+                    fragments,
+                    status.wasm().len() as u32,
+                    config,
+                    provider,
+                )
+                .await?
+        }
+    };
+    gas += status.suggest_fee().to::<u64>();
 
-    #[error("tx failed to complete")]
-    FailedToComplete,
-    #[error("failed to get balance")]
-    FailedToGetBalance,
-    #[error(
-        "not enough funds in account {} to pay for data fee\n\
-         balance {} < {}\n\
-         please see the Quickstart guide for funding new accounts:\n{}",
-        .from_address.red(),
-        .balance.red(),
-        format!("{} wei", .data_fee).red(),
-        "https://docs.arbitrum.io/stylus/stylus-quickstart".yellow(),
-    )]
-    NotEnoughFunds {
-        from_address: Address,
-        balance: U256,
-        data_fee: U256,
-    },
-    #[error("deploy tx reverted {}", .tx_hash.debug_red())]
-    Reverted { tx_hash: TxHash },
-    #[error("{0}")]
-    DeployerFailure(#[from] DeployerError),
-    #[error("{0}")]
-    ActivationFailure(#[from] ActivationError),
-    #[error("missing address: {0}")]
-    NoContractAddress(String),
-    #[error("failed to get constructor signature")]
-    ReadConstructorFailure,
-    #[error("invalid constructor: {0}")]
-    InvalidConstructor(String),
+    let gas_price = match config.max_fee_per_gas_gwei {
+        Some(gwei) => gwei,
+        None => provider
+            .get_gas_price()
+            .await
+            .or(Err(DeployerError::GasEstimationFailure))?,
+    };
+    print_gas_estimate("deployment", gas, gas_price)
+        .or(Err(DeployerError::GasEstimationFailure))?;
+    let nonce = provider.get_transaction_count(from_address).await?;
+    let _ = from_address.create(nonce);
+    Ok(gas)
 }
 
 /// Deploys a stylus contract, activating if needed.
@@ -185,11 +147,34 @@ pub async fn deploy(
         }
     }
 
+    if let Code::Fragments(fragments) = status.code() {
+        let arb_owner_public = precompiles::arb_owner_public(provider);
+        let max_fragment_count = arb_owner_public
+            .getMaxStylusContractFragments()
+            .call()
+            .await
+            // Failing this call likely means the chain does not support fragments (old ArbOS)
+            .map_err(|_| DeploymentError::ContractTooLarge)?;
+        if fragments.fragment_count() > max_fragment_count as usize {
+            return Err(DeploymentError::ContractTooLarge);
+        }
+    }
+
     let constructor = get_constructor_signature(contract.package.name.as_str())
         .map_err(|_| ReadConstructorFailure)?;
 
     let req = match &constructor {
-        None => DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei),
+        None => match status.code() {
+            Code::Contract(contract) => {
+                DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei)
+            }
+            Code::Fragments(fragments) => {
+                let root =
+                    deploy_fragments(fragments, status.wasm().len() as u32, config, provider)
+                        .await?;
+                DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
+            }
+        },
         Some(constructor) => {
             if constructor.state_mutability != Payable && !config.constructor_value.is_zero() {
                 return Err(InvalidConstructor(
@@ -205,8 +190,16 @@ pub async fn deploy(
                 )));
             }
 
+            let code = match status.code() {
+                Code::Contract(contract) => contract.0.clone(),
+                Code::Fragments(fragments) => {
+                    deploy_fragments(fragments, status.wasm().len() as u32, config, provider)
+                        .await?
+                        .0
+                }
+            };
             let tx_calldata = parse_tx_calldata(
-                status.code(),
+                &code,
                 constructor,
                 config.constructor_value,
                 config.constructor_args.clone(),
@@ -226,22 +219,6 @@ pub async fn deploy(
         }
     };
 
-    if config.estimate_gas {
-        let gas = req
-            .estimate_gas(&provider)
-            .await
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        let gas_price = req
-            .fee_per_gas(&provider)
-            .await
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        print_gas_estimate("deployment", gas, gas_price)
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        // TODO: Is this part needed?
-        let nonce = provider.get_transaction_count(from_address).await?;
-        let _ = from_address.create(nonce);
-        return Ok(());
-    }
     let receipt = req.exec(&provider).await?;
 
     let contract_addr = match &constructor {
@@ -309,24 +286,30 @@ pub async fn deploy_wasm_file(
             });
         }
     }
-    let req = DeploymentRequest::new(from_address, status.code(), config.max_fee_per_gas_gwei);
 
-    if config.estimate_gas {
-        let gas = req
-            .estimate_gas(&provider)
+    if let Code::Fragments(fragments) = status.code() {
+        let arb_owner_public = precompiles::arb_owner_public(provider);
+        let max_fragment_count = arb_owner_public
+            .getMaxStylusContractFragments()
+            .call()
             .await
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        let gas_price = req
-            .fee_per_gas(&provider)
-            .await
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        print_gas_estimate("deployment", gas, gas_price)
-            .or(Err(DeployerError::GasEstimationFailure))?;
-        // TODO: Is this part needed?
-        let nonce = provider.get_transaction_count(from_address).await?;
-        let _ = from_address.create(nonce);
-        return Ok(());
+            // Failing this call likely means the chain does not support fragments (old ArbOS)
+            .map_err(|_| DeploymentError::ContractTooLarge)?;
+        if fragments.fragment_count() > max_fragment_count as usize {
+            return Err(DeploymentError::ContractTooLarge);
+        }
     }
+    let req = match status.code() {
+        Code::Contract(contract) => {
+            DeploymentRequest::new(from_address, contract.bytes(), config.max_fee_per_gas_gwei)
+        }
+        Code::Fragments(fragments) => {
+            let root =
+                deploy_fragments(fragments, status.wasm().len() as u32, config, provider).await?;
+            DeploymentRequest::new(from_address, root.bytes(), config.max_fee_per_gas_gwei)
+        }
+    };
+
     let receipt = req.exec(&provider).await?;
 
     let contract_addr = receipt
@@ -342,8 +325,8 @@ pub async fn deploy_wasm_file(
     } else if config.no_activate {
         mintln!(
             r#"NOTE:
-            You must activate the stylus contract before calling it. To do so, we recommend running:
-            cargo stylus activate --address {}"#,
+        You must activate the stylus contract before calling it. To do so, we recommend running:
+        cargo stylus activate --address {}"#,
             hex::encode(contract_addr)
         )
     } else {
@@ -360,4 +343,59 @@ pub async fn deploy_wasm_file(
     );
 
     Ok(())
+}
+
+#[derive(Debug, Default)]
+pub struct DeploymentConfig {
+    pub check: CheckConfig,
+    pub max_fee_per_gas_gwei: Option<u128>,
+    pub no_activate: bool,
+    pub constructor_value: U256,
+    pub deployer_address: Address,
+    pub constructor_args: Vec<String>,
+    pub deployer_salt: B256,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DeploymentError {
+    #[error("rpc error: {0}")]
+    Rpc(#[from] alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+
+    #[error("{0}")]
+    Check(#[from] crate::core::check::CheckError),
+
+    #[error("tx failed to complete")]
+    FailedToComplete,
+    #[error("failed to get balance")]
+    FailedToGetBalance,
+    #[error(
+        "not enough funds in account {} to pay for data fee\n\
+         balance {} < {}\n\
+         please see the Quickstart guide for funding new accounts:\n{}",
+        .from_address.red(),
+        .balance.red(),
+        format!("{} wei", .data_fee).red(),
+        "https://docs.arbitrum.io/stylus/stylus-quickstart".yellow(),
+    )]
+    NotEnoughFunds {
+        from_address: Address,
+        balance: U256,
+        data_fee: U256,
+    },
+    #[error("deploy tx reverted {}", .tx_hash.debug_red())]
+    Reverted { tx_hash: TxHash },
+    #[error("{0}")]
+    DeployerFailure(#[from] DeployerError),
+    #[error("{0}")]
+    ActivationFailure(#[from] ActivationError),
+    #[error("missing address: {0}")]
+    NoContractAddress(String),
+    #[error("failed to get constructor signature")]
+    ReadConstructorFailure,
+    #[error("invalid constructor: {0}")]
+    InvalidConstructor(String),
+    #[error("contract too large, cannot deploy")]
+    ContractTooLarge,
+    #[error("missing address from transaction receipt")]
+    MissingReceiptAddress,
 }

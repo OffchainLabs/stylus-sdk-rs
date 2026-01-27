@@ -7,7 +7,7 @@
 //! details on contract activation.
 
 use alloy::{
-    primitives::{utils::parse_ether, Address, Bytes, U256},
+    primitives::{utils::parse_ether, Address, U256},
     providers::{Provider, WalletProvider},
     rpc::types::{
         state::{AccountOverride, StateOverride},
@@ -16,6 +16,7 @@ use alloy::{
 };
 
 use crate::{
+    core::code::contract::ContractCode,
     precompiles,
     utils::{
         bump_data_fee,
@@ -23,6 +24,8 @@ use crate::{
         format_data_fee,
     },
 };
+
+use super::code::Code;
 
 #[derive(Debug)]
 pub struct ActivationConfig {
@@ -71,7 +74,7 @@ pub async fn activate_contract(
 ) -> Result<TransactionReceipt, ActivationError> {
     let code = provider.get_code_at(address).await?;
     let from_address = provider.default_signer_address();
-    let data_fee = data_fee(code, address, config, &provider).await?;
+    let data_fee = data_fee(&Code::new_from_code(&code), address, config, &provider).await?;
 
     let receipt = precompiles::arb_wasm(&provider)
         .activateProgram(address)
@@ -93,7 +96,7 @@ pub async fn activate_contract(
 
 /// Checks Stylus contract activation, returning the data fee.
 pub async fn data_fee(
-    code: impl Into<Bytes>,
+    code: &Code,
     address: Address,
     config: &ActivationConfig,
     provider: &impl Provider,
@@ -101,12 +104,30 @@ pub async fn data_fee(
     let arbwasm = precompiles::arb_wasm(provider);
     let random_sender_addr = Address::random();
     let spoofed_sender_account = AccountOverride::default().with_balance(U256::MAX);
-    let spoofed_code = AccountOverride::default().with_code(code);
-    let state_override = StateOverride::from_iter([
-        (address, spoofed_code),
-        (random_sender_addr, spoofed_sender_account),
-    ]);
+    let mut state_override = vec![(random_sender_addr, spoofed_sender_account)];
 
+    match code {
+        Code::Contract(contract) => {
+            let spoofed_code = AccountOverride::default().with_code(contract.bytes().to_vec());
+            state_override.push((address, spoofed_code));
+        }
+        Code::Fragments(fragments) => {
+            let fragment_addresses = fragments.as_slice().iter().map(|fragment| {
+                let fragment_address = Address::random();
+                let fragment_code = AccountOverride::default().with_code(fragment.bytes().to_vec());
+                state_override.push((fragment_address, fragment_code));
+                fragment_address
+            });
+            let root_contract = ContractCode::new_root_contract(
+                fragments.uncompressed_wasm_size(),
+                fragment_addresses,
+            );
+            let spoofed_code = AccountOverride::default().with_code(root_contract.bytes().to_vec());
+            state_override.push((address, spoofed_code));
+        }
+    }
+
+    let state_override = StateOverride::from_iter(state_override);
     let result = arbwasm
         .activateProgram(address)
         .state(state_override)
@@ -135,7 +156,7 @@ pub async fn estimate_gas(
 ) -> Result<u64, ActivationError> {
     let code = provider.get_code_at(address).await?;
     let from_address = provider.default_signer_address();
-    let data_fee = data_fee(code, address, config, &provider).await?;
+    let data_fee = data_fee(&Code::new_from_code(&code), address, config, &provider).await?;
 
     let gas = precompiles::arb_wasm(&provider)
         .activateProgram(address)

@@ -12,7 +12,7 @@ use crate::{
 };
 use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
-use stylus_tools::core::deployment::deploy_wasm_file;
+use stylus_tools::core::deployment;
 use stylus_tools::core::deployment::deployer::ADDRESS;
 
 pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
@@ -87,18 +87,28 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         &args.build,
         &args.check,
         args.auth.get_max_fee_per_gas_wei()?,
-        args.estimate_gas,
         args.no_activate,
         args.deployer_address,
         args.constructor_args,
         args.deployer_salt,
         args.constructor_value,
     );
-    if let Some(wasm_file) = args.wasm_file {
-        deploy_wasm_file(wasm_file, &config, &provider).await?;
+    #[allow(clippy::collapsible_else_if)]
+    if args.estimate_gas {
+        if let Some(wasm_file) = args.wasm_file {
+            let _gas = deployment::estimate_gas_wasm_file(wasm_file, &config, &provider).await?;
+        } else {
+            for contract in contracts {
+                let _gas = deployment::estimate_gas(&contract, &config, &provider).await?;
+            }
+        }
     } else {
-        for contract in contracts {
-            contract.deploy(&config, &provider).await?;
+        if let Some(wasm_file) = args.wasm_file {
+            deployment::deploy_wasm_file(wasm_file, &config, &provider).await?;
+        } else {
+            for contract in contracts {
+                contract.deploy(&config, &provider).await?;
+            }
         }
     }
     Ok(())

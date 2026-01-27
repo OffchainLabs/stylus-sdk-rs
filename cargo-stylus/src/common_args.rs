@@ -151,7 +151,6 @@ impl DeployArgs {
         build: &BuildArgs,
         check: &CheckArgs,
         max_fee_per_gas_gwei: Option<u128>,
-        estimate_gas: bool,
         no_activate: bool,
         deployer_address: Address,
         constructor_args: Vec<String>,
@@ -161,7 +160,6 @@ impl DeployArgs {
         DeploymentConfig {
             check: check.config(activate, build),
             max_fee_per_gas_gwei,
-            estimate_gas,
             no_activate,
             deployer_address,
             constructor_args,

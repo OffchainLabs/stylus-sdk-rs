@@ -3,26 +3,43 @@
 
 use std::{env, io};
 
-use crate::{
-    core::{
-        build::{build_contract, BuildConfig},
-        deployment::prelude::DeploymentCalldata,
-        project::{contract::Contract, hash_project, ProjectConfig},
+use crate::core::{
+    build::{build_contract, BuildConfig},
+    chain::ChainConfig,
+    code::{
+        wasm::{compress_wasm, process_wasm_file},
+        Code,
     },
-    wasm::process_wasm_file,
+    deployment::prelude::DeploymentCalldata,
+    project::{contract::Contract, hash_project, ProjectConfig},
 };
 
 pub fn write_initcode(
     contract: &Contract,
     build_config: &BuildConfig,
+    chain_config: &ChainConfig,
     project_config: &ProjectConfig,
     mut output: impl io::Write,
 ) -> eyre::Result<()> {
     let wasm_file = build_contract(contract, build_config)?;
     let dir = env::current_dir()?;
     let project_hash = hash_project(dir, project_config, build_config)?;
-    let processed = process_wasm_file(wasm_file, project_hash)?;
-    let initcode = DeploymentCalldata::new(&processed.code);
+    let processed = process_wasm_file(&wasm_file, project_hash)?;
+    let compressed = compress_wasm(&processed)?;
+    let code = Code::split_if_large(
+        &compressed,
+        processed.len() as u32,
+        chain_config.max_code_size,
+    );
+    let contract = match code {
+        Code::Contract(contract) => contract,
+        Code::Fragments(_fragments) => {
+            return Err(eyre::eyre!(
+                "fragmented contracts not currently supported for initcode retrieval"
+            ));
+        }
+    };
+    let initcode = DeploymentCalldata::new(contract.bytes());
     output.write_all(hex::encode(initcode.0).as_bytes())?;
     Ok(())
 }

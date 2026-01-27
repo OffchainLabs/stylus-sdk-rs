@@ -31,9 +31,16 @@ pub fn exec(args: Args) -> CargoStylusResult {
         None => &mut io::stdout(),
     };
     let build_config = args.build.config();
+    let chain_config = Default::default();
     let project_config = args.project.config();
     for contract in args.project.contracts()? {
-        ops::write_initcode(&contract, &build_config, &project_config, &mut *writer)?;
+        ops::write_initcode(
+            &contract,
+            &build_config,
+            &chain_config,
+            &project_config,
+            &mut *writer,
+        )?;
     }
     Ok(())
 }

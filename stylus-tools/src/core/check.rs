@@ -10,19 +10,25 @@ use crate::{
     core::{
         activation::{self, ActivationConfig},
         build::{build_contract, BuildConfig},
+        code::{
+            wasm::{compress_wasm, process_wasm_file},
+            Code,
+        },
         project::{
             contract::{Contract, ContractStatus},
             hash_project, ProjectConfig, ProjectHash,
         },
     },
     utils::format_file_size,
-    wasm::process_wasm_file,
 };
+
+use super::chain::ChainConfig;
 
 #[derive(Debug, Default)]
 pub struct CheckConfig {
     pub activation: ActivationConfig,
     pub build: BuildConfig,
+    pub chain: ChainConfig,
     pub project: ProjectConfig,
 }
 
@@ -42,7 +48,7 @@ pub enum CheckError {
     #[error("{0}")]
     Project(#[from] crate::core::project::ProjectError),
     #[error("{0}")]
-    ProcessWasm(#[from] crate::wasm::ProcessWasmFileError),
+    Wasm(#[from] crate::core::code::wasm::WasmError),
 }
 
 /// Checks that a contract is valid and can be deployed onchain.
@@ -70,29 +76,38 @@ pub async fn check_wasm_file(
 ) -> Result<ContractStatus, CheckError> {
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
     let processed = process_wasm_file(wasm_file, project_hash)?;
-    info!(@grey, "contract size: {}", format_file_size(ByteSize::b(processed.code.len() as u64), ByteSize::kib(16), ByteSize::kib(24)));
-    debug!(@grey, "wasm size: {}", format_file_size(ByteSize::b(processed.wasm.len() as u64), ByteSize::kib(96), ByteSize::kib(128)));
+    let compressed = compress_wasm(&processed)?;
+    let code = Code::split_if_large(
+        &compressed,
+        processed.len() as u32,
+        config.chain.max_code_size,
+    );
+    match &code {
+        Code::Contract(c) => {
+            info!(@grey, "contract size: {}", format_file_size(ByteSize::b(c.codesize() as u64), ByteSize::kib(16), ByteSize::kib(24)));
+        }
+        Code::Fragments(fs) => {
+            info!(@grey, "contract size: {} ({} fragments)", format_file_size(ByteSize::b(fs.codesize() as u64), ByteSize::kib(16), ByteSize::kib(24)), fs.fragment_count());
+        }
+    }
+    debug!(@grey, "wasm size: {}", format_file_size(ByteSize::b(processed.len() as u64), ByteSize::kib(96), ByteSize::kib(128)));
 
     // Check if the contract already exists
     // TODO: check log
     debug!(@grey, "connecting to RPC: {:?}", provider.root());
-    let codehash = processed.codehash();
+    let codehash = code.codehash();
     if Contract::exists(codehash, &provider).await? {
         return Ok(ContractStatus::Active {
-            code: processed.code,
+            code,
+            wasm: processed,
         });
     }
 
     let contract_address = contract_address.unwrap_or_else(Address::random);
-    let fee = activation::data_fee(
-        processed.code.clone(),
-        contract_address,
-        &config.activation,
-        provider,
-    )
-    .await?;
+    let fee = activation::data_fee(&code, contract_address, &config.activation, provider).await?;
     Ok(ContractStatus::Ready {
-        code: processed.code,
+        code,
         fee,
+        wasm: processed,
     })
 }
