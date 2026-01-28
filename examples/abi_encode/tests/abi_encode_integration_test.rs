@@ -8,7 +8,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -20,17 +20,23 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IEncoder {
+    function encode(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);
+
+    function packedEncode(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);
+
+    function packedEncode2(address target, uint256 value, string calldata func, bytes calldata data, uint256 timestamp) external view returns (uint8[] memory);
+
+    function encodeWithSignature(string calldata func, address _address, uint256 amount) external view returns (uint8[] memory);
+}";
+
     #[tokio::test]
     async fn abi_encode() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IEncoder::IEncoderInstance::new(address, provider);
 
         let address = address!("0xfafafafafafafafafafafafafafafafafafafafa");

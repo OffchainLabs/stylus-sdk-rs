@@ -5,7 +5,7 @@
 mod integration_test {
     use alloy::sol;
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -15,17 +15,19 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IContract {
+    function init() external;
+
+    function doSomething() external view;
+}";
+
     #[tokio::test]
     async fn variables() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IContract::IContractInstance::new(address, provider);
 
         contract.init().send().await?.watch().await?;

@@ -5,7 +5,7 @@
 mod integration_test {
     use alloy::{primitives::U256, providers::Provider, sol, sol_types::SolCall};
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -25,18 +25,22 @@ mod integration_test {
             }
         }
     }
+    //TODO: calldata is the generated param type in lowLevelDelegateCall
+    const EXPECTED_ABI: &str = "\
+interface IExampleContract {
+    function lowLevelDelegateCall(bytes calldata calldata, address target) external returns (uint8[] memory);
+
+    function rawDelegateCall(uint8[] memory calldata, address target) external returns (uint8[] memory);
+
+    error DelegateCallFailed();
+}";
 
     #[tokio::test]
     async fn delegate_call() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IExampleContract::IExampleContractInstance::new(address, &provider);
 
         // deploy storage contract

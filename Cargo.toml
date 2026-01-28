@@ -34,6 +34,7 @@ members = [
     "examples/single_call",
     "examples/storage_data_types",
     "examples/test",
+    "examples/tuples",
     "examples/variables",
     "examples/verify_signature",
 ]
