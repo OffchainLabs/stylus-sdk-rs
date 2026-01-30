@@ -3,7 +3,7 @@
 A cargo subcommand for building, verifying, and deploying Arbitrum Stylus WASM contracts in Rust.
 
 > [!NOTE]  
-> Stylus contract verification will only be supported on Arbiscan for contracts deployed using cargo stylus `v0.5.0` or higher. We highly recommend deploying on Arbitrum Sepolia and verify your contracts on Sepolia Arbiscan first before going to mainnet.
+> Stylus contract verification will only be supported on Arbiscan for contracts deployed using cargo stylus `v0.5.0` or higher. We highly recommend deploying on Arbitrum Sepolia and verifying your contracts on Sepolia Arbiscan first before going to the mainnet.
 
 ## Table of Contents
 
@@ -119,7 +119,7 @@ You can also use `cargo stylus new --minimal <YOUR_PROJECT_NAME>` to create a mo
 
 ### Testnet Information
 
-All testnet information, including faucets and RPC endpoints can be found [here](https://docs.arbitrum.io/stylus/reference/testnet-information).
+All testnet information, including faucets and RPC endpoints, can be found [on the chain info page](https://docs.arbitrum.io/for-devs/dev-tools-and-resources/chain-info).
 
 ### Developing With Stylus
 
@@ -129,7 +129,7 @@ Then, develop your Rust contract normally and take advantage of all the features
 cargo stylus check
 ```
 
-This command will attempt to verify that your contract can be deployed and activated onchain without requiring a transaction by specifying a JSON-RPC endpoint. By default, it will use the public URL of the Stylus testnet as its endpoint. See [here](https://docs.arbitrum.io/stylus/reference/testnet-information) for available testnet RPC URLs. See `cargo stylus check --help` for more options.
+This command will attempt to verify that your contract can be deployed and activated onchain without requiring a transaction by specifying a JSON-RPC endpoint. By default, it will use the public URL of the Stylus testnet as its endpoint. See the [chain info page](https://docs.arbitrum.io/for-devs/dev-tools-and-resources/chain-info) for available testnet RPC URLs. See `cargo stylus check --help` for more options.
 
 If the command above fails, you'll see detailed information about why your WASM will be rejected:
 
@@ -200,7 +200,7 @@ Confirmed tx 0x0bdb…3307, gas used 14204908
 
 **cargo stylus check**
 
-Instruments a Rust project using Stylus. This command runs compiled WASM code through Stylus instrumentation checks and reports any failures. It **verifies the contract can compile onchain** by making an eth_call to a Arbitrum chain RPC endpoint.
+Instruments a Rust project using Stylus. This command runs compiled WASM code through Stylus instrumentation checks and reports any failures. It **verifies the contract can compile onchain** by making an eth_call to an Arbitrum chain RPC endpoint.
 
 Usage: `cargo stylus check [OPTIONS]`
 
@@ -210,7 +210,7 @@ See `--help` for all available flags and default values.
 
 **cargo stylus deploy**
 
-Instruments a Rust project using Stylus and by outputting its brotli-compressed WASM code. Then, it submits **two transactions** by default: the first **deploys** the WASM contract code to an address and the second triggers an **activation onchain**. Developers can choose to split up the deploy and activate steps via this command as desired.
+Instruments a Rust project by using Stylus and by outputting its brotli-compressed WASM code. Then, it submits **two transactions** by default: the first **deploys** the WASM contract code to an address and the second triggers an **activation onchain**. Developers can choose to split up the deploy and activate steps via this command as desired.
 
 Usage: `cargo stylus deploy [OPTIONS]`
 
@@ -222,7 +222,7 @@ See the formal Arbitrum docs on verifying Stylus contracts [here](https://docs.a
 
 ## Deploying Non-Rust WASM Projects
 
-The Stylus tool can also be used to deploy non-Rust, WASM projects to Stylus by specifying the WASM file directly with the `--wasm-file` flag to any of the cargo stylus commands.
+The Stylus tool can also be used to deploy non-Rust WASM projects to Stylus by specifying the WASM file directly with the `--wasm-file` flag to any of the cargo stylus commands.
 
 Even WebAssembly Text [(WAT)](https://www.webassemblyman.com/wat_webassembly_text_format.html) files are supported. This means projects that are just individual WASM files can be deployed onchain without needing to have been compiled by Rust. WASMs produced by other languages, such as C, can be used with the tool this way.
 
@@ -430,7 +430,7 @@ cargo stylus export-abi --rust-features=feature1,feature2
 
 #### Activation Failures
 
-**Error**: Contract deployment succeeds but activation fails
+**Error**: Contract deployment succeeds, but activation fails
 **Solution**:
 
 - Verify that your WASM contract is valid with `cargo stylus check`
