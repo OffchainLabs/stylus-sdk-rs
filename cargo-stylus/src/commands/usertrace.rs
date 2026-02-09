@@ -104,11 +104,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         .manifest_path
         .parent()
         .ok_or_else(|| eyre!("Failed to get contract directory"))?;
-    build_shared_library(
-        project_path.as_std_path(),
-        args.package.clone(),
-        features,
-    )?;
+    build_shared_library(project_path.as_std_path(), args.package.clone(), features)?;
 
     let target_dir = Workspace::current()?.metadata.target_directory;
     let library_extension = if macos { ".dylib" } else { ".so" };

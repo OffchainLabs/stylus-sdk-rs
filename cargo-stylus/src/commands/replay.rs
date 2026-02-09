@@ -324,10 +324,7 @@ pub fn build_shared_library(
     // discards inner calls like increment() and set_number().
     // macOS doesn't need this because its ABI mandates frame pointers.
     if cfg!(target_os = "linux") {
-        cargo
-            .arg("--")
-            .arg("-C")
-            .arg("force-frame-pointers=yes");
+        cargo.arg("--").arg("-C").arg("force-frame-pointers=yes");
     }
 
     cargo.output()?;
