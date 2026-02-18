@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [1.88.0, nightly-2026-02-17]
+        toolchain: [1.93.1, nightly]
     steps:
       - uses: actions/checkout@v3
         with:
