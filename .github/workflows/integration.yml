@@ -35,7 +35,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.92.0, nightly]
+        toolchain: [1.93.1, nightly]
         test:
           - "abi_decode"
           - "abi_encode"
@@ -103,7 +103,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.94.0, nightly]
+        toolchain: [1.93.1, nightly]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
