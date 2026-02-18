@@ -10,4 +10,4 @@ warning: type `uint256` should have an upper camel case name
 10 | struct uint256 {
    |        ^^^^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Uint256`
    |
-   = note: `#[warn(non_camel_case_types)]` on by default
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
