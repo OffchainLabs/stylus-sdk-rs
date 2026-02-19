@@ -4419,7 +4419,6 @@ dependencies = [
  "hex",
  "keccak-const",
  "mini-alloc",
- "native-tls",
  "rclite",
  "ruint",
  "stylus-core",

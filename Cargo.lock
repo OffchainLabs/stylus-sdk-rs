@@ -5269,7 +5269,6 @@ dependencies = [
  "hex",
  "keccak-const",
  "mini-alloc",
- "native-tls",
  "paste",
  "rclite",
  "ruint",

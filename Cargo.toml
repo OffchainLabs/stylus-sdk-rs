@@ -77,7 +77,7 @@ prettyplease = "0.2.22"
 trybuild = "1.0"
 
 # stylus tools
-alloy = { version = "1.7.3", default-features = false, features = ["essentials", "json-rpc", "provider-debug-api", "provider-trace-api", "reqwest-rustls-tls", "signer-keystore"] }
+alloy = { version = "1.7.3", features = ["essentials", "json-rpc", "provider-debug-api", "provider-trace-api", "signer-keystore"] }
 cargo-util-schemas = "0.2"
 eyre = "0.6"
 log = "0.4"
