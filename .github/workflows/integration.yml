@@ -64,6 +64,7 @@ jobs:
           - "single_call"
           - "storage_data_types"
           - "test"
+          - "tuple_with_variable_sizes_elements"
           - "variables"
           - "verify_signature"
     steps:
