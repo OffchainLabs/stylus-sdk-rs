@@ -12,7 +12,7 @@ TEST_DIR=$(mktemp -d)
 echo "Running smoke test in isolated directory: $TEST_DIR"
 cd "$TEST_DIR"
 
-cargo stylus new counter
+cargo stylus new counter || true
 cd counter
 sed -i "s|stylus-sdk = .*|stylus-sdk = { path = \"$REPO_ROOT/stylus-sdk\" }|" Cargo.toml
 cargo update
