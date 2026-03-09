@@ -2,6 +2,17 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.1) - 2026-03-09
+
+### New
+
+- Support for deploying large contracts via fragmented deployment, including constructor support for fragments [#383](https://github.com/OffchainLabs/stylus-sdk-rs/pull/383)
+- Add `--wasm-file` flag to deployment CLI for deploying pre-built WASM files [#389](https://github.com/OffchainLabs/stylus-sdk-rs/pull/389)
+
+### Changed
+
+- Add AssemblyScript SDK to README [#386](https://github.com/OffchainLabs/stylus-sdk-rs/pull/386)
+
 ## [0.10.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.0)
 
 ### New
