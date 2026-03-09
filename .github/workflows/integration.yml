@@ -22,7 +22,7 @@ jobs:
       - name: Install cargo-stylus
         shell: bash
         run: |
-          cargo install --path ./cargo-stylus
+          cargo install --locked --path ./cargo-stylus
       - name: Archive cargo-stylus binary
         uses: actions/upload-artifact@v4
         with:
@@ -78,7 +78,7 @@ jobs:
       - name: Install cargo-stylus
         shell: bash
         run: |
-          cargo install --path ./cargo-stylus
+          cargo install --locked --path ./cargo-stylus
       - name: Download cargo-stylus binary
         uses: actions/download-artifact@v4
         with:
