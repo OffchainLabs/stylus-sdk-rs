@@ -5296,6 +5296,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylus-tuples"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
 name = "stylus-variables"
 version = "0.1.0"
 dependencies = [
