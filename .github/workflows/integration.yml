@@ -94,6 +94,12 @@ jobs:
           echo "[toolchain]" > $FILE
           echo "channel = \"${{ matrix.toolchain }}\"" >> $FILE
           echo $FILE
+      - name: Login to DockerHub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Run integration tests for ${{ matrix.test }}
         shell: bash
         run: ./ci/integration_test.sh --example ${{ matrix.test }}
@@ -120,6 +126,12 @@ jobs:
       - name: Make cargo-stylus executable
         shell: bash
         run: chmod +x ~/.cargo/bin/cargo-stylus
+      - name: Login to DockerHub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Run integration tests for Stylus Tools
         shell: bash
         run: ./ci/integration_test.sh --stylus-tools
