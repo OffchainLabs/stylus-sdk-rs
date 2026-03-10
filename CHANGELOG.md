@@ -2,6 +2,15 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.2) - 2026-03-09
+
+### Fixed
+
+- Pin `keccak` dependency to `>=0.1.6` to avoid resolving to broken `0.1.5` [#397](https://github.com/OffchainLabs/stylus-sdk-rs/pull/397)
+- Fix subcrate READMEs to point to repo root instead of broken symlinks [#398](https://github.com/OffchainLabs/stylus-sdk-rs/pull/398)
+- Fix docs compilation error [#394](https://github.com/OffchainLabs/stylus-sdk-rs/pull/394)
+- Fix 404 links and editorial nits [#376](https://github.com/OffchainLabs/stylus-sdk-rs/pull/376)
+
 ## [0.10.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.1) - 2026-03-09
 
 ### New
