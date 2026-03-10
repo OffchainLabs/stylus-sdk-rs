@@ -57,7 +57,7 @@ clap = { version = "4.5.4", features = [ "derive", "color" ] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 keccak-const = "0.2.0"
-lazy_static = "1.5.0"
+lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 mini-alloc = "1.0.0"
 sha3 = "0.10.8"
 rclite = "=0.4.1"
@@ -68,7 +68,7 @@ paste = "1.0.15"
 proc-macro-error = "1.0"
 proc-macro2 = "1.0"
 quote = "1.0"
-regex = "1.10.6"
+regex = { version = "1.10.6", default-features = false }
 syn = { version = "2.0.77", features = ["full", "visit-mut"] }
 syn-solidity = { version = "1.0.1", features = ["visit", "visit-mut"] }
 
