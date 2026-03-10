@@ -301,7 +301,7 @@ pub fn build_shared_library(
 ) -> eyre::Result<()> {
     let mut cargo = sys::new_command("cargo");
 
-    cargo.current_dir(path).arg("build");
+    cargo.current_dir(path).arg("rustc");
 
     if let Some(f) = features {
         cargo.arg("--features").arg(f.join(","));
@@ -314,8 +314,19 @@ pub fn build_shared_library(
         .arg("--lib")
         .arg("--locked")
         .arg("--target")
-        .arg(rustc_host::from_cli()?)
-        .output()?;
+        .arg(rustc_host::from_cli()?);
+
+    // On Linux x86_64, Rust omits frame pointers by default. The stylusdb
+    // calltrace plugin uses frame pointers (GetFP()) to uniquely identify
+    // stack frames and build the call tree. Without them, every function
+    // returns the same stale RBP value and the plugin's dedup logic silently
+    // discards inner calls like increment() and set_number().
+    // macOS doesn't need this because its ABI mandates frame pointers.
+    if cfg!(target_os = "linux") {
+        cargo.arg("--").arg("-C").arg("force-frame-pointers=yes");
+    }
+
+    cargo.output()?;
     Ok(())
 }
 
