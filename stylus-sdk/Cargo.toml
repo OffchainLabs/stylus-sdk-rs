@@ -24,7 +24,7 @@ keccak = ">=0.1.6, <0.2"
 mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
 stylus-core.workspace = true
-ruint = "=1.15.0"
+ruint = "=1.16.0"
 branches = { version = "=0.4.4", default-features = false }
 rclite = "=0.4.1"
 
