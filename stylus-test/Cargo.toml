@@ -2,7 +2,6 @@
 name = "stylus-test"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Testing utilities for Arbitrum Stylus contracts"
-readme = "../README.md"
 
 authors.workspace = true
 edition.workspace = true

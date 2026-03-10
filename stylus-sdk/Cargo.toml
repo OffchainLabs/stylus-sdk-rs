@@ -2,7 +2,6 @@
 name = "stylus-sdk"
 keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
 description = "Rust smart contracts with Arbitrum Stylus"
-readme = "../README.md"
 
 authors.workspace = true
 edition.workspace = true
