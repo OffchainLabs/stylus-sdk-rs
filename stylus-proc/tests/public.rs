@@ -32,7 +32,7 @@ impl Contract {
     }
 
     #[receive]
-    fn receive(&mut self) -> Result<(), Vec<u8>> {
+    fn receive(&mut self) -> Result<(), alloc::vec::Vec<u8>> {
         Ok(())
     }
 

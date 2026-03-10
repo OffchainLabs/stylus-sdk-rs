@@ -3,6 +3,8 @@
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
 
+#![no_std]
+
 #[cfg(not(any(test, feature = "export-abi")))]
 #[no_mangle]
 pub extern "C" fn main() {}
