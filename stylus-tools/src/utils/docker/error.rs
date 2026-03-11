@@ -1,4 +1,4 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Error handling for Docker usage.
@@ -14,6 +14,8 @@ pub enum DockerError {
 
     #[error("Failed to execute Docker command: {0}")]
     CommandExecution(io::Error),
+    #[error("Invalid volume input: {0}")]
+    InvalidVolumeInput(String),
     #[error("Wait failed: {0}")]
     WaitFailure(io::Error),
     #[error("Invalid JSON: {0}")]

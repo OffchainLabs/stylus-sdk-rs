@@ -1,4 +1,4 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Utilities for working with docker.
@@ -41,7 +41,12 @@ pub fn run_in_container(
     dir: impl AsRef<Path>,
     args: impl IntoIterator<Item = impl AsRef<OsStr>>,
 ) -> Result<(), DockerError> {
-    let dir_str = dir.as_ref().to_str().unwrap();
+    let dir_str = dir.as_ref().to_str().ok_or_else(|| {
+        DockerError::InvalidVolumeInput(format!(
+            "directory path is not valid UTF-8: {}",
+            dir.as_ref().display()
+        ))
+    })?;
     info!(@grey, "Using directory as entry point {dir_str}");
 
     cmd::run(
