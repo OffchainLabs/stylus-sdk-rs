@@ -1,4 +1,4 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
+// Copyright 2022-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use cfg_if::cfg_if;
@@ -96,7 +96,6 @@ impl From<&mut syn::ItemTrait> for PublicTrait {
     fn from(node: &mut syn::ItemTrait) -> Self {
         let ident = node.ident.clone();
 
-        // collect public functions
         let funcs = node
             .items
             .iter_mut()
@@ -136,6 +135,16 @@ impl From<&mut syn::ItemTrait> for PublicTrait {
 impl ToTokens for PublicTrait {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.contract_client_gen());
+        // Emit collision checks for trait definitions too, so that library crates
+        // defining a #[public] trait without a corresponding impl still get checked.
+        // When both the trait and its impl exist in the same crate, the compiler will
+        // evaluate redundant (but harmless) duplicate const assertions; on a collision,
+        // the user may see the error reported twice. Deduplication is not feasible because
+        // the trait and impl are processed by separate proc-macro invocations that cannot
+        // communicate.
+        for check in types::selector_collision_checks(&self.funcs) {
+            check.to_tokens(tokens);
+        }
     }
 }
 
@@ -144,6 +153,9 @@ impl ToTokens for PublicImpl {
         tokens.extend(self.struct_for_export_abi());
         tokens.extend(self.contract_client_gen());
         tokens.extend(self.print_from_args_fn());
+        for check in types::selector_collision_checks(&self.funcs) {
+            check.to_tokens(tokens);
+        }
         self.impl_router().to_tokens(tokens);
         Extension::codegen(self).to_tokens(tokens);
     }
@@ -156,8 +168,6 @@ impl From<&mut syn::ItemImpl> for PublicImpl {
         if let Some(attr) = consume_attr::<attrs::Implements>(&mut node.attrs, "implements") {
             implements.extend(attr.types);
         }
-
-        // collect public functions
         let funcs = node
             .items
             .iter_mut()
@@ -399,9 +409,29 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
                     ty: *pat_type.ty.clone(),
                     extension: E::build(node),
                 },
-                _ => unreachable!(),
+                other => {
+                    emit_error!(other, "destructuring patterns are not supported in #[public] functions; use a named parameter instead");
+                    // Dummy value so macro expansion can continue and report additional
+                    // errors. The already-emitted error will prevent successful compilation.
+                    Self {
+                        name: syn::Ident::new("_", other.span()),
+                        ty: parse_quote! { () },
+                        extension: E::build(node),
+                    }
+                }
             },
-            _ => unreachable!(),
+            syn::FnArg::Receiver(recv) => {
+                emit_error!(
+                    recv,
+                    "unexpected `self` parameter in #[public] function argument list"
+                );
+                // Dummy value (see comment above).
+                Self {
+                    name: syn::Ident::new("_", recv.span()),
+                    ty: parse_quote! { () },
+                    extension: E::build(node),
+                }
+            }
         }
     }
 }
@@ -433,10 +463,11 @@ fn verify_sol_name(
 
 #[cfg(test)]
 mod tests {
+    use quote::ToTokens;
     use syn::parse_quote;
 
     use super::{
-        types::{FnKind, PublicImpl},
+        types::{self, FnKind, PublicImpl, PublicTrait},
         verify_sol_name,
     };
 
@@ -492,5 +523,272 @@ mod tests {
             assert_eq!(sol_name, expected_sol_name);
             assert_eq!(err.is_some(), has_err);
         }
+    }
+
+    #[test]
+    fn test_display_label() {
+        // When Rust name equals Solidity name, show just the name.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn foo(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        assert_eq!(public.funcs[0].display_label(), "`foo`");
+
+        // When they differ (camelCase conversion), show both.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn foo_bar(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        assert_eq!(
+            public.funcs[0].display_label(),
+            "`foo_bar` (ABI name `fooBar`)"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_count() {
+        // Zero functions should produce zero checks.
+        let checks = types::selector_collision_checks::<()>(&[]);
+        assert!(checks.is_empty(), "expected 0 checks with empty input");
+
+        // One function should produce zero checks (no pair to compare).
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn solo(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert!(
+            checks.is_empty(),
+            "expected 0 checks with a single function"
+        );
+
+        // Two functions should produce exactly one pairwise collision check (one pair from two functions).
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn foo_bar(_x: u64) {}
+                #[allow(non_snake_case)]
+                fn fooBar(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 1, "expected 1 pairwise collision check");
+
+        // Three regular functions should produce 3 pairwise checks.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn alpha(_x: u64) {}
+                fn beta(_x: u64) {}
+                fn gamma(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 3, "expected 3 pairwise collision checks");
+
+        // Four regular functions should produce 6 pairwise checks (4*3/2).
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn alpha(_x: u64) {}
+                fn beta(_x: u64) {}
+                fn gamma(_x: u64) {}
+                fn delta(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 6, "expected 6 pairwise collision checks");
+
+        // Special functions (fallback, receive, constructor) are excluded.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn alpha(_x: u64) {}
+                #[fallback]
+                fn my_fallback(&mut self, _args: &[u8]) -> stylus_sdk::ArbResult { Ok(vec![]) }
+                #[receive]
+                fn my_receive(&mut self) -> Result<(), Vec<u8>> { Ok(()) }
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert!(
+            checks.is_empty(),
+            "expected 0 checks with only one regular function"
+        );
+
+        // Constructor is also excluded.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn alpha(_x: u64) {}
+                fn beta(_x: u64) {}
+                #[constructor]
+                fn my_constructor(&mut self) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(
+            checks.len(),
+            1,
+            "expected 1 check: constructor excluded, 2 regular functions remain"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_trait() {
+        // Collision checks work on PublicTrait the same as PublicImpl.
+        let mut trait_item: syn::ItemTrait = parse_quote! {
+            trait MyContract {
+                fn foo(_x: u64) {}
+                fn bar(_x: u64) {}
+                fn baz(_x: u64) {}
+            }
+        };
+        let public = PublicTrait::from(&mut trait_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(
+            checks.len(),
+            3,
+            "expected 3 pairwise collision checks for trait"
+        );
+
+        // Single-method trait produces no checks.
+        let mut trait_item: syn::ItemTrait = parse_quote! {
+            trait MyContract {
+                fn only_one(_x: u64) {}
+            }
+        };
+        let public = PublicTrait::from(&mut trait_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert!(
+            checks.is_empty(),
+            "expected 0 checks for single-method trait"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_content() {
+        // Verify that generated checks reference the expected function names and feature gate.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn foo(_x: u64) {}
+                fn bar(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 1);
+        let tokens = checks[0].to_token_stream().to_string();
+        assert!(
+            tokens.contains("__SELECTOR_foo"),
+            "expected __SELECTOR_foo in generated check"
+        );
+        assert!(
+            tokens.contains("__SELECTOR_bar"),
+            "expected __SELECTOR_bar in generated check"
+        );
+        assert!(
+            tokens.contains("contract-client-gen"),
+            "expected cfg gate for contract-client-gen"
+        );
+        assert!(
+            tokens.contains("ABI selector collision"),
+            "expected collision error message in generated check"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_content_camel_case() {
+        // When Rust names differ from Solidity names, the error message includes ABI names.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn foo_bar(_x: u64) {}
+                fn baz_qux(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 1);
+        let tokens = checks[0].to_token_stream().to_string();
+        // The error message should mention both Rust and ABI names.
+        assert!(
+            tokens.contains("foo_bar"),
+            "expected Rust name foo_bar in error message"
+        );
+        assert!(
+            tokens.contains("fooBar"),
+            "expected ABI name fooBar in error message"
+        );
+        assert!(
+            tokens.contains("baz_qux"),
+            "expected Rust name baz_qux in error message"
+        );
+        assert!(
+            tokens.contains("bazQux"),
+            "expected ABI name bazQux in error message"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_content_with_selector_override() {
+        // When a function uses #[selector(name = "...")], the generated check uses the
+        // overridden Solidity name but the Rust name for the const identifier.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                #[selector(name = "customName")]
+                fn my_func(_x: u64) {}
+                fn other(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 1);
+        let tokens = checks[0].to_token_stream().to_string();
+        // Const identifier uses Rust name.
+        assert!(
+            tokens.contains("__SELECTOR_my_func"),
+            "expected __SELECTOR_my_func in generated check"
+        );
+        // Error message includes the override name.
+        assert!(
+            tokens.contains("customName"),
+            "expected overridden ABI name customName in error message"
+        );
+    }
+
+    #[test]
+    fn test_selector_collision_checks_all_pairs_covered() {
+        // Verify that each pair in a 3-function set gets its own check with the right names.
+        let mut impl_item: syn::ItemImpl = parse_quote! {
+            impl Contract {
+                fn alpha(_x: u64) {}
+                fn beta(_x: u64) {}
+                fn gamma(_x: u64) {}
+            }
+        };
+        let public = PublicImpl::from(&mut impl_item);
+        let checks = types::selector_collision_checks(&public.funcs);
+        assert_eq!(checks.len(), 3);
+
+        let tokens: Vec<String> = checks
+            .iter()
+            .map(|c| c.to_token_stream().to_string())
+            .collect();
+
+        // Check that all three pairs are present: (alpha,beta), (alpha,gamma), (beta,gamma).
+        let has_pair = |a: &str, b: &str| {
+            tokens.iter().any(|t| {
+                t.contains(&format!("__SELECTOR_{a}")) && t.contains(&format!("__SELECTOR_{b}"))
+            })
+        };
+        assert!(has_pair("alpha", "beta"), "missing alpha-beta pair");
+        assert!(has_pair("alpha", "gamma"), "missing alpha-gamma pair");
+        assert!(has_pair("beta", "gamma"), "missing beta-gamma pair");
     }
 }

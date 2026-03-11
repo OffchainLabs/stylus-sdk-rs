@@ -1,4 +1,4 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
+// Copyright 2022-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Procedural macros for [The Stylus SDK][sdk].
@@ -573,8 +573,10 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// Here's an example output. Observe that the method names change from Rust's `snake_case` to Solidity's
-/// `camelCase`. For compatibility reasons, onchain method selectors are always `camelCase`. We'll provide
-/// the ability to customize selectors very soon. Note too that you can use argument names like "address"
+/// `camelCase`. For compatibility reasons, onchain method selectors default to `camelCase`. You can
+/// customize the ABI name used for selector computation with `#[selector(name = "...")]`.
+///
+/// Note too that you can use argument names like "address"
 /// without fear. The SDK will prepend an `_` when necessary.
 ///
 /// ```solidity
@@ -590,6 +592,22 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///     function burn(uint256 amount) external;
 /// }
 /// ```
+///
+/// # Selector collision detection
+///
+/// The macro detects ABI selector collisions at compile time within a single `#[public]`
+/// block, whether it annotates an impl block or a trait definition. If two methods produce
+/// the same 4-byte selector (computed from the keccak256 hash of the Solidity function
+/// signature string, e.g. `transfer(uint256,address)`), compilation will fail
+/// with a descriptive error.
+///
+/// Collision checks are gated out when `contract-client-gen` is enabled, because that mode
+/// generates call stubs for external contracts where selector routing is not emitted.
+///
+/// **Not detected:** cross-block collisions (across separate `#[public]` blocks) and
+/// collisions with selectors inherited via `#[implements(...)]`. When using
+/// `#[implements]`, manually verify that your function selectors do not collide with
+/// those of the inherited trait's methods.
 ///
 /// [storage]: macro@storage
 /// [sol_storage]: macro@sol_storage

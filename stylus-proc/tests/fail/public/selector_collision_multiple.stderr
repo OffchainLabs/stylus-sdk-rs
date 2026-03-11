@@ -1,0 +1,42 @@
+error[E0080]: evaluation of constant value failed
+  --> tests/fail/public/selector_collision_multiple.rs:19:8
+   |
+19 |     fn bar(_x: u64) {}
+   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `bar` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+
+error[E0080]: evaluation of constant value failed
+  --> tests/fail/public/selector_collision_multiple.rs:22:8
+   |
+22 |     fn baz(_x: u64) {}
+   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+
+error[E0080]: evaluation of constant value failed
+  --> tests/fail/public/selector_collision_multiple.rs:22:8
+   |
+22 |     fn baz(_x: u64) {}
+   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `bar` (ABI name `foo`) and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+
+error: unreachable pattern
+  --> tests/fail/public/selector_collision_multiple.rs:19:8
+   |
+16 |     fn foo(_x: u64) {}
+   |        --- matches all the relevant values
+...
+19 |     fn bar(_x: u64) {}
+   |        ^^^ no value can reach this
+   |
+note: the lint level is defined here
+  --> tests/fail/public/selector_collision_multiple.rs:14:1
+   |
+14 | #[public]
+   | ^^^^^^^^^
+   = note: this error originates in the attribute macro `public` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: unreachable pattern
+  --> tests/fail/public/selector_collision_multiple.rs:22:8
+   |
+16 |     fn foo(_x: u64) {}
+   |        --- matches all the relevant values
+...
+22 |     fn baz(_x: u64) {}
+   |        ^^^ no value can reach this

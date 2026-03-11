@@ -1,4 +1,4 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
+// Copyright 2022-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::emit_error;
@@ -253,6 +253,75 @@ impl PublicTrait {
     }
 }
 
+/// Generate pairwise compile-time selector collision checks for a set of functions.
+///
+/// Each check is emitted as a separate `const _: () = { ... }` item so the compiler
+/// reports all collisions independently rather than stopping at the first.
+///
+/// Uses `const` assertions because selector values are computed by the `function_selector!`
+/// declarative macro after proc-macro expansion — the proc macro has no access to concrete
+/// selector bytes at the time it runs. The `function_selector!` macro expands to a
+/// const-evaluable keccak computation, making the `const` assertion viable.
+///
+/// Generates n*(n-1)/2 const assertion items (one per pair), where n is the number
+/// of regular (`FnKind::Function`) entries in the input — fallback, receive, and
+/// constructor route separately and are excluded.
+///
+/// **Not checked:** collisions across separate `#[public]`-annotated items (proc macros
+/// cannot share state across invocations), and collisions with methods inherited via
+/// `#[implements]` (only trait type paths are available — the inherited trait's function
+/// signatures are not accessible during proc-macro expansion).
+/// See the `#[public]` macro documentation in `lib.rs` for user-facing details.
+pub(super) fn selector_collision_checks<E: FnExtension>(funcs: &[PublicFn<E>]) -> Vec<syn::Item> {
+    let functions = regular_functions(funcs);
+
+    // Collect per-function data used in the pairwise comparison below.
+    let func_data: Vec<_> = functions
+        .iter()
+        .map(|f| {
+            (
+                f.selector_const(),
+                f.selector_name(),
+                f.display_label(),
+                f.name.span(),
+            )
+        })
+        .collect();
+    let n = func_data.len();
+    let mut checks: Vec<syn::Item> = Vec::with_capacity(n * n.saturating_sub(1) / 2);
+    for (i, (const_a, sel_a, label_a, _)) in func_data.iter().enumerate() {
+        for (const_b, sel_b, label_b, span) in &func_data[i + 1..] {
+            let msg = format!(
+                "Stylus SDK: ABI selector collision: {label_a} and {label_b} produce the same \
+                 4-byte selector. Use #[selector(name = \"...\")] to assign a distinct name, \
+                 or rename one",
+            );
+            // The cfg gate is intentional: `contract-client-gen` generates call stubs for
+            // external contracts whose ABI the user does not control. Blocking compilation
+            // over a selector collision in a foreign interface would be unhelpful — the
+            // collision only matters for routing, which is not emitted in contract-client-gen mode.
+            checks.push(parse_quote_spanned! { *span =>
+                #[cfg(not(feature = "contract-client-gen"))]
+                const _: () = {
+                    use stylus_sdk::function_selector;
+                    #const_a
+                    #const_b
+                    assert!(#sel_a != #sel_b, #msg);
+                };
+            });
+        }
+    }
+    checks
+}
+
+/// Returns only `FnKind::Function` entries, excluding fallback, receive, and constructor.
+fn regular_functions<E: FnExtension>(funcs: &[PublicFn<E>]) -> Vec<&PublicFn<E>> {
+    funcs
+        .iter()
+        .filter(|f| matches!(f.kind, FnKind::Function))
+        .collect()
+}
+
 impl PublicImpl {
     pub fn impl_router(&self) -> syn::ItemImpl {
         let Self {
@@ -261,14 +330,9 @@ impl PublicImpl {
             where_clause,
             ..
         } = self;
-        let function_iter = self
-            .funcs
-            .iter()
-            .filter(|&func| matches!(func.kind, FnKind::Function));
-        let selector_consts = function_iter.clone().map(PublicFn::selector_const);
-        let selector_arms = function_iter
-            .map(PublicFn::selector_arm)
-            .collect::<Vec<_>>();
+        let functions = regular_functions(&self.funcs);
+        let selector_consts = functions.iter().map(|f| f.selector_const());
+        let selector_arms: Vec<_> = functions.iter().map(|f| f.selector_arm()).collect();
 
         let fallback = call_special!(
             self,
@@ -524,6 +588,18 @@ pub struct PublicFn<E: FnExtension> {
 }
 
 impl<E: FnExtension> PublicFn<E> {
+    /// Returns a display label for error messages, including the ABI name when it differs
+    /// from the Rust function name.
+    pub(super) fn display_label(&self) -> String {
+        let fn_name = self.name.to_string();
+        let sol_name = self.sol_name.as_string();
+        if fn_name == sol_name {
+            format!("`{fn_name}`")
+        } else {
+            format!("`{fn_name}` (ABI name `{sol_name}`)")
+        }
+    }
+
     pub fn function_selector(&self) -> syn::Expr {
         let sol_name = syn::LitStr::new(&self.sol_name.as_string(), self.sol_name.span());
         let arg_types = self.arg_types();
@@ -536,27 +612,26 @@ impl<E: FnExtension> PublicFn<E> {
         syn::Ident::new(&format!("__SELECTOR_{}", self.name), self.name.span())
     }
 
-    fn selector_value(&self) -> syn::Expr {
+    /// Returns the `const` item declaring this function's 4-byte ABI selector.
+    ///
+    /// **Precondition:** must only be called on `FnKind::Function` entries.
+    /// Use `regular_functions()` to filter before calling.
+    pub fn selector_const(&self) -> syn::ItemConst {
+        debug_assert!(matches!(self.kind, FnKind::Function));
+        let name = self.selector_name();
         let function_selector = self.function_selector();
         parse_quote! {
-            u32::from_be_bytes(#function_selector)
-        }
-    }
-
-    pub fn selector_const(&self) -> Option<syn::ItemConst> {
-        let name = self.selector_name();
-        let value = self.selector_value();
-        Some(parse_quote! {
             #[allow(non_upper_case_globals)]
-            const #name: u32 = #value;
-        })
+            const #name: u32 = u32::from_be_bytes(#function_selector);
+        }
     }
 
-    fn selector_arm(&self) -> Option<syn::Arm> {
-        if !matches!(self.kind, FnKind::Function) {
-            return None;
-        }
-
+    /// Returns the `match` arm that routes this function's selector to its handler.
+    ///
+    /// **Precondition:** must only be called on `FnKind::Function` entries.
+    /// Use `regular_functions()` to filter before calling.
+    fn selector_arm(&self) -> syn::Arm {
+        debug_assert!(matches!(self.kind, FnKind::Function));
         let name = &self.name;
         let constant = self.selector_name();
         let deny_value = self.deny_value();
@@ -564,7 +639,7 @@ impl<E: FnExtension> PublicFn<E> {
         let storage_arg = self.storage_arg();
         let expand_args = self.expand_args();
         let encode_output = self.encode_output();
-        Some(parse_quote! {
+        parse_quote! {
             #[allow(non_upper_case_globals)]
             #constant => {
                 #deny_value
@@ -578,7 +653,7 @@ impl<E: FnExtension> PublicFn<E> {
                 let result = Self::#name(#storage_arg #(#expand_args, )* );
                 Some(#encode_output)
             }
-        })
+        }
     }
 
     fn decode_inputs(&self) -> syn::Type {
