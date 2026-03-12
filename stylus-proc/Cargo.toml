@@ -38,6 +38,7 @@ assert_cmd = "2.0"
 [features]
 default = ["trybuild-tests"]
 export-abi = ["stylus-sdk/export-abi"]
+# Deprecated: see stylus-sdk Cargo.toml for details.
 reentrant = []
 stylus-test = ["stylus-sdk/stylus-test"]
 trybuild-tests = []
