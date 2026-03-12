@@ -1,4 +1,4 @@
-// Copyright 2023-2024, Offchain Labs, Inc.
+// Copyright 2023-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use proc_macro2::{Ident, Span, TokenStream};
@@ -12,6 +12,9 @@ use syn::{
 use crate::consts::STRUCT_ENTRYPOINT_FN;
 
 /// Implementation for the [`#[entrypoint]`][crate::entrypoint] macro.
+///
+/// Generates the contract entrypoint, a reentrancy guard (see [`deny_reentrant`]),
+/// and storage cache flush logic.
 pub fn entrypoint(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
@@ -171,7 +174,12 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
     }
 }
 
-/// Revert on reentrancy unless explicitly enabled
+/// Revert on reentrancy unless explicitly enabled.
+///
+/// This guard only applies at the contract entrypoint level. It checks
+/// `msg_reentrant()` and reverts if the call is reentrant. See the
+/// [`#[entrypoint]`][crate::entrypoint] attribute documentation for full
+/// reentrancy details.
 #[cfg(not(feature = "stylus-test"))]
 fn deny_reentrant() -> Option<syn::ExprIf> {
     cfg_if::cfg_if! {

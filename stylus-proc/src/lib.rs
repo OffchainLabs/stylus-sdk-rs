@@ -1,4 +1,4 @@
-// Copyright 2022-2024, Offchain Labs, Inc.
+// Copyright 2022-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Procedural macros for [The Stylus SDK][sdk].
@@ -398,13 +398,30 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// This is dangerous, and should be done only after careful review -- ideally by 3rd-party auditors.
-/// Numerous exploits and hacks have in Web3 are attributable to developers misusing or not fully
+/// Numerous exploits and hacks in Web3 are attributable to developers misusing or not fully
 /// understanding reentrant patterns.
 ///
 /// If enabled, the Stylus SDK will flush the storage cache in between reentrant calls, persisting values
 /// to state that might be used by inner calls. Note that preventing storage invalidation is only part
 /// of the battle in the fight against exploits. You can tell if a call is reentrant via
-/// [`msg::reentrant`][reentrant], and condition your business logic accordingly.
+/// [`msg_reentrant`][reentrant], and condition your business logic accordingly.
+///
+/// **Important:** When reentrancy is not enabled (the default), the entrypoint guard checks
+/// `msg_reentrant()` and reverts before user code runs. When the `reentrant` feature *is*
+/// enabled, this guard is removed entirely -- your contract must handle reentrancy safely.
+///
+/// The high-level call functions in `stylus_sdk::call` (`call`, `delegate_call`, and
+/// `static_call`) manage the storage cache before the external call: `call` and
+/// `delegate_call` flush (persist dirty values to persistent storage) and clear (drop the
+/// in-memory cache), while `static_call` flushes without clearing (since static calls
+/// cannot modify storage, the cache remains valid). These cache operations occur regardless
+/// of whether the `reentrant` feature is enabled. When using `RawCall` directly, the cache
+/// is **not** flushed automatically -- if you have pending storage writes that the callee
+/// might read, call `.flush_storage_cache()` to persist dirty values without dropping the
+/// cache, or `.clear_storage_cache()` to persist and drop the cache (matching what `call`
+/// and `delegate_call` do).
+///
+/// Regardless of call method, always follow the checks-effects-interactions pattern.
 ///
 /// # [`TopLevelStorage`]
 ///
@@ -416,7 +433,7 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
 /// [`sol_interface`]: macro@sol_interface
 /// [entrypoint]: macro@entrypoint
-/// [reentrant]: https://docs.rs/stylus-sdk/latest/stylus_sdk/msg/fn.reentrant.html
+/// [reentrant]: https://docs.rs/stylus-core/latest/stylus_core/host/trait.MessageAccess.html#tymethod.msg_reentrant
 /// [public]: macro@public
 /// [check]: https://github.com/OffchainLabs/cargo-stylus#developing-with-stylus
 #[proc_macro_attribute]
