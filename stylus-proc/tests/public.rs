@@ -89,46 +89,58 @@ impl Contract {
     }
 }
 
+// Each additional contract is placed in its own module to avoid `print_from_args`
+// name collisions under the `export-abi` feature (the macro generates one free
+// function per `#[public] impl`).
+
 // Fallback/receive/constructor are excluded from collision detection.
-#[storage]
-pub struct SpecialFnContract {}
+mod special_fn_test {
+    use super::*;
 
-#[public]
-impl SpecialFnContract {
-    fn regular(&self) -> Result<bool, Vec<u8>> {
-        Ok(true)
+    #[storage]
+    pub struct SpecialFnContract {}
+
+    #[public]
+    impl SpecialFnContract {
+        fn regular(&self) -> Result<bool, Vec<u8>> {
+            Ok(true)
+        }
+
+        #[fallback]
+        fn fallback(&mut self, _args: &[u8]) -> ArbResult {
+            Ok(vec![])
+        }
+
+        #[receive]
+        fn receive(&mut self) -> Result<(), Vec<u8>> {
+            Ok(())
+        }
+
+        #[constructor]
+        fn constructor(&mut self, _value: U256) {}
     }
-
-    #[fallback]
-    fn fallback(&mut self, _args: &[u8]) -> ArbResult {
-        Ok(vec![])
-    }
-
-    #[receive]
-    fn receive(&mut self) -> Result<(), Vec<u8>> {
-        Ok(())
-    }
-
-    #[constructor]
-    fn constructor(&mut self, _value: U256) {}
 }
 
 // Collision resolved via #[selector(name = "...")]: foo_bar and fooBar would both become
 // "fooBar" in Solidity (causing a collision), but #[selector(name = "fooBarAlt")] overrides
 // one function's ABI name to avoid it.
-#[storage]
-pub struct ResolvedCollisionContract {}
+mod resolved_collision_test {
+    use super::*;
 
-#[public]
-#[allow(non_snake_case)]
-impl ResolvedCollisionContract {
-    fn foo_bar(&self, _x: u64) -> Result<(), Vec<u8>> {
-        Ok(())
-    }
+    #[storage]
+    pub struct ResolvedCollisionContract {}
 
-    #[selector(name = "fooBarAlt")]
-    fn fooBar(&self, _x: u64) -> Result<(), Vec<u8>> {
-        Ok(())
+    #[public]
+    #[allow(non_snake_case)]
+    impl ResolvedCollisionContract {
+        fn foo_bar(&self, _x: u64) -> Result<(), Vec<u8>> {
+            Ok(())
+        }
+
+        #[selector(name = "fooBarAlt")]
+        fn fooBar(&self, _x: u64) -> Result<(), Vec<u8>> {
+            Ok(())
+        }
     }
 }
 

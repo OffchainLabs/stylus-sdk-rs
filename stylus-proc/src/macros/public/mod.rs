@@ -142,8 +142,14 @@ impl ToTokens for PublicTrait {
         // the user may see the error reported twice. Deduplication is not feasible because
         // the trait and impl are processed by separate proc-macro invocations that cannot
         // communicate.
-        for check in types::selector_collision_checks(&self.funcs) {
-            check.to_tokens(tokens);
+        //
+        // Skip checks for generic traits: the generic type parameters would not be in
+        // scope in the emitted `const _: ()` items. The concrete `impl Trait<...> for S`
+        // block will still emit its own collision checks with the resolved types.
+        if self.generic_params.is_empty() {
+            for check in types::selector_collision_checks(&self.funcs) {
+                check.to_tokens(tokens);
+            }
         }
     }
 }
@@ -153,8 +159,12 @@ impl ToTokens for PublicImpl {
         tokens.extend(self.struct_for_export_abi());
         tokens.extend(self.contract_client_gen());
         tokens.extend(self.print_from_args_fn());
-        for check in types::selector_collision_checks(&self.funcs) {
-            check.to_tokens(tokens);
+        // Skip collision checks for generic impl blocks: the emitted `const` items
+        // would reference type parameters that are not in scope at module level.
+        if self.generic_params.is_empty() {
+            for check in types::selector_collision_checks(&self.funcs) {
+                check.to_tokens(tokens);
+            }
         }
         self.impl_router().to_tokens(tokens);
         Extension::codegen(self).to_tokens(tokens);

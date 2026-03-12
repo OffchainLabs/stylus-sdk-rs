@@ -533,6 +533,7 @@ impl PublicImpl {
         let output = if let Some(trait_path) = &self.trait_ {
             quote! {
                 #[cfg(feature = "contract-client-gen")]
+                #[allow(non_snake_case)]
                 impl #trait_path for #struct_path {
                     #(#associated_types_definitions)*
                     #(#client_funcs_definitions)*
@@ -546,6 +547,7 @@ impl PublicImpl {
             quote! {
                 #[cfg(feature = "contract-client-gen")]
                 #[allow(clippy::needless_update)]
+                #[allow(non_snake_case)]
                 impl<#generic_params> #struct_path #where_clause {
                     pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self {
