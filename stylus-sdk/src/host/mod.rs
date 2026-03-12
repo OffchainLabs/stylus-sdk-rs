@@ -6,6 +6,18 @@
 //! a lot more testable, as the VM can be mocked and injected upon initialization
 //! of a storage type. Defines two implementations, one when the stylus-test feature
 //! is enabled and another that calls the actual HostIOs.
+//!
+//! # Allocator safety
+//!
+//! Several host I/O helpers use [`Vec::set_len`] on freshly-allocated buffers
+//! whose contents are then filled by the host. This is sound **only** when the
+//! allocator hands back zeroed memory (avoiding reads of uninitialised bytes).
+//! The default `mini-alloc` crate satisfies this because it is a bump allocator
+//! over fresh WebAssembly pages, which the Wasm spec guarantees are zero-filled.
+//! Using a different allocator that returns uninitialised memory may introduce
+//! undefined behaviour. If you disable the `mini-alloc` feature to supply your
+//! own allocator, ensure it zeroes newly-allocated pages or audit every
+//! `set_len` call site in this module.
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
@@ -267,8 +279,9 @@ impl RawLogAccess for VM {
 }
 
 /// WebAssembly host VM implementation that delegates to on-chain host I/O
-/// functions. Used as the backing host when the `stylus-test` feature is
-/// disabled (typically in `wasm32` builds).
+/// functions. This is the default host used by deployed contracts running
+/// on-chain. When the `stylus-test` feature is enabled, a mock host is
+/// used instead for native unit testing.
 #[derive(Clone, Debug, Default)]
 pub struct WasmVM {}
 
