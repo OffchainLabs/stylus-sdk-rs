@@ -3,18 +3,21 @@
 
 //! User-level trace command for Stylus contracts
 //!
-//! This command captures and visualizes user function calls in Stylus contracts
-//! using the stylusdb debugger with call tracing enabled.
+//! This command replays a transaction under `rust-stylusdb` with crate-filtered
+//! call tracing to visualize user function calls in Stylus contracts.
+//! The parent process spawns `rust-stylusdb` (an LLDB-based debugger), which
+//! re-invokes this command with `--child` to replay the transaction under
+//! call-tracing instrumentation.
 
 use alloy::providers::Provider;
-use eyre::bail;
+use eyre::{bail, Context};
 use std::{
     path::Path,
     process::{Command, Stdio},
 };
 use stylus_tools::{
     core::{build::BuildConfig, project::workspace::Workspace, tracing::Trace},
-    utils::{color::Color, sys},
+    utils::sys,
 };
 
 use crate::{
@@ -66,15 +69,27 @@ pub struct Args {
     enable_stylusdb_output: bool,
 }
 
-/// Derive the crate name from a shared library path
-fn derive_crate_name(shared_library: &Path) -> String {
+/// Derive the crate name from a shared library path by stripping the
+/// conventional `lib` prefix from the file stem (e.g., `libmy_contract.so` -> `my_contract`).
+fn derive_crate_name(shared_library: &Path) -> eyre::Result<String> {
     let stem = shared_library
         .file_stem()
-        .unwrap_or_default()
-        .to_string_lossy();
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "shared library path has no file stem: {}",
+                shared_library.display()
+            )
+        })?
+        .to_str()
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "shared library file stem is not valid UTF-8: {}",
+                shared_library.display()
+            )
+        })?;
 
-    let crate_name = stem.strip_prefix("lib").unwrap_or(&stem);
-    crate_name.to_string()
+    let crate_name = stem.strip_prefix("lib").unwrap_or(stem);
+    Ok(crate_name.to_string())
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
@@ -82,85 +97,89 @@ pub async fn exec(args: Args) -> CargoStylusResult {
 }
 
 async fn exec_inner(args: Args) -> eyre::Result<()> {
-    let macos = cfg!(target_os = "macos");
     let mut contracts = args.project.contracts()?;
-    if contracts.len() != 1 {
-        bail!("cargo stylus usertrace can only be executed on one contract at a time");
-    }
-    let contract = contracts.pop().unwrap();
+    let contract = match contracts.len() {
+        1 => contracts.pop().unwrap(),
+        _ => bail!("cargo stylus usertrace can only be executed on one contract at a time"),
+    };
 
-    // Build the shared library
     let config = BuildConfig {
         features: args.features.unwrap_or_default(),
         ..Default::default()
     };
+    // Build the WASM artifact. The native shared library (.so/.dylib) is located separately below.
     let _wasm = contract.build(&config)?;
 
     let target_dir = Workspace::current()?.metadata.target_directory;
-    let library_extension = if macos { ".dylib" } else { ".so" };
+    let library_extension = if cfg!(target_os = "macos") {
+        ".dylib"
+    } else {
+        ".so"
+    };
     let shared_library = find_shared_library(target_dir.as_ref(), library_extension)?;
-    let crate_name = derive_crate_name(&shared_library);
+    let crate_name = derive_crate_name(&shared_library)?;
 
     let provider = args.provider.build_provider().await?;
 
-    // Get the receipt & print the to-address
-    if let Some(receipt) = provider.get_transaction_receipt(args.trace.tx).await? {
-        if let Some(to_address) = receipt.to {
-            println!("Tracing contract at address: \x1b[1;32m{to_address:?}\x1b[0m");
-        } else {
-            eprintln!("Warning: tx {} has no 'to' address", args.trace.tx);
-        }
-    } else {
-        eprintln!("Warning: no receipt found for tx {}", args.trace.tx);
-    }
-
-    // Build the stylusdb calltrace command
-    let mut crates_to_trace = vec![crate_name];
-    if args.verbose_usertrace {
-        crates_to_trace.push("stylus_sdk".to_string());
-    }
-    crates_to_trace.extend(args.trace_external_usertrace.clone());
-    let pattern = format!("^({})::", crates_to_trace.join("|"));
-    let calltrace_cmd = format!("calltrace start '{pattern}'");
-
-    // Non-child: spawn stylusdb + pretty-print
+    // Parent process: spawn rust-stylusdb, which re-invokes this binary with --child.
+    // After stylusdb exits, pretty-print the trace file it produced.
     if !args.child {
-        // Remove any stale LLDB trace
-        let _ = std::fs::remove_file("/tmp/lldb_function_trace.json");
-
-        // Invoke stylusdb
-        let (cmd_name, cmd_args) = if sys::command_exists("rust-stylusdb") {
-            (
-                "rust-stylusdb",
-                &[
-                    "-o",
-                    "b user_entrypoint",
-                    "-o",
-                    "r",
-                    "-o",
-                    &calltrace_cmd,
-                    "-o",
-                    "c",
-                    "-o",
-                    "calltrace stop",
-                    "-o",
-                    "q",
-                    "--",
-                ][..],
+        let receipt = provider
+            .get_transaction_receipt(args.trace.tx)
+            .await?
+            .ok_or_else(|| eyre::eyre!("no receipt found for tx {}", args.trace.tx))?;
+        let to_address = receipt.to.ok_or_else(|| {
+            eyre::eyre!(
+                "tx {} has no 'to' address (contract creation transactions cannot be traced)",
+                args.trace.tx
             )
-        } else {
-            bail!("rust-stylusdb not installed");
-        };
+        })?;
+        println!("Tracing contract at address: \x1b[1;32m{to_address:?}\x1b[0m");
 
-        let mut dbg_cmd = Command::new(cmd_name);
-        dbg_cmd.args(cmd_args);
-
-        // Forward all original args and append child flag
-        for a in std::env::args() {
-            dbg_cmd.arg(a);
+        let mut crates_to_trace = vec![crate_name];
+        if args.verbose_usertrace {
+            crates_to_trace.push("stylus_sdk".to_string());
         }
+        crates_to_trace.extend(args.trace_external_usertrace);
+        println!("Filtering trace to crates: {}", crates_to_trace.join(", "));
+        let pattern = format!("^({})::", crates_to_trace.join("|"));
+        let calltrace_cmd = format!("calltrace start '{pattern}'");
+        // The trace file path is hardcoded to match what stylusdb writes
+        // internally; changing it requires a coordinated update to rust-stylusdb.
+        let trace_file = "/tmp/lldb_function_trace.json";
+        match std::fs::remove_file(trace_file) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => bail!("failed to remove stale trace file {trace_file}: {e}"),
+        }
+
+        if !sys::command_exists("rust-stylusdb") {
+            bail!("rust-stylusdb not installed");
+        }
+
+        let mut dbg_cmd = Command::new("rust-stylusdb");
+        dbg_cmd.args([
+            "-o",
+            "b user_entrypoint",
+            "-o",
+            "r",
+            "-o",
+            &calltrace_cmd,
+            "-o",
+            "c",
+            "-o",
+            "calltrace stop",
+            "-o",
+            "q",
+            "--",
+        ]);
+
+        dbg_cmd.args(std::env::args());
         dbg_cmd.arg("--child");
 
+        // Silence stylusdb by default for cleaner output. This redirects
+        // stdin, stdout, and stderr to null; use --enable-stylusdb-output
+        // to preserve them.
         if !args.enable_stylusdb_output {
             dbg_cmd
                 .stdin(Stdio::null())
@@ -168,22 +187,45 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
                 .stderr(Stdio::null());
         }
 
-        let status = dbg_cmd.status()?;
+        let status = dbg_cmd
+            .status()
+            .context("failed to execute rust-stylusdb")?;
         if !status.success() {
-            bail!("stylusdb returned {}", status);
+            bail!(
+                "stylusdb returned {}; re-run with --enable-stylusdb-output for diagnostics",
+                status
+            );
         }
 
-        // Now pretty-print the trace
-        let mut pp = Command::new("pretty-print-trace");
-        pp.arg("/tmp/lldb_function_trace.json");
+        // Best-effort symlink check: an attacker could place a symlink after
+        // remove_file but before stylusdb runs, so this only detects — not
+        // prevents — the attack.
+        let metadata = std::fs::symlink_metadata(trace_file)
+            .with_context(|| format!("failed to stat trace file {trace_file}"))?;
+        if !metadata.file_type().is_file() {
+            bail!(
+                "trace file {trace_file} is not a regular file (possible symlink attack). \
+                 WARNING: stylusdb may have already written through the symlink; \
+                 inspect the symlink target for unauthorized modifications"
+            );
+        }
 
-        let mut child = pp.spawn()?;
-        let _ = child.wait();
+        let status = Command::new("pretty-print-trace")
+            .arg(trace_file)
+            .status()
+            .context("failed to execute pretty-print-trace (is it installed?)")?;
+        if !status.success() {
+            bail!(
+                "pretty-print-trace failed with {}; the raw trace file may still be available at {trace_file}",
+                status
+            );
+        }
 
         return Ok(());
     }
 
-    // Replay the WASM (child process)
+    // Child process: replay the transaction by calling user_entrypoint in the
+    // native shared library, running under stylusdb's call-tracing instrumentation.
     let trace = Trace::new(args.trace.tx, &args.trace.config, &provider).await?;
     let Some(input_args) = trace.tx().input.input() else {
         bail!("missing transaction input");
@@ -194,13 +236,19 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         *hostio::FRAME.lock() = Some(trace.reader());
 
         type Entrypoint = unsafe extern "C" fn(usize) -> usize;
-        let lib = libloading::Library::new(shared_library)?;
-        let main: libloading::Symbol<Entrypoint> = lib.get(b"user_entrypoint")?;
+        let lib = libloading::Library::new(&shared_library).with_context(|| {
+            format!("failed to load shared library {}", shared_library.display())
+        })?;
+        let main: libloading::Symbol<Entrypoint> = lib.get(b"user_entrypoint")
+            .with_context(|| format!(
+                "shared library {} does not export 'user_entrypoint' -- was the contract built correctly?",
+                shared_library.display()
+            ))?;
 
         match main(args_len) {
             0 => println!("call completed successfully"),
             1 => println!("call reverted"),
-            x => println!("call exited with unknown status code: {}", x.red()),
+            x => bail!("call exited with unknown status code: {}", x),
         }
     }
 
