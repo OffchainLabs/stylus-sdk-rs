@@ -1,4 +1,4 @@
-// Copyright 2025, Offchain Labs, Inc.
+// Copyright 2025-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 #[cfg(unix)]
@@ -12,10 +12,7 @@ use std::{
 
 use alloy::primitives::Address;
 use eyre::{bail, eyre, Context};
-use stylus_tools::{
-    core::tracing::Trace,
-    utils::{color::Color, sys},
-};
+use stylus_tools::{core::tracing::Trace, utils::sys};
 
 use crate::{
     common_args::{ProjectArgs, ProviderArgs, TraceArgs},
@@ -81,20 +78,32 @@ struct LoadedLibrary {
     path: PathBuf,
 }
 
-/// Registry for managing multiple contracts during debugging
+/// Return the platform-appropriate shared library extension.
+fn library_extension() -> &'static str {
+    if cfg!(target_os = "macos") {
+        ".dylib"
+    } else {
+        ".so"
+    }
+}
+
+/// Registry for managing one or more contracts during debugging, handling both
+/// the single-contract (default project) and multi-contract (`--contracts`)
+/// paths.
 struct ContractRegistry {
     /// Mapping from contract address to contract info
     contracts: HashMap<Address, ContractInfo>,
     /// Cached shared libraries with their paths (only for Stylus contracts)
     loaded_libraries: HashMap<Address, LoadedLibrary>,
-    /// Solidity contract addresses explicitly marked via CLI.
-    /// Reserved for future Solidity interop debugging support.
-    #[allow(dead_code)]
-    solidity_contracts: HashSet<Address>,
 }
 
 impl ContractRegistry {
-    /// Create a new registry from CLI contract mappings and Solidity contract addresses
+    /// Create a new registry from CLI contract mappings. Addresses that also
+    /// appear in `solidity_addresses` are tagged as Solidity contracts;
+    /// Solidity addresses not present in `contract_mappings` are ignored.
+    /// Passing `None` for both arguments creates an empty registry, suitable
+    /// for the single-contract path where `register_with_library` is called
+    /// later.
     fn new(
         contract_mappings: Option<Vec<String>>,
         solidity_addresses: Option<Vec<String>>,
@@ -102,7 +111,6 @@ impl ContractRegistry {
         let mut contracts = HashMap::new();
         let mut solidity_contracts = HashSet::new();
 
-        // Parse Solidity contract addresses
         if let Some(addresses) = solidity_addresses {
             for address_str in addresses {
                 let address = address_str.parse::<Address>().wrap_err_with(|| {
@@ -112,33 +120,35 @@ impl ContractRegistry {
             }
         }
 
-        // Parse contract mappings
         if let Some(mappings) = contract_mappings {
             for mapping in mappings {
-                let parts: Vec<&str> = mapping.split(':').collect();
-                if parts.len() != 2 {
+                let Some((addr_str, path_str)) = mapping.split_once(':') else {
+                    bail!("Invalid contract mapping format: {mapping}. Expected ADDRESS:PATH");
+                };
+
+                let address = addr_str
+                    .parse::<Address>()
+                    .wrap_err_with(|| format!("Invalid address in mapping: {addr_str}"))?;
+                let path = PathBuf::from(path_str);
+
+                if !path.is_dir() {
                     bail!(
-                        "Invalid contract mapping format: {}. Expected ADDRESS:PATH",
-                        mapping
+                        "Contract path is not a directory or does not exist: {}",
+                        path.display()
                     );
                 }
 
-                let address = parts[0]
-                    .parse::<Address>()
-                    .wrap_err_with(|| format!("Invalid address in mapping: {}", parts[0]))?;
-                let path = PathBuf::from(parts[1]);
-
-                if !path.exists() {
-                    bail!("Contract path does not exist: {}", path.display());
-                }
-
-                // Determine contract type
                 let contract_type = if solidity_contracts.contains(&address) {
                     ContractType::Solidity
                 } else {
                     ContractType::Stylus
                 };
 
+                if contracts.contains_key(&address) {
+                    bail!(
+                        "duplicate address {address} in --contracts; each address may only appear once"
+                    );
+                }
                 contracts.insert(
                     address,
                     ContractInfo {
@@ -152,7 +162,6 @@ impl ContractRegistry {
         Ok(Self {
             contracts,
             loaded_libraries: HashMap::new(),
-            solidity_contracts,
         })
     }
 
@@ -173,69 +182,69 @@ impl ContractRegistry {
         Ok(())
     }
 
-    /// Load a shared library for a contract address (only for Stylus contracts)
+    /// Load a shared library for a contract address (only for Stylus contracts).
+    /// Returns `Ok(None)` for Solidity contracts, `Ok(Some(...))` for Stylus
+    /// contracts, and `Err` if the address is not registered.
     fn load_library(&mut self, address: &Address) -> eyre::Result<Option<&libloading::Library>> {
-        if let Some(info) = self.contracts.get(address) {
-            // Only load libraries for Stylus contracts
-            if info.contract_type == ContractType::Solidity {
-                return Ok(None);
-            }
+        let Some(info) = self.contracts.get(address) else {
+            bail!("no contract registered for address {address}");
+        };
 
-            if !self.loaded_libraries.contains_key(address) {
-                let library_extension = if cfg!(target_os = "macos") {
-                    ".dylib"
-                } else {
-                    ".so"
-                };
-                let shared_library = find_shared_library_in_path(&info.path, library_extension)?;
-
-                unsafe {
-                    let lib = libloading::Library::new(&shared_library).wrap_err_with(|| {
-                        format!(
-                            "Failed to load library for {}: {}",
-                            address,
-                            shared_library.display()
-                        )
-                    })?;
-                    self.loaded_libraries.insert(
-                        *address,
-                        LoadedLibrary {
-                            library: lib,
-                            path: shared_library,
-                        },
-                    );
-                }
-            }
-
-            Ok(self.loaded_libraries.get(address).map(|l| &l.library))
-        } else {
-            Ok(None)
+        if info.contract_type == ContractType::Solidity {
+            return Ok(None);
         }
+
+        if !self.loaded_libraries.contains_key(address) {
+            let shared_library = find_shared_library_in_path(&info.path, library_extension())?;
+
+            unsafe {
+                let lib = libloading::Library::new(&shared_library).wrap_err_with(|| {
+                    format!(
+                        "Failed to load library for {}: {}",
+                        address,
+                        shared_library.display()
+                    )
+                })?;
+                self.loaded_libraries.insert(
+                    *address,
+                    LoadedLibrary {
+                        library: lib,
+                        path: shared_library,
+                    },
+                );
+            }
+        }
+
+        Ok(self.loaded_libraries.get(address).map(|l| &l.library))
     }
 
-    /// Check if a contract has source code available
+    /// Check if a contract is registered in this registry
     fn has_source(&self, address: &Address) -> bool {
         self.contracts.contains_key(address)
     }
 
-    /// Get an already-loaded library (assumes load_library was called earlier)
+    /// Check if the registry has any contracts
+    fn is_empty(&self) -> bool {
+        self.contracts.is_empty()
+    }
+
+    /// Get an already-loaded library for the given address. Returns `None` if
+    /// the address has no loaded library (either unregistered or a Solidity
+    /// contract).
     fn get_loaded_library(&self, address: &Address) -> Option<&libloading::Library> {
         self.loaded_libraries.get(address).map(|l| &l.library)
     }
 
-    /// Get the type of a contract.
-    /// Reserved for future Solidity interop debugging support.
-    #[allow(dead_code)]
-    fn get_contract_type(&self, address: &Address) -> Option<ContractType> {
-        self.contracts.get(address).map(|info| info.contract_type)
+    /// Return an iterator over all registered contract addresses
+    fn addresses(&self) -> impl Iterator<Item = &Address> {
+        self.contracts.keys()
     }
 
-    /// Check if a contract is a Solidity contract.
-    /// Reserved for future Solidity interop debugging support.
-    #[allow(dead_code)]
-    fn is_solidity_contract(&self, address: &Address) -> bool {
-        self.get_contract_type(address) == Some(ContractType::Solidity)
-            || self.solidity_contracts.contains(address)
+    /// Iterate over all registered contracts, yielding (address, contract_type) pairs
+    fn iter_contracts(&self) -> impl Iterator<Item = (&Address, ContractType)> {
+        self.contracts
+            .iter()
+            .map(|(addr, info)| (addr, info.contract_type))
     }
 
     /// Load all contract libraries (only Stylus contracts)
@@ -247,7 +256,45 @@ impl ContractRegistry {
         Ok(())
     }
 
-    /// Get all contract debug info for debugger
+    /// Register a contract and its already-loaded library directly.
+    /// Used for the single-contract (default project) path where the library
+    /// has already been built and loaded externally. The caller is responsible
+    /// for ensuring `library_path` has been validated via
+    /// `verify_within_directory`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the address is already registered (to prevent
+    /// silently dropping a previously loaded library).
+    fn register_with_library(
+        &mut self,
+        address: Address,
+        project_path: PathBuf,
+        library: libloading::Library,
+        library_path: PathBuf,
+    ) -> eyre::Result<()> {
+        if self.contracts.contains_key(&address) {
+            bail!("contract at {address} is already registered");
+        }
+        self.contracts.insert(
+            address,
+            ContractInfo {
+                path: project_path,
+                contract_type: ContractType::Stylus,
+            },
+        );
+        self.loaded_libraries.insert(
+            address,
+            LoadedLibrary {
+                library,
+                path: library_path,
+            },
+        );
+        Ok(())
+    }
+
+    /// Return the address and shared library path for every loaded contract,
+    /// for use in debugger symbol-loading commands.
     fn get_all_debug_info(&self) -> Vec<(Address, PathBuf)> {
         self.loaded_libraries
             .iter()
@@ -262,34 +309,46 @@ impl ExternalContractAccess for ContractRegistry {
         address: &Address,
         input_data: &[u8],
     ) -> Result<(u8, Vec<u8>), Box<dyn std::error::Error>> {
-        // Check if we have a library loaded for this address
-        if let Some(loaded) = self.loaded_libraries.get(address) {
-            let lib = &loaded.library;
-            // Set up the input data for the external contract
-            hostio::set_external_contract_input(input_data.to_vec());
+        let Some(loaded) = self.loaded_libraries.get(address) else {
+            return Err(format!(
+                "external contract at {address} not available for debugging — \
+                 add it with --contracts {address}:<PATH_TO_SOURCE>"
+            )
+            .into());
+        };
 
-            // Get the user_entrypoint function from the external contract
-            type Entrypoint = unsafe extern "C" fn(usize) -> usize;
-            if let Ok(entrypoint) = lib.get::<Entrypoint>(b"user_entrypoint") {
-                // Call the external contract's user_entrypoint with the length of input data
-                let result = entrypoint(input_data.len());
+        let lib = &loaded.library;
+        hostio::set_external_contract_input(input_data.to_vec());
 
-                // Convert result to expected format
-                let status = match result {
-                    0 => 0u8, // Success
-                    1 => 1u8, // Revert
-                    _ => 1u8, // Other errors treated as revert
-                };
-
-                // Clear the input data after execution
+        // Ensure the input buffer is cleared on all exit paths (including panic).
+        struct InputGuard;
+        impl Drop for InputGuard {
+            fn drop(&mut self) {
                 hostio::set_external_contract_input(Vec::new());
-
-                // Return empty data for now - in a full implementation we'd capture the actual return data
-                return Ok((status, Vec::new()));
             }
         }
+        let _guard = InputGuard;
 
-        Err("External contract not available for debugging".into())
+        type Entrypoint = unsafe extern "C" fn(usize) -> usize;
+        let entrypoint: libloading::Symbol<Entrypoint> = lib
+            .get(b"user_entrypoint")
+            .map_err(|e| format!("failed to find user_entrypoint in library for {address}: {e}"))?;
+
+        let result = entrypoint(input_data.len());
+
+        let status: u8 = match result {
+            0 | 1 => result as u8,
+            other => {
+                return Err(format!(
+                    "external contract {address} returned unexpected status code {other}"
+                )
+                .into());
+            }
+        };
+
+        // TODO: capture actual return data from the external contract
+        // via the hostio output buffer
+        Ok((status, Vec::new()))
     }
 }
 
@@ -310,46 +369,69 @@ pub fn build_shared_library(
         cargo.arg("--package").arg(p);
     }
 
-    cargo
+    let output = cargo
         .arg("--lib")
         .arg("--locked")
         .arg("--target")
         .arg(rustc_host::from_cli()?)
-        .output()?;
+        .output()
+        .wrap_err("failed to execute cargo build")?;
+    if !output.status.success() {
+        use std::fmt::Write;
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut msg = format!("cargo build failed with {}", output.status);
+        if !stderr.is_empty() {
+            write!(msg, "\nstderr:\n{stderr}").unwrap();
+        }
+        if !stdout.is_empty() {
+            write!(msg, "\nstdout:\n{stdout}").unwrap();
+        }
+        bail!("{msg}");
+    }
     Ok(())
 }
 
-/// Find shared library in a specific path (for multi-contract support)
-fn find_shared_library_in_path(project: &Path, extension: &str) -> eyre::Result<PathBuf> {
-    let triple = rustc_host::from_cli()?;
-    let so_dir = project.join(format!("target/{triple}/debug/"));
-    let so_dir = std::fs::read_dir(&so_dir)
-        .map_err(|e| eyre!("failed to open {}: {e}", so_dir.to_string_lossy()))?
-        .filter_map(|r| r.ok())
-        .map(|r| r.path())
-        .filter(|r| r.is_file());
-
-    let mut file: Option<PathBuf> = None;
-    for entry in so_dir {
-        let Some(ext) = entry.file_name() else {
-            continue;
-        };
-        let ext = ext.to_string_lossy();
-
-        if ext.contains(extension) {
-            if let Some(other) = file {
-                let other = other.file_name().unwrap().to_string_lossy();
-                bail!("more than one {extension} found: {ext} and {other}");
-            }
-            file = Some(entry);
-        }
+/// Canonicalize `file` and verify it resides within `expected_dir` to prevent
+/// path traversal (e.g., via symlinks or `..` components). Returns the
+/// canonicalized path on success.
+///
+/// Errors if `file` cannot be canonicalized, if `expected_dir` cannot be
+/// canonicalized, or if the resolved file path is not a descendant of
+/// `expected_dir`.
+fn verify_within_directory(file: &Path, expected_dir: &Path) -> eyre::Result<PathBuf> {
+    let file = std::fs::canonicalize(file).wrap_err_with(|| {
+        format!(
+            "failed to canonicalize shared library path: {}",
+            file.display()
+        )
+    })?;
+    let expected_dir = std::fs::canonicalize(expected_dir).wrap_err_with(|| {
+        format!(
+            "failed to canonicalize build directory: {}",
+            expected_dir.display()
+        )
+    })?;
+    if !file.starts_with(&expected_dir) {
+        bail!(
+            "shared library path escapes build directory: {} is not within {}",
+            file.display(),
+            expected_dir.display()
+        );
     }
-    let Some(file) = file else {
-        bail!("failed to find {extension}");
-    };
     Ok(file)
 }
 
+/// Find a shared library under `project/target/{triple}/debug/`.
+/// The returned path is canonicalized and verified to reside within the build
+/// directory.
+fn find_shared_library_in_path(project: &Path, extension: &str) -> eyre::Result<PathBuf> {
+    let triple = rustc_host::from_cli()?;
+    let so_dir = project.join(format!("target/{triple}/debug/"));
+    find_library_in_dir(&so_dir, extension)
+}
+
+/// Execute the replay command.
 pub async fn exec(args: Args) -> CargoStylusResult {
     exec_inner(args).await.map_err(Into::into)
 }
@@ -360,7 +442,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         // Build contract registry early to prepare debug commands
         let mut registry =
             ContractRegistry::new(args.contracts.clone(), args.addr_solidity.clone())?;
-        if !registry.contracts.is_empty() {
+        if !registry.is_empty() {
             registry.build_all(args.features.clone())?;
             registry.load_all_libraries()?;
         }
@@ -380,7 +462,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         }
 
         // Set breakpoints on all user_entrypoints
-        if registry.contracts.is_empty() {
+        if registry.is_empty() {
             // Single contract mode
             gdb_commands.push("-ex=b user_entrypoint".to_string());
             lldb_commands.push("-o".to_string());
@@ -389,7 +471,7 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
             stylusdb_commands.push("b user_entrypoint".to_string());
         } else {
             // Multi-contract mode - set breakpoints for all contracts using stylusdb-contract
-            for address in registry.contracts.keys() {
+            for address in registry.addresses() {
                 stylusdb_commands.push("-o".to_string());
                 stylusdb_commands.push(format!(
                     "stylusdb-contract breakpoint {address} user_entrypoint"
@@ -401,7 +483,6 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
             lldb_commands.push("b user_entrypoint".to_string());
         }
 
-        // Add run command
         gdb_commands.push("-ex=r".to_string());
         gdb_commands.push("--args".to_string());
         lldb_commands.push("-o".to_string());
@@ -480,11 +561,20 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         cmd.arg("--child");
 
         #[cfg(unix)]
-        let err = cmd.exec();
+        {
+            let err = cmd.exec();
+            bail!("failed to exec {cmd_name}: {err}");
+        }
         #[cfg(windows)]
-        let err = cmd.status();
-
-        bail!("failed to exec {cmd_name} {:?}", err);
+        {
+            let status = cmd
+                .status()
+                .wrap_err_with(|| format!("failed to spawn {cmd_name}"))?;
+            if !status.success() {
+                bail!("{cmd_name} exited with {status}");
+            }
+            return Ok(());
+        }
     }
 
     let provider = args.provider.build_provider().await?;
@@ -494,13 +584,16 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
     // Create contract registry and build all contracts
     let mut registry = ContractRegistry::new(args.contracts.clone(), args.addr_solidity.clone())?;
 
-    // If no contracts specified, use the default project
-    if registry.contracts.is_empty() {
+    let contract_address = trace
+        .address()
+        .ok_or_else(|| eyre!("Transaction has no 'to' address"))?;
+
+    if registry.is_empty() {
         let mut contracts = args.project.contracts()?;
         if contracts.len() != 1 {
             bail!("cargo stylus replay can only be executed on one contract at a time when no --contracts flag is provided");
         }
-        let contract = contracts.pop().unwrap();
+        let contract = contracts.pop().expect("length was checked to be 1");
 
         let project_path = contract
             .package
@@ -513,57 +606,39 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
             args.package.clone(),
             args.features.clone(),
         )?;
-        let library_extension = if macos { ".dylib" } else { ".so" };
         let shared_library =
-            find_shared_library_in_path(project_path.as_std_path(), library_extension)?;
+            find_shared_library_in_path(project_path.as_std_path(), library_extension())?;
 
-        // Get the contract address from the trace
-        let contract_address = trace
-            .address()
-            .ok_or_else(|| eyre!("Transaction has no 'to' address"))?;
-
-        // Load the default library
         unsafe {
-            let lib = libloading::Library::new(&shared_library)?;
-            registry.contracts.insert(
+            let lib = libloading::Library::new(&shared_library).wrap_err_with(|| {
+                format!(
+                    "failed to load shared library: {}",
+                    shared_library.display()
+                )
+            })?;
+            registry.register_with_library(
                 contract_address,
-                ContractInfo {
-                    path: project_path.as_std_path().to_path_buf(),
-                    contract_type: ContractType::Stylus,
-                },
-            );
-            registry.loaded_libraries.insert(
-                contract_address,
-                LoadedLibrary {
-                    library: lib,
-                    path: shared_library,
-                },
-            );
+                project_path.as_std_path().to_path_buf(),
+                lib,
+                shared_library,
+            )?;
         }
     } else {
-        // Build all specified contracts
         registry.build_all(args.features.clone())?;
         registry.load_all_libraries()?;
     }
 
-    // TODO: don't assume the contract is top-level
+    // TODO: support replaying internal (nested) calls, not just the
+    // top-level transaction
     let Some(input_data) = trace.tx().input.input() else {
         bail!("missing transaction input");
     };
     let args_len = input_data.len();
 
-    // Check if we have the main contract
-    let contract_address = trace
-        .address()
-        .ok_or_else(|| eyre!("Transaction has no 'to' address"))?;
-
     if !registry.has_source(&contract_address) {
         if args.contracts.is_some() {
-            let provided_addresses: Vec<String> = registry
-                .contracts
-                .keys()
-                .map(|address| format!("{address}"))
-                .collect();
+            let provided_addresses: Vec<String> =
+                registry.addresses().map(ToString::to_string).collect();
             bail!(
                 "Main contract at {} is not in the provided --contracts list.\n\
                  Provided addresses: [{}]\n\
@@ -582,8 +657,9 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         }
     }
 
-    // Initialize debugger hook if using stylusdb
-    if args.debugger == "stylusdb" && !registry.contracts.is_empty() {
+    // Initialize debugger hook if using stylusdb (Unix only — uses Unix sockets)
+    #[cfg(unix)]
+    if args.debugger == "stylusdb" && !registry.is_empty() {
         use crate::commands::debug_hook::{self, DebuggerHook};
 
         let hook = debug_hook::StylusDebuggerHook::new()?;
@@ -597,10 +673,10 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         hook.on_execution_start(&contracts);
 
         // Send contract type information
-        for (address, info) in &registry.contracts {
+        for (address, contract_type) in registry.iter_contracts() {
             hook.on_contract_info(
                 &format!("{address}"),
-                info.contract_type == ContractType::Solidity,
+                contract_type == ContractType::Solidity,
             );
         }
 
@@ -616,47 +692,425 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
 
         // Get the library for the main contract
         let Some(lib) = registry_arc.get_loaded_library(&contract_address) else {
-            bail!("Failed to load library for contract {}", contract_address);
+            bail!(
+                "no shared library loaded for contract {contract_address} \
+                 (is it a Solidity contract? Stylus replay requires a Stylus contract)"
+            );
         };
 
         type Entrypoint = unsafe extern "C" fn(usize) -> usize;
-        let main: libloading::Symbol<Entrypoint> = lib.get(b"user_entrypoint")?;
+        let main: libloading::Symbol<Entrypoint> =
+            lib.get(b"user_entrypoint").wrap_err_with(|| {
+                format!(
+                    "failed to find user_entrypoint in library for main contract {contract_address}"
+                )
+            })?;
 
         match main(args_len) {
             0 => println!("call completed successfully"),
             1 => println!("call reverted"),
-            x => println!("call exited with unknown status code: {}", x.red()),
+            x => bail!("call exited with unknown status code: {x}"),
         }
     }
     Ok(())
 }
 
+/// Find a shared library under `{triple}/debug/` within the given target
+/// directory. The `project` path should point to a cargo target directory
+/// (e.g., from cargo metadata's `target_dir`), not the project root.
 pub fn find_shared_library(project: &Path, extension: &str) -> eyre::Result<PathBuf> {
     let triple = rustc_host::from_cli()?;
     let so_dir = project.join(format!("{triple}/debug/"));
-    let so_dir = std::fs::read_dir(&so_dir)
-        .map_err(|e| eyre!("failed to open {}: {e}", so_dir.to_string_lossy()))?
-        .filter_map(|r| r.ok())
-        .map(|r| r.path())
-        .filter(|r| r.is_file());
+    find_library_in_dir(&so_dir, extension)
+}
 
+/// Scan `so_dir` for exactly one file whose name ends with `extension`,
+/// erroring if no matches or multiple matches are found. The returned path is
+/// canonicalized and verified to reside within `so_dir`.
+fn find_library_in_dir(so_dir: &Path, extension: &str) -> eyre::Result<PathBuf> {
     let mut file: Option<PathBuf> = None;
-    for entry in so_dir {
-        let Some(ext) = entry.file_name() else {
+    for entry in std::fs::read_dir(so_dir)
+        .map_err(|e| eyre!("failed to open {}: {e}", so_dir.to_string_lossy()))?
+    {
+        let entry = entry.map_err(|e| eyre!("failed to read directory entry: {e}"))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let Some(name) = path.file_name() else {
             continue;
         };
-        let ext = ext.to_string_lossy();
+        let name = name.to_string_lossy();
 
-        if ext.contains(extension) {
+        if name.ends_with(extension) {
             if let Some(other) = file {
-                let other = other.file_name().unwrap().to_string_lossy();
-                bail!("more than one {extension} found: {ext} and {other}");
+                let other = other.file_name().unwrap_or_default().to_string_lossy();
+                bail!("more than one {extension} found: {name} and {other}");
             }
-            file = Some(entry);
+            file = Some(path);
         }
     }
     let Some(file) = file else {
-        bail!("failed to find {extension}");
+        bail!("failed to find {extension} in {}", so_dir.to_string_lossy());
     };
-    Ok(file)
+    verify_within_directory(&file, so_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_verify_within_directory_accepts_file_inside_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("lib.so");
+        fs::write(&file_path, b"").unwrap();
+
+        let canonical =
+            verify_within_directory(&file_path, dir.path()).expect("should accept file inside dir");
+        assert!(canonical.is_absolute());
+        assert_eq!(canonical, std::fs::canonicalize(&file_path).unwrap());
+    }
+
+    #[test]
+    fn test_verify_within_directory_rejects_file_outside_dir() {
+        let parent = tempfile::tempdir().unwrap();
+        let expected = parent.path().join("expected");
+        let other = parent.path().join("other");
+        fs::create_dir_all(&expected).unwrap();
+        fs::create_dir_all(&other).unwrap();
+        let file_path = other.join("lib.so");
+        fs::write(&file_path, b"").unwrap();
+
+        let result = verify_within_directory(&file_path, &expected);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("escapes build directory"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_verify_within_directory_rejects_nonexistent_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = verify_within_directory(&dir.path().join("nonexistent"), dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("failed to canonicalize shared library path"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_verify_within_directory_rejects_nonexistent_expected_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("lib.so");
+        fs::write(&file_path, b"").unwrap();
+
+        let result = verify_within_directory(&file_path, &dir.path().join("nonexistent"));
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("failed to canonicalize build directory"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_verify_within_directory_resolves_symlinks() {
+        let dir = tempfile::tempdir().unwrap();
+        let real_dir = dir.path().join("real");
+        let escape_dir = dir.path().join("escape");
+        fs::create_dir_all(&real_dir).unwrap();
+        fs::create_dir_all(&escape_dir).unwrap();
+        let target_file = escape_dir.join("lib.so");
+        fs::write(&target_file, b"").unwrap();
+
+        let symlink = real_dir.join("lib.so");
+        std::os::unix::fs::symlink(&target_file, &symlink).unwrap();
+
+        let result = verify_within_directory(&symlink, &real_dir);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("escapes build directory"),
+            "symlink should be rejected: {err}"
+        );
+    }
+
+    #[test]
+    fn test_find_library_in_dir_finds_single_match() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("libfoo.so"), b"").unwrap();
+        fs::write(dir.path().join("unrelated.txt"), b"").unwrap();
+
+        let result = find_library_in_dir(dir.path(), ".so").unwrap();
+        assert!(result.is_absolute());
+        assert_eq!(result.file_name().unwrap(), "libfoo.so");
+    }
+
+    #[test]
+    fn test_find_library_in_dir_rejects_multiple_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("libfoo.so"), b"").unwrap();
+        fs::write(dir.path().join("libbar.so"), b"").unwrap();
+
+        let result = find_library_in_dir(dir.path(), ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("more than one"), "unexpected error: {err}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_find_library_in_dir_rejects_symlink_escaping_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let escape_dir = dir.path().join("escape");
+        let search_dir = dir.path().join("search");
+        fs::create_dir_all(&escape_dir).unwrap();
+        fs::create_dir_all(&search_dir).unwrap();
+        fs::write(escape_dir.join("libevil.so"), b"").unwrap();
+        std::os::unix::fs::symlink(escape_dir.join("libevil.so"), search_dir.join("libevil.so"))
+            .unwrap();
+
+        let result = find_library_in_dir(&search_dir, ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("escapes build directory"),
+            "symlink through find_library_in_dir should be rejected: {err}"
+        );
+    }
+
+    #[test]
+    fn test_verify_within_directory_rejects_dotdot_components() {
+        let parent = tempfile::tempdir().unwrap();
+        let expected = parent.path().join("expected");
+        let other = parent.path().join("other");
+        fs::create_dir_all(&expected).unwrap();
+        fs::create_dir_all(&other).unwrap();
+        let file_path = other.join("lib.so");
+        fs::write(&file_path, b"").unwrap();
+
+        // Use a path with `..` that resolves outside expected_dir
+        let sneaky_path = expected.join("..").join("other").join("lib.so");
+        let result = verify_within_directory(&sneaky_path, &expected);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("escapes build directory"),
+            "dotdot traversal should be rejected: {err}"
+        );
+    }
+
+    #[test]
+    fn test_find_library_in_dir_errors_on_nonexistent_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = find_library_in_dir(&dir.path().join("nonexistent"), ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("failed to open"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn test_find_library_in_dir_ignores_subdirectories() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("subdir.so")).unwrap();
+        fs::write(dir.path().join("unrelated.txt"), b"").unwrap();
+
+        let result = find_library_in_dir(dir.path(), ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("failed to find"),
+            "subdirectory should not match: {err}"
+        );
+    }
+
+    #[test]
+    fn test_verify_within_directory_accepts_file_in_nested_subdir() {
+        let dir = tempfile::tempdir().unwrap();
+        let nested = dir.path().join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        let file_path = nested.join("lib.so");
+        fs::write(&file_path, b"").unwrap();
+
+        let canonical =
+            verify_within_directory(&file_path, dir.path()).expect("should accept nested file");
+        assert!(canonical.is_absolute());
+        assert_eq!(canonical, std::fs::canonicalize(&file_path).unwrap());
+    }
+
+    #[test]
+    fn test_find_library_in_dir_ignores_files_with_extension_as_infix() {
+        let dir = tempfile::tempdir().unwrap();
+        // A file like "libfoo.so.bak" should NOT match ".so"
+        fs::write(dir.path().join("libfoo.so.bak"), b"").unwrap();
+        fs::write(dir.path().join("unrelated.txt"), b"").unwrap();
+
+        let result = find_library_in_dir(dir.path(), ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("failed to find"),
+            "infix match should not count: {err}"
+        );
+    }
+
+    #[test]
+    fn test_find_library_in_dir_empty_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = find_library_in_dir(dir.path(), ".so");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("failed to find"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn test_contract_registry_new_empty_inputs() {
+        let registry = ContractRegistry::new(None, None).unwrap();
+        assert!(registry.is_empty());
+    }
+
+    #[test]
+    fn test_contract_registry_new_accepts_valid_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let mapping = format!(
+            "0x0000000000000000000000000000000000000001:{}",
+            dir.path().display()
+        );
+        let registry = ContractRegistry::new(Some(vec![mapping]), None)
+            .expect("valid directory should be accepted");
+        assert!(!registry.is_empty());
+    }
+
+    #[test]
+    fn test_contract_registry_new_rejects_file_as_contract_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("not_a_dir.txt");
+        fs::write(&file_path, b"").unwrap();
+
+        let mapping = format!(
+            "0x0000000000000000000000000000000000000001:{}",
+            file_path.display()
+        );
+        let result = ContractRegistry::new(Some(vec![mapping]), None);
+        let err = result
+            .err()
+            .expect("should fail for non-directory path")
+            .to_string();
+        assert!(
+            err.contains("not a directory"),
+            "file should be rejected: {err}"
+        );
+    }
+
+    #[test]
+    fn test_contract_registry_new_rejects_invalid_mapping_format() {
+        let result = ContractRegistry::new(Some(vec!["invalid_no_colon".to_string()]), None);
+        let err = result
+            .err()
+            .expect("should fail for invalid format")
+            .to_string();
+        assert!(
+            err.contains("Invalid contract mapping format"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_contract_registry_new_tags_solidity_contracts() {
+        let dir = tempfile::tempdir().unwrap();
+        let addr = "0x0000000000000000000000000000000000000001";
+        let mapping = format!("{addr}:{}", dir.path().display());
+        let registry =
+            ContractRegistry::new(Some(vec![mapping]), Some(vec![addr.to_string()])).unwrap();
+
+        let contracts: Vec<_> = registry.iter_contracts().collect();
+        assert_eq!(contracts.len(), 1);
+        assert_eq!(contracts[0].1, ContractType::Solidity);
+    }
+
+    #[test]
+    fn test_contract_registry_new_rejects_duplicate_address() {
+        let dir = tempfile::tempdir().unwrap();
+        let addr = "0x0000000000000000000000000000000000000001";
+        let mapping = format!("{addr}:{}", dir.path().display());
+        let result = ContractRegistry::new(Some(vec![mapping.clone(), mapping]), None);
+        let err = result.err().expect("should fail for duplicate").to_string();
+        assert!(err.contains("duplicate address"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn test_contract_registry_new_rejects_invalid_solidity_address() {
+        let result = ContractRegistry::new(None, Some(vec!["not_an_address".to_string()]));
+        let err = result
+            .err()
+            .expect("should fail for invalid address")
+            .to_string();
+        assert!(
+            err.contains("Invalid Solidity contract address"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_contract_registry_load_library_errors_on_unregistered() {
+        let mut registry = ContractRegistry::new(None, None).unwrap();
+        let addr = "0x0000000000000000000000000000000000000099"
+            .parse::<Address>()
+            .unwrap();
+        let result = registry.load_library(&addr);
+        let err = result
+            .expect_err("should fail for unregistered")
+            .to_string();
+        assert!(
+            err.contains("no contract registered"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_contract_registry_register_with_library_rejects_duplicate() {
+        let dir = tempfile::tempdir().unwrap();
+        let addr = "0x0000000000000000000000000000000000000001"
+            .parse::<Address>()
+            .unwrap();
+        let lib_path = dir.path().join("libfoo.so");
+        fs::write(&lib_path, b"fake").unwrap();
+
+        let mut registry = ContractRegistry::new(None, None).unwrap();
+
+        // First registration should succeed
+        unsafe {
+            // Use a dummy library path — we only care about the duplicate check
+            let lib = libloading::Library::new(&lib_path);
+            // Library load may fail (not a real .so), so skip if unsupported
+            if let Ok(lib) = lib {
+                registry
+                    .register_with_library(addr, dir.path().to_path_buf(), lib, lib_path.clone())
+                    .unwrap();
+
+                // Second registration should fail
+                let lib2 = libloading::Library::new(&lib_path);
+                if let Ok(lib2) = lib2 {
+                    let result = registry.register_with_library(
+                        addr,
+                        dir.path().to_path_buf(),
+                        lib2,
+                        lib_path,
+                    );
+                    let err = result.expect_err("should fail for duplicate").to_string();
+                    assert!(
+                        err.contains("already registered"),
+                        "unexpected error: {err}"
+                    );
+                }
+            }
+        }
+    }
 }

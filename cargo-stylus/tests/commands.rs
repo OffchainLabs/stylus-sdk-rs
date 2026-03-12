@@ -1,5 +1,11 @@
+/// Both tests invoke `cargo run` inside the same `tests/contract_abi`
+/// directory, so they must not run concurrently. A static mutex serialises
+/// access to avoid build-artifact races.
+static CONTRACT_ABI_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[test]
 fn test_constructor_cmd() {
+    let _lock = CONTRACT_ABI_LOCK.lock().unwrap();
     assert_cmd::Command::cargo_bin("cargo-stylus")
         .expect("binary not found")
         .current_dir("tests/contract_abi")
@@ -12,6 +18,7 @@ fn test_constructor_cmd() {
 
 #[test]
 fn test_export_abi_cmd() {
+    let _lock = CONTRACT_ABI_LOCK.lock().unwrap();
     assert_cmd::Command::cargo_bin("cargo-stylus")
         .expect("binary not found")
         .current_dir("tests/contract_abi")

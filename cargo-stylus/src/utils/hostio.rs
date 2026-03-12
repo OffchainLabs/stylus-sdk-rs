@@ -457,9 +457,16 @@ pub unsafe extern "C" fn call_contract(
         let result = access.call_external_contract(&address, &input_data);
         exit_external_contract();
 
-        if let Ok((ext_status, _ext_data)) = result {
-            *return_data_len = outs_len;
-            return ext_status;
+        match result {
+            Ok((ext_status, _ext_data)) => {
+                *return_data_len = outs_len;
+                return ext_status;
+            }
+            Err(e) => {
+                eprintln!("multi-contract dispatch failed for {address}: {e}");
+                *return_data_len = 0;
+                return 1; // revert
+            }
         }
     }
 
@@ -520,9 +527,16 @@ pub unsafe extern "C" fn delegate_call_contract(
         let result = access.call_external_contract(&address, &input_data);
         exit_external_contract();
 
-        if let Ok((ext_status, _ext_data)) = result {
-            *return_data_len = outs_len;
-            return ext_status;
+        match result {
+            Ok((ext_status, _ext_data)) => {
+                *return_data_len = outs_len;
+                return ext_status;
+            }
+            Err(e) => {
+                eprintln!("multi-contract dispatch failed for {address}: {e}");
+                *return_data_len = 0;
+                return 1; // revert
+            }
         }
     }
 
@@ -582,9 +596,16 @@ pub unsafe extern "C" fn static_call_contract(
         let result = access.call_external_contract(&address, &input_data);
         exit_external_contract();
 
-        if let Ok((ext_status, _ext_data)) = result {
-            *return_data_len = outs_len;
-            return ext_status;
+        match result {
+            Ok((ext_status, _ext_data)) => {
+                *return_data_len = outs_len;
+                return ext_status;
+            }
+            Err(e) => {
+                eprintln!("multi-contract dispatch failed for {address}: {e}");
+                *return_data_len = 0;
+                return 1; // revert
+            }
         }
     }
 

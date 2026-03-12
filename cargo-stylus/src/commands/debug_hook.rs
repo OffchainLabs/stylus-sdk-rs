@@ -7,7 +7,7 @@
 //! cross-contract context switching. Some methods are scaffolded for future
 //! Solidity interop debugging support.
 
-use eyre::Result;
+use eyre::{Context, Result};
 use parking_lot::Mutex;
 use std::io::Write;
 use std::os::unix::net::{UnixListener, UnixStream};
@@ -59,22 +59,32 @@ impl StylusDebuggerHook {
     pub fn new() -> Result<Self> {
         // Note: Unix-specific path format; not supported on Windows without WSL
         let socket_path = format!("/tmp/stylus_debug_{}.sock", std::process::id());
+        let connection = Arc::new(Mutex::new(None));
 
-        // Start listener in background
+        // Start listener in background, sharing the connection slot.
+        // TODO: Commands sent before the debugger connects are silently dropped
+        // because `connection` is still `None`. The caller in `replay.rs` sends
+        // setup commands (contract_add, contract_type) immediately after `new()`,
+        // so they are lost. Fix by either blocking here until the debugger
+        // connects, or queuing messages and flushing once connected.
+        let conn_clone = Arc::clone(&connection);
         let path_clone = socket_path.clone();
         std::thread::spawn(move || {
-            if let Err(err) = Self::listen_for_connection(&path_clone) {
+            if let Err(err) = Self::listen_for_connection(&path_clone, &conn_clone) {
                 eprintln!("Failed to establish debugger connection: {err}");
             }
         });
 
         Ok(Self {
             socket_path,
-            connection: Arc::new(Mutex::new(None)),
+            connection,
         })
     }
 
-    fn listen_for_connection(socket_path: &str) -> Result<()> {
+    fn listen_for_connection(
+        socket_path: &str,
+        connection: &Arc<Mutex<Option<UnixStream>>>,
+    ) -> Result<()> {
         // Remove existing socket if it exists
         if Path::new(socket_path).exists() {
             std::fs::remove_file(socket_path)?;
@@ -84,13 +94,11 @@ impl StylusDebuggerHook {
         listener.set_nonblocking(false)?;
 
         // Wait for debugger to connect
-        if let Ok((_stream, _)) = listener.accept() {
-            println!("Debugger connected via socket");
-            // Store connection for later use
-            // TODO: Pass the stream back to store in self.connection.
-            // This will be needed when Solidity interop debugging is added,
-            // enabling real-time context switching between Stylus and Solidity contracts.
-        }
+        let (stream, _) = listener
+            .accept()
+            .wrap_err("failed to accept debugger connection")?;
+        println!("Debugger connected via socket");
+        *connection.lock() = Some(stream);
 
         Ok(())
     }
@@ -98,7 +106,9 @@ impl StylusDebuggerHook {
     fn send_command(&self, command: &str) {
         let mut conn_guard = self.connection.lock();
         if let Some(ref mut stream) = *conn_guard {
-            let _ = writeln!(stream, "{command}");
+            if let Err(e) = writeln!(stream, "{command}") {
+                eprintln!("warning: failed to send command to debugger: {e}");
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ mod cgen;
 mod check;
 mod codehash_keepalive;
 mod constructor;
+#[cfg(unix)]
 mod debug_hook;
 mod deploy;
 mod export_abi;

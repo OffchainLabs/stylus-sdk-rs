@@ -1316,6 +1316,7 @@ dependencies = [
  "rustc-host",
  "simple_logger",
  "stylus-tools",
+ "tempfile",
  "tokio",
 ]
 
