@@ -2,10 +2,22 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 //! Defines a struct that provides Stylus contracts access to a host VM
-//! environment via the HostAccessor trait defined in stylus_host. Makes contracts
+//! environment via the [`HostAccess`] trait defined in `stylus_core`. Makes contracts
 //! a lot more testable, as the VM can be mocked and injected upon initialization
 //! of a storage type. Defines two implementations, one when the stylus-test feature
 //! is enabled and another that calls the actual HostIOs.
+//!
+//! # Allocator safety
+//!
+//! Several host I/O helpers use [`Vec::set_len`] on freshly-allocated buffers
+//! whose contents are then filled by the host. This is sound **only** when the
+//! allocator hands back zeroed memory (avoiding reads of uninitialised bytes).
+//! The default `mini-alloc` crate satisfies this because it is a bump allocator
+//! over fresh WebAssembly pages, which the Wasm spec guarantees are zero-filled.
+//! Using a different allocator that returns uninitialised memory may introduce
+//! undefined behaviour. If you disable the `mini-alloc` feature to supply your
+//! own allocator, ensure it zeroes newly-allocated pages or audit every
+//! `set_len` call site in this module.
 
 use alloc::vec::Vec;
 use alloy_primitives::{Address, B256, U256};
@@ -17,14 +29,14 @@ use crate::hostio;
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "stylus-test"))] {
         /// Defines a struct that provides Stylus contracts access to a host VM
-        /// environment via the HostAccessor trait defined in stylus_host.
+        /// environment via the [`HostAccess`] trait defined in `stylus_core`.
         pub struct VM {
             /// A WebAssembly host that provides access to the VM onchain.
             pub host: WasmVM,
         }
     } else {
         /// Defines a struct that provides Stylus contracts access to a host VM
-        /// environment via the HostAccessor trait defined in stylus_host.
+        /// environment via the [`HostAccess`] trait defined in `stylus_core`.
         pub struct VM {
             /// A host object that provides access to the VM for use in native mode.
             pub host: alloc::boxed::Box<dyn Host>,
@@ -266,8 +278,10 @@ impl RawLogAccess for VM {
     }
 }
 
-/// Defines a struct that provides Stylus contracts access to a host VM
-/// environment via the HostAccessor trait defined in stylus_host.
+/// WebAssembly host VM implementation that delegates to on-chain host I/O
+/// functions. This is the default host used by deployed contracts running
+/// on-chain. When the `stylus-test` feature is enabled, a mock host is
+/// used instead for native unit testing.
 #[derive(Clone, Debug, Default)]
 pub struct WasmVM {}
 
@@ -285,6 +299,11 @@ impl CryptographyAccess for WasmVM {
 
 impl CalldataAccess for WasmVM {
     fn read_args(&self, len: usize) -> Vec<u8> {
+        // SAFETY: `set_len(len)` on uninitialized memory is sound here because
+        // `hostio::read_args` writes exactly `len` bytes (the host always writes
+        // the full calldata), and the default allocator (`mini-alloc`) is a bump
+        // allocator over fresh WASM pages which are guaranteed zeroed by the
+        // WASM spec — so even bytes beyond the calldata are zero, not uninit.
         let mut input = Vec::with_capacity(len);
         unsafe {
             hostio::read_args(input.as_mut_ptr());
@@ -295,6 +314,10 @@ impl CalldataAccess for WasmVM {
     fn read_return_data(&self, offset: usize, size: Option<usize>) -> Vec<u8> {
         let size = size.unwrap_or_else(|| self.return_data_size().saturating_sub(offset));
 
+        // SAFETY: `set_len(bytes_written)` is sound because `bytes_written <= size`
+        // (the host respects the requested size), and `mini-alloc` is a bump
+        // allocator over fresh WASM pages (zeroed by spec) so the capacity
+        // region is not uninit garbage.
         let mut data = Vec::with_capacity(size);
         if size > 0 {
             unsafe {
@@ -302,7 +325,7 @@ impl CalldataAccess for WasmVM {
                 debug_assert!(bytes_written <= size);
                 data.set_len(bytes_written);
             }
-        };
+        }
         data
     }
     fn return_data_size(&self) -> usize {
@@ -448,6 +471,11 @@ impl AccountAccess for WasmVM {
     }
     fn code(&self, account: Address) -> Vec<u8> {
         let size = self.code_size(account);
+        // SAFETY: `set_len(size)` is sound because `account_code` writes
+        // exactly `min(size, actual_code_len)` bytes, and code is immutable
+        // within a transaction so `size` from `code_size` is accurate.
+        // `mini-alloc` is a bump allocator over fresh WASM pages (zeroed by
+        // spec), so capacity bytes are not uninit garbage.
         let mut dest = Vec::with_capacity(size);
         unsafe {
             hostio::account_code(account.as_ptr(), 0, size, dest.as_mut_ptr());
@@ -517,4 +545,131 @@ pub trait VMAccess {
     ///
     /// This is unsafe because it might cause aliasing with existing slots defined by the contract.
     unsafe fn raw_vm(&self) -> VM;
+}
+
+#[cfg(test)]
+mod tests {
+    // These tests exercise the `CalldataAccess` / `AccountAccess` trait contracts
+    // via `TestVM`. The `WasmVM` implementation delegates to real host I/O
+    // functions and cannot be tested natively.
+    use super::*;
+    use stylus_test::vm::TestVM;
+
+    #[test]
+    fn test_read_return_data_returns_correct_slice() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(0, None);
+        assert_eq!(result, data);
+    }
+
+    #[test]
+    fn test_read_return_data_with_offset() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(2, None);
+        assert_eq!(result, vec![0xcc, 0xdd, 0xee]);
+    }
+
+    #[test]
+    fn test_read_return_data_with_size() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(1, Some(2));
+        assert_eq!(result, vec![0xbb, 0xcc]);
+    }
+
+    #[test]
+    fn test_read_return_data_truncates_when_size_exceeds_available() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(0, Some(100));
+        assert_eq!(result, data);
+    }
+
+    #[test]
+    fn test_read_return_data_empty_when_offset_beyond_data() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(10, None);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_read_return_data_empty_data() {
+        let vm = TestVM::new();
+        let result = vm.read_return_data(0, None);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_read_return_data_offset_plus_size_exceeds_available() {
+        let vm = TestVM::new();
+        let data = vec![0xaa, 0xbb, 0xcc, 0xdd, 0xee];
+        vm.write_result(&data);
+
+        let result = vm.read_return_data(3, Some(10));
+        assert_eq!(result, vec![0xdd, 0xee]);
+    }
+
+    #[test]
+    fn test_write_result_overwrites_previous_data() {
+        let vm = TestVM::new();
+        vm.write_result(&[0xaa, 0xbb]);
+        vm.write_result(&[0xcc]);
+
+        assert_eq!(vm.return_data_size(), 1);
+        let result = vm.read_return_data(0, None);
+        assert_eq!(result, vec![0xcc]);
+    }
+
+    #[test]
+    fn test_read_return_data_explicit_zero_size() {
+        let vm = TestVM::new();
+        vm.write_result(&[0xaa, 0xbb, 0xcc]);
+
+        let result = vm.read_return_data(0, Some(0));
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_code_returns_stored_code() {
+        let vm = TestVM::new();
+        let addr = Address::with_last_byte(0x42);
+        let code = vec![0x60, 0x00, 0x60, 0x00, 0xfd];
+        vm.set_code(addr, code.clone());
+
+        let result = vm.code(addr);
+        assert_eq!(result, code);
+    }
+
+    #[test]
+    fn test_code_returns_empty_for_unknown_address() {
+        let vm = TestVM::new();
+        let addr = Address::with_last_byte(0x99);
+
+        let result = vm.code(addr);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_code_size_matches_code_length() {
+        let vm = TestVM::new();
+        let addr = Address::with_last_byte(0x42);
+        let code = vec![0x60, 0x00, 0x60, 0x00, 0xfd];
+        vm.set_code(addr, code.clone());
+
+        assert_eq!(vm.code_size(addr), code.len());
+        assert_eq!(vm.code_size(Address::ZERO), 0);
+    }
 }
