@@ -22,7 +22,10 @@ use stylus_tools::core::{
     project::{contract::Contract, workspace::Workspace},
     reflection::ReflectionConfig,
 };
-use stylus_tools::core::{project::ProjectConfig, tracing::TraceConfig};
+use stylus_tools::core::{
+    project::ProjectConfig,
+    tracing::{SimulateConfig, TraceConfig},
+};
 
 use crate::{
     constants::DEFAULT_ENDPOINT,
@@ -250,14 +253,22 @@ impl ReflectionArgs {
 #[derive(Debug, clap::Args)]
 pub struct TraceArgs {
     /// Tx to replay.
-    #[arg(short, long)]
-    pub tx: TxHash,
+    #[arg(short, long, conflicts_with = "simulate")]
+    pub tx: Option<TxHash>,
+
+    /// Simulate a transaction instead of tracing an existing one.
+    #[arg(long, conflicts_with = "tx")]
+    pub simulate: bool,
+
     /// Project path.
     #[arg(short, long, default_value = ".")]
     pub project: PathBuf,
 
     #[command(flatten)]
     pub config: TraceConfig,
+
+    #[command(flatten)]
+    pub simulation: SimulateConfig,
 }
 
 #[derive(Debug, clap::Args)]

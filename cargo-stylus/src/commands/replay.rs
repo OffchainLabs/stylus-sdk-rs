@@ -322,7 +322,25 @@ pub fn build_shared_library(
 /// Find shared library in a specific path (for multi-contract support)
 fn find_shared_library_in_path(project: &Path, extension: &str) -> eyre::Result<PathBuf> {
     let triple = rustc_host::from_cli()?;
-    let so_dir = project.join(format!("target/{triple}/debug/"));
+
+    // Try project-local target first, then workspace root target
+    let local_target = project.join(format!("target/{triple}/debug/"));
+    let workspace_target =
+        find_workspace_root(project).map(|root| root.join(format!("target/{triple}/debug/")));
+
+    let so_dir = if local_target.exists() {
+        local_target
+    } else if let Some(ref ws_target) = workspace_target {
+        if ws_target.exists() {
+            ws_target.clone()
+        } else {
+            // Fall back to local for error message
+            local_target
+        }
+    } else {
+        local_target
+    };
+
     let so_dir = std::fs::read_dir(&so_dir)
         .map_err(|e| eyre!("failed to open {}: {e}", so_dir.to_string_lossy()))?
         .filter_map(|r| r.ok())
@@ -348,6 +366,24 @@ fn find_shared_library_in_path(project: &Path, extension: &str) -> eyre::Result<
         bail!("failed to find {extension}");
     };
     Ok(file)
+}
+
+/// Find the workspace root by looking for Cargo.toml with [workspace]
+fn find_workspace_root(start: &Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+    loop {
+        let cargo_toml = current.join("Cargo.toml");
+        if cargo_toml.exists() {
+            if let Ok(contents) = std::fs::read_to_string(&cargo_toml) {
+                if contents.contains("[workspace]") {
+                    return Some(current);
+                }
+            }
+        }
+        if !current.pop() {
+            return None;
+        }
+    }
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
@@ -488,8 +524,12 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
     }
 
     let provider = args.provider.build_provider().await?;
+    let tx = args
+        .trace
+        .tx
+        .ok_or_else(|| eyre::eyre!("missing tx hash - use --tx <HASH>"))?;
 
-    let trace = Trace::new(args.trace.tx, &args.trace.config, &provider).await?;
+    let trace = Trace::new(tx, &args.trace.config, &provider).await?;
 
     // Create contract registry and build all contracts
     let mut registry = ContractRegistry::new(args.contracts.clone(), args.addr_solidity.clone())?;

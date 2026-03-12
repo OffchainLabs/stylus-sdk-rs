@@ -88,11 +88,12 @@ impl Trace {
     }
 
     pub async fn simulate(
-        config: &SimulateConfig,
+        simulate_config: &SimulateConfig,
+        trace_config: &TraceConfig,
         provider: &impl Provider,
     ) -> Result<Self, TracingError> {
-        let tx_request = config.build_transaction_request();
-        let query = config.trace.query();
+        let tx_request = simulate_config.build_transaction_request();
+        let query = trace_config.query();
 
         // Corrected construction of tracer_options
         let tracer_options = GethDebugTracingCallOptions {
@@ -216,30 +217,31 @@ impl TraceConfig {
 pub struct SimulateConfig {
     /// From address.
     #[arg(short, long)]
-    from: Option<Address>,
+    pub from: Option<Address>,
 
     /// To address.
     #[arg(short, long)]
-    to: Option<Address>,
+    pub to: Option<Address>,
 
     /// Gas limit.
     #[arg(long)]
-    gas: Option<u64>,
+    pub gas: Option<u64>,
 
     /// Gas price.
     #[arg(long)]
-    gas_price: Option<u128>,
+    pub gas_price: Option<u128>,
 
     /// Value to send with the transaction.
     #[arg(short, long)]
-    value: Option<U256>,
+    pub value: Option<U256>,
 
     /// Data to send with the transaction, as a hex string (with or without '0x' prefix).
     #[arg(short, long)]
-    data: Option<Bytes>,
+    pub data: Option<Bytes>,
 
-    #[command(flatten)]
-    trace: TraceConfig,
+    /// Block number for simulation.
+    #[arg(long)]
+    pub block_number: Option<u64>,
 }
 
 impl SimulateConfig {

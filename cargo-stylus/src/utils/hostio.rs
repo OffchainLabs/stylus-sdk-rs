@@ -3,8 +3,10 @@
 
 #![allow(unused)]
 
+use crate::utils::soldb_bridge::{self, CrossEnvConfig, CrossEnvTrace};
 use alloy::primitives::{Address, U256};
 use function_name::named;
+use hex;
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use std::{
@@ -30,6 +32,18 @@ pub struct ExecutionState {
     end_ink: u64,
 }
 
+/// A captured cross-environment trace entry, saved for merging into LLDB trace
+#[derive(Clone, serde::Serialize)]
+pub struct CrossEnvTraceEntry {
+    pub target_address: String,
+    pub calldata: String,
+    pub call_type: String,
+    pub trace: CrossEnvTrace,
+}
+
+/// Path for temporary cross-env traces (merged into lldb_function_trace.json by parent)
+pub const CROSS_ENV_TRACES_PATH: &str = "/tmp/cross_env_traces.json";
+
 lazy_static! {
     pub static ref FRAME: Mutex<Option<FrameReader>> = Mutex::new(None);
     pub static ref START_INK: Mutex<u64> = Mutex::new(0);
@@ -39,6 +53,8 @@ lazy_static! {
     pub static ref IN_EXTERNAL_CONTRACT: Mutex<bool> = Mutex::new(false);
     pub static ref EXTERNAL_CONTRACT_INPUT: Mutex<Vec<u8>> = Mutex::new(Vec::new());
     pub static ref SAVED_STATE: Mutex<Option<ExecutionState>> = Mutex::new(None);
+    pub static ref CROSS_ENV_CONFIG: Mutex<Option<CrossEnvConfig>> = Mutex::new(None);
+    pub static ref CROSS_ENV_TRACES: Mutex<Vec<CrossEnvTraceEntry>> = Mutex::new(Vec::new());
 }
 
 /// Set the external contract access for debugging
@@ -83,6 +99,82 @@ pub fn set_external_contract_input(input: Vec<u8>) {
 /// Check if we're currently in an external contract
 pub fn is_in_external_contract() -> bool {
     *IN_EXTERNAL_CONTRACT.lock()
+}
+
+/// Set the cross-environment configuration
+pub fn set_cross_env_config(config: CrossEnvConfig) {
+    let mut guard = CROSS_ENV_CONFIG.lock();
+    *guard = Some(config.clone());
+    // Also set in soldb_bridge for global access
+    soldb_bridge::set_cross_env_config(config);
+}
+
+/// Handle a cross-environment call to a Solidity contract
+fn handle_solidity_call(
+    address: &Address,
+    calldata: &[u8],
+    value: U256,
+    call_type: &str,
+) -> Option<u8> {
+    let addr_str = format!("{:?}", address).to_lowercase();
+
+    let config = {
+        let guard = CROSS_ENV_CONFIG.lock();
+        guard.clone()
+    };
+
+    let config = config?;
+    if !config.solidity_contracts.contains(&addr_str) {
+        return None;
+    }
+
+    let calldata_hex = format!("0x{}", hex::encode(calldata));
+    let value_u64 = value.try_into().unwrap_or(0u64);
+
+    // Get caller and block from config
+    let caller = config.caller_address.as_deref()?;
+    let block = config.block_number;
+
+    // Request trace via bridge server (NOT direct soldb call)
+    // The bridge will invoke soldb trace and return the result
+    match soldb_bridge::request_and_wait_evm_trace(
+        &addr_str,
+        &calldata_hex,
+        value_u64,
+        Some(caller),
+        0,    // depth
+        None, // parent_call_id
+    ) {
+        Ok(Some(trace)) => {
+            // Check if the Solidity call reverted
+            let call_reverted = !trace.success;
+
+            // Save trace for merging into /tmp/lldb_function_trace.json
+            let entry = CrossEnvTraceEntry {
+                target_address: addr_str.clone(),
+                calldata: calldata_hex.clone(),
+                call_type: call_type.to_string(),
+                trace,
+            };
+            let mut traces = CROSS_ENV_TRACES.lock();
+            traces.push(entry);
+            if let Ok(json) = serde_json::to_string_pretty(&*traces) {
+                if let Err(e) = std::fs::write(CROSS_ENV_TRACES_PATH, &json) {
+                    eprintln!("[cross-env] ERROR writing cross-env traces: {}", e);
+                }
+            }
+
+            // Return 0 for success, 1 for revert
+            Some(if call_reverted { 1 } else { 0 })
+        }
+        Ok(None) => {
+            // Return success status anyway (trace not available but call succeeded)
+            Some(0)
+        }
+        Err(e) => {
+            None // Fall back to normal trace handling
+        }
+    }
 }
 
 macro_rules! frame {
@@ -449,6 +541,16 @@ pub unsafe extern "C" fn call_contract(
     assert_eq!(read_fixed(value_ptr), value.to_be_bytes::<32>());
     assert_eq!(gas_supplied, gas);
 
+    // Check if this is a call to a Solidity contract (cross-env tracing)
+    let addr_str = format!("{:?}", address).to_lowercase();
+    if soldb_bridge::is_solidity_contract(&addr_str) {
+        let input_data = read_bytes(calldata, calldata_len);
+        if let Some(sol_status) = handle_solidity_call(&address, &input_data, value, "CALL") {
+            *return_data_len = outs_len;
+            return sol_status;
+        }
+    }
+
     // Check if we should dispatch to an external contract for multi-contract debugging
     if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
         let input_data = read_bytes(calldata, calldata_len);
@@ -512,6 +614,18 @@ pub unsafe extern "C" fn delegate_call_contract(
     assert_eq!(read_bytes(calldata, calldata_len), &*data);
     assert_eq!(gas_supplied, gas);
 
+    // Check if this is a call to a Solidity contract (cross-env tracing)
+    let addr_str = format!("{:?}", address).to_lowercase();
+    if soldb_bridge::is_solidity_contract(&addr_str) {
+        let input_data = read_bytes(calldata, calldata_len);
+        if let Some(sol_status) =
+            handle_solidity_call(&address, &input_data, U256::ZERO, "DELEGATECALL")
+        {
+            *return_data_len = outs_len;
+            return sol_status;
+        }
+    }
+
     // Check if we should dispatch to an external contract for multi-contract debugging
     if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
         let input_data = read_bytes(calldata, calldata_len);
@@ -573,6 +687,18 @@ pub unsafe extern "C" fn static_call_contract(
     assert_eq!(read_fixed(address_ptr), address);
     assert_eq!(read_bytes(calldata, calldata_len), &*data);
     assert_eq!(gas_supplied, gas);
+
+    // Check if this is a call to a Solidity contract (cross-env tracing)
+    let addr_str = format!("{:?}", address).to_lowercase();
+    if soldb_bridge::is_solidity_contract(&addr_str) {
+        let input_data = read_bytes(calldata, calldata_len);
+        if let Some(sol_status) =
+            handle_solidity_call(&address, &input_data, U256::ZERO, "STATICCALL")
+        {
+            *return_data_len = outs_len;
+            return sol_status;
+        }
+    }
 
     // Check if we should dispatch to an external contract for multi-contract debugging
     if let Some(access) = EXTERNAL_CONTRACT_ACCESS.lock().as_ref() {
