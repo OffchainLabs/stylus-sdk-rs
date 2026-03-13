@@ -143,6 +143,21 @@ impl StylusDebuggerHook {
         }
     }
 
+    /// Sanitize a value for inclusion in a debugger command.
+    /// Rejects values containing newlines or carriage returns which could inject
+    /// additional commands into the line-oriented debugger protocol.
+    fn sanitize_field(value: &str) -> Option<&str> {
+        if value.contains('\n') || value.contains('\r') {
+            eprintln!(
+                "Warning: debugger command field contains newline; \
+                 dropping to prevent command injection"
+            );
+            None
+        } else {
+            Some(value)
+        }
+    }
+
     /// Send a command to the debugger. Fire-and-forget: errors are reported via
     /// stderr only and do not propagate to callers. After the first write failure,
     /// the connection is closed and subsequent calls are silently dropped.
@@ -169,7 +184,9 @@ impl StylusDebuggerHook {
 
 impl DebuggerHook for StylusDebuggerHook {
     fn on_external_call(&self, contract_address: &str) {
-        self.send_command(&format!("switch_context {contract_address}"));
+        if let Some(addr) = Self::sanitize_field(contract_address) {
+            self.send_command(&format!("switch_context {addr}"));
+        }
     }
 
     fn on_return_from_call(&self) {
@@ -178,13 +195,19 @@ impl DebuggerHook for StylusDebuggerHook {
 
     fn on_execution_start(&self, contracts: &[(String, String)]) {
         for (address, path) in contracts {
-            self.send_command(&format!("contract_add {address} {path}"));
+            if let (Some(addr), Some(p)) =
+                (Self::sanitize_field(address), Self::sanitize_field(path))
+            {
+                self.send_command(&format!("contract_add {addr} {p}"));
+            }
         }
     }
 
     fn on_contract_info(&self, contract_address: &str, is_solidity: bool) {
-        let contract_type = if is_solidity { "solidity" } else { "stylus" };
-        self.send_command(&format!("contract_type {contract_address} {contract_type}"));
+        if let Some(addr) = Self::sanitize_field(contract_address) {
+            let contract_type = if is_solidity { "solidity" } else { "stylus" };
+            self.send_command(&format!("contract_type {addr} {contract_type}"));
+        }
     }
 }
 
