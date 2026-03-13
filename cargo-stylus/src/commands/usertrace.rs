@@ -147,10 +147,20 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         // The trace file path is hardcoded to match what stylusdb writes
         // internally; changing it requires a coordinated update to rust-stylusdb.
         let trace_file = "/tmp/lldb_function_trace.json";
-        match std::fs::remove_file(trace_file) {
-            Ok(()) => {}
+        // Check for symlink before removal to avoid deleting the symlink target.
+        match std::fs::symlink_metadata(trace_file) {
+            Ok(meta) if !meta.file_type().is_file() => {
+                bail!(
+                    "stale trace file {trace_file} is not a regular file \
+                     (possible symlink attack); refusing to remove"
+                );
+            }
+            Ok(_) => {
+                std::fs::remove_file(trace_file)
+                    .with_context(|| format!("failed to remove stale trace file {trace_file}"))?;
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => bail!("failed to remove stale trace file {trace_file}: {e}"),
+            Err(e) => bail!("failed to stat trace file {trace_file}: {e}"),
         }
 
         if !sys::command_exists("rust-stylusdb") {
