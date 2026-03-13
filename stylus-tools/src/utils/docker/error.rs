@@ -14,8 +14,8 @@ pub enum DockerError {
 
     #[error("Failed to execute Docker command: {0}")]
     CommandExecution(io::Error),
-    #[error("Invalid volume input: {0}")]
-    InvalidVolumeInput(String),
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
     #[error("Wait failed: {0}")]
     WaitFailure(io::Error),
     #[error("Invalid JSON: {0}")]

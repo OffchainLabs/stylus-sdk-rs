@@ -32,16 +32,20 @@ pub fn run_reproducible(
         args.push(arg);
     }
     // Use package source if available, otherwise use current working directory
-    let source = package
-        .source
-        .as_ref()
-        .map(|s| s.repr.to_owned())
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                .to_string_lossy()
-                .to_string()
-        });
+    let source = match package.source.as_ref() {
+        Some(s) => s.repr.to_owned(),
+        None => {
+            let cwd = std::env::current_dir().map_err(DockerError::Io)?;
+            cwd.to_str()
+                .ok_or_else(|| {
+                    DockerError::InvalidInput(format!(
+                        "current directory is not valid UTF-8: {}",
+                        cwd.display()
+                    ))
+                })?
+                .to_owned()
+        }
+    };
 
     docker::run_in_container(&image_name, &source, args)?;
     Ok(())

@@ -27,22 +27,25 @@ pub fn validate_host() -> Result<(), DockerError> {
     Ok(())
 }
 
+/// Check if a specific Docker image exists locally.
 pub fn image_exists_locally(image_name: &str) -> Result<bool, DockerError> {
     cmd::image_exists_locally(image_name)
 }
 
-/// Check if a Docker image exists on Docker Hub.
+/// Check if a Docker image exists on its remote registry.
 pub fn image_exists_on_hub(image_name: &str) -> Result<bool, DockerError> {
     cmd::image_exists_on_hub(image_name)
 }
 
+/// Run a command inside a Docker container, mounting the given directory at
+/// `/source` with host networking.
 pub fn run_in_container(
     image_name: &str,
     dir: impl AsRef<Path>,
     args: impl IntoIterator<Item = impl AsRef<OsStr>>,
 ) -> Result<(), DockerError> {
     let dir_str = dir.as_ref().to_str().ok_or_else(|| {
-        DockerError::InvalidVolumeInput(format!(
+        DockerError::InvalidInput(format!(
             "directory path is not valid UTF-8: {}",
             dir.as_ref().display()
         ))
