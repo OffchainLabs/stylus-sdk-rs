@@ -120,6 +120,19 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
         crates_to_trace.push("stylus_sdk".to_string());
     }
     crates_to_trace.extend(args.trace_external_usertrace.clone());
+    // Validate crate names to prevent regex injection via --trace-external-usertrace.
+    // Crate names must be ASCII alphanumeric or underscores.
+    for name in &crates_to_trace {
+        if !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            bail!(
+                "invalid crate name for tracing: {:?} (must be alphanumeric/underscore)",
+                name
+            );
+        }
+    }
     let pattern = format!("^({})::", crates_to_trace.join("|"));
     let calltrace_cmd = format!("calltrace start '{pattern}'");
 

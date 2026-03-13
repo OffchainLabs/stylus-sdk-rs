@@ -88,7 +88,15 @@ where
     V: StorageType,
 {
     /// Where in a word to access the wrapped value.
-    const CHILD_OFFSET: u8 = 32 - V::SLOT_BYTES as u8;
+    /// V::SLOT_BYTES is guaranteed ≤ 32 by the StorageType contract, so
+    /// this subtraction cannot underflow and the `as u8` cannot truncate.
+    const CHILD_OFFSET: u8 = {
+        assert!(
+            V::SLOT_BYTES <= 32,
+            "StorageMap: value SLOT_BYTES exceeds 32"
+        );
+        (32 - V::SLOT_BYTES) as u8
+    };
 
     /// Gets an accessor to the element at the given key, or the zero-value if none is there.
     /// Note: the accessor is protected by a [`StorageGuard`], which restricts its lifetime

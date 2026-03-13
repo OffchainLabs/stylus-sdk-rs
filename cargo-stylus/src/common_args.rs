@@ -84,11 +84,17 @@ impl AuthArgs {
         }
 
         let keystore = self.keystore_path.as_ref().ok_or(eyre!("no keystore"))?;
-        let password = self
-            .keystore_password_path
-            .as_ref()
-            .map(fs::read_to_string)
-            .unwrap_or(Ok("".into()))?;
+        let password = match &self.keystore_password_path {
+            Some(path) => fs::read_to_string(path)
+                .wrap_err("could not read keystore password file")?,
+            None => {
+                eprintln!(
+                    "Warning: no --keystore-password-path provided; \
+                     using empty password for keystore decryption"
+                );
+                String::new()
+            }
+        };
 
         let signer =
             LocalSigner::decrypt_keystore(keystore, password)?.with_chain_id(Some(chain_id));
