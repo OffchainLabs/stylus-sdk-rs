@@ -193,12 +193,12 @@ impl Storage {
         parse_quote! {
             #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::stylus_core::host::ValueDenier for #name #ty_generics #where_clause {
-                fn deny_value(&self, method_name: &str) -> Result<(), Vec<u8>> {
+                fn deny_value(&self, method_name: &str) -> Result<(), alloc::vec::Vec<u8>> {
                     if self.vm().msg_value() == stylus_sdk::alloy_primitives::U256::ZERO {
                         return Ok(());
                     }
                     stylus_sdk::console!("method {method_name} not payable");
-                    Err(vec![])
+                    Err(alloc::vec![])
                 }
             }
         }
@@ -210,7 +210,7 @@ impl Storage {
         parse_quote! {
             #[cfg(not(feature = "contract-client-gen"))]
             impl #impl_generics stylus_sdk::stylus_core::host::ConstructorGuard for #name #ty_generics #where_clause {
-                fn check_constructor_slot(&self) -> Result<(), Vec<u8>> {
+                fn check_constructor_slot(&self) -> Result<(), alloc::vec::Vec<u8>> {
                     let mut slot = unsafe {
                         stylus_sdk::storage::StorageBool::new(
                             stylus_sdk::abi::internal::CONSTRUCTOR_EXECUTED_SLOT,

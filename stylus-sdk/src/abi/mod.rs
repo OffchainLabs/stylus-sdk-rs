@@ -61,7 +61,7 @@ where
     /// Receive functions are always payable, take in no inputs, and return no outputs.
     /// If defined, they will always be called when a transaction does not send any
     /// calldata, regardless of the transaction having a value attached.
-    fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>>;
+    fn receive(storage: &mut S) -> Option<Result<(), alloc::vec::Vec<u8>>>;
 
     /// Called when no receive function is defined or when the transaction has calldata but it
     /// doesn't match any function selector.

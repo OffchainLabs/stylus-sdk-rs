@@ -1,9 +1,13 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+#![no_std]
+
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
 
 extern crate alloc;
+
+use alloc::{vec, vec::Vec};
 
 #[allow(unused_imports)]
 use stylus_sdk::{

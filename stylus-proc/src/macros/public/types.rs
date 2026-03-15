@@ -369,7 +369,7 @@ impl PublicImpl {
                 }
 
                 #[inline(always)]
-                fn receive(storage: &mut S) -> Option<Result<(), Vec<u8>>> {
+                fn receive(storage: &mut S) -> Option<Result<(), alloc::vec::Vec<u8>>> {
                     #receive
                 }
 
@@ -572,7 +572,7 @@ impl<E: FnExtension> PublicFn<E> {
                     Ok(args) => args,
                     Err(err) => {
                         internal::failed_to_decode_arguments(err);
-                        return Some(Err(Vec::new()));
+                        return Some(Err(alloc::vec::Vec::new()));
                     }
                 };
                 let result = Self::#name(#storage_arg #(#expand_args, )* );
@@ -641,7 +641,7 @@ impl<E: FnExtension> PublicFn<E> {
                     if let Err(err) = Self::#name(#storage_arg) {
                         Err(err)
                     } else {
-                        Ok(Vec::new())
+                        Ok(alloc::vec::Vec::new())
                     }
                 });
             }
@@ -681,7 +681,7 @@ impl<E: FnExtension> PublicFn<E> {
                 Ok(args) => args,
                 Err(err) => {
                     internal::failed_to_decode_arguments(err);
-                    return Some(Err(Vec::new()));
+                    return Some(Err(alloc::vec::Vec::new()));
                 }
             };
             let result = Self::#name(#storage_arg #(#expand_args, )* );

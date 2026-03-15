@@ -1086,6 +1086,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bobcat-host"
+version = "0.7.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de7b32369900e875c1d4ea62b66f1c222a0014bf12bde883e3c9efc1e6b13956"
+dependencies = [
+ "const-hex",
+ "keccak-const",
+]
+
+[[package]]
+name = "bobcat-panic"
+version = "0.7.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8091c16396fc1505a2b564ac382814bfec36b9b0864ba595868a7a29302bfd24"
+dependencies = [
+ "bobcat-host",
+ "const-hex",
+ "paste",
+]
+
+[[package]]
 name = "bollard"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1258,7 +1279,10 @@ dependencies = [
  "alloy",
  "alloy-primitives",
  "alloy-sol-types",
+ "bobcat-panic",
+ "const-hex",
  "eyre",
+ "ruint",
  "stylus-sdk",
  "stylus-tools",
  "tokio",

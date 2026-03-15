@@ -54,7 +54,7 @@ impl PaymentTracker {
     /// Example: contract.send(1 ether) or contract.transfer(1 ether)
     #[receive]
     #[payable]
-    pub fn receive(&mut self) -> Result<(), Vec<u8>> {
+    pub fn receive(&mut self) -> Result<(), alloc::vec::Vec<u8>> {
         let sender = self.vm().msg_sender();
         let amount = self.vm().msg_value();
 
