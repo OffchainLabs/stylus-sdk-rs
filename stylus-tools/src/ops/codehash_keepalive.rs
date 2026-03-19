@@ -5,7 +5,7 @@ use alloy::{
     primitives::B256,
     providers::{Provider, WalletProvider},
 };
-use eyre::eyre;
+use eyre::{ensure, eyre};
 
 use crate::{precompiles, utils::color::DebugColor};
 
@@ -23,9 +23,7 @@ pub async fn codehash_keepalive(
 
     let pending_tx = keepalive_call.send().await?;
     let receipt = pending_tx.get_receipt().await?;
-    if !receipt.status() {
-        return Err(eyre!("Keepalive transaction reverted"));
-    }
+    ensure!(receipt.status(), "Keepalive transaction reverted");
 
     let tx_hash = receipt.transaction_hash.debug_lavender();
     greyln!("Successfully kept alive contract with codehash {codehash}");
