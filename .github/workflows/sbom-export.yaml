@@ -1,21 +1,17 @@
 name: SBOM Export & Centralize
-
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
     - cron: '41 12 * * 1'
-
 permissions:
   contents: read
-
 jobs:
   generate-and-upload:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v6
-
       - name: Check for recent changes
         id: check
         run: |
@@ -23,7 +19,6 @@ jobs:
             echo "No commits in the last 7 days, skipping SBOM generation."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
-
       - name: Generate CycloneDX SBOM via cdxgen
         if: steps.check.outputs.skip != 'true'
         env:
@@ -48,7 +43,6 @@ jobs:
 
           echo "SBOM generated successfully:"
           ls -lh sbom.cdx.json
-
       - name: Upload SBOM to Dependency Track
         if: steps.check.outputs.skip != 'true'
         env:
