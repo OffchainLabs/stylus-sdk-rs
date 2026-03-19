@@ -7,17 +7,28 @@ use alloy::{
 };
 use eyre::eyre;
 
-use crate::precompiles;
+use crate::{precompiles, utils::color::DebugColor};
 
 pub async fn codehash_keepalive(
     codehash: B256,
     provider: &(impl Provider + WalletProvider),
 ) -> eyre::Result<()> {
-    precompiles::arb_wasm(provider)
-        .codehashKeepalive(codehash)
+    let arb_wasm = precompiles::arb_wasm(provider);
+    let keepalive_call = arb_wasm.codehashKeepalive(codehash);
+
+    keepalive_call
         .call()
         .await
         .map_err(|err| eyre!("Failed to keepalive contract: {err:?}"))?;
+
+    let pending_tx = keepalive_call.send().await?;
+    let receipt = pending_tx.get_receipt().await?;
+    if !receipt.status() {
+        return Err(eyre!("Keepalive transaction reverted"));
+    }
+
+    let tx_hash = receipt.transaction_hash.debug_lavender();
     greyln!("Successfully kept alive contract with codehash {codehash}");
+    info!(@grey, "tx hash: {tx_hash}");
     Ok(())
 }
