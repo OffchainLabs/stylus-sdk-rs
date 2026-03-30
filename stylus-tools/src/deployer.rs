@@ -139,7 +139,7 @@ pub fn call<I: IntoIterator<Item = String>>(
         env::set_current_dir(Path::new(&dir))?;
     }
     let output = Command::new("cargo")
-        .arg("stylus-beta")
+        .arg("stylus")
         .arg(func)
         .args(args)
         .output()

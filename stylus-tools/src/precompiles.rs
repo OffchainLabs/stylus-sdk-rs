@@ -28,6 +28,12 @@ pub mod addresses {
     pub const ARB_WASM_CACHE:    Address = address!("0x0000000000000000000000000000000000000072");
 }
 
+pub fn arb_owner_public<P: Provider<N>, N: Network>(
+    provider: P,
+) -> ArbOwnerPublic::ArbOwnerPublicInstance<P, N> {
+    ArbOwnerPublic::new(addresses::ARB_OWNER_PUBLIC, provider)
+}
+
 pub fn arb_wasm<P: Provider<N>, N: Network>(provider: P) -> ArbWasm::ArbWasmInstance<P, N> {
     ArbWasm::new(addresses::ARB_WASM, provider)
 }

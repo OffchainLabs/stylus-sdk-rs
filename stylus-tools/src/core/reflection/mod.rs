@@ -8,13 +8,11 @@
 
 use std::{path::PathBuf, process::Stdio};
 
-pub use abi::abi;
 pub use constructor::constructor;
 use escargot::Cargo;
 
 use crate::utils::sys;
 
-mod abi;
 mod constructor;
 
 /// Feature that enables reflection when running the contract binary.

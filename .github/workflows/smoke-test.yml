@@ -10,26 +10,21 @@ jobs:
   setup-cargo-stylus:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v3
       - name: Install stable
-        uses: dtolnay/rust-toolchain@1.88.0
+        uses: dtolnay/rust-toolchain@1.91.0
       - name: Get latest cargo-stylus version
         id: get-version
         shell: bash
         run: |
           version=$(cargo info cargo-stylus | grep 'version:' | awk 'NR==1 {print $2; exit}')
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Cache cargo stylus
-        id: cache
-        uses: actions/cache@v4
-        with:
-          key: cargo-stylus-${{ steps.get-version.outputs.version }}
-          path: |
-            ~/.cargo/bin/cargo-stylus
       - name: Install cargo-stylus
-        if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          RUSTFLAGS="-C link-args=-rdynamic" cargo install cargo-stylus
+          sed -i 's/env!("CARGO_PKG_VERSION").to_string()/"0.10.0-rc.1".to_string()/g' stylus-tools/src/utils/stylus_sdk.rs
+          cargo install --locked --path ./cargo-stylus
       - name: Archive cargo-stylus binary
         uses: actions/upload-artifact@v4
         with:
@@ -42,7 +37,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.88.0, nightly-2025-06-26]
+        toolchain: [1.91.0, nightly-2025-10-01]
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -59,6 +54,12 @@ jobs:
       - name: Make cargo-stylus executable
         shell: bash
         run: chmod +x ~/.cargo/bin/cargo-stylus
+      - name: Login to DockerHub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: OffchainLabs/actions/run-nitro-test-node@main
         with:
           nitro-testnode-ref: release

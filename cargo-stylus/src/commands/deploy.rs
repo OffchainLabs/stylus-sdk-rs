@@ -1,6 +1,8 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::path::PathBuf;
+
 use crate::error::CargoStylusError;
 use crate::{
     common_args::{
@@ -10,9 +12,9 @@ use crate::{
 };
 use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
+use stylus_tools::core::deployment;
 use stylus_tools::core::deployment::deployer::ADDRESS;
 
-// TODO: this should be in stylus-tools
 pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
 
 #[derive(Debug, clap::Args)]
@@ -51,6 +53,9 @@ pub struct Args {
     /// The constructor signature when using the --wasm-file flag.
     #[arg(long)]
     constructor_signature: Option<String>,
+    /// Deploy wasm file directly
+    #[arg(long)]
+    wasm_file: Option<PathBuf>,
 
     /// Wallet source to use.
     #[command(flatten)]
@@ -70,7 +75,8 @@ pub struct Args {
 }
 
 pub async fn exec(args: Args) -> CargoStylusResult {
-    if args.project.contracts()?.len() > 1 && !args.constructor_args.is_empty() {
+    let contracts = args.project.contracts()?;
+    if args.wasm_file.is_none() && contracts.len() > 1 && !args.constructor_args.is_empty() {
         return Err(CargoStylusError::from(eyre!(
             "Multi-contract deployment only allowed for no-arg constructors"
         )));
@@ -78,17 +84,32 @@ pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider_with_wallet(&args.auth).await?;
     let config = args.deploy.config(
         &args.activation,
+        &args.build,
         &args.check,
         args.auth.get_max_fee_per_gas_wei()?,
-        args.estimate_gas,
         args.no_activate,
         args.deployer_address,
         args.constructor_args,
         args.deployer_salt,
         args.constructor_value,
     );
-    for contract in args.project.contracts()? {
-        contract.deploy(&config, &provider).await?;
+    #[allow(clippy::collapsible_else_if)]
+    if args.estimate_gas {
+        if let Some(wasm_file) = args.wasm_file {
+            let _gas = deployment::estimate_gas_wasm_file(wasm_file, &config, &provider).await?;
+        } else {
+            for contract in contracts {
+                let _gas = deployment::estimate_gas(&contract, &config, &provider).await?;
+            }
+        }
+    } else {
+        if let Some(wasm_file) = args.wasm_file {
+            deployment::deploy_wasm_file(wasm_file, &config, &provider).await?;
+        } else {
+            for contract in contracts {
+                contract.deploy(&config, &provider).await?;
+            }
+        }
     }
     Ok(())
 }

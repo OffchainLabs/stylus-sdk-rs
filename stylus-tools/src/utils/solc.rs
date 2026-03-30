@@ -3,16 +3,16 @@
 
 #![allow(dead_code)]
 
-use super::color::Color;
+use super::{color::Color, sys};
 
 const LINK: &str = "https://docs.soliditylang.org/en/latest/installing-solidity.html";
 
-pub fn abi() -> Result<Vec<u8>, SolcError> {
-    todo!()
-}
-
 pub fn check_exists() -> Result<(), SolcError> {
-    todo!()
+    if sys::command_exists("solc") {
+        Ok(())
+    } else {
+        Err(SolcError::CommandDoesNotExist)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

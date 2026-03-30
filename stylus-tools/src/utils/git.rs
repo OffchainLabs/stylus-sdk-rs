@@ -6,7 +6,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::error::CommandError;
+use crate::error::{CommandError, CommandFailure};
 
 const GIT: &str = "git";
 
@@ -19,9 +19,6 @@ pub fn init(dir: Option<impl AsRef<Path>>) -> Result<(), CommandError> {
     if let Some(dir) = dir {
         cmd.arg(dir.as_ref());
     }
-    let status = cmd.status()?;
-    if !status.success() {
-        todo!("handle error");
-    }
+    CommandFailure::check("git init", cmd.output()?)?;
     Ok(())
 }

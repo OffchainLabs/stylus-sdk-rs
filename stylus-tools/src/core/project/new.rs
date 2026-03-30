@@ -13,6 +13,11 @@ use crate::{
 /// Create a new Stylus contract.
 pub fn new_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
+    let project = path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .replace("-", "_");
 
     // Initialize a Rust package with cargo
     cargo::new(path)?;
@@ -22,6 +27,7 @@ pub fn new_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
     // Remove the generated "src/lib.rs" and generate the new one
     fs::remove_file(path.join("src").join("lib.rs"))?;
     copy_from_template_if_dne!(
+        (&project),
         "templates/contract" -> path,
         "src/lib.rs",
     );

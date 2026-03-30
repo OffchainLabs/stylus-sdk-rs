@@ -11,7 +11,6 @@ use alloy::rpc::types::TransactionReceipt;
 use alloy::{
     primitives::{address, Address, U256},
     providers::Provider,
-    rpc::types::TransactionRequest,
     sol,
     sol_types::SolCall,
     sol_types::SolEvent,
@@ -34,38 +33,6 @@ sol! {
     }
 
     function stylus_constructor();
-}
-
-#[derive(Debug)]
-pub struct DeployerArgs {
-    /// Factory address
-    address: Address,
-    /// Value to be sent in the tx
-    tx_value: U256,
-    /// Calldata to be sent in the tx
-    tx_calldata: Vec<u8>,
-}
-
-/// Deploys, activates, and initializes the contract using the Stylus deployer.
-pub async fn deploy(
-    deployer: DeployerArgs,
-    sender: Address,
-    provider: &impl Provider,
-) -> Result<(), DeployerError> {
-    debug!(@grey, "deploying contract using deployer at address: {}", deployer.address);
-    let tx = TransactionRequest::default()
-        .to(deployer.address)
-        .from(sender)
-        .value(deployer.tx_value)
-        .input(deployer.tx_calldata.into());
-
-    let _gas = provider
-        .estimate_gas(tx.clone())
-        .await
-        .or(Err(DeployerError::GasEstimationFailure))?;
-
-    let _gas_price = provider.get_gas_price().await?;
-    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,22 +1,45 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use std::io;
+use std::{env, io};
 
-use crate::core::build::BuildConfig;
+use crate::core::{
+    build::{build_contract, BuildConfig},
+    chain::ChainConfig,
+    code::{
+        wasm::{compress_wasm, process_wasm_file},
+        Code,
+    },
+    deployment::prelude::DeploymentCalldata,
+    project::{contract::Contract, hash_project, ProjectConfig},
+};
 
-pub fn write_initcode(_build_config: &BuildConfig, _output: impl io::Write) -> eyre::Result<()> {
-    /*
-        let (wasm, project_hash) = project::build_wasm_from_features(
-            cfg.features.clone(),
-            cfg.source_files_for_project_hash.clone(),
-        )?;
-
-        let (_, code) =
-            project::compress_wasm(&wasm, project_hash).wrap_err("failed to compress WASM")?;
-
-        let initcode = DeploymentCalldata::new(code);
-        output.write(hex::encode(initcode.0).as_bytes())?;
-    */
+pub fn write_initcode(
+    contract: &Contract,
+    build_config: &BuildConfig,
+    chain_config: &ChainConfig,
+    project_config: &ProjectConfig,
+    mut output: impl io::Write,
+) -> eyre::Result<()> {
+    let wasm_file = build_contract(contract, build_config)?;
+    let dir = env::current_dir()?;
+    let project_hash = hash_project(dir, project_config, build_config)?;
+    let processed = process_wasm_file(&wasm_file, project_hash)?;
+    let compressed = compress_wasm(&processed)?;
+    let code = Code::split_if_large(
+        &compressed,
+        processed.len() as u32,
+        chain_config.max_code_size,
+    );
+    let contract = match code {
+        Code::Contract(contract) => contract,
+        Code::Fragments(_fragments) => {
+            return Err(eyre::eyre!(
+                "fragmented contracts not currently supported for initcode retrieval"
+            ));
+        }
+    };
+    let initcode = DeploymentCalldata::new(contract.as_slice());
+    output.write_all(hex::encode(initcode.0).as_bytes())?;
     Ok(())
 }

@@ -1065,11 +1065,11 @@ dependencies = [
 
 [[package]]
 name = "branches"
-version = "0.2.1"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c3cb31f305a2591edaae2206f29e1e05b19ba48eba41042a18735bcc0efe165"
+checksum = "e426eb5cc1900033930ec955317b302e68f19f326cc7bb0c8a86865a826cdf0c"
 dependencies = [
- "rustc_version 0.2.3",
+ "rustc_version 0.4.1",
 ]
 
 [[package]]
@@ -2659,9 +2659,9 @@ dependencies = [
 
 [[package]]
 name = "keccak"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
  "cpufeatures",
 ]
@@ -3463,9 +3463,9 @@ dependencies = [
 
 [[package]]
 name = "rclite"
-version = "0.2.7"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f528dfeba924f5fc67bb84a17fe043451d1b392758016ce2d9e9116649b0f35"
+checksum = "c6716a637a8a17bce72da6b6ddab8548619cc748658c41ab6ee5c4a3c1001385"
 dependencies = [
  "branches",
 ]
@@ -3743,15 +3743,6 @@ dependencies = [
 
 [[package]]
 name = "rustc_version"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
-dependencies = [
- "semver 0.9.0",
-]
-
-[[package]]
-name = "rustc_version"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
@@ -3967,20 +3958,11 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
-dependencies = [
- "semver-parser 0.7.0",
-]
-
-[[package]]
-name = "semver"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f301af10236f6df4160f7c3f04eec6dbc70ace82d23326abad5edee88801c6b6"
 dependencies = [
- "semver-parser 0.10.3",
+ "semver-parser",
 ]
 
 [[package]]
@@ -3992,12 +3974,6 @@ dependencies = [
  "serde",
  "serde_core",
 ]
-
-[[package]]
-name = "semver-parser"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "semver-parser"
@@ -4310,7 +4286,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-core"
-version = "0.10.0-rc.1"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4322,7 +4298,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-proc"
-version = "0.10.0-rc.1"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4342,7 +4318,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.10.0-rc.1"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4351,6 +4327,7 @@ dependencies = [
  "clap",
  "derivative",
  "hex",
+ "keccak",
  "keccak-const",
  "mini-alloc",
  "rclite",
@@ -4362,7 +4339,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-test"
-version = "0.10.0-rc.1"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-provider",
@@ -4374,7 +4351,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-tools"
-version = "0.10.0-rc.1"
+version = "0.10.2"
 dependencies = [
  "alloy",
  "anyhow",
@@ -4386,6 +4363,7 @@ dependencies = [
  "clap",
  "escargot",
  "eyre",
+ "glob",
  "hex",
  "log",
  "regex",
@@ -4396,12 +4374,14 @@ dependencies = [
  "serde_json",
  "sneks",
  "sys-info",
+ "tempfile",
  "thiserror 2.0.17",
  "tiny-keccak",
  "tokio",
  "toml 0.8.23",
  "toml_edit 0.22.27",
  "trybuild",
+ "typed-builder",
  "wasm-encoder 0.213.0",
  "wasm-gen",
  "wasmer",
@@ -4931,6 +4911,26 @@ dependencies = [
  "target-triple",
  "termcolor",
  "toml 0.9.7",
+]
+
+[[package]]
+name = "typed-builder"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31aa81521b70f94402501d848ccc0ecaa8f93c8eb6999eb9747e72287757ffda"
+dependencies = [
+ "typed-builder-macro",
+]
+
+[[package]]
+name = "typed-builder-macro"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "076a02dc54dd46795c2e9c8282ed40bcfb1e22747e955de9389a1de28190fb26"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
 ]
 
 [[package]]

@@ -42,7 +42,7 @@ pub struct Args {
 pub async fn exec(args: Args) -> CargoStylusResult {
     network::check_endpoint(&args.provider.endpoint)?;
     let provider = args.provider.build_provider().await?;
-    let config = args.check.config(&args.activation);
+    let config = args.check.config(&args.activation, &args.build);
 
     for (wasm_file, address) in izip!(
         args.wasm_file,

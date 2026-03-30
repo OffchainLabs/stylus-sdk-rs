@@ -41,17 +41,17 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.10.0-rc.1"
+version = "0.10.2"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/OffchainLabs/stylus-sdk-rs"
 repository = "https://github.com/OffchainLabs/stylus-sdk-rs"
-rust-version = "1.71.0"
+rust-version = "1.91.0"
 
 [workspace.dependencies]
-alloy-primitives = { version = "1.0.1", default-features = false }
-alloy-sol-types = { version = "1.0.1", default-features = false }
+alloy-primitives = { version = "1.5.7", default-features = false }
+alloy-sol-types = { version = "1.5.7", default-features = false }
 cfg-if = "1.0.0"
 clap = { version = "4.5.4", features = [ "derive", "color" ] }
 derivative = { version = "2.2.0", features = ["use_core"] }
@@ -60,7 +60,7 @@ keccak-const = "0.2.0"
 lazy_static = "1.5.0"
 mini-alloc = "1.0.0"
 sha3 = "0.10.8"
-rclite = "=0.2.7"
+rclite = "=0.4.1"
 
 # proc macros
 convert_case = "0.6.0"
@@ -70,7 +70,7 @@ proc-macro2 = "1.0"
 quote = "1.0"
 regex = "1.10.6"
 syn = { version = "2.0.77", features = ["full", "visit-mut"] }
-syn-solidity = { version = "1.0.1", features = ["visit", "visit-mut"] }
+syn-solidity = { version = "1.5.7", features = ["visit", "visit-mut"] }
 
 # proc macro dev
 pretty_assertions = "1.4.1"
@@ -78,7 +78,7 @@ prettyplease = "0.2.22"
 trybuild = "1.0"
 
 # stylus tools
-alloy = { version = "1.0.1", features = ["essentials", "json-rpc", "provider-debug-api", "provider-trace-api", "signer-keystore"] }
+alloy = { version = "1.7.3", features = ["essentials", "json-rpc", "provider-debug-api", "provider-trace-api", "signer-keystore"] }
 cargo-util-schemas = "0.2"
 eyre = "0.6"
 log = "0.4"
@@ -88,7 +88,7 @@ tokio = "1.45"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
-stylus-core = { path = "stylus-core", version = "0.10.0-rc.1" }
-stylus-test = { path = "stylus-test", version = "0.10.0-rc.1" }
-stylus-proc = { path = "stylus-proc", version = "0.10.0-rc.1" }
-stylus-tools = { path = "stylus-tools", version = "0.10.0-rc.1" }
+stylus-core = { path = "stylus-core", version = "0.10.2" }
+stylus-test = { path = "stylus-test", version = "0.10.2" }
+stylus-proc = { path = "stylus-proc", version = "0.10.2" }
+stylus-tools = { path = "stylus-tools", version = "0.10.2" }

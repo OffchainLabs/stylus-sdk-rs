@@ -2,6 +2,26 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.2) - 2026-03-09
+
+### Fixed
+
+- Pin `keccak` dependency to `>=0.1.6` to avoid resolving to broken `0.1.5` [#397](https://github.com/OffchainLabs/stylus-sdk-rs/pull/397)
+- Fix subcrate READMEs to point to repo root instead of broken symlinks [#398](https://github.com/OffchainLabs/stylus-sdk-rs/pull/398)
+- Fix docs compilation error [#394](https://github.com/OffchainLabs/stylus-sdk-rs/pull/394)
+- Fix 404 links and editorial nits [#376](https://github.com/OffchainLabs/stylus-sdk-rs/pull/376)
+
+## [0.10.1](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.1) - 2026-03-09
+
+### New
+
+- Support for deploying large contracts via fragmented deployment, including constructor support for fragments [#383](https://github.com/OffchainLabs/stylus-sdk-rs/pull/383)
+- Add `--wasm-file` flag to deployment CLI for deploying pre-built WASM files [#389](https://github.com/OffchainLabs/stylus-sdk-rs/pull/389)
+
+### Changed
+
+- Add AssemblyScript SDK to README [#386](https://github.com/OffchainLabs/stylus-sdk-rs/pull/386)
+
 ## [0.10.0](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.0)
 
 ### New
@@ -13,6 +33,7 @@ These crates follow [semver](https://semver.org).
 - More convenient integer functions for storage
 - Support for custom storage slots
 - Support for tuples in return types
+- cargo stylus codehash-keepalive command
 
 ### Changed
 

@@ -2,8 +2,13 @@ error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
   --> tests/fail/public/generated.rs:16:32
    |
 16 |     fn unsupported_input(_arg: UnsupportedType) {}
-   |                                ^^^^^^^^^^^^^^^ the trait `AbiType` is not implemented for `UnsupportedType`
+   |                                ^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
+help: the trait `AbiType` is not implemented for `UnsupportedType`
+  --> tests/fail/public/generated.rs:10:1
+   |
+10 | struct UnsupportedType;
+   | ^^^^^^^^^^^^^^^^^^^^^^
    = help: the following other types implement trait `AbiType`:
              ()
              (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
@@ -19,8 +24,13 @@ error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
   --> tests/fail/public/generated.rs:16:26
    |
 16 |     fn unsupported_input(_arg: UnsupportedType) {}
-   |                          ^^^^ the trait `AbiType` is not implemented for `UnsupportedType`
+   |                          ^^^^ unsatisfied trait bound
    |
+help: the trait `AbiType` is not implemented for `UnsupportedType`
+  --> tests/fail/public/generated.rs:10:1
+   |
+10 | struct UnsupportedType;
+   | ^^^^^^^^^^^^^^^^^^^^^^
    = help: the following other types implement trait `AbiType`:
              ()
              (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
@@ -37,8 +47,13 @@ error[E0277]: the trait bound `UnsupportedType: EncodableReturnType` is not sati
   --> tests/fail/public/generated.rs:18:32
    |
 18 |     fn unsupported_output() -> UnsupportedType {
-   |                                ^^^^^^^^^^^^^^^ the trait `AbiType` is not implemented for `UnsupportedType`
+   |                                ^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
+help: the trait `AbiType` is not implemented for `UnsupportedType`
+  --> tests/fail/public/generated.rs:10:1
+   |
+10 | struct UnsupportedType;
+   | ^^^^^^^^^^^^^^^^^^^^^^
    = help: the following other types implement trait `AbiType`:
              ()
              (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
