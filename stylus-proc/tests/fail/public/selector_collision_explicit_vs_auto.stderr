@@ -1,0 +1,21 @@
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `foo_bar` (ABI name `fooBar`) and `something_else` (ABI name `fooBar`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+  --> tests/fail/public/selector_collision_explicit_vs_auto.rs:21:8
+   |
+21 |     fn something_else(_x: u64) {}
+   |        ^^^^^^^^^^^^^^ evaluation of `_` failed here
+
+error: unreachable pattern
+  --> tests/fail/public/selector_collision_explicit_vs_auto.rs:21:8
+   |
+17 |     fn foo_bar(_x: u64) {}
+   |        ------- matches all the relevant values
+...
+21 |     fn something_else(_x: u64) {}
+   |        ^^^^^^^^^^^^^^ no value can reach this
+   |
+note: the lint level is defined here
+  --> tests/fail/public/selector_collision_explicit_vs_auto.rs:14:1
+   |
+14 | #[public]
+   | ^^^^^^^^^
+   = note: this error originates in the attribute macro `public` (in Nightly builds, run with -Z macro-backtrace for more info)

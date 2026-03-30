@@ -2725,9 +2725,9 @@ dependencies = [
 
 [[package]]
 name = "keccak"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
  "cpufeatures",
 ]
@@ -4377,7 +4377,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-core"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4389,7 +4389,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-proc"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4409,7 +4409,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4418,6 +4418,7 @@ dependencies = [
  "clap",
  "derivative",
  "hex",
+ "keccak",
  "keccak-const",
  "mini-alloc",
  "rclite",
@@ -4429,7 +4430,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-test"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "alloy-primitives",
  "alloy-provider",
@@ -4441,7 +4442,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-tools"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "alloy",
  "anyhow",

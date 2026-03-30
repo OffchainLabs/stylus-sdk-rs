@@ -1,4 +1,26 @@
 error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
+  --> tests/fail/public/generated.rs:16:32
+   |
+16 |     fn unsupported_input(_arg: UnsupportedType) {}
+   |                                ^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `AbiType` is not implemented for `UnsupportedType`
+  --> tests/fail/public/generated.rs:10:1
+   |
+10 | struct UnsupportedType;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   = help: the following other types implement trait `AbiType`:
+             ()
+             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
+           and $N others
+
+error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
   --> tests/fail/public/generated.rs:16:26
    |
 16 |     fn unsupported_input(_arg: UnsupportedType) {}
@@ -43,25 +65,3 @@ help: the trait `AbiType` is not implemented for `UnsupportedType`
              (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
            and $N others
    = note: required for `UnsupportedType` to implement `EncodableReturnType`
-
-error[E0277]: the trait bound `UnsupportedType: AbiType` is not satisfied
-  --> tests/fail/public/generated.rs:16:32
-   |
-16 |     fn unsupported_input(_arg: UnsupportedType) {}
-   |                                ^^^^^^^^^^^^^^^ unsatisfied trait bound
-   |
-help: the trait `AbiType` is not implemented for `UnsupportedType`
-  --> tests/fail/public/generated.rs:10:1
-   |
-10 | struct UnsupportedType;
-   | ^^^^^^^^^^^^^^^^^^^^^^
-   = help: the following other types implement trait `AbiType`:
-             ()
-             (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-             (G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X)
-           and $N others
