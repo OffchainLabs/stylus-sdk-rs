@@ -1,20 +1,20 @@
-error[E0080]: evaluation of constant value failed
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `bar` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
   --> tests/fail/public/selector_collision_multiple.rs:19:8
    |
 19 |     fn bar(_x: u64) {}
-   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `bar` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+   |        ^^^ evaluation of `_` failed here
 
-error[E0080]: evaluation of constant value failed
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
   --> tests/fail/public/selector_collision_multiple.rs:22:8
    |
 22 |     fn baz(_x: u64) {}
-   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+   |        ^^^ evaluation of `_` failed here
 
-error[E0080]: evaluation of constant value failed
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `bar` (ABI name `foo`) and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
   --> tests/fail/public/selector_collision_multiple.rs:22:8
    |
 22 |     fn baz(_x: u64) {}
-   |        ^^^ evaluation panicked: Stylus SDK: ABI selector collision: `bar` (ABI name `foo`) and `baz` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+   |        ^^^ evaluation of `_` failed here
 
 error: unreachable pattern
   --> tests/fail/public/selector_collision_multiple.rs:19:8

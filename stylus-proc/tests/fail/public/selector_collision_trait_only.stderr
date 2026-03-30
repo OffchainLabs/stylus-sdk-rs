@@ -1,5 +1,5 @@
-error[E0080]: evaluation of constant value failed
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `colliding_foo` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
   --> tests/fail/public/selector_collision_trait_only.rs:16:8
    |
 16 |     fn colliding_foo(&self, _x: u64);
-   |        ^^^^^^^^^^^^^ evaluation panicked: Stylus SDK: ABI selector collision: `foo` and `colliding_foo` (ABI name `foo`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+   |        ^^^^^^^^^^^^^ evaluation of `_` failed here

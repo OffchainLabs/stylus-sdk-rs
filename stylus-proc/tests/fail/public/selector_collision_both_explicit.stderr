@@ -1,8 +1,8 @@
-error[E0080]: evaluation of constant value failed
+error[E0080]: evaluation panicked: Stylus SDK: ABI selector collision: `alpha` (ABI name `doStuff`) and `beta` (ABI name `doStuff`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
   --> tests/fail/public/selector_collision_both_explicit.rs:19:8
    |
 19 |     fn beta(_x: u64) {}
-   |        ^^^^ evaluation panicked: Stylus SDK: ABI selector collision: `alpha` (ABI name `doStuff`) and `beta` (ABI name `doStuff`) produce the same 4-byte selector. Use #[selector(name = "...")] to assign a distinct name, or rename one
+   |        ^^^^ evaluation of `_` failed here
 
 error: unreachable pattern
   --> tests/fail/public/selector_collision_both_explicit.rs:19:8
