@@ -13,7 +13,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
       - name: Install stable
-        uses: dtolnay/rust-toolchain@1.88.0
+        uses: dtolnay/rust-toolchain@1.91.0
       - name: Get latest cargo-stylus version
         id: get-version
         shell: bash
@@ -37,7 +37,7 @@ jobs:
     needs: setup-cargo-stylus
     strategy:
       matrix:
-        toolchain: [1.88.0, nightly-2025-06-26]
+        toolchain: [1.91.0, nightly-2025-10-01]
     steps:
       - name: checkout
         uses: actions/checkout@v3

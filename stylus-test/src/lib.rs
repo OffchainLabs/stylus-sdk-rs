@@ -12,7 +12,7 @@
 //! allows for mocking of all host functions, including storage, gas, and external calls to assert
 //! contract behavior.
 //!
-//! To be able to unit test Stylus contracts, contracts must access host methods through the [`stylus_core::host:HostAccessor`] trait,
+//! To be able to unit test Stylus contracts, contracts must access host methods through the [`stylus_core::host::HostAccess`] trait,
 //! which gives all contracts access to a `.vm()` method.
 
 pub mod builder;
