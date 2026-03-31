@@ -73,7 +73,7 @@ fn get_default_output(ty: &syn::Type) -> (TokenStream, TokenStream) {
             Result<<<#ty as #AbiType>::SolType as #SolType>::RustType, stylus_sdk::stylus_core::calls::errors::Error>
         },
         quote! {
-            Ok(<<#ty as #AbiType>::SolType as #SolType>::abi_decode(&call_result)?)
+            Ok(<<#ty as #AbiType>::SolType as #SolType>::abi_decode_validate(&call_result)?)
         },
     )
 }
@@ -166,7 +166,7 @@ fn get_output_type_and_decoding(output: &syn::ReturnType) -> (TokenStream, Token
                         stylus_sdk::ArbResult
                     },
                     quote! {
-                        let decoded = <<Vec<u8> as #AbiType>::SolType as #SolType>::abi_decode(&call_result);
+                        let decoded = <<Vec<u8> as #AbiType>::SolType as #SolType>::abi_decode_validate(&call_result);
                         match decoded {
                             Ok(decoded) => Ok(decoded),
                             Err(err) => Err("unable to decode to Vec<u8>".into()),
@@ -645,7 +645,7 @@ impl<E: FnExtension> PublicFn<E> {
             #[allow(non_upper_case_globals)]
             #constant => {
                 #deny_value
-                let args = match <#decode_inputs as #SolType>::abi_decode_params(input) {
+                let args = match <#decode_inputs as #SolType>::abi_decode_params_validate(input) {
                     Ok(args) => args,
                     Err(err) => {
                         internal::failed_to_decode_arguments(err);
@@ -754,7 +754,7 @@ impl<E: FnExtension> PublicFn<E> {
             if let Err(e) = storage.check_constructor_slot() {
                 return Some(Err(e));
             }
-            let args = match <#decode_inputs as #SolType>::abi_decode_params(input) {
+            let args = match <#decode_inputs as #SolType>::abi_decode_params_validate(input) {
                 Ok(args) => args,
                 Err(err) => {
                     internal::failed_to_decode_arguments(err);
