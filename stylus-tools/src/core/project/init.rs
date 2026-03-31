@@ -37,14 +37,30 @@ pub enum InitError {
     Command(#[from] crate::error::CommandError),
 }
 
-/// Initialize a Stylus contract in an existing Rust crate.
-pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
-    let path = path.as_ref();
-    let project = path
+/// Extract a valid UTF-8 project name from a path.
+pub(super) fn project_name(path: &Path) -> Result<String, InitError> {
+    let name = path
         .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replace("-", "_");
+        .ok_or_else(|| {
+            InitError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("invalid project path: '{}'", path.display()),
+            ))
+        })?
+        .to_str()
+        .ok_or_else(|| {
+            InitError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("project path contains invalid UTF-8: '{}'", path.display()),
+            ))
+        })?;
+    Ok(name.replace("-", "_"))
+}
+
+/// Initialize a Stylus contract in an existing Rust crate.
+pub fn init_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
+    let path = path.as_ref();
+    let project = project_name(path)?;
 
     // Add files from template
     copy_from_template_if_dne!(
@@ -58,7 +74,7 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
 
     // Update Cargo.toml
     // This must be done after copying templates, as it will fail if there is no src/[lib|main].rs
-    init_package_manifest(path)?;
+    init_package_manifest(path, sdk_path)?;
 
     Ok(())
 }
@@ -66,11 +82,7 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
 /// Initialize a Stylus workspace in an existing directory.
 pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
-    let project = path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replace("-", "_");
+    let project = project_name(path)?;
 
     // Create standard directories
     create_dir_if_dne(path.join("contracts"))?;
@@ -91,9 +103,9 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
 /// Initialize a contract's Cargo.toml.
 ///
 /// Takes a path to the package directory.
-fn init_package_manifest(path: impl AsRef<Path>) -> Result<(), InitError> {
+fn init_package_manifest(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     // Add required dependencies
-    cargo::add(&path, contract_dependencies()?)?;
+    cargo::add(&path, contract_dependencies(sdk_path)?)?;
 
     // Parse existing manifest to add default configs
     // TODO: get this from cargo metadata

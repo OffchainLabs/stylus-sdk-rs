@@ -44,12 +44,12 @@ fn test_activate(rpc: &str, address: Address) -> Result<()> {
 }
 
 fn test_verify(rpc: &str, tx_hash: TxHash) -> Result<()> {
-    let verify = Verifier::builder()
+    Verifier::builder()
         .rpc(rpc)
         .deployment_tx_hash(tx_hash.to_string())
         .build()
-        .verify();
-    assert!(verify.is_ok(), "Failed to verify contract");
+        .verify()
+        .map_err(|e| eyre::eyre!("Failed to verify contract (tx: {tx_hash}): {e}"))?;
     Ok(())
 }
 

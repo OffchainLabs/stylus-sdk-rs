@@ -257,6 +257,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn test_function_selector() {
         use alloy_primitives::{Address, U256};
@@ -265,5 +267,21 @@ mod tests {
 
         const TEST_SELECTOR: [u8; 4] = function_selector!("foo", Address, U256);
         assert_eq!(TEST_SELECTOR, 0xbd0d639f_u32.to_be_bytes());
+    }
+
+    #[test]
+    fn test_decode_params_validate_rejects_dirty_padding() {
+        use alloy_primitives::Address;
+        // An ABI-encoded address is 32 bytes: 12 zero-padding bytes + 20 address bytes.
+        // Construct one with non-zero padding — valid for non-validate decode, but
+        // abi_decode_params_validate should reject it via type_check.
+        let mut dirty = [0u8; 32];
+        dirty[0] = 0xff; // dirty high byte in padding region
+        dirty[12..].copy_from_slice(&[0x01; 20]); // address bytes
+        let result = decode_params::<(Address,)>(&dirty);
+        assert!(
+            result.is_err(),
+            "decode_params should reject non-canonical address padding"
+        );
     }
 }

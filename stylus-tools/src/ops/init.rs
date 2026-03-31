@@ -6,9 +6,13 @@ use std::path::Path;
 use crate::core::project::{init_contract, init_workspace, ProjectKind};
 
 /// Initialize a Stylus contract or workspace in an existing directory.
-pub fn init(path: impl AsRef<Path>, kind: ProjectKind) -> eyre::Result<()> {
+pub fn init(
+    path: impl AsRef<Path>,
+    kind: ProjectKind,
+    sdk_path: Option<&Path>,
+) -> eyre::Result<()> {
     match kind {
-        ProjectKind::Contract => init_contract(path)?,
+        ProjectKind::Contract => init_contract(path, sdk_path)?,
         ProjectKind::Workspace => init_workspace(path)?,
     }
     Ok(())

@@ -19,6 +19,9 @@ pub struct Args {
     /// Create a new workspace
     #[arg(long)]
     workspace: bool,
+    /// Use a local path for stylus-sdk instead of the published crate
+    #[arg(long, hide = true)]
+    sdk_path: Option<PathBuf>,
 }
 
 pub fn exec(args: Args) -> CargoStylusResult {
@@ -28,6 +31,6 @@ pub fn exec(args: Args) -> CargoStylusResult {
         (false, true) => ProjectKind::Workspace,
         (true, true) => return Err(eyre!("cannot specify both --contract and --workspace").into()),
     };
-    ops::new(args.path, kind)?;
+    ops::new(args.path, kind, args.sdk_path.as_deref())?;
     Ok(())
 }
