@@ -32,6 +32,9 @@ pub fn new_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(
         "src/lib.rs",
     );
 
+    // Ensure Cargo.lock exists so that `cargo stylus check --locked` works
+    cargo::generate_lockfile(path)?;
+
     Ok(())
 }
 

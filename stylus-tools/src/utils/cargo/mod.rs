@@ -71,6 +71,18 @@ pub fn add(
     Ok(())
 }
 
+pub fn generate_lockfile(path: impl AsRef<Path>) -> Result<(), CommandError> {
+    let mut cmd = Cargo::new().into_command();
+    let output = cmd
+        .arg("generate-lockfile")
+        .current_dir(path)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .output()?;
+    CommandFailure::check("cargo generate-lockfile", output)?;
+    Ok(())
+}
+
 pub fn clean() -> Result<(), CommandError> {
     let mut cmd = Cargo::new().into_command();
     let output = cmd
