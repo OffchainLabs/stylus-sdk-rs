@@ -24,9 +24,9 @@ keccak = ">=0.1.6, <0.2"
 mini-alloc = { workspace = true, optional = true }
 stylus-proc.workspace = true
 stylus-core.workspace = true
-ruint = "=1.16.0"
-branches = { version = "=0.4.4", default-features = false }
-rclite = "=0.4.1"
+ruint = { version = "1.16", default-features = false }
+branches = { version = "0.4", default-features = false }
+rclite = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 alloy-primitives = { workspace = true, features = ["native-keccak"] }
