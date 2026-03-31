@@ -37,14 +37,30 @@ pub enum InitError {
     Command(#[from] crate::error::CommandError),
 }
 
+/// Extract a valid UTF-8 project name from a path.
+pub(super) fn project_name(path: &Path) -> Result<String, InitError> {
+    let name = path
+        .file_name()
+        .ok_or_else(|| {
+            InitError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("invalid project path: '{}'", path.display()),
+            ))
+        })?
+        .to_str()
+        .ok_or_else(|| {
+            InitError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("project path contains invalid UTF-8: '{}'", path.display()),
+            ))
+        })?;
+    Ok(name.replace("-", "_"))
+}
+
 /// Initialize a Stylus contract in an existing Rust crate.
 pub fn init_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     let path = path.as_ref();
-    let project = path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replace("-", "_");
+    let project = project_name(path)?;
 
     // Add files from template
     copy_from_template_if_dne!(
@@ -66,11 +82,7 @@ pub fn init_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<
 /// Initialize a Stylus workspace in an existing directory.
 pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
     let path = path.as_ref();
-    let project = path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replace("-", "_");
+    let project = project_name(path)?;
 
     // Create standard directories
     create_dir_if_dne(path.join("contracts"))?;

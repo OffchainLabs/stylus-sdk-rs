@@ -3,7 +3,7 @@
 
 use std::{fs, path::Path};
 
-use super::{init_contract, init_workspace};
+use super::init::{init_contract, init_workspace, project_name};
 use crate::{
     core::project::InitError,
     utils::{cargo, git},
@@ -13,11 +13,7 @@ use crate::{
 /// Create a new Stylus contract.
 pub fn new_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     let path = path.as_ref();
-    let project = path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replace("-", "_");
+    let project = project_name(path)?;
 
     let result = new_contract_inner(path, &project, sdk_path);
     if let Err(ref e) = result {

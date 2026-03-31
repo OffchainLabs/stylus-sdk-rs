@@ -21,8 +21,14 @@ pub async fn codehash_keepalive(
         .await
         .map_err(|err| eyre!("Failed to keepalive contract: {err:?}"))?;
 
-    let pending_tx = keepalive_call.send().await?;
-    let receipt = pending_tx.get_receipt().await?;
+    let pending_tx = keepalive_call
+        .send()
+        .await
+        .map_err(|err| eyre!("Failed to send keepalive transaction: {err:?}"))?;
+    let receipt = pending_tx
+        .get_receipt()
+        .await
+        .map_err(|err| eyre!("Failed to get keepalive transaction receipt: {err:?}"))?;
     ensure!(receipt.status(), "Keepalive transaction reverted");
 
     let tx_hash = receipt.transaction_hash.debug_lavender();
