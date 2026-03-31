@@ -38,7 +38,7 @@ pub enum InitError {
 }
 
 /// Initialize a Stylus contract in an existing Rust crate.
-pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
+pub fn init_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     let path = path.as_ref();
     let project = path
         .file_name()
@@ -58,7 +58,7 @@ pub fn init_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
 
     // Update Cargo.toml
     // This must be done after copying templates, as it will fail if there is no src/[lib|main].rs
-    init_package_manifest(path)?;
+    init_package_manifest(path, sdk_path)?;
 
     Ok(())
 }
@@ -91,9 +91,9 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
 /// Initialize a contract's Cargo.toml.
 ///
 /// Takes a path to the package directory.
-fn init_package_manifest(path: impl AsRef<Path>) -> Result<(), InitError> {
+fn init_package_manifest(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     // Add required dependencies
-    cargo::add(&path, contract_dependencies()?)?;
+    cargo::add(&path, contract_dependencies(sdk_path)?)?;
 
     // Parse existing manifest to add default configs
     // TODO: get this from cargo metadata

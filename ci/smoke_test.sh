@@ -5,17 +5,27 @@ set -euo pipefail
 # Print version information
 rustc -Vv
 cargo -V
-#cargo stylus --version
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 TEST_DIR=$(mktemp -d)
 echo "Running smoke test in isolated directory: $TEST_DIR"
 cd "$TEST_DIR"
 
-cargo stylus new counter
+cargo stylus new counter --sdk-path "$REPO_ROOT/stylus-sdk"
 cd counter
-sed -i "s|stylus-sdk = .*|stylus-sdk = { path = \"$REPO_ROOT/stylus-sdk\" }|" Cargo.toml
-cargo update
+
+# Verify scaffolding is correct
+echo "Verifying scaffolded project..."
+test -f Cargo.lock || { echo "FAIL: Cargo.lock not generated"; exit 1; }
+test -f Stylus.toml || { echo "FAIL: Stylus.toml not generated"; exit 1; }
+test -f rust-toolchain.toml || { echo "FAIL: rust-toolchain.toml not generated"; exit 1; }
+test -f src/lib.rs || { echo "FAIL: src/lib.rs not generated"; exit 1; }
+test -f src/main.rs || { echo "FAIL: src/main.rs not generated"; exit 1; }
+grep -q 'stylus-sdk' Cargo.toml || { echo "FAIL: stylus-sdk not in Cargo.toml"; exit 1; }
+grep -q 'entrypoint' src/lib.rs || { echo "FAIL: src/lib.rs missing entrypoint"; exit 1; }
+echo "Scaffolding OK"
+
+# Add workspace key required for cargo stylus commands
 echo "[workspace]" >> Cargo.toml
 
 # Use the nitro testnode private key found from the public mnemonic

@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Create a new Stylus contract.
-pub fn new_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
+pub fn new_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     let path = path.as_ref();
     let project = path
         .file_name()
@@ -22,7 +22,7 @@ pub fn new_contract(path: impl AsRef<Path>) -> Result<(), InitError> {
     // Initialize a Rust package with cargo
     cargo::new(path)?;
     // Upgrade the Rust package into a Stylus contract
-    init_contract(path)?;
+    init_contract(path, sdk_path)?;
 
     // Remove the generated "src/lib.rs" and generate the new one
     fs::remove_file(path.join("src").join("lib.rs"))?;

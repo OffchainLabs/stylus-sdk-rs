@@ -18,23 +18,56 @@ use crate::{
 
 pub mod manifest;
 
+/// Source for a dependency added via `cargo add`.
+#[derive(Debug)]
+pub enum DepSource {
+    /// A versioned dependency from the registry (e.g. "0.10.2").
+    Version(String),
+    /// A local path dependency.
+    Path(PathBuf),
+}
+
 pub fn add(
-    path: impl AsRef<Path>,
-    sources: impl IntoIterator<Item = (String, String)>,
+    project_path: impl AsRef<Path>,
+    sources: impl IntoIterator<Item = (String, DepSource)>,
 ) -> Result<(), CommandError> {
-    let mut cmd = Cargo::new().into_command();
-    let output = cmd
-        .arg("add")
-        .args(
-            sources
-                .into_iter()
-                .map(|(name, req)| format!("{name}@{req}")),
-        )
-        .current_dir(path)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .output()?;
-    CommandFailure::check("cargo add", output)?;
+    let mut version_args = Vec::new();
+    let mut path_deps = Vec::new();
+
+    for (name, source) in sources {
+        match source {
+            DepSource::Version(req) => version_args.push(format!("{name}@{req}")),
+            DepSource::Path(path) => path_deps.push(path),
+        }
+    }
+
+    // Add all version-based deps in one invocation
+    if !version_args.is_empty() {
+        let mut cmd = Cargo::new().into_command();
+        let output = cmd
+            .arg("add")
+            .args(&version_args)
+            .current_dir(&project_path)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()?;
+        CommandFailure::check("cargo add", output)?;
+    }
+
+    // Path deps must be added one at a time
+    for dep_path in path_deps {
+        let mut cmd = Cargo::new().into_command();
+        let output = cmd
+            .arg("add")
+            .arg("--path")
+            .arg(&dep_path)
+            .current_dir(&project_path)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()?;
+        CommandFailure::check("cargo add --path", output)?;
+    }
+
     Ok(())
 }
 
