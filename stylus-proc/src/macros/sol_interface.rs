@@ -123,6 +123,17 @@ impl Interface {
         });
         let rust_arg_names = params.params.iter().map(|param| param.name.clone());
 
+        // For multi-value returns, return_type is already a tuple (e.g. (Uint<256>, String)),
+        // so we decode it directly. For single returns, we wrap in a 1-tuple and unwrap with .0.
+        let decode_expr: syn::Expr = match &return_type {
+            syn::Type::Tuple(t) if t.elems.len() != 1 => {
+                parse_quote!(<#return_type as #SolType>::abi_decode_params(&returned)?)
+            }
+            _ => {
+                parse_quote!(<(#return_type,) as #SolType>::abi_decode_params(&returned)?.0)
+            }
+        };
+
         self.item_impl.items.push(parse_quote! {
             #(#attrs)*
             pub fn #rust_name(
@@ -135,7 +146,7 @@ impl Interface {
                 let mut calldata = vec![#selector0, #selector1, #selector2, #selector3];
                 calldata.extend(args);
                 let returned = #call(host, context, self.address, &calldata)?;
-                Ok(<(#return_type,) as #SolType>::abi_decode_params(&returned)?.0)
+                Ok(#decode_expr)
             }
         });
     }
@@ -403,6 +414,74 @@ mod tests {
                 impl From<stylus_sdk::alloy_primitives::Address> for IService {
                     fn from(address: stylus_sdk::alloy_primitives::Address) -> Self {
                         Self::new(address)
+                    }
+                }
+            },
+        );
+    }
+
+    #[test]
+    fn test_sol_interface_multi_return() {
+        let file = syn_solidity::parse2(quote! {
+            interface IMultiReturn {
+                function numbers() external view returns (uint256, uint256);
+                function mixed() external view returns (string, uint256);
+            }
+        })
+        .unwrap();
+        let visitor = SolInterfaceVisitor::from(&file);
+        assert_ast_eq(
+            &visitor.interfaces[0].item_impl,
+            &parse_quote! {
+                impl IMultiReturn {
+                    pub fn new(address: stylus_sdk::alloy_primitives::Address) -> Self {
+                        Self { address }
+                    }
+
+                    pub fn numbers(
+                        &self,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
+                        context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
+                    ) ->
+                        Result<
+                            <(
+                                stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                                stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                            ) as stylus_sdk::alloy_sol_types::SolType>::RustType,
+                            stylus_sdk::stylus_core::calls::errors::Error,
+                        >
+                    {
+                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
+                        let mut calldata = vec![39u8, 114u8, 47u8, 106u8];
+                        calldata.extend(args);
+                        let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
+                        Ok(<(
+                            stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                            stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?)
+                    }
+
+                    pub fn mixed(
+                        &self,
+                        host: &impl stylus_sdk::stylus_core::host::Host,
+                        context: impl stylus_sdk::stylus_core::calls::StaticCallContext,
+                    ) ->
+                        Result<
+                            <(
+                                stylus_sdk::alloy_sol_types::sol_data::String,
+                                stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                            ) as stylus_sdk::alloy_sol_types::SolType>::RustType,
+                            stylus_sdk::stylus_core::calls::errors::Error,
+                        >
+                    {
+                        let args = <() as stylus_sdk::alloy_sol_types::SolType>::abi_encode_params(&());
+                        let mut calldata = vec![53u8, 77u8, 241u8, 249u8];
+                        calldata.extend(args);
+                        let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
+                        Ok(<(
+                            stylus_sdk::alloy_sol_types::sol_data::String,
+                            stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?)
                     }
                 }
             },
