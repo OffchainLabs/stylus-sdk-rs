@@ -27,6 +27,9 @@ pub(crate) mod stylus_sdk;
 pub(crate) mod toolchain;
 pub(crate) mod wasm;
 
+#[cfg(feature = "integration-tests")]
+pub mod testing;
+
 /// Pretty-prints a data fee.
 pub fn format_data_fee(fee: U256) -> String {
     // TODO: alternative to magic numbers

@@ -8,7 +8,7 @@ mod integration_test {
         sol,
     };
     use eyre::Result;
-    use stylus_tools::devnet::Node;
+    use stylus_tools::utils::testing::init_test;
 
     sol! {
         #[sol(rpc)]
@@ -24,17 +24,31 @@ mod integration_test {
         }
     }
 
+    const EXPECTED_ABI: &str = "\
+interface IVerifySignature {
+    function getMessageHash(address to, uint256 amount, string calldata message, uint256 nonce) external view returns (bytes32);
+
+    function getEthSignedMessageHash(bytes32 message_hash) external view returns (bytes32);
+
+    function verify(address signer, address to, uint256 amount, string calldata message, uint256 nonce, bytes calldata signature) external view returns (bool);
+
+    function recoverSigner(bytes32 eth_signed_message_hash, bytes calldata signature) external view returns (address);
+
+    function ecrecoverCall(bytes32 hash, uint8 v, bytes32 r, bytes32 s) external view returns (address);
+
+    function splitSignature(bytes calldata signature) external view returns (bytes32, bytes32, uint8);
+
+    error EcrecoverCallError();
+
+    error InvalidSignatureLength();
+}";
+
     #[tokio::test]
     async fn verify_signature() -> Result<()> {
-        let devnode = Node::new().await?;
-        let rpc = devnode.rpc();
-        println!("Deploying contract to Nitro ({rpc})...");
-        let (address, _, _) = stylus_tools::Deployer::builder()
-            .rpc(rpc)
-            .build()
-            .deploy()?;
-        println!("Deployed contract to {address}");
+        let (devnode, address) = init_test(EXPECTED_ABI).await?;
         let provider = devnode.create_provider().await?;
+
+        // Instantiate contract
         let contract = IVerifySignature::IVerifySignatureInstance::new(address, provider);
 
         let hash = contract
