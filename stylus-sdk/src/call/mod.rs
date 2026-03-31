@@ -101,6 +101,44 @@ mod test {
     }
     impl StaticCallContext for MyContract {}
 
+    // Test that sol_interface! correctly decodes multi-value return types.
+    // This is a regression test for a bug where multi-value returns were
+    // double-wrapped in a tuple, causing ABI decode panics.
+    // Uses a dynamic type (string) to ensure the encoding difference is detectable —
+    // fixed-size-only tuples have identical encoding whether nested or not.
+    stylus_proc::sol_interface! {
+        interface IMultiReturn {
+            function mixed() external view returns (string, uint256);
+        }
+    }
+
+    #[test]
+    fn test_sol_interface_multi_return() {
+        use alloy_sol_types::SolType;
+
+        let vm = TestVM::new();
+        let target = Address::from([3u8; 20]);
+        let iface = IMultiReturn::new(target);
+        let ctx = MyContract {};
+
+        // Encode the return data as the callee would: flat ABI params (string, uint256)
+        let return_data = <(
+            alloy_sol_types::sol_data::String,
+            alloy_sol_types::sol_data::Uint<256>,
+        ) as SolType>::abi_encode_params(&(
+            alloc::string::String::from("hello"),
+            U256::from(42),
+        ));
+
+        // The calldata for mixed() is just the 4-byte selector (no args)
+        let selector = &alloy_primitives::keccak256("mixed()")[..4];
+        vm.mock_static_call(target, selector.to_vec(), Ok(return_data));
+
+        let (s, n) = iface.mixed(&vm, ctx).unwrap();
+        assert_eq!(s, "hello");
+        assert_eq!(n, U256::from(42));
+    }
+
     #[test]
     fn test_calls() {
         let vm = TestVM::new();
