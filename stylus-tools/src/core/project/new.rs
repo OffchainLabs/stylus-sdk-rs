@@ -19,6 +19,26 @@ pub fn new_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(
         .to_string_lossy()
         .replace("-", "_");
 
+    let result = new_contract_inner(path, &project, sdk_path);
+    if let Err(ref e) = result {
+        eprintln!(
+            "\nerror: failed to create Stylus project at '{}': {e}\n\
+             \n\
+             The project directory may have been left in a partially initialized state.\n\
+             This can happen if your cargo-stylus version is incompatible with the\n\
+             current SDK dependencies. Try updating:\n\
+             \n    cargo install --force cargo-stylus\n",
+            path.display()
+        );
+    }
+    result
+}
+
+fn new_contract_inner(
+    path: &Path,
+    project: &str,
+    sdk_path: Option<&Path>,
+) -> Result<(), InitError> {
     // Initialize a Rust package with cargo
     cargo::new(path)?;
     // Upgrade the Rust package into a Stylus contract
@@ -27,7 +47,7 @@ pub fn new_contract(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(
     // Remove the generated "src/lib.rs" and generate the new one
     fs::remove_file(path.join("src").join("lib.rs"))?;
     copy_from_template_if_dne!(
-        (&project),
+        (project),
         "templates/contract" -> path,
         "src/lib.rs",
     );
