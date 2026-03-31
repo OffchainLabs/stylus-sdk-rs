@@ -127,10 +127,10 @@ impl Interface {
         // so we decode it directly. For single returns, we wrap in a 1-tuple and unwrap with .0.
         let decode_expr: syn::Expr = match &return_type {
             syn::Type::Tuple(t) if t.elems.len() != 1 => {
-                parse_quote!(<#return_type as #SolType>::abi_decode_params(&returned)?)
+                parse_quote!(<#return_type as #SolType>::abi_decode_params_validate(&returned)?)
             }
             _ => {
-                parse_quote!(<(#return_type,) as #SolType>::abi_decode_params(&returned)?.0)
+                parse_quote!(<(#return_type,) as #SolType>::abi_decode_params_validate(&returned)?.0)
             }
         };
 
@@ -363,7 +363,7 @@ mod tests {
                         let returned = stylus_sdk::call::call(host, context, self.address, &calldata)?;
                         Ok(<(
                             stylus_sdk::alloy_sol_types::sol_data::String,
-                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params_validate(&returned)?.0)
                     }
 
                     pub fn get_constant(
@@ -377,7 +377,7 @@ mod tests {
                         let mut calldata = vec![241u8, 58u8, 56u8, 166u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
-                        Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
+                        Ok(<(stylus_sdk::alloy_sol_types::sol_data::FixedBytes<32>,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params_validate(&returned)?.0)
                     }
 
                     pub fn get_foo(
@@ -391,7 +391,7 @@ mod tests {
                         let mut calldata = vec![36u8, 61u8, 200u8, 218u8];
                         calldata.extend(args);
                         let returned = stylus_sdk::call::static_call(host, context, self.address, &calldata)?;
-                        Ok(<(inner::Foo,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?.0)
+                        Ok(<(inner::Foo,) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params_validate(&returned)?.0)
                     }
                 }
             },
@@ -458,7 +458,7 @@ mod tests {
                         Ok(<(
                             stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
                             stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
-                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?)
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params_validate(&returned)?)
                     }
 
                     pub fn mixed(
@@ -481,7 +481,7 @@ mod tests {
                         Ok(<(
                             stylus_sdk::alloy_sol_types::sol_data::String,
                             stylus_sdk::alloy_sol_types::sol_data::Uint<256>,
-                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params(&returned)?)
+                        ) as stylus_sdk::alloy_sol_types::SolType>::abi_decode_params_validate(&returned)?)
                     }
                 }
             },
