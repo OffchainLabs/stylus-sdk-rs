@@ -125,7 +125,10 @@ mod test {
         let return_data = <(
             alloy_sol_types::sol_data::String,
             alloy_sol_types::sol_data::Uint<256>,
-        ) as SolType>::abi_encode_params(&(alloc::string::String::from("hello"), U256::from(42)));
+        ) as SolType>::abi_encode_params(&(
+            alloc::string::String::from("hello"),
+            U256::from(42),
+        ));
 
         // The calldata for mixed() is just the 4-byte selector (no args)
         let selector = &alloy_primitives::keccak256("mixed()")[..4];
