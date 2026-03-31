@@ -6,11 +6,7 @@ use std::path::Path;
 use crate::core::project::{new_contract, new_workspace, ProjectKind};
 
 /// Create a new Stylus contract or workspace.
-pub fn new(
-    path: impl AsRef<Path>,
-    kind: ProjectKind,
-    sdk_path: Option<&Path>,
-) -> eyre::Result<()> {
+pub fn new(path: impl AsRef<Path>, kind: ProjectKind, sdk_path: Option<&Path>) -> eyre::Result<()> {
     match kind {
         ProjectKind::Contract => new_contract(path, sdk_path)?,
         ProjectKind::Workspace => new_workspace(path)?,
