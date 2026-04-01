@@ -35,8 +35,8 @@ pub fn hash_project(
         keccak.update(&[1]);
     }
 
-    // Fetch the Rust toolchain toml file from the project root. Assert that it exists and add it to the
-    // files in the directory to hash.
+    // Fetch the Rust toolchain toml file from the project root. Assert that it exists and add it to
+    // the files in the directory to hash.
     let toolchain_file_path = find_toolchain_file(dir.as_ref())?;
 
     let mut paths = all_paths(dir, config.source_file_patterns.clone())?;
@@ -99,7 +99,8 @@ fn all_paths(
                     }
                     false
                 } else {
-                    // Otherwise, by default include all rust files, Cargo.toml and Cargo.lock files.
+                    // Otherwise, by default include all rust files, Cargo.toml and Cargo.lock
+                    // files.
                     f == "Cargo.toml" || f == "Cargo.lock" || f.to_string_lossy().ends_with(".rs")
                 }
             }) {

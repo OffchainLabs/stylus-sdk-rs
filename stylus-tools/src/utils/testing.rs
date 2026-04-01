@@ -1,7 +1,7 @@
-use crate::devnet::Node;
-use crate::{Activator, Checker, Deployer, Exporter, Verifier};
 use alloy::primitives::{Address, TxHash};
 use eyre::Result;
+
+use crate::{devnet::Node, Activator, Checker, Deployer, Exporter, Verifier};
 
 fn test_export(constructor: &str, abi: &str) -> Result<()> {
     let exporter = Exporter::builder().build();
@@ -27,7 +27,8 @@ fn test_deploy(rpc: &str) -> Result<(Address, TxHash)> {
     let (address, tx_hash, gas_used) = deployer.deploy()?;
     println!("Deployed contract to {address}");
 
-    // Approximate equality is usually expected, but given the test conditions, the gas estimate equals the gas used
+    // Approximate equality is usually expected, but given the test conditions, the gas estimate
+    // equals the gas used
     assert_eq!(gas_used, gas_estimate);
     Ok((address, tx_hash))
 }

@@ -1,14 +1,14 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::crypto;
-use crate::host::VM;
+use alloc::{string::String, vec::Vec};
+use core::marker::PhantomData;
+
+use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
+use stylus_core::HostAccess;
 
 use super::{Erase, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType};
-use alloc::{string::String, vec::Vec};
-use alloy_primitives::{Address, FixedBytes, Signed, Uint, B256, U160, U256};
-use core::marker::PhantomData;
-use stylus_core::HostAccess;
+use crate::{crypto, host::VM};
 
 /// Accessor for a storage-backed map.
 pub struct StorageMap<K: StorageKey, V: StorageType> {

@@ -3,15 +3,16 @@
 
 #![allow(unused)]
 
-use alloy::primitives::{Address, U256};
-use function_name::named;
-use lazy_static::lazy_static;
-use parking_lot::Mutex;
 use std::{
     mem::{self, MaybeUninit},
     ptr::copy_nonoverlapping as memcpy,
     sync::Arc,
 };
+
+use alloy::primitives::{Address, U256};
+use function_name::named;
+use lazy_static::lazy_static;
+use parking_lot::Mutex;
 use stylus_tools::core::tracing::{hostio::HostioKind::*, FrameReader};
 
 // Trait for accessing external contract libraries during debugging
@@ -167,15 +168,16 @@ pub unsafe extern "C" fn storage_load_bytes32(key_ptr: *const u8, dest: *mut u8)
 static STORAGE_LOAD_BYTES32: unsafe extern "C" fn(key_ptr: *const u8, dest: *mut u8) =
     storage_load_bytes32;
 
-/// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
-/// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-/// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
-/// are equivalent to that of the EVM's [`SSTORE`] opcode.
+/// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to
+/// that of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value
+/// into the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The
+/// semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
 ///
 /// Note: because this value is cached, one must call `storage_flush_cache` to persist the value.
 ///
-/// Auditor's note: we require the [`SSTORE`] sentry per EVM rules. The `gas_cost` returned by the EVM API
-/// may exceed this amount, but that's ok because the predominant cost is due to state bloat concerns.
+/// Auditor's note: we require the [`SSTORE`] sentry per EVM rules. The `gas_cost` returned by the
+/// EVM API may exceed this amount, but that's ok because the predominant cost is due to state bloat
+/// concerns.
 ///
 /// [`SSTORE`]: https://www.evm.codes/#55
 #[named]
@@ -190,8 +192,8 @@ pub unsafe extern "C" fn storage_cache_bytes32(key_ptr: *const u8, value_ptr: *c
 static STORAGE_CACHE_BYTES32: unsafe extern "C" fn(key_ptr: *const u8, value_ptr: *const u8) =
     storage_cache_bytes32;
 
-/// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
-/// Analogous to repeated invocations of [`SSTORE`].
+/// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache
+/// entirely if requested. Analogous to repeated invocations of [`SSTORE`].
 ///
 /// [`SSTORE`]: https://www.evm.codes/#55
 #[named]
@@ -205,8 +207,8 @@ static STORAGE_FLUSH_CACHE: unsafe extern "C" fn(clear: u32) = storage_flush_cac
 
 /// Reads a 32-byte value from transient storage. Stylus's storage format is identical to
 /// that of the EVM. This means that, under the hood, this hostio is accessing the 32-byte
-/// value stored in the EVM's transient state trie at offset `key`, which will be `0` when not previously
-/// set. The semantics, then, are equivalent to that of the EVM's [`TLOAD`] opcode.
+/// value stored in the EVM's transient state trie at offset `key`, which will be `0` when not
+/// previously set. The semantics, then, are equivalent to that of the EVM's [`TLOAD`] opcode.
 ///
 /// [`TLOAD`]: https://www.evm.codes/#5c
 #[named]
@@ -223,8 +225,8 @@ static TRANSIENT_LOAD_BYTES32: unsafe extern "C" fn(key_ptr: *const u8, dest: *m
 
 /// Writes a 32-byte value to transient storage. Stylus's storage format is identical to that
 /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-/// the EVM's transient state trie at offset `key`. The semantics, then, are equivalent to that of the
-/// EVM's [`TSTORE`] opcode.
+/// the EVM's transient state trie at offset `key`. The semantics, then, are equivalent to that of
+/// the EVM's [`TSTORE`] opcode.
 ///
 /// [`TSTORE`]: https://www.evm.codes/#5d
 #[named]
@@ -255,10 +257,11 @@ pub unsafe extern "C" fn account_balance(address_ptr: *const u8, dest: *mut u8) 
 static ACCOUNT_BALANCE: unsafe extern "C" fn(address_ptr: *const u8, dest: *mut u8) =
     account_balance;
 
-/// Gets a subset of the code from the account at the given address. The semantics are identical to that
-/// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
-/// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-/// The return value is the number of bytes written, which allows the caller to detect if this has occured.
+/// Gets a subset of the code from the account at the given address. The semantics are identical to
+/// that of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer
+/// `dest` will stop after the last byte is written. This is unlike the EVM, which right pads with
+/// zeros in this scenario. The return value is the number of bytes written, which allows the caller
+/// to detect if this has occured.
 ///
 /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
 #[named]
@@ -775,8 +778,8 @@ pub unsafe extern "C" fn pay_for_memory_grow(new_pages: u16) {
 static PAY_FOR_MEMORY_GROW: unsafe extern "C" fn(new_pages: u16) = pay_for_memory_grow;
 
 /// Computes `value ÷ exponent` using 256-bit math, writing the result to the first.
-/// The semantics are equivalent to that of the EVM's [`DIV`] opcode, which means that a `divisor` of `0`
-/// writes `0` to `value`.
+/// The semantics are equivalent to that of the EVM's [`DIV`] opcode, which means that a `divisor`
+/// of `0` writes `0` to `value`.
 ///
 /// [`DIV`]: https://www.evm.codes/#04
 #[named]
@@ -792,8 +795,8 @@ pub unsafe fn math_div(value: *mut u8, divisor: *const u8) {
 static MATH_DIV: unsafe fn(value: *mut u8, divisor: *const u8) = math_div;
 
 /// Computes `value % exponent` using 256-bit math, writing the result to the first.
-/// The semantics are equivalent to that of the EVM's [`MOD`] opcode, which means that a `modulus` of `0`
-/// writes `0` to `value`.
+/// The semantics are equivalent to that of the EVM's [`MOD`] opcode, which means that a `modulus`
+/// of `0` writes `0` to `value`.
 ///
 /// [`MOD`]: https://www.evm.codes/#06
 #[named]
@@ -825,8 +828,8 @@ pub unsafe fn math_pow(value: *mut u8, exponent: *const u8) {
 static MATH_POW: unsafe fn(value: *mut u8, exponent: *const u8) = math_pow;
 
 /// Computes `(value + addend) % modulus` using 256-bit math, writing the result to the first.
-/// The semantics are equivalent to that of the EVM's [`ADDMOD`] opcode, which means that a `modulus` of `0`
-/// writes `0` to `value`.
+/// The semantics are equivalent to that of the EVM's [`ADDMOD`] opcode, which means that a
+/// `modulus` of `0` writes `0` to `value`.
 ///
 /// [`ADDMOD`]: https://www.evm.codes/#08
 #[named]
@@ -844,8 +847,8 @@ static MATH_ADD_MOD: unsafe fn(value: *mut u8, addend: *const u8, modulus: *cons
     math_add_mod;
 
 /// Computes `(value * multiplier) % modulus` using 256-bit math, writing the result to the first.
-/// The semantics are equivalent to that of the EVM's [`MULMOD`] opcode, which means that a `modulus` of `0`
-/// writes `0` to `value`.
+/// The semantics are equivalent to that of the EVM's [`MULMOD`] opcode, which means that a
+/// `modulus` of `0` writes `0` to `value`.
 ///
 /// [`MULMOD`]: https://www.evm.codes/#09
 #[named]

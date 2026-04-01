@@ -284,7 +284,8 @@ impl ExternalContractAccess for ContractRegistry {
                 // Clear the input data after execution
                 hostio::set_external_contract_input(Vec::new());
 
-                // Return empty data for now - in a full implementation we'd capture the actual return data
+                // Return empty data for now - in a full implementation we'd capture the actual
+                // return data
                 return Ok((status, Vec::new()));
             }
         }

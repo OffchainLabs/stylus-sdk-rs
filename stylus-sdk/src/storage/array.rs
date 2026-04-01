@@ -1,12 +1,12 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
+use core::marker::PhantomData;
 
 use alloy_primitives::U256;
-use core::marker::PhantomData;
 use stylus_core::HostAccess;
 
+use super::{Erase, StorageGuard, StorageGuardMut, StorageType};
 use crate::host::VM;
 
 /// Accessor for a storage-backed array.

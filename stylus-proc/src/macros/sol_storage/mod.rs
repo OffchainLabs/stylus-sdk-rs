@@ -4,10 +4,9 @@
 use proc::{SolidityField, SolidityFields, SolidityStruct, SolidityStructs};
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::token::Colon;
 use syn::{
-    parse_macro_input, parse_quote, punctuated::Punctuated, PredicateType, Token, TypeParamBound,
-    WherePredicate,
+    parse_macro_input, parse_quote, punctuated::Punctuated, token::Colon, PredicateType, Token,
+    TypeParamBound, WherePredicate,
 };
 
 mod proc;
@@ -35,7 +34,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
             })
             .collect();
 
-        // Will work also without, but we get more precise error messages when we enforce the bound on the struct
+        // Will work also without, but we get more precise error messages when we enforce the bound
+        // on the struct
         let predicates = generics
             .type_params()
             .map(|ident| {

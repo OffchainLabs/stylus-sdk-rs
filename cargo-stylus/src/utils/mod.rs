@@ -4,7 +4,6 @@
 use std::fmt::Display;
 
 use eyre::bail;
-
 use style::{BOLD, ERROR};
 
 pub mod hostio;

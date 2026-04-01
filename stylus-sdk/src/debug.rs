@@ -4,8 +4,7 @@
 //! Debug-only items for printing to the console.
 //!
 //! ```no_run
-//! use stylus_sdk::console;
-//! use stylus_sdk::alloy_primitives::address;
+//! use stylus_sdk::{alloy_primitives::address, console};
 //! extern crate alloc;
 //!
 //! let arbinaut = address!("361594F5429D23ECE0A88E4fBE529E1c49D524d8");

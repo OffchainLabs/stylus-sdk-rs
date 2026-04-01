@@ -1,8 +1,8 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use super::{AbiType, ConstString};
 use alloc::{string::String, vec::Vec};
+
 use alloy_primitives::{Address, Bytes, FixedBytes};
 use alloy_sol_types::{
     private::SolTypeValue,
@@ -10,7 +10,10 @@ use alloy_sol_types::{
     SolType,
 };
 
-/// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is bijective.
+use super::{AbiType, ConstString};
+
+/// Generates a test to ensure the two-way relationship between Rust Types and Sol Types is
+/// bijective.
 macro_rules! test_type {
     ($name:tt, $as_arg:expr, $($ty:tt)*) => {
         #[cfg(test)]

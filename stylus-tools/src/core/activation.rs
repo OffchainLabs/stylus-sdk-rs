@@ -15,6 +15,7 @@ use alloy::{
     },
 };
 
+use super::code::Code;
 use crate::{
     core::code::contract::ContractCode,
     precompiles,
@@ -24,8 +25,6 @@ use crate::{
         format_data_fee,
     },
 };
-
-use super::code::Code;
 
 #[derive(Debug)]
 pub struct ActivationConfig {

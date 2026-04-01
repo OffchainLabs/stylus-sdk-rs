@@ -8,9 +8,7 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use stylus_sdk::alloy_primitives::Address;
-use stylus_sdk::prelude::*;
-use stylus_sdk::storage::StorageAddress;
+use stylus_sdk::{alloy_primitives::Address, prelude::*, storage::StorageAddress};
 
 #[cfg(not(feature = "contract-client-gen"))]
 const OWNER: &str = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";

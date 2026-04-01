@@ -2,6 +2,7 @@
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use alloc::vec::Vec;
+
 use alloy_primitives::{Address, U256};
 use stylus_core::Host;
 
@@ -20,7 +21,7 @@ use super::RawCall;
 /// # fn wrap(host: &impl Host) -> Result<(), Vec<u8>> {
 /// #   let value = alloy_primitives::U256::ZERO;
 /// #   let recipient = alloy_primitives::Address::ZERO;
-/// transfer_eth(host, recipient, value)?;                 // these two are equivalent
+/// transfer_eth(host, recipient, value)?; // these two are equivalent
 /// call(host, Call::new().value(value), recipient, &[])?; // these two are equivalent
 /// #     Ok(())
 /// # }

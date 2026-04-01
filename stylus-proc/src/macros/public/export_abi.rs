@@ -5,9 +5,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_quote, parse_str};
 
-use crate::{consts::STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, types::Purity};
-
 use super::types::{FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicImpl};
+use crate::{consts::STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, types::Purity};
 
 #[derive(Debug)]
 pub struct InterfaceAbi;

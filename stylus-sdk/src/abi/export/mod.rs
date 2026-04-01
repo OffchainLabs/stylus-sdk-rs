@@ -8,8 +8,9 @@
 //!
 //! [cargo]: https://github.com/OffchainLabs/cargo-stylus#exporting-solidity-abis
 
-use clap::{Parser, Subcommand};
 use core::fmt;
+
+use clap::{Parser, Subcommand};
 use stylus_core;
 
 #[doc(hidden)]

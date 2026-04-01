@@ -8,6 +8,7 @@ use syn::{
     spanned::Spanned, Token,
 };
 
+use super::Extension;
 use crate::{
     consts::{STRUCT_SUFFIX_FOR_TRAITS_IN_EXPORT_ABI, STYLUS_CONTRACT_ADDRESS_FIELD},
     imports::{
@@ -16,8 +17,6 @@ use crate::{
     },
     types::Purity,
 };
-
-use super::Extension;
 
 /// Generate the code to call the special function (fallback, receive, or constructor) from the
 /// public impl block. Emits an error if there are multiple implementations.
@@ -358,7 +357,8 @@ impl PublicImpl {
         // Determine trait dynamic interface with associated types
         let iface = match &self.trait_ {
             Some(trait_) => {
-                // If trait_ is something like foo::MyTrait<u32, u256>, trait_path_without_generics will be foo::MyTrait
+                // If trait_ is something like foo::MyTrait<u32, u256>, trait_path_without_generics
+                // will be foo::MyTrait
                 let trait_path_without_generics = {
                     let mut path = trait_.clone();
                     if let Some(last_segment) = path.segments.last_mut() {
@@ -367,7 +367,8 @@ impl PublicImpl {
                     path
                 };
 
-                // Extract generic arguments from trait_ if present (e.g., "u32, u256" from the previous example)
+                // Extract generic arguments from trait_ if present (e.g., "u32, u256" from the
+                // previous example)
                 let generic_args: Vec<proc_macro2::TokenStream> =
                     if let Some(last_segment) = trait_.segments.last() {
                         if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {

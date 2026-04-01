@@ -1,13 +1,15 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use core::{cell::OnceCell, marker::PhantomData};
+
+use alloy_primitives::U256;
+use stylus_core::HostAccess;
+
 use super::{
     Erase, GlobalStorage, SimpleStorageType, Storage, StorageGuard, StorageGuardMut, StorageType,
 };
 use crate::{crypto, host::VM};
-use alloy_primitives::U256;
-use core::{cell::OnceCell, marker::PhantomData};
-use stylus_core::HostAccess;
 
 /// Accessor for a storage-backed vector.
 pub struct StorageVec<S: StorageType> {
@@ -162,8 +164,10 @@ impl<S: StorageType> StorageVec<S> {
     ///
     /// ```no_run
     /// extern crate alloc;
-    /// use stylus_sdk::storage::{StorageVec, StorageType, StorageU256};
-    /// use stylus_sdk::alloy_primitives::U256;
+    /// use stylus_sdk::{
+    ///     alloy_primitives::U256,
+    ///     storage::{StorageType, StorageU256, StorageVec},
+    /// };
     /// use stylus_test::*;
     ///
     /// let vm = TestVM::default();
@@ -303,8 +307,7 @@ mod test {
 
     #[test]
     fn test_storage_vec() {
-        use super::super::StorageBool;
-        use super::*;
+        use super::{super::StorageBool, *};
 
         let host = TestVM::new();
         let mut vec: StorageVec<StorageBool> = StorageVec::from(&host);

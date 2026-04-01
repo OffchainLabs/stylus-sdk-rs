@@ -12,11 +12,13 @@
 //! Note that this code is unaudited and not fit for production use.
 
 // Imported packages
-use crate::ierc20::{Erc20Error, InsufficientAllowance, InsufficientBalance};
+use core::marker::PhantomData;
+
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
-use core::marker::PhantomData;
 use stylus_sdk::prelude::*;
+
+use crate::ierc20::{Erc20Error, InsufficientAllowance, InsufficientBalance};
 
 pub trait Erc20Params {
     /// Immutable token name
@@ -50,8 +52,8 @@ sol_storage! {
 }
 
 // These methods aren't exposed to other contracts
-// Methods marked as "pub" here are usable outside of the erc20 module (i.e. they're callable from lib.rs)
-// Note: modifying storage will become much prettier soon
+// Methods marked as "pub" here are usable outside of the erc20 module (i.e. they're callable from
+// lib.rs) Note: modifying storage will become much prettier soon
 #[cfg(not(feature = "contract-client-gen"))]
 impl<T: Erc20Params> Erc20<T> {
     /// Movement of funds between 2 accounts

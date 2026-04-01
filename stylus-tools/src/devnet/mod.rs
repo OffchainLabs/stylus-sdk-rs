@@ -121,7 +121,8 @@ impl Node {
             .await?;
 
         // Set the L1 data fee to 0 so it doesn't impact the L2 Gas limit.
-        // This makes the gas estimates closer to Ethereum and allows the deployment of the CREATE2 factory.
+        // This makes the gas estimates closer to Ethereum and allows the deployment of the CREATE2
+        // factory.
         let arbowner = ArbOwner::new(addresses::ARB_OWNER, &provider);
         arbowner
             .setL1PricePerUnit(U256::ZERO)

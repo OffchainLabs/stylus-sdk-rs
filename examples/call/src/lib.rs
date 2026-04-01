@@ -60,7 +60,8 @@ impl ExampleContract {
     }
 
     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
-        Ok(methods.pure_foo(self.vm(), Call::new())?) // `pure` methods might lie about not being `view`
+        Ok(methods.pure_foo(self.vm(), Call::new())?) // `pure` methods might lie about not being
+                                                      // `view`
     }
 
     pub fn call_view(&self, methods: IMethods) -> Result<(), Vec<u8>> {
@@ -82,9 +83,12 @@ impl ExampleContract {
         Ok(methods.payable_foo(self.vm(), config)?)
     }
 
-    // When writing Stylus libraries, a type might not be TopLevelStorage and therefore &self or &mut self won’t work. Building a Call from a generic parameter via new_in is the usual solution.
+    // When writing Stylus libraries, a type might not be TopLevelStorage and therefore &self or
+    // &mut self won’t work. Building a Call from a generic parameter via new_in is the usual
+    // solution.
     pub fn make_generic_call<T: TopLevelStorage + core::borrow::Borrow<Self>>(
-        storage: &mut T, // This could be `&mut self`, or another type implementing `TopLevelStorage`
+        storage: &mut T, /* This could be `&mut self`, or another type implementing
+                          * `TopLevelStorage` */
         account: IService, // Interface for calling the target contract
         user: Address,
     ) -> Result<String, Vec<u8>> {
@@ -92,7 +96,8 @@ impl ExampleContract {
         let msg_value = vm.msg_value(); // Use the transferred value
         let gas = vm.evm_gas_left() / 2; // Use half the remaining gas
         let config = Call::new_payable(storage, msg_value).gas(gas); // Take exclusive access to all contract storage
-        Ok(account.make_payment(storage.borrow().vm(), config, user)?) // Call using the configured parameters
+        Ok(account.make_payment(storage.borrow().vm(), config, user)?) // Call using the configured
+                                                                       // parameters
     }
 
     // Low level Call

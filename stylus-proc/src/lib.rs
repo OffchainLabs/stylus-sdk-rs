@@ -9,7 +9,8 @@
 //! use stylus_sdk::prelude::*;
 //! ```
 //!
-//! For a guided exploration of the features, please see the comprehensive [Feature Overview][overview].
+//! For a guided exploration of the features, please see the comprehensive [Feature
+//! Overview][overview].
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#calls
 //! [sdk]: https://docs.rs/stylus-sdk/latest/stylus_sdk/index.html
@@ -47,22 +48,23 @@ mod utils;
 /// # use stylus_sdk::prelude::*;
 /// #[storage]
 /// pub struct Contract {
-///    owner: StorageAddress,
-///    active: StorageBool,
-///    sub_struct: SubStruct,
-///}
+///     owner: StorageAddress,
+///     active: StorageBool,
+///     sub_struct: SubStruct,
+/// }
 ///
-///#[storage]
-///pub struct SubStruct {
-///    number: StorageBool,
-///}
+/// #[storage]
+/// pub struct SubStruct {
+///     number: StorageBool,
+/// }
 /// ```
 ///
 /// Each field must implement [`StorageType`]. This includes other structs, which will
 /// implement the `trait` automatically when [`#[storage]`][storage] is applied.
 ///
-/// One may even implement [`StorageType`] to define custom storage entries, though this is rarely necessary
-/// since the [Stylus SDK][sdk] intends to include all standard Solidity types out-of-the-box.
+/// One may even implement [`StorageType`] to define custom storage entries, though this is rarely
+/// necessary since the [Stylus SDK][sdk] intends to include all standard Solidity types
+/// out-of-the-box.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
 ///
@@ -77,9 +79,9 @@ pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 /// The types in [`#[storage]`][storage] are laid out in the EVM state trie exactly
-/// as they are in [Solidity][solidity]. This means that the fields of a `struct` definition will map
-/// to the same storage slots as they would in EVM programming languages. Hence, it is often nice to
-/// define types using Solidity syntax, which makes this guarantee easier to see.
+/// as they are in [Solidity][solidity]. This means that the fields of a `struct` definition will
+/// map to the same storage slots as they would in EVM programming languages. Hence, it is often
+/// nice to define types using Solidity syntax, which makes this guarantee easier to see.
 ///
 /// ```
 /// extern crate alloc;
@@ -102,15 +104,16 @@ pub fn storage(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// The above will expand to equivalent definitions in Rust, with each structure implementing the [`StorageType`]
-/// `trait`. Many contracts, like [the ERC 20 example][erc20], do exactly this.
+/// The above will expand to equivalent definitions in Rust, with each structure implementing the
+/// [`StorageType`] `trait`. Many contracts, like [the ERC 20 example][erc20], do exactly this.
 ///
 /// Because the layout is identical to [Solidity's][solidity], existing Solidity smart contracts can
-/// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type definitions.
+/// upgrade to Rust without fear of storage slots not lining up. You simply copy-paste your type
+/// definitions.
 ///
-/// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling might use.
-/// Most developers don't need to worry about this though and can freely order their types when working on a
-/// Rust contract from scratch.
+/// Consequently, the order of fields will affect the JSON ABIs produced that explorers and tooling
+/// might use. Most developers don't need to worry about this though and can freely order their
+/// types when working on a Rust contract from scratch.
 ///
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
@@ -146,16 +149,18 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// The above will define `IService` and `ITree` for calling the methods of the two contracts.
 ///
-/// For example, `IService` will have a `make_payment` method that accepts an [`Address`] and returns a [`B256`].
+/// For example, `IService` will have a `make_payment` method that accepts an [`Address`] and
+/// returns a [`B256`].
 ///
 /// Currently only functions are supported, and any other items in the interface will cause an
 /// error. Additionally, each function must be marked `external`. Inheritance is not supported.
 ///
 /// ```
-/// use stylus_sdk::prelude::*;
-/// use stylus_sdk::stylus_core::host::*;
-/// use stylus_sdk::stylus_core::calls::errors::*;
 /// use alloy_primitives::Address;
+/// use stylus_sdk::{
+///     prelude::*,
+///     stylus_core::{calls::errors::*, host::*},
+/// };
 /// # use stylus_proc::sol_interface;
 ///
 /// # sol_interface! {
@@ -167,15 +172,16 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
 /// pub fn do_call(host: &impl Host, account: IService, user: Address) -> Result<String, Error> {
 ///     let config = Call::new()
-///         .gas(host.evm_gas_left() / 2)       // limit to half the gas left
-///         .value(host.msg_value());           // set the callvalue
+///         .gas(host.evm_gas_left() / 2) // limit to half the gas left
+///         .value(host.msg_value()); // set the callvalue
 ///
-///     account.make_payment(host, config, user)  // note the snake case
+///     account.make_payment(host, config, user) // note the snake case
 /// }
 /// ```
 ///
-/// Observe the casing change. [`sol_interface!`] computes the selector based on the exact name passed in,
-/// which should almost always be `camelCase`. For aesthetics, the rust functions will instead use `snake_case`.
+/// Observe the casing change. [`sol_interface!`] computes the selector based on the exact name
+/// passed in, which should almost always be `camelCase`. For aesthetics, the rust functions will
+/// instead use `snake_case`.
 ///
 /// Note that structs may be used, as return types for example. Trying to reference structs using
 /// the Solidity path separator (`module.MyStruct`) is supported and paths will be converted to
@@ -184,8 +190,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # Reentrant calls
 ///
 /// Contracts that opt into reentrancy via the `reentrant` feature flag require extra care.
-/// When enabled, cross-contract calls must [`flush`] or [`clear`] the [`StorageCache`] to safeguard state.
-/// This happens automatically via the type system.
+/// When enabled, cross-contract calls must [`flush`] or [`clear`] the [`StorageCache`] to safeguard
+/// state. This happens automatically via the type system.
 ///
 /// ```
 /// # extern crate alloc;
@@ -199,12 +205,14 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 /// }
 ///
-/// #[entrypoint] #[storage] struct Contract {}
+/// #[entrypoint]
+/// #[storage]
+/// struct Contract {}
 /// #[public]
 /// impl Contract {
 ///     pub fn call_pure(&self, methods: IMethods) -> Result<(), Vec<u8>> {
 ///         let cfg = Call::new();
-///         Ok(methods.pure_foo(self.vm(), cfg)?)    // `pure` methods might lie about not being `view`
+///         Ok(methods.pure_foo(self.vm(), cfg)?) // `pure` methods might lie about not being `view`
 ///     }
 ///
 ///     pub fn call_view(&self, methods: IMethods) -> Result<(), Vec<u8>> {
@@ -213,19 +221,21 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///     }
 ///
 ///     pub fn call_write(&mut self, methods: IMethods) -> Result<(), Vec<u8>> {
-///          let cfg = Call::new_mutating(self);
-///          Ok(methods.write_foo(self.vm(), cfg)?)
+///         let cfg = Call::new_mutating(self);
+///         Ok(methods.write_foo(self.vm(), cfg)?)
 ///     }
 /// }
 /// ```
 ///
-/// Another example of making a mutable, payable call to a contract using the [`sol_interface!`] macro.
+/// Another example of making a mutable, payable call to a contract using the [`sol_interface!`]
+/// macro.
 ///
 /// ```
-/// use stylus_sdk::prelude::*;
-/// use stylus_sdk::stylus_core::calls::errors::*;
-/// use stylus_sdk::stylus_core::host::*;
 /// use alloy_primitives::Address;
+/// use stylus_sdk::{
+///     prelude::*,
+///     stylus_core::{calls::errors::*, host::*},
+/// };
 /// # use stylus_proc::sol_interface;
 ///
 /// # sol_interface! {
@@ -237,21 +247,20 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// # mod msg { pub fn value() -> alloy_primitives::U256 { 100.try_into().unwrap() } }
 /// pub fn do_call(
 ///     host: &impl Host,
-///     account: IService,                   // serializes as an Address
+///     account: IService, // serializes as an Address
 ///     user: Address,
 /// ) -> Result<String, Error> {
-///
 ///     let config = Call::new()
-///         .gas(evm::gas_left() / 2)        // limit to half the gas left
-///         .value(msg::value());            // set the callvalue
+///         .gas(evm::gas_left() / 2) // limit to half the gas left
+///         .value(msg::value()); // set the callvalue
 ///
-///     account.make_payment(host, config, user)   // note the snake case
+///     account.make_payment(host, config, user) // note the snake case
 /// }
 /// ```
 ///
-/// Note that in the context of a [`#[public]`][public] call, the `&mut impl` argument will correctly
-/// distinguish the method as being `write` or `payable`. This means you can write library code that will
-/// work regardless of whether the `reentrant` feature flag is enabled.
+/// Note that in the context of a [`#[public]`][public] call, the `&mut impl` argument will
+/// correctly distinguish the method as being `write` or `payable`. This means you can write library
+/// code that will work regardless of whether the `reentrant` feature flag is enabled.
 ///
 /// [sol_interface]: macro@sol_interface
 /// [public]: macro@public
@@ -268,10 +277,10 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
     macros::sol_interface(input)
 }
 
-/// Some [`StorageType`] values implement [`Erase`], which provides an [`erase()`] method for clearing state.
-/// [The Stylus SDK][sdk] implements [`Erase`] for all primitives, and for vectors of primitives, but not for maps.
-/// This is because a Solidity mapping does not provide iteration, and so it's generally impossible to
-/// know which slots to clear.
+/// Some [`StorageType`] values implement [`Erase`], which provides an [`erase()`] method for
+/// clearing state. [The Stylus SDK][sdk] implements [`Erase`] for all primitives, and for vectors
+/// of primitives, but not for maps. This is because a Solidity mapping does not provide iteration,
+/// and so it's generally impossible to know which slots to clear.
 ///
 /// Structs may also be [`Erase`] if all of the fields are. `#[derive(Erase)]`
 /// lets you do this automatically.
@@ -294,9 +303,9 @@ pub fn sol_interface(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// You can also implement [`Erase`] manually if desired. Note that the reason we care about [`Erase`]
-/// at all is that you get storage refunds when clearing state, lowering fees. There's also
-/// minor implications for storage patterns using `unsafe` Rust.
+/// You can also implement [`Erase`] manually if desired. Note that the reason we care about
+/// [`Erase`] at all is that you get storage refunds when clearing state, lowering fees. There's
+/// also minor implications for storage patterns using `unsafe` Rust.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining storage.
 ///
@@ -371,9 +380,10 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 ///
 /// # Bytes-in, bytes-out programming
 ///
-/// A less common usage of [`#[entrypoint]`][entrypoint] is for low-level, bytes-in bytes-out programming.
-/// When applied to a free-standing function, a different way of writing smart contracts becomes possible,
-/// wherein the Stylus SDK's macros and storage types are entirely optional.
+/// A less common usage of [`#[entrypoint]`][entrypoint] is for low-level, bytes-in bytes-out
+/// programming. When applied to a free-standing function, a different way of writing smart
+/// contracts becomes possible, wherein the Stylus SDK's macros and storage types are entirely
+/// optional.
 ///
 /// ```
 /// extern crate alloc;
@@ -381,7 +391,10 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// # use stylus_proc::entrypoint;
 /// # use stylus_sdk::prelude::*;
 /// #[entrypoint]
-/// fn entrypoint(calldata: Vec<u8>, _: alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>) -> ArbResult {
+/// fn entrypoint(
+///     calldata: Vec<u8>,
+///     _: alloc::boxed::Box<dyn stylus_sdk::stylus_core::Host>,
+/// ) -> ArbResult {
 ///     // bytes-in, bytes-out programming
 /// #   Ok(Vec::new())
 /// }
@@ -397,20 +410,20 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// stylus_sdk = { version = "0.3.0", features = ["reentrant"] }
 /// ```
 ///
-/// This is dangerous, and should be done only after careful review -- ideally by 3rd-party auditors.
-/// Numerous exploits and hacks have in Web3 are attributable to developers misusing or not fully
-/// understanding reentrant patterns.
+/// This is dangerous, and should be done only after careful review -- ideally by 3rd-party
+/// auditors. Numerous exploits and hacks have in Web3 are attributable to developers misusing or
+/// not fully understanding reentrant patterns.
 ///
-/// If enabled, the Stylus SDK will flush the storage cache in between reentrant calls, persisting values
-/// to state that might be used by inner calls. Note that preventing storage invalidation is only part
-/// of the battle in the fight against exploits. You can tell if a call is reentrant via
+/// If enabled, the Stylus SDK will flush the storage cache in between reentrant calls, persisting
+/// values to state that might be used by inner calls. Note that preventing storage invalidation is
+/// only part of the battle in the fight against exploits. You can tell if a call is reentrant via
 /// [`msg::reentrant`][reentrant], and condition your business logic accordingly.
 ///
 /// # [`TopLevelStorage`]
 ///
-/// The [`#[entrypoint]`][entrypoint] macro will automatically implement the [`TopLevelStorage`] `trait`
-/// for the annotated `struct`. The single type implementing [`TopLevelStorage`] is special in that
-/// mutable access to it represents mutable access to the entire program's state.
+/// The [`#[entrypoint]`][entrypoint] macro will automatically implement the [`TopLevelStorage`]
+/// `trait` for the annotated `struct`. The single type implementing [`TopLevelStorage`] is special
+/// in that mutable access to it represents mutable access to the entire program's state.
 /// This has implications for calls via [`sol_interface`].
 ///
 /// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
@@ -425,11 +438,13 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
     macros::entrypoint(attr, input)
 }
 
-/// Just as with storage, Stylus SDK methods are Solidity ABI-equivalent. This means that contracts written
-/// in different programming languages are fully interoperable. You can even automatically export your
-/// Rust contract as a Solidity interface so that others can add it to their Solidity projects.
+/// Just as with storage, Stylus SDK methods are Solidity ABI-equivalent. This means that contracts
+/// written in different programming languages are fully interoperable. You can even automatically
+/// export your Rust contract as a Solidity interface so that others can add it to their Solidity
+/// projects.
 ///
-/// This macro makes methods "public" so that other contracts can call them by implementing the [`Router`] trait.
+/// This macro makes methods "public" so that other contracts can call them by implementing the
+/// [`Router`] trait.
 ///
 /// ```
 /// # extern crate alloc;
@@ -489,33 +504,35 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # }
 /// ```
 ///
-/// In the above, [msg::value][value] is the amount of ETH passed to the contract in wei, which may be used
-/// to pay for something depending on the contract's business logic. Note that you have to annotate the method
-/// with [`#[payable]`][payable], or else calls to it will revert. This is required as a safety measure
-/// to prevent users losing funds to methods that didn't intend to accept ether.
+/// In the above, [msg::value][value] is the amount of ETH passed to the contract in wei, which may
+/// be used to pay for something depending on the contract's business logic. Note that you have to
+/// annotate the method with [`#[payable]`][payable], or else calls to it will revert. This is
+/// required as a safety measure to prevent users losing funds to methods that didn't intend to
+/// accept ether.
 ///
 /// # Constructor
 ///
-/// Constructors provide a standard way to deploy, activate, and initialize a stylus contract atomically. Without
-/// them, it isn’t possible to guarantee that the Stylus contract initialization code will be executed before
-/// other methods. When using Stylus constructors, cargo-stylus sends a transaction to a proxy-contract called
-/// StylusDeployer that performs all necessary steps.
+/// Constructors provide a standard way to deploy, activate, and initialize a stylus contract
+/// atomically. Without them, it isn’t possible to guarantee that the Stylus contract initialization
+/// code will be executed before other methods. When using Stylus constructors, cargo-stylus sends a
+/// transaction to a proxy-contract called StylusDeployer that performs all necessary steps.
 ///
-/// The constructor function must be annotated with the `#[constructor]` attribute. It can have any name, but it
-/// is advisable to call it `constructor`. There must be no constructor definition or a single constructor for a
-/// contract. Like Solidity, function overloading for constructors is not supported. Constructors may be
-/// annotated with the [`#[payable]`][payable] attribute if they are supposed to receive Ether.
+/// The constructor function must be annotated with the `#[constructor]` attribute. It can have any
+/// name, but it is advisable to call it `constructor`. There must be no constructor definition or a
+/// single constructor for a contract. Like Solidity, function overloading for constructors is not
+/// supported. Constructors may be annotated with the [`#[payable]`][payable] attribute if they are
+/// supposed to receive Ether.
 ///
-/// The constructor must receive the self parameter, and it can have any number of other parameters. The values
-/// for these parameters will be passed to the constructor when deploying the contract. The constructor should
-/// return no value or a result value with a unit type and a vector of bytes (`Result<(), Vec<u8>>`). If the
-/// constructor returns an error, the deployment will revert.
+/// The constructor must receive the self parameter, and it can have any number of other parameters.
+/// The values for these parameters will be passed to the constructor when deploying the contract.
+/// The constructor should return no value or a result value with a unit type and a vector of bytes
+/// (`Result<(), Vec<u8>>`). If the constructor returns an error, the deployment will revert.
 ///
-/// The SDK will ensure the constructor is called only once. To do so, it will wrap the constructor with a
-/// function that reads and writes to a specific slot in storage. When called, the constructor wrapper will check
-/// the contents of the specific slot and revert if it is different from zero. Then, after executing the
-/// constructor method, the wrapper will write a value to the specific slot, ensuring the next call to the
-/// constructor will revert.
+/// The SDK will ensure the constructor is called only once. To do so, it will wrap the constructor
+/// with a function that reads and writes to a specific slot in storage. When called, the
+/// constructor wrapper will check the contents of the specific slot and revert if it is different
+/// from zero. Then, after executing the constructor method, the wrapper will write a value to the
+/// specific slot, ensuring the next call to the constructor will revert.
 ///
 /// ```
 /// # extern crate alloc;
@@ -535,25 +552,25 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// In the example above, the constructor receives a single parameter: the address of the contract's owner. Note
-/// that we shouldn't use `self.vm().msg_sender()` because that will return the address of StylusDeployer.
-/// Instead, we explicitly pass the address of the contract's owner.
+/// In the example above, the constructor receives a single parameter: the address of the contract's
+/// owner. Note that we shouldn't use `self.vm().msg_sender()` because that will return the address
+/// of StylusDeployer. Instead, we explicitly pass the address of the contract's owner.
 ///
 /// # [`pure`][pure] [`view`][view], and `write`
 ///
-/// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you based
-/// on the types of the arguments. Functions with `&self` will be considered `view`, those with
-/// `&mut self` will be considered `write`, and those with neither will be considered `pure`. Please note that
-/// `pure` and `view` functions may change the state of other contracts by calling into them, or
-/// even this one if the `reentrant` feature is enabled.
+/// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you
+/// based on the types of the arguments. Functions with `&self` will be considered `view`, those
+/// with `&mut self` will be considered `write`, and those with neither will be considered `pure`.
+/// Please note that `pure` and `view` functions may change the state of other contracts by calling
+/// into them, or even this one if the `reentrant` feature is enabled.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
 ///
 /// # Exporting a Solidity interface
 ///
 /// Recall that Stylus contracts are fully interoperable across all languages, including Solidity.
-/// The Stylus SDK provides tools for exporting a Solidity interface for your contract so that others
-/// can call it. This is usually done with the cargo stylus [CLI tool][cli].
+/// The Stylus SDK provides tools for exporting a Solidity interface for your contract so that
+/// others can call it. This is usually done with the cargo stylus [CLI tool][cli].
 ///
 /// The SDK does this automatically via a feature flag called `export-abi` that causes the
 /// [`#[public]`][public] and [`#[entrypoint]`][entrypoint] macros to generate a `main` function
@@ -563,18 +580,19 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// cargo run --features export-abi --target <triple>
 /// ```
 ///
-/// Note that because the above actually generates a `main` function that you need to run, the target
-/// can't be `wasm32-unknown-unknown` like normal. Instead you'll need to pass in your target triple,
-/// which cargo stylus figures out for you. This `main` function is also why the following commonly
-/// appears in the `main.rs` file of Stylus contracts.
+/// Note that because the above actually generates a `main` function that you need to run, the
+/// target can't be `wasm32-unknown-unknown` like normal. Instead you'll need to pass in your target
+/// triple, which cargo stylus figures out for you. This `main` function is also why the following
+/// commonly appears in the `main.rs` file of Stylus contracts.
 ///
 /// ```no_run
 /// #![cfg_attr(not(feature = "export-abi"), no_main)]
 /// ```
 ///
-/// Here's an example output. Observe that the method names change from Rust's `snake_case` to Solidity's
-/// `camelCase`. For compatibility reasons, onchain method selectors default to `camelCase`. You can
-/// customize the ABI name used for selector computation with `#[selector(name = "...")]`.
+/// Here's an example output. Observe that the method names change from Rust's `snake_case` to
+/// Solidity's `camelCase`. For compatibility reasons, onchain method selectors default to
+/// `camelCase`. You can customize the ABI name used for selector computation with `#[selector(name
+/// = "...")]`.
 ///
 /// Note too that you can use argument names like "address"
 /// without fear. The SDK will prepend an `_` when necessary.

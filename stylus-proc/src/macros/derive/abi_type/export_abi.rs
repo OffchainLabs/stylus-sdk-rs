@@ -1,12 +1,13 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use proc_macro2::{Ident, Span};
+
 use super::*;
 use crate::imports::stylus_sdk::abi::{
     export::internal::{InnerType, InnerTypes},
     AbiType,
 };
-use proc_macro2::{Ident, Span};
 
 pub struct ExportAbiExtension;
 
@@ -71,9 +72,10 @@ impl DeriveAbiTypeExtension for ExportAbiExtension {
 
 #[cfg(test)]
 mod tests {
+    use syn::parse_quote;
+
     use super::{DeriveAbiTypeExtension, ExportAbiExtension};
     use crate::utils::testing::assert_ast_eq;
-    use syn::parse_quote;
 
     #[test]
     fn impl_abi_type_extension() {

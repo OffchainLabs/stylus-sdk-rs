@@ -11,10 +11,13 @@ extern crate alloc;
 pub mod erc20;
 pub mod ierc20;
 
-use crate::erc20::{Erc20, Erc20Params};
-use crate::ierc20::{Erc20Error, IErc20};
 use alloy_primitives::{Address, U256};
 use stylus_sdk::prelude::*;
+
+use crate::{
+    erc20::{Erc20, Erc20Params},
+    ierc20::{Erc20Error, IErc20},
+};
 
 /// Immutable definitions
 #[derive(Default)]

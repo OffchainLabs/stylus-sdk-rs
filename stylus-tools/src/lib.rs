@@ -28,6 +28,5 @@ pub mod exporter;
 
 pub use activator::*;
 pub use checker::*;
-
 pub use error::{Error, Result};
 pub use exporter::*;

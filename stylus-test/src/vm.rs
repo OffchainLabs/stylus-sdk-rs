@@ -38,24 +38,23 @@
 //! }
 //! ```
 
+use std::{cell::RefCell, rc::Rc, slice};
+
 use alloy_primitives::{Address, B256, U256};
 use alloy_provider::Provider;
 pub use calls::{errors::Error, MutatingCallContext, StaticCallContext};
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::slice;
-use tokio::runtime::Runtime;
-
 pub use stylus_core::*;
+use tokio::runtime::Runtime;
 
 use crate::state::VMState;
 
-/// A mock implementation of the [`stylus_core::host::Host`] trait for unit testing Stylus contracts.
+/// A mock implementation of the [`stylus_core::host::Host`] trait for unit testing Stylus
+/// contracts.
 ///
 /// # Examples
 /// ```
-/// use stylus_test::TestVM;
 /// use alloy_primitives::{Address, U256};
+/// use stylus_test::TestVM;
 ///
 /// let vm = TestVM::new();
 ///

@@ -6,7 +6,6 @@
 //! This module is only available when the `hostio` feature flag is enabled, which exposes
 //! low-level functions for accessing the VM directly. Most users should instead use the
 //! high-level equivalents of [`block`](crate::block), [`contract`](crate::contract),
-//!
 use cfg_if::cfg_if;
 
 macro_rules! vm_hooks {

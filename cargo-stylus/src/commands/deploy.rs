@@ -3,17 +3,16 @@
 
 use std::path::PathBuf;
 
-use crate::error::CargoStylusError;
+use alloy::primitives::{utils::parse_ether, Address, B256, U256};
+use eyre::eyre;
+use stylus_tools::core::{deployment, deployment::deployer::ADDRESS};
+
 use crate::{
     common_args::{
         ActivationArgs, AuthArgs, BuildArgs, CheckArgs, DeployArgs, ProjectArgs, ProviderArgs,
     },
-    error::CargoStylusResult,
+    error::{CargoStylusError, CargoStylusResult},
 };
-use alloy::primitives::{utils::parse_ether, Address, B256, U256};
-use eyre::eyre;
-use stylus_tools::core::deployment;
-use stylus_tools::core::deployment::deployer::ADDRESS;
 
 pub const STYLUS_DEPLOYER_ADDRESS: Address = ADDRESS;
 
@@ -26,14 +25,16 @@ pub struct Args {
     /// builds, but at the risk of not having a reproducible contract for verification purposes.
     #[arg(long)]
     no_verify: bool,
-    /// Cargo stylus version when deploying reproducibly to downloads the corresponding cargo-stylus-base Docker image.
-    /// If not set, uses the default version of the local cargo stylus binary.
+    /// Cargo stylus version when deploying reproducibly to downloads the corresponding
+    /// cargo-stylus-base Docker image. If not set, uses the default version of the local cargo
+    /// stylus binary.
     #[arg(long)]
     cargo_stylus_version: Option<String>,
     /// If set, do not activate the program after deploying it
     #[arg(long)]
     no_activate: bool,
-    /// The address of the deployer contract that deploys, activates, and initializes the stylus constructor.
+    /// The address of the deployer contract that deploys, activates, and initializes the stylus
+    /// constructor.
     #[arg(long, value_name = "DEPLOYER_ADDRESS", default_value_t = STYLUS_DEPLOYER_ADDRESS)]
     deployer_address: Address,
     /// The salt passed to the stylus deployer.

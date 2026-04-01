@@ -7,6 +7,10 @@ use proc_macro::TokenStream;
 use proc_macro_error::emit_error;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, parse_quote, spanned::Spanned};
+use types::{
+    FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicFn, PublicFnArg, PublicImpl,
+    PublicTrait,
+};
 
 use crate::{
     types::Purity,
@@ -14,10 +18,6 @@ use crate::{
         attrs::{check_attr_is_empty, consume_attr, consume_flag},
         get_generics,
     },
-};
-use types::{
-    FnArgExtension, FnExtension, FnKind, InterfaceExtension, PublicFn, PublicFnArg, PublicImpl,
-    PublicTrait,
 };
 
 mod attrs;
@@ -446,7 +446,8 @@ impl<E: FnArgExtension> From<&syn::FnArg> for PublicFnArg<E> {
     }
 }
 
-/// Returns the Solidity name used for routing and an error string if the name doesn't match the function kind.
+/// Returns the Solidity name used for routing and an error string if the name doesn't match the
+/// function kind.
 fn verify_sol_name(
     kind: &FnKind,
     name: String,
@@ -578,7 +579,8 @@ mod tests {
             "expected 0 checks with a single function"
         );
 
-        // Two functions should produce exactly one pairwise collision check (one pair from two functions).
+        // Two functions should produce exactly one pairwise collision check (one pair from two
+        // functions).
         let mut impl_item: syn::ItemImpl = parse_quote! {
             impl Contract {
                 fn foo_bar(_x: u64) {}

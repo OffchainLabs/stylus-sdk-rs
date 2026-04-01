@@ -6,12 +6,13 @@
 //! This command captures and visualizes user function calls in Stylus contracts
 //! using the stylusdb debugger with call tracing enabled.
 
-use alloy::providers::Provider;
-use eyre::bail;
 use std::{
     path::Path,
     process::{Command, Stdio},
 };
+
+use alloy::providers::Provider;
+use eyre::bail;
 use stylus_tools::{
     core::{build::BuildConfig, project::workspace::Workspace, tracing::Trace},
     utils::{color::Color, sys},

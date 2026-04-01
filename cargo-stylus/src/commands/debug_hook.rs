@@ -7,12 +7,15 @@
 //! cross-contract context switching. Some methods are scaffolded for future
 //! Solidity interop debugging support.
 
+use std::{
+    io::Write,
+    os::unix::net::{UnixListener, UnixStream},
+    path::Path,
+    sync::Arc,
+};
+
 use eyre::Result;
 use parking_lot::Mutex;
-use std::io::Write;
-use std::os::unix::net::{UnixListener, UnixStream};
-use std::path::Path;
-use std::sync::Arc;
 
 /// Interface for debugger hooks to receive execution events.
 ///

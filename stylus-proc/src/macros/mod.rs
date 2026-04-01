@@ -8,9 +8,9 @@ mod sol_interface;
 mod sol_storage;
 mod storage;
 
-pub use derive::abi_type::derive_abi_type;
-pub use derive::erase::derive_erase;
-pub use derive::solidity_error::derive_solidity_error;
+pub use derive::{
+    abi_type::derive_abi_type, erase::derive_erase, solidity_error::derive_solidity_error,
+};
 pub use entrypoint::entrypoint;
 pub use public::public;
 pub use sol_interface::sol_interface;

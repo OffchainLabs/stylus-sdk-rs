@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
+
 use alloy_sol_types::{Panic, PanicKind, SolError};
 
 /// Represents error data when a call fails.

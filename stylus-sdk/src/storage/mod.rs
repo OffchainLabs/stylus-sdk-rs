@@ -5,35 +5,37 @@
 //!
 //! The Stylus node software is composed of two, fully-composable virtual machines.
 //! - The Stylus VM, which compiles WASM contracts built with SDKs like this one.
-//! - The Ethereum Virtual Machine, which interprets EVM bytecode from languages like Solidity and Vyper.
+//! - The Ethereum Virtual Machine, which interprets EVM bytecode from languages like Solidity and
+//!   Vyper.
 //!
 //! Though these two VMs differ in execution, they are backed by the same EVM State Trie.
 //! This means that Stylus contracts have access to the same, key-value based persistent storage
 //! familiar to Solidity devs.
 //!
 //! Because this resource is foreign to Rust, this module provides standard types and traits for
-//! accessing state when writing programs. To protect the user, the Stylus SDK safeguards storage access
-//! by leveraging Rust's borrow checker. It should never be possible to alias Storage without `unsafe` Rust,
-//! eliminating entire classes of errors at compile time.
+//! accessing state when writing programs. To protect the user, the Stylus SDK safeguards storage
+//! access by leveraging Rust's borrow checker. It should never be possible to alias Storage without
+//! `unsafe` Rust, eliminating entire classes of errors at compile time.
 //!
 //! For a walkthrough of this module's features, please see [The Feature Overview][overview].
 //!
 //! [overview]: https://docs.arbitrum.io/stylus/reference/rust-sdk-guide#storage
 
-use crate::host::VM;
+use core::marker::PhantomData;
+
 use alloy_primitives::{Address, BlockHash, BlockNumber, FixedBytes, Signed, Uint, B256, U256};
 use alloy_sol_types::sol_data::{ByteCount, IntBitCount, SupportedFixedBytes, SupportedInt};
-use cfg_if::cfg_if;
-use core::marker::PhantomData;
-use stylus_core::*;
-
 pub use array::StorageArray;
 pub use bytes::{StorageBytes, StorageString};
+use cfg_if::cfg_if;
 pub use map::{StorageKey, StorageMap};
+use stylus_core::*;
 pub use traits::{
     Erase, GlobalStorage, SimpleStorageType, StorageGuard, StorageGuardMut, StorageType,
 };
 pub use vec::StorageVec;
+
+use crate::host::VM;
 
 mod array;
 mod bytes;

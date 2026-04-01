@@ -7,13 +7,13 @@
 extern crate alloc;
 
 use alloc::vec;
-use stylus_sdk::alloy_primitives::Address;
-use stylus_sdk::prelude::*;
-use stylus_sdk::storage::StorageAddress;
 
-use stylus_sdk::alloy_primitives::U256;
-use stylus_sdk::console;
-use stylus_sdk::storage::StorageU256;
+use stylus_sdk::{
+    alloy_primitives::{Address, U256},
+    console,
+    prelude::*,
+    storage::{StorageAddress, StorageU256},
+};
 
 #[storage]
 #[entrypoint]

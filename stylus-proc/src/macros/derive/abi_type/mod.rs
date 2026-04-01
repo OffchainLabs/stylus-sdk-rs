@@ -1,14 +1,16 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::imports::stylus_sdk::abi::{AbiType, ConstString};
+use std::marker::PhantomData;
+
 use cfg_if::cfg_if;
 use proc_macro2::TokenStream;
 use proc_macro_error::emit_error;
 use quote::ToTokens;
-use std::marker::PhantomData;
 use stylus_core;
 use syn::{parse::Nothing, parse_macro_input, parse_quote};
+
+use crate::imports::stylus_sdk::abi::{AbiType, ConstString};
 
 cfg_if! {
     if #[cfg(feature = "export-abi")] {
@@ -110,9 +112,10 @@ impl DeriveAbiTypeExtension for () {
 
 #[cfg(test)]
 mod tests {
+    use syn::parse_quote;
+
     use super::DeriveAbiTypeGenerator;
     use crate::utils::testing::assert_ast_eq;
-    use syn::parse_quote;
 
     #[test]
     fn test_impl_abi_type() {
