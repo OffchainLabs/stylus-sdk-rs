@@ -87,8 +87,8 @@ impl ExampleContract {
     // &mut self won’t work. Building a Call from a generic parameter via new_in is the usual
     // solution.
     pub fn make_generic_call<T: TopLevelStorage + core::borrow::Borrow<Self>>(
-        storage: &mut T, /* This could be `&mut self`, or another type implementing
-                          * `TopLevelStorage` */
+        storage: &mut T,   /* This could be `&mut self`, or another type implementing
+                            * `TopLevelStorage` */
         account: IService, // Interface for calling the target contract
         user: Address,
     ) -> Result<String, Vec<u8>> {
