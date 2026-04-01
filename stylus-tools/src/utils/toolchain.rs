@@ -32,7 +32,8 @@ pub fn get_toolchain_channel(package: &Package) -> Result<String, ToolchainError
         return Err(ToolchainError::InvalidChannel);
     }
 
-    // Parse the Rust version from the toolchain project, only allowing alphanumeric chars and dashes.
+    // Parse the Rust version from the toolchain project, only allowing alphanumeric chars and
+    // dashes.
     let channel = channel
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '.')

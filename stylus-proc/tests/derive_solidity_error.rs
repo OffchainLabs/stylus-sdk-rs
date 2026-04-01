@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
-
 use stylus_proc::{public, SolidityError};
 use stylus_sdk::prelude::*;
 

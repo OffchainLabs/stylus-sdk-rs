@@ -11,14 +11,16 @@
 //!
 //! Note that this code is unaudited and not fit for production use.
 
+use alloc::vec;
+use core::{borrow::BorrowMut, marker::PhantomData};
+
+use alloy_primitives::{Address, Bytes, FixedBytes, U256};
+use alloy_sol_types::sol;
+use stylus_sdk::prelude::*;
+
 use crate::ierc721::{
     Erc721Error, InvalidTokenId, NotApproved, NotOwner, ReceiverRefused, TransferToZero,
 };
-use alloc::vec;
-use alloy_primitives::{Address, Bytes, FixedBytes, U256};
-use alloy_sol_types::sol;
-use core::{borrow::BorrowMut, marker::PhantomData};
-use stylus_sdk::prelude::*;
 
 pub trait Erc721Params {
     /// Immutable NFT name.
@@ -64,12 +66,14 @@ sol_interface! {
     }
 }
 
-/// Selector for `onERC721Received`, which is returned by contracts implementing `IERC721TokenReceiver`.
+/// Selector for `onERC721Received`, which is returned by contracts implementing
+/// `IERC721TokenReceiver`.
 #[allow(dead_code)]
 const ERC721_TOKEN_RECEIVER_ID: u32 = 0x150b7a02;
 
 // These methods aren't public, but are helpers used by public methods.
-// Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from lib.rs).
+// Methods marked as "pub" here are usable outside of the erc721 module (i.e. they're callable from
+// lib.rs).
 #[cfg(not(feature = "contract-client-gen"))]
 impl<T: Erc721Params + Default> Erc721<T> {
     /// Requires that msg_sender is authorized to spend a given token
@@ -132,7 +136,8 @@ impl<T: Erc721Params + Default> Erc721<T> {
         }
         owner.set(to);
 
-        // right now working with storage can be verbose, but this will change upcoming version of the Stylus SDK
+        // right now working with storage can be verbose, but this will change upcoming version of
+        // the Stylus SDK
         let mut from_balance = self.balances.setter(from);
         let balance = from_balance.get() - U256::from(1);
         from_balance.set(balance);

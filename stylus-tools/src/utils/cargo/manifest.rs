@@ -53,7 +53,8 @@ impl ManifestMut {
             .ok_or(CargoManifestError::Invalid)?;
         // Do not display a `[profile]` table if it is empty (other than inner tables)
         profile_table.set_implicit(true);
-        // Create the named profile table (`[profile.release]` for example) which will contain the profile info
+        // Create the named profile table (`[profile.release]` for example) which will contain the
+        // profile info
         let table = profile_table
             .entry(name)
             .or_insert_with(|| Table::new().into())

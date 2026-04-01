@@ -6,15 +6,16 @@
 
 extern crate alloc;
 
-use crate::alloc::string::ToString;
-use crate::vec::Vec;
 use alloc::vec;
-use stylus_sdk::alloy_sol_types::sol;
+
 use stylus_sdk::{
     alloy_primitives::{Address, FixedBytes, U256},
+    alloy_sol_types::sol,
     prelude::*,
     ArbResult,
 };
+
+use crate::{alloc::string::ToString, vec::Vec};
 // Define persistent storage
 sol_storage! {
     #[entrypoint]
@@ -127,9 +128,12 @@ impl PaymentTracker {
 
 #[cfg(test)]
 mod test {
+    use stylus_sdk::{
+        alloy_primitives::{keccak256, B256},
+        testing::*,
+    };
+
     use super::*;
-    use stylus_sdk::alloy_primitives::{keccak256, B256};
-    use stylus_sdk::testing::*;
 
     #[test]
     fn test_receive_function() {

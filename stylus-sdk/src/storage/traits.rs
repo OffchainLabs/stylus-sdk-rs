@@ -1,12 +1,13 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr,
 };
+
+use alloy_primitives::{FixedBytes, Signed, Uint, B256, U256};
 use derivative::Derivative;
 
 use crate::host::VM;
@@ -32,10 +33,10 @@ pub trait StorageType: Sized {
     /// For types larger than 32 bytes that are stored inline with a struct's fields,
     /// set this to 32 and return the full size in [`StorageType::new`].
     ///
-    /// For implementing collections, see how Solidity slots are assigned for [`Arrays and Maps`] and their
-    /// Stylus equivalents [`StorageVec`](super::StorageVec) and [`StorageMap`](super::StorageMap).
-    /// For multi-word, but still fixed-size types, see the implementations for structs
-    /// and [`StorageArray`](super::StorageArray).
+    /// For implementing collections, see how Solidity slots are assigned for [`Arrays and Maps`]
+    /// and their Stylus equivalents [`StorageVec`](super::StorageVec) and
+    /// [`StorageMap`](super::StorageMap). For multi-word, but still fixed-size types, see the
+    /// implementations for structs and [`StorageArray`](super::StorageArray).
     ///
     /// [`Arrays and Maps`]: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html#mappings-and-dynamic-arrays
     const SLOT_BYTES: usize = 32;
@@ -87,8 +88,8 @@ where
 }
 
 /// Binds a storage accessor to a lifetime to prevent aliasing.
-/// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't available.
-/// For a mutable accessor, see [`StorageGuardMut`].
+/// Because this type doesn't implement `DerefMut`, mutable methods on the accessor aren't
+/// available. For a mutable accessor, see [`StorageGuardMut`].
 #[derive(Derivative)]
 #[derivative(Debug = "transparent")]
 pub struct StorageGuard<'a, T: 'a> {

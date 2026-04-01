@@ -1,12 +1,11 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
+use std::{borrow::ToOwned, env, iter::once, path::Path, process::Command};
+
 use alloy::primitives::{Address, TxHash};
 use eyre::{bail, eyre, Result, WrapErr};
 use regex::Regex;
-use std::borrow::ToOwned;
-use std::iter::once;
-use std::{env, path::Path, process::Command};
 use typed_builder::TypedBuilder;
 
 /// Defines the configuration for deploying a Stylus contract.

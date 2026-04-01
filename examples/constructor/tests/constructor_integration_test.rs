@@ -59,7 +59,8 @@ interface IContract {
         let (address, tx_hash, gas_used) = deployer.deploy()?;
         println!("Deployed contract to {address}");
 
-        // Approximate equality is usually expected, but given the test conditions, the gas estimate equals the gas used
+        // Approximate equality is usually expected, but given the test conditions, the gas estimate
+        // equals the gas used
         assert_eq!(gas_used, gas_estimate);
 
         println!("Activating contract at {address} on Nitro ({rpc})...");

@@ -1,21 +1,20 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::core::deployment::prelude::DeploymentCalldata;
-use crate::core::deployment::DeploymentError;
-use crate::core::deployment::DeploymentError::NoContractAddress;
-use alloy::dyn_abi::{DynSolValue, JsonAbiExt, Specifier};
-use alloy::json_abi::Constructor;
-use alloy::primitives::B256;
-use alloy::rpc::types::TransactionReceipt;
 use alloy::{
-    primitives::{address, Address, U256},
+    dyn_abi::{DynSolValue, JsonAbiExt, Specifier},
+    json_abi::Constructor,
+    primitives::{address, Address, B256, U256},
     providers::Provider,
+    rpc::types::TransactionReceipt,
     sol,
-    sol_types::SolCall,
-    sol_types::SolEvent,
+    sol_types::{SolCall, SolEvent},
 };
 use eyre::{Context, ErrReport};
+
+use crate::core::deployment::{
+    prelude::DeploymentCalldata, DeploymentError, DeploymentError::NoContractAddress,
+};
 
 pub const ADDRESS: Address = address!("cEcba2F1DC234f70Dd89F2041029807F8D03A990");
 

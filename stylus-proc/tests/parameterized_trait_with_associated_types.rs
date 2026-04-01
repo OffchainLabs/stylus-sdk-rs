@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use stylus_sdk::abi::AbiType;
-use stylus_sdk::prelude::*;
+use stylus_sdk::{abi::AbiType, prelude::*};
 
 #[storage]
 #[entrypoint]

@@ -19,10 +19,10 @@ use stylus_tools::core::{
     build::BuildConfig,
     check::CheckConfig,
     deployment::DeploymentConfig,
-    project::{contract::Contract, workspace::Workspace},
+    project::{contract::Contract, workspace::Workspace, ProjectConfig},
     reflection::ReflectionConfig,
+    tracing::TraceConfig,
 };
-use stylus_tools::core::{project::ProjectConfig, tracing::TraceConfig};
 
 use crate::{
     constants::DEFAULT_ENDPOINT,

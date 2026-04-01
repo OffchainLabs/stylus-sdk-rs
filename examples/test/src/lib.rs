@@ -231,8 +231,7 @@ mod test {
     #[test]
     fn test_logs() {
         use alloy_primitives::hex;
-        use stylus_sdk::alloy_primitives::B256;
-        use stylus_sdk::testing::*;
+        use stylus_sdk::{alloy_primitives::B256, testing::*};
         let vm = TestVM::new();
         let sender = vm.msg_sender();
         let mut contract = Counter::from(&vm);
@@ -244,7 +243,8 @@ mod test {
         assert_eq!(logs.len(), 2);
 
         // Check the event topic (first topic is the event signature)
-        // Precalculated the event signature for the event CounterUpdated(address indexed user, uint256 prev_value, uint256 new_value);
+        // Precalculated the event signature for the event CounterUpdated(address indexed user,
+        // uint256 prev_value, uint256 new_value);
         let event_signature: B256 =
             hex!("c9d64952459b33e1dd10d284fe1e9336b8c514cbf51792a888ee7615ca3225d9").into();
         assert_eq!(logs[0].0[0], event_signature);
@@ -296,8 +296,10 @@ mod test {
 
     #[test]
     fn test_storage_direct_access() {
-        use stylus_sdk::alloy_primitives::{B256, U256};
-        use stylus_sdk::testing::*;
+        use stylus_sdk::{
+            alloy_primitives::{B256, U256},
+            testing::*,
+        };
 
         // 1) Create the VM and your Counter instance
         let vm = TestVM::new();
@@ -417,17 +419,25 @@ mod test {
     }
 }
 
-//Writing your Own Custom TestVM
-// A TestVM is a simple struct implemented in the stylus-test crate that implements the Host trait from stylus_core::host::Host. Anyone can implement the trait and allow for rich testing experiences for Stylus contracts. The TestVM is not the only way to unit test your projects, as you can extend or implement your own.
+// Writing your Own Custom TestVM
+// A TestVM is a simple struct implemented in the stylus-test crate that implements the Host trait
+// from stylus_core::host::Host. Anyone can implement the trait and allow for rich testing
+// experiences for Stylus contracts. The TestVM is not the only way to unit test your projects, as
+// you can extend or implement your own.
 
-// Here’s a “general-purpose” extension to TestVM that is just a way to track how many times someone has called into mock_call, so you can assert on how many external calls you set up:
-// This is a simple example, but you can imagine more complex scenarios where you might want to track how many times a function was called, or what the arguments were, etc. You can also use this to set up more complex test cases where you need to mock multiple calls with different arguments.
+// Here’s a “general-purpose” extension to TestVM that is just a way to track how many times someone
+// has called into mock_call, so you can assert on how many external calls you set up:
+// This is a simple example, but you can imagine more complex scenarios where you might want to
+// track how many times a function was called, or what the arguments were, etc. You can also use
+// this to set up more complex test cases where you need to mock multiple calls with different
+// arguments.
 
 #[cfg(test)]
 mod custom_vm_tests {
-    use super::*;
     use alloy_primitives::Address;
     use stylus_sdk::testing::TestVM;
+
+    use super::*;
 
     /// A thin wrapper around TestVM that counts how many times
     /// `mock_call` has been invoked.

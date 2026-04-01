@@ -9,8 +9,7 @@ mod integration_test {
         sol_types::SolCall,
     };
     use eyre::Result;
-    use stylus_tools::devnet::addresses::OWNER;
-    use stylus_tools::utils::testing::init_test;
+    use stylus_tools::{devnet::addresses::OWNER, utils::testing::init_test};
 
     const ARB_OWNER_PUBLIC: Address = address!("0x000000000000000000000000000000000000006b");
 

@@ -88,7 +88,8 @@ impl Data {
         // As hex: Stylus says: '0x7fff...ffff, 0x8000...0000, 0x0, 0xffff...ffff'
         console!("{:#x}, {:#x}, {:#x}, {:#x}", _f, _g, _h, _i);
 
-        // Ethereum addresses are 20 bytes in length, or 160 bits. Alloy provides a number of helper utilities for converting to addresses from strings, bytes, numbers, and addresses
+        // Ethereum addresses are 20 bytes in length, or 160 bits. Alloy provides a number of helper
+        // utilities for converting to addresses from strings, bytes, numbers, and addresses
 
         // From a 20 byte slice, all 1s
         let _addr1 = Address::from([0x11; 20]);

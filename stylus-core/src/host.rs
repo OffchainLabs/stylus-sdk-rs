@@ -5,9 +5,9 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
+
 use alloy_primitives::{Address, B256, U256};
-use alloy_sol_types::abi::token::WordToken;
-use alloy_sol_types::{SolEvent, TopicList};
+use alloy_sol_types::{abi::token::WordToken, SolEvent, TopicList};
 use dyn_clone::DynClone;
 
 /// The host trait defines methods a Stylus contract can use to interact
@@ -123,8 +123,8 @@ pub unsafe trait UnsafeDeploymentAccess {
     /// [`CREATE`]: https://www.evm.codes/#f0
     ///
     /// # Safety
-    /// This method should only be used in advanced cases when lowest-level access to create1 is required.
-    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// This method should only be used in advanced cases when lowest-level access to create1 is
+    /// required. Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// Utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create1(
         &self,
@@ -151,8 +151,8 @@ pub unsafe trait UnsafeDeploymentAccess {
     /// [`CREATE2`]: https://www.evm.codes/#f5
     ///
     /// # Safety
-    /// This method should only be used in advanced cases when lowest-level access to create2 is required.
-    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// This method should only be used in advanced cases when lowest-level access to create2 is
+    /// required. Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// Utilize a [`RawDeploy`] struct instead for safety.
     unsafe fn create2(
         &self,
@@ -172,15 +172,15 @@ pub trait StorageAccess {
     /// value stored in the EVM state trie at offset `key`, which will be `0` when not previously
     /// set. The semantics, then, are equivalent to that of the EVM's [`SLOAD`] opcode.
     ///
-    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same key
-    /// will cost less than in the EVM.
+    /// Note: the Stylus VM implements storage caching. This means that repeated calls to the same
+    /// key will cost less than in the EVM.
     ///
     /// [`SLOAD`]: https://www.evm.codes/#54
     fn storage_load_bytes32(&self, key: U256) -> B256;
-    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical to that
-    /// of the EVM. This means that, under the hood, this hostio represents storing a 32-byte value into
-    /// the EVM state trie at offset `key`. Refunds are tabulated exactly as in the EVM. The semantics, then,
-    /// are equivalent to that of the EVM's [`SSTORE`] opcode.
+    /// Writes a 32-byte value to the permanent storage cache. Stylus's storage format is identical
+    /// to that of the EVM. This means that, under the hood, this hostio represents storing a
+    /// 32-byte value into the EVM state trie at offset `key`. Refunds are tabulated exactly as
+    /// in the EVM. The semantics, then, are equivalent to that of the EVM's [`SSTORE`] opcode.
     ///
     /// Note: because the value is cached, one must call `flush_cache` to persist it.
     ///
@@ -189,8 +189,8 @@ pub trait StorageAccess {
     /// # Safety
     /// May alias storage.
     unsafe fn storage_cache_bytes32(&self, key: U256, value: B256);
-    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache entirely if requested.
-    /// Analogous to repeated invocations of [`SSTORE`].
+    /// Persists any dirty values in the storage cache to the EVM state trie, dropping the cache
+    /// entirely if requested. Analogous to repeated invocations of [`SSTORE`].
     ///
     /// [`SSTORE`]: https://www.evm.codes/#55
     fn flush_cache(&self, clear: bool);
@@ -200,9 +200,9 @@ pub trait StorageAccess {
 ///
 /// # Safety
 /// These methods should only be used in advanced cases when lowest-level access
-/// to call, static_call, and delegate_call methods is required. Using the methods by themselves will not protect
-/// against reentrancy safety, storage aliasing, or cache flushing. For safe contract calls,
-/// utilize a [`RawCall`] struct instead.
+/// to call, static_call, and delegate_call methods is required. Using the methods by themselves
+/// will not protect against reentrancy safety, storage aliasing, or cache flushing. For safe
+/// contract calls, utilize a [`RawCall`] struct instead.
 pub unsafe trait UnsafeCallAccess {
     /// Calls the contract at the given address with options for passing value and to limit the
     /// amount of gas supplied. The return status indicates whether the call succeeded, and is
@@ -220,8 +220,8 @@ pub unsafe trait UnsafeCallAccess {
     /// [`CALL`]: https://www.evm.codes/#f1
     ///
     /// # Safety
-    /// This method should only be used in advanced cases when lowest-level access to calls is required.
-    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// This method should only be used in advanced cases when lowest-level access to calls is
+    /// required. Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn call_contract(
         &self,
@@ -248,8 +248,8 @@ pub unsafe trait UnsafeCallAccess {
     /// [`STATIC_CALL`]: https://www.evm.codes/#FA
     ///
     /// # Safety
-    /// This method should only be used in advanced cases when lowest-level access to calls is required.
-    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// This method should only be used in advanced cases when lowest-level access to calls is
+    /// required. Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn static_call_contract(
         &self,
@@ -275,8 +275,8 @@ pub unsafe trait UnsafeCallAccess {
     /// [`DELEGATE_CALL`]: https://www.evm.codes/#F4
     ///
     /// # Safety
-    /// This method should only be used in advanced cases when lowest-level access to calls is required.
-    /// Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
+    /// This method should only be used in advanced cases when lowest-level access to calls is
+    /// required. Safe usage needs to consider reentrancy, storage aliasing, and cache flushing.
     /// Utilize a [`RawCall`] struct instead for safety.
     unsafe fn delegate_call_contract(
         &self,
@@ -343,10 +343,11 @@ pub trait AccountAccess {
     ///
     /// [`ADDRESS`]: https://www.evm.codes/#30
     fn contract_address(&self) -> Address;
-    /// Gets a subset of the code from the account at the given address. The semantics are identical to that
-    /// of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to the buffer `dest` will
-    /// stop after the last byte is written. This is unlike the EVM, which right pads with zeros in this scenario.
-    /// The return value is the number of bytes written, which allows the caller to detect if this has occurred.
+    /// Gets a subset of the code from the account at the given address. The semantics are identical
+    /// to that of the EVM's [`EXT_CODE_COPY`] opcode, aside from one small detail: the write to
+    /// the buffer `dest` will stop after the last byte is written. This is unlike the EVM,
+    /// which right pads with zeros in this scenario. The return value is the number of bytes
+    /// written, which allows the caller to detect if this has occurred.
     ///
     /// [`EXT_CODE_COPY`]: https://www.evm.codes/#3C
     fn code(&self, account: Address) -> Vec<u8>;

@@ -25,7 +25,7 @@ mod integration_test {
             }
         }
     }
-    //TODO: calldata is the generated param type in lowLevelDelegateCall
+    // TODO: calldata is the generated param type in lowLevelDelegateCall
     const EXPECTED_ABI: &str = "\
 interface IExampleContract {
     function lowLevelDelegateCall(bytes calldata calldata, address target) external returns (uint8[] memory);

@@ -5,10 +5,11 @@ use std::path::Path;
 
 use alloy::{
     json_abi::StateMutability::Payable,
-    primitives::B256,
-    primitives::{Address, TxHash, U256},
+    primitives::{Address, TxHash, B256, U256},
     providers::{Provider, WalletProvider},
 };
+use fragments::{deploy_fragments, estimate_fragments_gas, estimate_root_contract_gas};
+use request::DeploymentRequest;
 
 use crate::{
     core::{
@@ -26,8 +27,6 @@ use crate::{
     precompiles,
     utils::color::{Color, DebugColor},
 };
-use fragments::{deploy_fragments, estimate_fragments_gas, estimate_root_contract_gas};
-use request::DeploymentRequest;
 
 pub mod deployer;
 pub mod fragments;

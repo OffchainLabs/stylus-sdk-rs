@@ -6,6 +6,7 @@ use std::{env, path::Path};
 use alloy::{primitives::Address, providers::Provider};
 use bytesize::ByteSize;
 
+use super::chain::ChainConfig;
 use crate::{
     core::{
         activation::{self, ActivationConfig},
@@ -21,8 +22,6 @@ use crate::{
     },
     utils::format_file_size,
 };
-
-use super::chain::ChainConfig;
 
 #[derive(Debug, Default)]
 pub struct CheckConfig {

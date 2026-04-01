@@ -14,8 +14,9 @@ use crate::{
 
 #[derive(Debug, clap::Args)]
 pub struct Args {
-    /// Cargo stylus version when deploying reproducibly to downloads the corresponding cargo-stylus-base Docker image.
-    /// If not set, uses the default version of the local cargo stylus binary.
+    /// Cargo stylus version when deploying reproducibly to downloads the corresponding
+    /// cargo-stylus-base Docker image. If not set, uses the default version of the local cargo
+    /// stylus binary.
     #[arg(long)]
     cargo_stylus_version: Option<String>,
     /// Hash of the deployment transaction.

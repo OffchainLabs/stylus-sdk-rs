@@ -1,11 +1,12 @@
 // Copyright 2023-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::call::CachePolicy;
 use alloc::vec::Vec;
+
 use alloy_primitives::{Address, B256, U256};
 use stylus_core::Host;
 
+use crate::call::CachePolicy;
 #[allow(unused_imports)]
 #[cfg(feature = "reentrant")]
 use crate::storage::StorageCache;
@@ -62,9 +63,9 @@ impl RawDeploy {
     ///
     /// # Safety
     ///
-    /// Note that the EVM allows init code to make calls to other contracts, which provides a vector for
-    /// reentrancy. This means that this method may enable storage aliasing if used in the middle of a storage
-    /// reference's lifetime and if reentrancy is allowed.
+    /// Note that the EVM allows init code to make calls to other contracts, which provides a vector
+    /// for reentrancy. This means that this method may enable storage aliasing if used in the
+    /// middle of a storage reference's lifetime and if reentrancy is allowed.
     ///
     /// For extra flexibility, this method does not clear the global storage cache.
     pub unsafe fn deploy(
@@ -112,9 +113,10 @@ impl RawDeploy {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use alloy_primitives::{Address, U256};
     use stylus_test::TestVM;
+
+    use super::*;
 
     #[test]
     fn test_deploy() {

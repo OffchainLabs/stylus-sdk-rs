@@ -20,8 +20,8 @@
 //! `set_len` call site in this module.
 
 use alloc::vec::Vec;
-use alloy_primitives::{Address, B256, U256};
 
+use alloy_primitives::{Address, B256, U256};
 use stylus_core::*;
 
 use crate::hostio;
@@ -552,8 +552,9 @@ mod tests {
     // These tests exercise the `CalldataAccess` / `AccountAccess` trait contracts
     // via `TestVM`. The `WasmVM` implementation delegates to real host I/O
     // functions and cannot be tested natively.
-    use super::*;
     use stylus_test::vm::TestVM;
+
+    use super::*;
 
     #[test]
     fn test_read_return_data_returns_correct_slice() {

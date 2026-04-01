@@ -1,9 +1,10 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use crate::call;
 use eyre::Result;
 use typed_builder::TypedBuilder;
+
+use crate::call;
 
 /// Defines the configuration for checking a Stylus contract.
 /// After setting the parameters, call `Checker::check` to perform the check.

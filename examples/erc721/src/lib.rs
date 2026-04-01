@@ -11,11 +11,14 @@ extern crate alloc;
 pub mod erc721;
 pub mod ierc721;
 
-use crate::erc721::{Erc721, Erc721Params};
-use crate::ierc721::{Erc721Error, IErc721};
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
 use stylus_sdk::prelude::*;
+
+use crate::{
+    erc721::{Erc721, Erc721Params},
+    ierc721::{Erc721Error, IErc721},
+};
 
 /// Immutable definitions
 #[derive(Default)]

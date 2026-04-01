@@ -7,18 +7,20 @@
 extern crate alloc;
 
 use alloc::string::String;
+
+// Because the naming of alloy_primitives and alloy_sol_types is the same, so we need to
+// re-name the types in alloy_sol_types
+use alloy_sol_types::{
+    sol_data::{Address as SOLAddress, Bytes as SOLBytes, String as SOLString, *},
+    SolType,
+};
+use sha3::{Digest, Keccak256};
 /// Import items from the SDK. The prelude contains common traits and macros.
 use stylus_sdk::{
     abi::Bytes,
     alloy_primitives::{Address, FixedBytes, U256},
     prelude::*,
 };
-// Because the naming of alloy_primitives and alloy_sol_types is the same, so we need to re-name the types in alloy_sol_types
-use alloy_sol_types::{
-    sol_data::{Address as SOLAddress, Bytes as SOLBytes, String as SOLString, *},
-    SolType,
-};
-use sha3::{Digest, Keccak256};
 
 // Define some persistent storage using the Solidity ABI.
 // `Encoder` will be the entrypoint.

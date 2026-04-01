@@ -116,8 +116,9 @@ fn parse_constructor(signature: &str) -> Result<Option<Constructor>> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloy::json_abi::Param;
+
+    use super::*;
 
     #[test]
     fn parse_constructors() {

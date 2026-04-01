@@ -12,8 +12,8 @@
 //! [sol_interface]: crate::prelude::sol_interface
 
 use alloc::vec::Vec;
-use alloy_primitives::Address;
 
+use alloy_primitives::Address;
 pub(crate) use raw::CachePolicy;
 pub use raw::RawCall;
 use stylus_core::{
@@ -47,8 +47,8 @@ pub fn static_call<H: Host + ?Sized>(
 /// # Safety
 ///
 /// A delegate call must trust the other contract to uphold safety requirements.
-/// Though this function clears any cached values, the other contract may arbitrarily change storage,
-/// spend ether, and do other things one should never blindly allow other contracts to do.
+/// Though this function clears any cached values, the other contract may arbitrarily change
+/// storage, spend ether, and do other things one should never blindly allow other contracts to do.
 pub unsafe fn delegate_call<H: Host + ?Sized>(
     host: &H,
     context: impl MutatingCallContext,
@@ -82,10 +82,11 @@ pub fn call<H: Host + ?Sized>(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use alloy_primitives::{Address, U256};
     use stylus_core::CallContext;
     use stylus_test::TestVM;
+
+    use super::*;
 
     #[derive(Clone)]
     pub struct MyContract;

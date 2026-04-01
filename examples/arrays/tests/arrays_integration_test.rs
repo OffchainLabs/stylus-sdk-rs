@@ -5,8 +5,7 @@
 mod integration_test {
     use alloy::{primitives::U256, sol};
     use eyre::Result;
-    use stylus_tools::devnet::addresses::OWNER;
-    use stylus_tools::utils::testing::init_test;
+    use stylus_tools::{devnet::addresses::OWNER, utils::testing::init_test};
 
     sol! {
         #[sol(rpc)]

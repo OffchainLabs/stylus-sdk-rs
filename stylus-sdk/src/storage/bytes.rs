@@ -1,16 +1,17 @@
 // Copyright 2022-2024, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
-use crate::crypto;
-use crate::host::VM;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use alloy_primitives::{B256, U256, U8};
 use core::{borrow::Borrow, cell::OnceCell};
+
+use alloy_primitives::{B256, U256, U8};
 use stylus_core::HostAccess;
+
+use super::{Erase, GlobalStorage, Storage, StorageB8, StorageGuard, StorageGuardMut, StorageType};
+use crate::{crypto, host::VM};
 
 /// Accessor for storage-backed bytes.
 pub struct StorageBytes {
@@ -340,7 +341,8 @@ impl Extend<u8> for StorageBytes {
             }
         }
 
-        // get the slot where we will write the first chunk; we can't use root.get_slot because len is not set
+        // get the slot where we will write the first chunk; we can't use root.get_slot because len
+        // is not set
         let mut slot = *root.storage.base() + U256::from(len / 32);
         let mut chunk = Vec::with_capacity(32);
 
@@ -550,9 +552,10 @@ impl Extend<char> for StorageString {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloy_primitives::B256;
     use stylus_test::vm::*;
+
+    use super::*;
 
     #[test]
     fn test_storage_bytes_is_empty() {

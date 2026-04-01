@@ -6,11 +6,14 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-use alloc::{string::ToString, vec};
+use alloc::{string::ToString, vec, vec::Vec};
 
-use stylus_sdk::alloy_primitives::U256;
-use stylus_sdk::{alloy_primitives::Address, alloy_sol_types::sol, prelude::*, ArbResult};
+use stylus_sdk::{
+    alloy_primitives::{Address, U256},
+    alloy_sol_types::sol,
+    prelude::*,
+    ArbResult,
+};
 
 // sol! macro event declaration
 // Up to 3 parameters can be indexed.

@@ -164,8 +164,9 @@ fn select_stylus_version(
 
 #[cfg(test)]
 mod tests {
-    use super::select_stylus_version;
     use cargo_metadata::semver::Version;
+
+    use super::select_stylus_version;
 
     #[test]
     fn test_select_stylus_version() {

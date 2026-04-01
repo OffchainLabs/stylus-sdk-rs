@@ -16,9 +16,8 @@ use alloy::{
     },
 };
 use eyre::bail;
-use serde_json::{Map, Value};
-
 use frame::{ActivationTraceFrame, TraceFrame};
+use serde_json::{Map, Value};
 
 use crate::{
     core::tracing::hostio::Hostio,

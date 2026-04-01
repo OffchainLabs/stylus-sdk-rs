@@ -4,7 +4,8 @@
 //! Solidity ABIs for Rust types.
 //!
 //! Alloy provides a 1-way mapping of Solidity types to Rust ones via [`SolType`].
-//! This module provides the inverse mapping, forming a bijective, 2-way relationship between Rust and Solidity.
+//! This module provides the inverse mapping, forming a bijective, 2-way relationship between Rust
+//! and Solidity.
 //!
 //! This allows the [`prelude`][prelude] macros to generate method selectors, export
 //! Solidity interfaces, and otherwise facilitate inter-op between Rust and Solidity contracts.
@@ -13,22 +14,19 @@
 //! For a Solidity `bytes`, see [`alloy_primitives::Bytes`].
 //!
 //! [prelude]: crate::prelude
-//!
 
 use alloc::vec::Vec;
-use alloy_primitives::U256;
 use core::borrow::BorrowMut;
-use stylus_core::{storage::TopLevelStorage, ValueDenier};
-
-use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
-
-use crate::{console, host::VM, storage::StorageType, ArbResult};
 
 pub use alloy_primitives::Bytes;
+use alloy_primitives::U256;
+use alloy_sol_types::{abi::TokenSeq, private::SolTypeValue, SolType};
 pub use const_string::ConstString;
-
 #[cfg(feature = "export-abi")]
 pub use export::GenerateAbi;
+use stylus_core::{storage::TopLevelStorage, ValueDenier};
+
+use crate::{console, host::VM, storage::StorageType, ArbResult};
 
 #[cfg(feature = "export-abi")]
 pub mod export;
@@ -51,8 +49,8 @@ where
     /// The type the [`TopLevelStorage`] borrows into. Usually just `Self`.
     type Storage;
 
-    /// Tries to find and execute a method for the given selector, returning `None` if none is found.
-    /// Routes add via `#[inherit]` will only execute if no match is found among `Self`.
+    /// Tries to find and execute a method for the given selector, returning `None` if none is
+    /// found. Routes add via `#[inherit]` will only execute if no match is found among `Self`.
     /// This means that it is possible to override a method by redefining it in `Self`.
     fn route(storage: &mut S, selector: u32, input: &[u8]) -> Option<ArbResult>;
 
@@ -88,11 +86,12 @@ where
 
 /// Entrypoint used when `#[entrypoint]` is used on a contract struct.
 /// Solidity requires specific routing logic for situations in which no function selector
-/// matches the input calldata in the form of two different functions named "receive" and "fallback".
-/// The purity and type definitions are as follows:
+/// matches the input calldata in the form of two different functions named "receive" and
+/// "fallback". The purity and type definitions are as follows:
 ///
 /// - receive takes no input data, returns no data, and is always payable.
-/// - fallback offers two possible implementations. It can be either declared without input or return
+/// - fallback offers two possible implementations. It can be either declared without input or
+///   return
 //    parameters, or with input bytes calldata and return bytes memory.
 //
 //  The fallback function MAY be payable. If not payable, then any transactions not matching any
@@ -100,8 +99,8 @@ where
 //
 //  The order of routing semantics for receive and fallback work as follows:
 //
-//  - If a receive function exists, it is always called whenever calldata is empty, even
-//    if no value is received in the transaction. It is implicitly payable.
+//  - If a receive function exists, it is always called whenever calldata is empty, even if no value
+//    is received in the transaction. It is implicitly payable.
 //  - Fallback is called when no other function matches a selector. If a receive function is not
 //    defined, then calls with no input calldata will be routed to the fallback function.
 pub fn router_entrypoint<R, S>(input: alloc::vec::Vec<u8>, host: VM) -> ArbResult
@@ -146,7 +145,8 @@ where
 }
 
 /// Provides a mapping of Rust to Solidity types.
-/// When combined with alloy, which provides the reverse direction, a two-way relationship is formed.
+/// When combined with alloy, which provides the reverse direction, a two-way relationship is
+/// formed.
 ///
 /// Additionally, `AbiType` provides a `const` equivalent to alloy's [`SolType::sol_type_name`].
 pub trait AbiType {

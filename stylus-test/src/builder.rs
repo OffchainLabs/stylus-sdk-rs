@@ -12,15 +12,16 @@ use url::Url;
 
 use crate::{state::VMState, TestVM};
 
-/// Builder for constructing a [`crate::TestVM`] used for unit testing Stylus contracts built with the Stylus SDK.
-/// Allows for convenient customization of the contract's address, sender address, message value, and RPC
-/// URL if state forking is desired. These values and more can still be customized if the builder is not used,
-/// by instead invoking the corresponding method on the TestVM struct such as `vm.set_value(value)`.
+/// Builder for constructing a [`crate::TestVM`] used for unit testing Stylus contracts built with
+/// the Stylus SDK. Allows for convenient customization of the contract's address, sender address,
+/// message value, and RPC URL if state forking is desired. These values and more can still be
+/// customized if the builder is not used, by instead invoking the corresponding method on the
+/// TestVM struct such as `vm.set_value(value)`.
 ///
 /// # Example
 /// ```
-/// use stylus_test::{TestVM, TestVMBuilder};
 /// use alloy_primitives::{address, Address, U256};
+/// use stylus_test::{TestVM, TestVMBuilder};
 ///
 /// let vm: TestVM = TestVMBuilder::new()
 ///     .sender(address!("dCE82b5f92C98F27F116F70491a487EFFDb6a2a9"))
@@ -76,8 +77,8 @@ impl TestVMBuilder {
         self
     }
     /// Sets the RPC URL to a Stylus-enabled Arbitrum chain for storage forking.
-    /// If specified, any calls to load storage will be made to the RPC URL at the TestVM's specified
-    /// contract address.
+    /// If specified, any calls to load storage will be made to the RPC URL at the TestVM's
+    /// specified contract address.
     pub fn rpc_url(mut self, url: &str) -> Self {
         let url = match Url::parse(url) {
             Ok(url) => url,

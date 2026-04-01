@@ -6,16 +6,17 @@
 
 extern crate alloc;
 
-/// Import items from the SDK. The prelude contains common traits and macros.
-use stylus_sdk::{
-    alloy_primitives::{Address, U256},
-    prelude::*,
-};
-// Because the naming of `alloy_primitives` and `alloy_sol_types` is the same, we need to rename the types in `alloy_sol_types`.
+// Because the naming of `alloy_primitives` and `alloy_sol_types` is the same, we need to
+// rename the types in `alloy_sol_types`.
 use alloy_sol_types::{
     sol,
     sol_data::{Address as SOLAddress, *},
     SolType,
+};
+/// Import items from the SDK. The prelude contains common traits and macros.
+use stylus_sdk::{
+    alloy_primitives::{Address, U256},
+    prelude::*,
 };
 
 // Define error

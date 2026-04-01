@@ -3,9 +3,10 @@
 
 //! This module defines the internal state of the Stylus test VM.
 
+use std::{collections::HashMap, sync::Arc};
+
 use alloy_primitives::{Address, B256, U256};
 use alloy_provider::{network::Ethereum, RootProvider};
-use std::{collections::HashMap, sync::Arc};
 
 use crate::constants::{DEFAULT_CHAIN_ID, DEFAULT_CONTRACT_ADDRESS, DEFAULT_SENDER};
 
