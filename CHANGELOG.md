@@ -2,6 +2,28 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.3) - 2026-04-01
+
+### New
+
+- Detect ABI selector collisions at compile time within `#[public]` blocks [#401](https://github.com/OffchainLabs/stylus-sdk-rs/pull/401)
+
+### Fixed
+
+- Fix `sol_interface!` ABI decode panic on multi-value return types containing dynamic types (e.g. `returns (string, uint256)`) [#414](https://github.com/OffchainLabs/stylus-sdk-rs/pull/414)
+- Fix `cargo stylus new` leaving projects in a broken state when dependency resolution fails [#416](https://github.com/OffchainLabs/stylus-sdk-rs/pull/416)
+- Fix codehash-keepalive command sending read-only call instead of transaction [#411](https://github.com/OffchainLabs/stylus-sdk-rs/pull/411)
+
+### Changed
+
+- Update Rust toolchain to 1.91.0 and alloy dependencies to latest (alloy-primitives/alloy-sol-types 1.5.7, alloy 1.7.3) [#410](https://github.com/OffchainLabs/stylus-sdk-rs/pull/410)
+- Update MSRV to 1.91.0 [#410](https://github.com/OffchainLabs/stylus-sdk-rs/pull/410)
+- Remove exact version pins on `ruint`, `branches`, and `rclite`; disable `ruint` default features to prevent `std` leaking into WASM builds [#413](https://github.com/OffchainLabs/stylus-sdk-rs/pull/413)
+- Switch ABI decoding to validating variants that reject malformed data [#415](https://github.com/OffchainLabs/stylus-sdk-rs/pull/415)
+- Adopt stricter `rustfmt` configuration [#417](https://github.com/OffchainLabs/stylus-sdk-rs/pull/417)
+- Extensive integration test improvements for examples [#365](https://github.com/OffchainLabs/stylus-sdk-rs/pull/365)
+- Improve smoke test for `cargo stylus new` with scaffolding verification [#416](https://github.com/OffchainLabs/stylus-sdk-rs/pull/416)
+
 ## [0.10.2](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.2) - 2026-03-09
 
 ### Fixed
