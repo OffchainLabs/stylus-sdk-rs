@@ -26,8 +26,6 @@ pub enum InitError {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("cargo metadata error: {0}")]
-    CargoMetadata(#[from] cargo_metadata::Error),
     #[error("toml edit error: {0}")]
     TomlEdit(#[from] toml_edit::TomlError),
 
@@ -105,7 +103,7 @@ pub fn init_workspace(path: impl AsRef<Path>) -> Result<(), InitError> {
 /// Takes a path to the package directory.
 fn init_package_manifest(path: impl AsRef<Path>, sdk_path: Option<&Path>) -> Result<(), InitError> {
     // Add required dependencies
-    cargo::add(&path, contract_dependencies(sdk_path)?)?;
+    cargo::add(&path, contract_dependencies(sdk_path))?;
 
     // Parse existing manifest to add default configs
     // TODO: get this from cargo metadata
