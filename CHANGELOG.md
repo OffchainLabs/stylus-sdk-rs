@@ -2,6 +2,12 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.4](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.4) - 2026-04-09
+
+### Fixed
+
+- Fix `cargo stylus new` panic when installed from crates.io registry [#421](https://github.com/OffchainLabs/stylus-sdk-rs/pull/421)
+
 ## [0.10.3](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.3) - 2026-04-01
 
 ### New
