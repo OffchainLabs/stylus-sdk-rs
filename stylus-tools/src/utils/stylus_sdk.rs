@@ -5,68 +5,38 @@
 
 use std::path::Path;
 
-use alloy::primitives::map::HashMap;
-use cargo_metadata::{Metadata, MetadataCommand, Package};
-use cargo_util_schemas::manifest::PackageName;
-
 use super::cargo::DepSource;
 
-static CONTRACT_DEPENDENCIES: &[&str] = &["alloy-primitives", "alloy-sol-types"];
+/// Version requirements for contract dependencies that must be compatible with the stylus-sdk.
+/// These are updated as part of the release process alongside workspace dependency versions.
+const ALLOY_PRIMITIVES_VERSION: &str = "1.5.7";
+const ALLOY_SOL_TYPES_VERSION: &str = "1.5.7";
 
 /// Required dependencies for stylus contracts.
 ///
-/// These dependencies will use the version requirements specified for the stylus-sdk crate. This
-/// is important to ensure sdk compatibility when those types are used within the contract.
+/// These dependencies use version requirements that are kept in sync with the stylus-sdk crate
+/// to ensure ABI type compatibility.
 ///
 /// If `sdk_path` is provided, stylus-sdk will be added as a path dependency instead of a
 /// versioned registry dependency.
 pub fn contract_dependencies(
     sdk_path: Option<&Path>,
-) -> Result<HashMap<String, DepSource>, cargo_metadata::Error> {
+) -> impl IntoIterator<Item = (String, DepSource)> {
     let sdk_dep = match sdk_path {
         Some(path) => DepSource::Path(path.to_path_buf()),
         None => DepSource::Version(env!("CARGO_PKG_VERSION").to_string()),
     };
-    let deps = stylus_sdk_dependencies()?
-        .filter(|(name, _req)| CONTRACT_DEPENDENCIES.contains(&name.as_str()))
-        .map(|(name, req)| (name, DepSource::Version(req)))
-        .chain(std::iter::once(("stylus-sdk".to_string(), sdk_dep)))
-        .collect();
-    Ok(deps)
-}
-
-/// Get all dependencies for stylus-sdk.
-///
-/// We can use these to determine required dependencies for contracts using the
-/// [contract_dependencies] function.
-fn stylus_sdk_dependencies() -> Result<impl Iterator<Item = (String, String)>, cargo_metadata::Error>
-{
-    let package = stylus_sdk_metadata()?;
-    let deps = package
-        .dependencies
-        .into_iter()
-        .map(|dep| (dep.name, dep.req.to_string()));
-    Ok(deps)
-}
-
-/// Get the package metadata for the stylus-sdk crate.
-fn stylus_sdk_metadata() -> Result<Package, cargo_metadata::Error> {
-    let workspace = workspace_metadata()?;
-    let package_name = PackageName::new("stylus-sdk".to_string()).expect("PackageName validation");
-    let package = workspace
-        .packages
-        .into_iter()
-        .find(|p| p.name == package_name)
-        .expect("Finding stylus-sdk package");
-    Ok(package)
-}
-
-/// Get metadata for the stylus-sdk-rs workspace.
-fn workspace_metadata() -> Result<Metadata, cargo_metadata::Error> {
-    let metadata = MetadataCommand::new()
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .exec()?;
-    Ok(metadata)
+    [
+        (
+            "alloy-primitives".to_string(),
+            DepSource::Version(ALLOY_PRIMITIVES_VERSION.to_string()),
+        ),
+        (
+            "alloy-sol-types".to_string(),
+            DepSource::Version(ALLOY_SOL_TYPES_VERSION.to_string()),
+        ),
+        ("stylus-sdk".to_string(), sdk_dep),
+    ]
 }
 
 #[cfg(test)]
@@ -75,11 +45,10 @@ mod tests {
 
     #[test]
     fn test_contract_dependencies() {
-        let deps = contract_dependencies(None).unwrap();
-        for (name, source) in &deps {
+        for (name, source) in contract_dependencies(None) {
             match source {
                 DepSource::Version(v) => match name.as_str() {
-                    "alloy-primitives" | "alloy-sol-types" => assert!(v.starts_with("^1")),
+                    "alloy-primitives" | "alloy-sol-types" => assert!(v.starts_with("1")),
                     "stylus-sdk" => assert_eq!(v, env!("CARGO_PKG_VERSION")),
                     other => panic!("unexpected dep: {other}"),
                 },
@@ -91,10 +60,11 @@ mod tests {
     #[test]
     fn test_contract_dependencies_with_sdk_path() {
         let sdk_path = std::path::Path::new("/tmp/fake-sdk");
-        let deps = contract_dependencies(Some(sdk_path)).unwrap();
-        match &deps["stylus-sdk"] {
-            DepSource::Path(p) => assert_eq!(p, sdk_path),
-            DepSource::Version(_) => panic!("expected path dep for stylus-sdk"),
-        }
+        let has_sdk_path_dep = contract_dependencies(Some(sdk_path))
+            .into_iter()
+            .any(|(name, source)| {
+                name == "stylus-sdk" && matches!(source, DepSource::Path(p) if p == sdk_path)
+            });
+        assert!(has_sdk_path_dep, "expected path dep for stylus-sdk");
     }
 }
