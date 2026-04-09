@@ -60,11 +60,12 @@ mod tests {
     #[test]
     fn test_contract_dependencies_with_sdk_path() {
         let sdk_path = std::path::Path::new("/tmp/fake-sdk");
-        let has_sdk_path_dep = contract_dependencies(Some(sdk_path))
-            .into_iter()
-            .any(|(name, source)| {
-                name == "stylus-sdk" && matches!(source, DepSource::Path(p) if p == sdk_path)
-            });
+        let has_sdk_path_dep =
+            contract_dependencies(Some(sdk_path))
+                .into_iter()
+                .any(|(name, source)| {
+                    name == "stylus-sdk" && matches!(source, DepSource::Path(p) if p == sdk_path)
+                });
         assert!(has_sdk_path_dep, "expected path dep for stylus-sdk");
     }
 }
