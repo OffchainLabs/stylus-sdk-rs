@@ -37,20 +37,17 @@ config.test_exec_root = os.path.join(config.test_source_root, 'Output')
 # Substitutions
 import shutil
 
-# Find cargo-stylus-beta
+# Find cargo-stylus
 if hasattr(config, 'cargo_stylus') and config.cargo_stylus:
     cargo_stylus_path = config.cargo_stylus
 else:
-    # Try to find cargo-stylus-beta first (the version from stylus-sdk-rs)
-    cargo_stylus_path = shutil.which('cargo-stylus-beta')
-    if not cargo_stylus_path:
-        # Fallback to cargo-stylus if beta not found
-        cargo_stylus_path = shutil.which('cargo-stylus')
+    # Try to find cargo-stylus first (the version from stylus-sdk-rs)
+    cargo_stylus_path = shutil.which('cargo-stylus')
     if not cargo_stylus_path and hasattr(config, 'cargo_stylus_dir'):
-        cargo_stylus_path = os.path.join(config.cargo_stylus_dir, 'target', 'release', 'cargo-stylus-beta')
+        cargo_stylus_path = os.path.join(config.cargo_stylus_dir, 'target', 'release', 'cargo-stylus')
 
-# Use cargo stylus-beta if available, otherwise cargo stylus
-cargo_cmd = 'cargo stylus-beta' if shutil.which('cargo-stylus-beta') else 'cargo stylus'
+# Use cargo stylus
+cargo_cmd = 'cargo stylus'
 config.substitutions.append(('%cargo-stylus', cargo_cmd))
 
 # Add wrapper for running with venv (for usertrace tests that need colorama)
