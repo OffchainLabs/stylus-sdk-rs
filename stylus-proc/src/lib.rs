@@ -189,9 +189,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 ///
 /// # Reentrant calls
 ///
-/// Contracts that opt into reentrancy via the `reentrant` feature flag require extra care.
-/// When enabled, cross-contract calls must [`flush`] or [`clear`] the [`StorageCache`] to safeguard
-/// state. This happens automatically via the type system.
+/// Cross-contract calls automatically [`flush`] or [`clear`] the [`StorageCache`] to safeguard
+/// state. This happens via the type system -- no special feature flags are required.
 ///
 /// ```
 /// # extern crate alloc;
@@ -259,8 +258,7 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// Note that in the context of a [`#[public]`][public] call, the `&mut impl` argument will
-/// correctly distinguish the method as being `write` or `payable`. This means you can write library
-/// code that will work regardless of whether the `reentrant` feature flag is enabled.
+/// correctly distinguish the method as being `write` or `payable`.
 ///
 /// [sol_interface]: macro@sol_interface
 /// [public]: macro@public
@@ -402,22 +400,36 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 ///
 /// # Reentrancy
 ///
-/// If a contract calls another that then calls the first, it is said to be reentrant. By default,
-/// all Stylus programs revert when this happens. However, you can opt out of this behavior by
-/// recompiling with the `reentrant` flag.
+/// If a contract calls another that then calls the first, it is said to be reentrant.
+/// Numerous exploits and hacks in Web3 are attributable to developers misusing or not fully
+/// understanding reentrant patterns. Always follow the checks-effects-interactions pattern.
 ///
-/// ```toml
-/// stylus_sdk = { version = "0.3.0", features = ["reentrant"] }
-/// ```
+/// ## Storage cache flushing
 ///
-/// This is dangerous, and should be done only after careful review -- ideally by 3rd-party
-/// auditors. Numerous exploits and hacks have in Web3 are attributable to developers misusing or
-/// not fully understanding reentrant patterns.
+/// The SDK's primary reentrancy safety mechanism is automatic storage cache management.
+/// The high-level call functions in `stylus_sdk::call` (`call`, `delegate_call`, and
+/// `static_call`) flush the storage cache before every external call, ensuring that
+/// pending writes are persisted to storage before control is handed to another contract:
 ///
-/// If enabled, the Stylus SDK will flush the storage cache in between reentrant calls, persisting
-/// values to state that might be used by inner calls. Note that preventing storage invalidation is
-/// only part of the battle in the fight against exploits. You can tell if a call is reentrant via
-/// [`msg::reentrant`][reentrant], and condition your business logic accordingly.
+/// - `call` and `delegate_call` flush and clear (persist dirty values, then drop the in-memory
+///   cache).
+/// - `static_call` flushes without clearing (since static calls cannot modify storage, the cache
+///   remains valid).
+///
+/// This happens unconditionally for all contracts. When using `RawCall` directly, the
+/// cache is **not** flushed automatically -- if you have pending storage writes that
+/// the callee might read, call `.flush_storage_cache()` to persist dirty values without
+/// dropping the cache, or `.clear_storage_cache()` to persist and drop the cache
+/// (matching what `call` and `delegate_call` do).
+///
+/// ## The `reentrant` feature flag (deprecated)
+///
+/// The `reentrant` feature flag is **deprecated** and will be removed in a future
+/// release. Previously, contracts without this flag would automatically revert on
+/// reentrant calls via a `msg_reentrant()` check at the entrypoint. This guard is
+/// redundant — reentrancy safety is already provided by the cache flushing described
+/// above — and it indiscriminately blocks all reentrant calls, preventing use cases
+/// that require them.
 ///
 /// # [`TopLevelStorage`]
 ///
@@ -429,7 +441,6 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// [`TopLevelStorage`]: https://docs.rs/stylus-sdk/latest/stylus_sdk/storage/trait.TopLevelStorage.html
 /// [`sol_interface`]: macro@sol_interface
 /// [entrypoint]: macro@entrypoint
-/// [reentrant]: https://docs.rs/stylus-sdk/latest/stylus_sdk/msg/fn.reentrant.html
 /// [public]: macro@public
 /// [check]: https://github.com/OffchainLabs/cargo-stylus#developing-with-stylus
 #[proc_macro_attribute]
@@ -562,7 +573,7 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// based on the types of the arguments. Functions with `&self` will be considered `view`, those
 /// with `&mut self` will be considered `write`, and those with neither will be considered `pure`.
 /// Please note that `pure` and `view` functions may change the state of other contracts by calling
-/// into them, or even this one if the `reentrant` feature is enabled.
+/// into them.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
 ///

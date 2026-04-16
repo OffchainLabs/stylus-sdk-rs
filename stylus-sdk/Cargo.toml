@@ -56,4 +56,7 @@ docs = []
 hostio = []
 mini-alloc = ["dep:mini-alloc"]
 stylus-test = ["dep:stylus-test", "dep:rclite", "stylus-proc/stylus-test"]
+# Deprecated: this guard is redundant (cache flushing provides reentrancy safety)
+# and blocks use cases that require reentrant calls. Will be removed in a future
+# major release.
 reentrant = ["stylus-proc/reentrant", "stylus-core/reentrant", "stylus-test/reentrant"]

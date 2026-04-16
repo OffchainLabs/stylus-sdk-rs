@@ -25,4 +25,5 @@ alloy-primitives = { workspace = true, features = ["native-keccak"] }
 
 [features]
 default = []
+# Deprecated: see stylus-sdk Cargo.toml for details.
 reentrant = []

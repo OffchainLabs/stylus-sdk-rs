@@ -1,4 +1,4 @@
-// Copyright 2023-2024, Offchain Labs, Inc.
+// Copyright 2023-2026, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
 use proc_macro2::{Ident, Span, TokenStream};
@@ -12,6 +12,8 @@ use syn::{
 use crate::consts::STRUCT_ENTRYPOINT_FN;
 
 /// Implementation for the [`#[entrypoint]`][crate::entrypoint] macro.
+///
+/// Generates the contract entrypoint and storage cache flush logic.
 pub fn entrypoint(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
@@ -141,6 +143,7 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
         if #[cfg(feature = "stylus-test")] {
             None
         } else {
+            #[allow(deprecated)]
             let deny_reentrant = deny_reentrant();
             Some(parse_quote! {
                 #[no_mangle]
@@ -171,8 +174,19 @@ fn user_entrypoint_fn(user_fn: Ident) -> Option<syn::ItemFn> {
     }
 }
 
-/// Revert on reentrancy unless explicitly enabled
+/// Revert on reentrancy unless explicitly enabled.
+///
+/// # Deprecated
+///
+/// This guard is redundant and will be removed in a future release.
+/// Reentrancy safety is provided by automatic cache flushing in the
+/// high-level call functions (`call`, `delegate_call`, `static_call`).
+/// This guard indiscriminately blocks all reentrant calls, preventing
+/// use cases that require them.
 #[cfg(not(feature = "stylus-test"))]
+#[deprecated(
+    note = "this guard is redundant — reentrancy safety is provided by automatic cache flushing — and it prevents use cases that require reentrant calls. Will be removed in a future release."
+)]
 fn deny_reentrant() -> Option<syn::ExprIf> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "reentrant")] {
