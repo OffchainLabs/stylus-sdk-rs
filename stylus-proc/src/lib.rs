@@ -257,8 +257,8 @@ pub fn sol_storage(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Note that in the context of a [`#[public]`][public] call, the `&mut impl` argument will correctly
-/// distinguish the method as being `write` or `payable`.
+/// Note that in the context of a [`#[public]`][public] call, the `&mut impl` argument will
+/// correctly distinguish the method as being `write` or `payable`.
 ///
 /// [sol_interface]: macro@sol_interface
 /// [public]: macro@public
@@ -411,10 +411,10 @@ pub fn derive_solidity_error(input: TokenStream) -> TokenStream {
 /// `static_call`) flush the storage cache before every external call, ensuring that
 /// pending writes are persisted to storage before control is handed to another contract:
 ///
-/// - `call` and `delegate_call` flush and clear (persist dirty values, then drop the
-///   in-memory cache).
-/// - `static_call` flushes without clearing (since static calls cannot modify storage,
-///   the cache remains valid).
+/// - `call` and `delegate_call` flush and clear (persist dirty values, then drop the in-memory
+///   cache).
+/// - `static_call` flushes without clearing (since static calls cannot modify storage, the cache
+///   remains valid).
 ///
 /// This happens unconditionally for all contracts. When using `RawCall` directly, the
 /// cache is **not** flushed automatically -- if you have pending storage writes that
@@ -569,10 +569,11 @@ pub fn entrypoint(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// # [`pure`][pure] [`view`][view], and `write`
 ///
-/// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you based
-/// on the types of the arguments. Functions with `&self` will be considered `view`, those with
-/// `&mut self` will be considered `write`, and those with neither will be considered `pure`. Please note that
-/// `pure` and `view` functions may change the state of other contracts by calling into them.
+/// For non-payable methods the [`#[public]`][public] macro can figure state mutability out for you
+/// based on the types of the arguments. Functions with `&self` will be considered `view`, those
+/// with `&mut self` will be considered `write`, and those with neither will be considered `pure`.
+/// Please note that `pure` and `view` functions may change the state of other contracts by calling
+/// into them.
 ///
 /// Please refer to the [SDK Feature Overview][overview] for more information on defining methods.
 ///
