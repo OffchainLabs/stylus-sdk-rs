@@ -2,6 +2,13 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.5](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.5) - 2026-04-16
+
+### Changed
+
+- Deprecate `reentrant` feature flag and `deny_reentrant` entrypoint guard — reentrancy safety is provided by automatic storage cache flushing in high-level call functions, making the guard redundant
+- Rewrite reentrancy documentation to center cache flushing as the primary safety mechanism
+
 ## [0.10.4](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.4) - 2026-04-09
 
 ### Fixed
