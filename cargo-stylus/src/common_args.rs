@@ -21,7 +21,7 @@ use stylus_tools::core::{
     deployment::DeploymentConfig,
     project::{contract::Contract, workspace::Workspace, ProjectConfig},
     reflection::ReflectionConfig,
-    tracing::TraceConfig,
+    tracing::{SimulateConfig, TraceConfig},
 };
 
 use crate::{
@@ -250,14 +250,22 @@ impl ReflectionArgs {
 #[derive(Debug, clap::Args)]
 pub struct TraceArgs {
     /// Tx to replay.
-    #[arg(short, long)]
-    pub tx: TxHash,
+    #[arg(short, long, conflicts_with = "simulate")]
+    pub tx: Option<TxHash>,
+
+    /// Simulate a transaction instead of tracing an existing one.
+    #[arg(long, conflicts_with = "tx")]
+    pub simulate: bool,
+
     /// Project path.
     #[arg(short, long, default_value = ".")]
     pub project: PathBuf,
 
     #[command(flatten)]
     pub config: TraceConfig,
+
+    #[command(flatten)]
+    pub simulation: SimulateConfig,
 }
 
 #[derive(Debug, clap::Args)]

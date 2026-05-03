@@ -155,6 +155,17 @@ cargo stylus usertrace \
 
 and it will track calls from `std::`, `core` and `other_contract::`.
 
+We support transaction simulation via the `usertrace` command with `--simulate` flag. This runs a `usertrace` without requiring a transaction hash on-chain:
+
+```bash
+cargo stylus usertrace --simulate \
+  --from 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E \
+  --to 0x85d9a8a4bd77b9b5559c1b7fcb8ec9635922ed49 \
+  --data 0xd09de08a \
+  --value 0 \
+  --endpoint $RPC_URL
+```
+
 ### Run `replay` option with `stylusdb`
 
 To use `stylusdb`, specify `--debugger stylusdb`.
@@ -289,6 +300,77 @@ The debugger will:
 
 This allows you to trace execution flow across mixed Stylus/Solidity transactions, even though source-level debugging is only available for Stylus contracts.
 
+### Enhanced Stylus Debugging with `soldb`
+
+For a richer debugging experience, `stylusdb` supports interoperability with `soldb`. If you have `soldb` installed, `stylusdb` can bridge the debugging session to `soldb` when a Solidity contract call is encountered, allowing you to get Solidity trace.
+
+**Prerequisites:**
+1. You must have `soldb` installed on your system. You can find installation guide at the [soldb repository](https://github.com/walnuthq/soldb).
+2. You need to identify your Solidity contracts in a JSON file (e.g., `solidity-contracts.json`).
+3. You must have a running `soldb bridge` instance.
+
+
+#### Solidity Contracts JSON Structure
+
+The JSON file specified by `--solidity-contracts` should contain a list of contract configurations.
+
+Example `solidity-contracts.json`:
+
+```json
+{
+  "contracts": [
+    {
+      "address": "0xda52b25ddb0e3b9cc393b0690ac62245ac772527",
+      "environment": "evm",
+      "name": "ContractName",
+      "project_path": "/path/to/your/project",
+      "debug_dir": "path/to/your/debug/directory"
+    }
+  ]
+}
+```
+
+**Process:**
+
+To use the interop features with `usertrace`, providing the soldb bridge URL and the contracts mapping:
+
+```bash
+cargo stylus usertrace \
+  --tx 0x40170483ccfedc54bb14dedae249d78230128fdf9e4a6cb42e9adf8ef56f024f \
+  --endpoint $RPC_URL \
+  --cross-env-bridge $BRIDGE_URL \
+  --solidity-contracts ./solidity-contracts.json \
+  --enable-stylusdb-output
+
+ERROR: Transaction reverted
+  Function: [EVM] multiply
+  Message: b cannot be zero
+=== WALNUT FUNCTION CALL TREE ===
+├─ #1 stylus_calls_solidity::__stylus_struct_entrypoint::h169924638c44647a (lib.rs:34)
+  input = 0xf05bc10f000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000
+  <anon> = stylus_sdk::host::VM { host=<unavailable> }
+└─ #2 stylus_calls_solidity::StylusCaller::call_solidity_multiply::h6fbc6a27bb2f5b28 (lib.rs:90)
+  self = 0x000000016fdf0838
+  a = 10
+  b = <unavailable>
+    ├─ #3 stylus_calls_solidity::ISolidityCalculator::new::hc4f0171b19e6af82 (lib.rs:22)
+      address = 0x93fe5ec17f31112dcd25770fbd07270159b67451
+    └─ #4 stylus_calls_solidity::ISolidityCalculator::multiply::h9bbd65b860b2e306 (lib.rs:22)
+      self = 0x000000016fdf03fc
+      host = 0x000000016fdf08b0
+      context = stylus_core::calls::Call<false, false> { gas=18446744073709551615, value=core::option::Option<ruint::Uint<256, 4>> { value=<unavailable>, $discr$=0 } }
+      a = 10
+      b = <unavailable>
+        └─ #5 [EVM] Calculator::runtime_dispatcher
+            └─ #6 [EVM] multiply(uint256,uint256)
+              a = uint256: 10
+              b = uint256: 0
+                └─ #7 [EVM] multiply ✗ ERROR
+                  ↳ b cannot be zero
+                  a = uint256: 10
+                  b = uint256: 0
+```
+
 #### Important Note on Contract Paths
 
 When specifying contracts with the `--contracts` flag, you can only provide directory paths for Rust/Stylus contracts. Solidity contracts do not support full debugging and cannot be built from source directories.
@@ -322,3 +404,7 @@ For Solidity contracts:
 - The debugger will show the contract address and function selectors
 - Source-level debugging is not available
 - Execution will continue after Solidity calls return
+
+---
+
+Created by the [Walnut](https://walnut.dev) team — contact us at [hi@walnut.dev](mailto:hi@walnut.dev).
