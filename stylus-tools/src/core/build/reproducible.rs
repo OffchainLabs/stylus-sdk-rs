@@ -3,7 +3,7 @@
 
 use std::{cmp::Ordering, io::Write};
 
-use cargo_metadata::{semver::Version, Package};
+use cargo_metadata::{semver::Version, MetadataCommand, Package};
 use tempfile::NamedTempFile;
 
 use crate::utils::{
@@ -31,17 +31,10 @@ pub fn run_reproducible(
     for arg in command_line.into_iter() {
         args.push(arg);
     }
-    // Use package source if available, otherwise use current working directory
-    let source = package
-        .source
-        .as_ref()
-        .map(|s| s.repr.to_owned())
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                .to_string_lossy()
-                .to_string()
-        });
+    // Mount the workspace root so that workspace-level Cargo.toml, Cargo.lock,
+    // and path dependencies are all available inside the container.
+    let metadata = MetadataCommand::new().no_deps().exec()?;
+    let source = metadata.workspace_root.to_string();
 
     docker::run_in_container(&image_name, &source, args)?;
     Ok(())
@@ -61,16 +54,20 @@ fn create_image(
     }
     info!(@grey, "Building Docker image for Rust toolchain {toolchain_version}");
 
-    // Second, check if base image exists on Docker Hub. If not, we fail early since
-    // docker build will fail trying to pull such image
+    // Second, check if base image exists locally or on Docker Hub. If not, we fail
+    // early since docker build will fail trying to pull such image.
     let base_image = format!("offchainlabs/cargo-stylus-base:{cargo_stylus_version}");
-    info!(@grey, "Checking if base image exists on Docker Hub: {base_image}");
 
-    if !docker::image_exists_on_hub(&base_image)? {
-        return Err(DockerError::ImageNotFound(
-            base_image,
-            cargo_stylus_version.to_string(),
-        ));
+    if docker::image_exists_locally(&base_image)? {
+        info!(@grey, "Using local base image: {base_image}");
+    } else {
+        info!(@grey, "Checking if base image exists on Docker Hub: {base_image}");
+        if !docker::image_exists_on_hub(&base_image)? {
+            return Err(DockerError::ImageNotFound(
+                base_image.clone(),
+                cargo_stylus_version.to_string(),
+            ));
+        }
     }
 
     info!(@grey, "Image exists, building container with base image: {base_image}");
@@ -109,6 +106,8 @@ pub enum ReproducibleBuildError {
     Docker(#[from] DockerError),
     #[error("toolchain error: {0}")]
     Toolchain(#[from] ToolchainError),
+    #[error("cargo metadata error: {0}")]
+    CargoMetadata(#[from] cargo_metadata::Error),
 }
 
 /// Returns the selected cargo_stylus_version if `cargo_stylus_version` is Some, otherwise returns

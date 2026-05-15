@@ -60,6 +60,8 @@ pub async fn exec(args: Args) -> CargoStylusResult {
             let mut cli_args: Vec<String> = vec![
                 String::from("verify"),
                 String::from("--no-verify"),
+                String::from("--contract"),
+                contract.package.name.to_string(),
                 String::from("--deployment-tx"),
             ];
             cli_args.push(deployment_tx);

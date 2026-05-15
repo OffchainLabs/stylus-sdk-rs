@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
-use stylus_tools::core::{deployment, deployment::deployer::ADDRESS};
+use stylus_tools::core::{build::reproducible::run_reproducible, deployment, deployment::deployer::ADDRESS};
 
 use crate::{
     common_args::{
@@ -75,8 +75,72 @@ pub struct Args {
     provider: ProviderArgs,
 }
 
+impl Args {
+    /// Reconstruct CLI flags for forwarding to a Docker invocation.
+    /// Does not include `--no-verify`, `--contract`, or `--cargo-stylus-version`
+    /// as those are handled by the caller.
+    fn to_cli_args(&self) -> Vec<String> {
+        let mut args = vec![String::from("-e"), self.provider.endpoint.clone()];
+        args.extend(self.auth.to_cli_args());
+        if self.estimate_gas {
+            args.push("--estimate-gas".into());
+        }
+        if self.no_activate {
+            args.push("--no-activate".into());
+        }
+        if self.deployer_address != STYLUS_DEPLOYER_ADDRESS {
+            args.extend([
+                "--deployer-address".into(),
+                self.deployer_address.to_string(),
+            ]);
+        }
+        if self.deployer_salt != B256::ZERO {
+            args.extend(["--deployer-salt".into(), self.deployer_salt.to_string()]);
+        }
+        if !self.constructor_args.is_empty() {
+            args.push("--constructor-args".into());
+            args.extend(self.constructor_args.clone());
+        }
+        if self.constructor_value != U256::ZERO {
+            args.extend([
+                "--constructor-value".into(),
+                self.constructor_value.to_string(),
+            ]);
+        }
+        if let Some(sig) = &self.constructor_signature {
+            args.extend(["--constructor-signature".into(), sig.clone()]);
+        }
+        for feature in &self.build.features {
+            args.extend(["--features".into(), feature.clone()]);
+        }
+        args
+    }
+}
+
 pub async fn exec(args: Args) -> CargoStylusResult {
     let contracts = args.project.contracts()?;
+
+    if !args.no_verify {
+        // Run inside a Docker container for reproducible builds.
+        println!("Running in a Docker container for reproducibility, this may take a while");
+        for contract in &contracts {
+            let mut cli_args = vec![
+                String::from("deploy"),
+                String::from("--no-verify"),
+                String::from("--contract"),
+                contract.package.name.to_string(),
+            ];
+            cli_args.extend(args.to_cli_args());
+            run_reproducible(
+                &contract.package,
+                args.cargo_stylus_version.clone(),
+                cli_args,
+            )?;
+        }
+        return Ok(());
+    }
+
+    // Direct deployment (no Docker).
     if args.wasm_file.is_none() && contracts.len() > 1 && !args.constructor_args.is_empty() {
         return Err(CargoStylusError::from(eyre!(
             "Multi-contract deployment only allowed for no-arg constructors"

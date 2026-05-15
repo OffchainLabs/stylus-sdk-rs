@@ -64,6 +64,33 @@ pub struct AuthArgs {
 }
 
 impl AuthArgs {
+    /// Reconstruct CLI flags from the parsed args, for forwarding to a Docker invocation.
+    pub(crate) fn to_cli_args(&self) -> Vec<String> {
+        let mut args = Vec::new();
+        if let Some(key) = &self.private_key {
+            args.extend(["--private-key".into(), key.clone()]);
+        }
+        if let Some(path) = &self.private_key_path {
+            args.extend([
+                "--private-key-path".into(),
+                path.to_string_lossy().to_string(),
+            ]);
+        }
+        if let Some(path) = &self.keystore_path {
+            args.extend(["--keystore-path".into(), path.clone()]);
+        }
+        if let Some(path) = &self.keystore_password_path {
+            args.extend([
+                "--keystore-password-path".into(),
+                path.to_string_lossy().to_string(),
+            ]);
+        }
+        if let Some(fee) = &self.max_fee_per_gas_gwei {
+            args.extend(["--max-fee-per-gas-gwei".into(), fee.clone()]);
+        }
+        args
+    }
+
     fn build_wallet(&self, chain_id: u64) -> eyre::Result<EthereumWallet> {
         if let Some(key) = &self.private_key {
             if key.is_empty() {
