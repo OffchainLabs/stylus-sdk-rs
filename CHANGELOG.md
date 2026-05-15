@@ -2,6 +2,19 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.6](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.6) - 2026-05-15
+
+### New
+
+- Add Dockerfile for building `cargo-stylus-base` Docker image from the monorepo
+- Add reproducible Docker build path to `cargo stylus deploy` — previously deploy always built locally even when `--no-verify` was omitted, making Docker verification unreliable on cross-platform setups
+
+### Fixed
+
+- Fix reproducible Docker builds for workspace projects: mount workspace root instead of CWD so workspace-level `Cargo.toml`, `Cargo.lock`, and path dependencies are available inside the container
+- Fix `cargo stylus verify` not forwarding `--contract` flag to inner Docker invocation, causing incorrect contract selection in multi-contract workspaces
+- Fix reproducible build failing when base Docker image exists locally but not on Docker Hub
+
 ## [0.10.5](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.5) - 2026-04-16
 
 ### Changed
