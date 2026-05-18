@@ -62,9 +62,14 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                 String::from("--no-verify"),
                 String::from("--contract"),
                 contract.package.name.to_string(),
+                String::from("-e"),
+                args.provider.endpoint.clone(),
                 String::from("--deployment-tx"),
             ];
             cli_args.push(deployment_tx);
+            if args.skip_clean {
+                cli_args.push("--skip-clean".into());
+            }
             run_reproducible(
                 &contract.package,
                 args.cargo_stylus_version.clone(),
