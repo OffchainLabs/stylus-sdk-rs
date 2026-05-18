@@ -1373,7 +1373,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-stylus"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy",
  "anstyle",
@@ -5340,7 +5340,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-core"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -5521,7 +5521,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-proc"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -5546,7 +5546,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-sdk"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -5608,7 +5608,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-test"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy-primitives",
  "alloy-provider",
@@ -5633,7 +5633,7 @@ dependencies = [
 
 [[package]]
 name = "stylus-tools"
-version = "0.10.6"
+version = "0.10.7-rc.1"
 dependencies = [
  "alloy",
  "anyhow",
