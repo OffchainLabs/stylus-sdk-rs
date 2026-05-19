@@ -2,6 +2,12 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.7](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.7) - 2026-05-19
+
+### Fixed
+
+- Fix `cargo stylus verify` not forwarding `--endpoint` and `--skip-clean` flags to inner Docker invocation
+
 ## [0.10.6](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.6) - 2026-05-15
 
 ### New
