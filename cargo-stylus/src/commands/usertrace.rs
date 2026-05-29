@@ -12,14 +12,14 @@ use std::{
 };
 
 use alloy::providers::Provider;
-use eyre::bail;
+use eyre::{bail, eyre};
 use stylus_tools::{
     core::{build::BuildConfig, project::workspace::Workspace, tracing::Trace},
     utils::{color::Color, sys},
 };
 
 use crate::{
-    commands::replay::find_shared_library,
+    commands::replay::{build_shared_library, find_shared_library},
     common_args::{ProjectArgs, ProviderArgs, TraceArgs},
     error::CargoStylusResult,
     utils::hostio,
@@ -90,12 +90,21 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
     }
     let contract = contracts.pop().unwrap();
 
-    // Build the shared library
+    // Build the WASM artifact
+    let features = args.features.clone();
     let config = BuildConfig {
         features: args.features.unwrap_or_default(),
         ..Default::default()
     };
     let _wasm = contract.build(&config)?;
+
+    // Build the native shared library (.so / .dylib) for replay
+    let project_path = contract
+        .package
+        .manifest_path
+        .parent()
+        .ok_or_else(|| eyre!("Failed to get contract directory"))?;
+    build_shared_library(project_path.as_std_path(), args.package.clone(), features)?;
 
     let target_dir = Workspace::current()?.metadata.target_directory;
     let library_extension = if macos { ".dylib" } else { ".so" };
@@ -135,11 +144,11 @@ async fn exec_inner(args: Args) -> eyre::Result<()> {
                 "rust-stylusdb",
                 &[
                     "-o",
+                    &calltrace_cmd,
+                    "-o",
                     "b user_entrypoint",
                     "-o",
                     "r",
-                    "-o",
-                    &calltrace_cmd,
                     "-o",
                     "c",
                     "-o",
