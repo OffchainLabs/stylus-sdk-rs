@@ -5481,6 +5481,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylus-large-contract"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "stylus-sdk",
+ "stylus-tools",
+ "tokio",
+]
+
+[[package]]
 name = "stylus-mapping"
 version = "0.1.0"
 dependencies = [

@@ -49,10 +49,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                     println!("Verification successful");
                 }
                 stylus_tools::core::verification::VerificationStatus::Failure(failure) => {
-                    println!("Verification failed");
-                    println!("prelude mismatch: {:?}", failure.prelude_mismatch);
-                    println!("tx wasm length: {}", failure.tx_wasm_length);
-                    println!("build wasm length: {}", failure.build_wasm_length);
+                    println!("Verification failed: {failure}");
                 }
             }
         } else {
