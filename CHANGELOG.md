@@ -2,6 +2,12 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.8](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.8) - 2026-07-06
+
+### Fixed
+
+- Fix `cargo stylus verify` for fragmented (large) contracts whose init code is split across multiple deployment transactions [#445](https://github.com/OffchainLabs/stylus-sdk-rs/pull/445)
+
 ## [0.10.7](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.7) - 2026-05-19
 
 ### Fixed

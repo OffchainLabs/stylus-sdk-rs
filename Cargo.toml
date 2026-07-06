@@ -42,7 +42,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.10.7"
+version = "0.10.8"
 edition = "2021"
 authors = ["Offchain Labs"]
 license = "MIT OR Apache-2.0"
@@ -89,7 +89,7 @@ tokio = "1.45"
 
 # members
 stylus-sdk = { path = "stylus-sdk" }
-stylus-core = { path = "stylus-core", version = "0.10.7" }
-stylus-test = { path = "stylus-test", version = "0.10.7" }
-stylus-proc = { path = "stylus-proc", version = "0.10.7" }
-stylus-tools = { path = "stylus-tools", version = "0.10.7" }
+stylus-core = { path = "stylus-core", version = "0.10.8" }
+stylus-test = { path = "stylus-test", version = "0.10.8" }
+stylus-proc = { path = "stylus-proc", version = "0.10.8" }
+stylus-tools = { path = "stylus-tools", version = "0.10.8" }
