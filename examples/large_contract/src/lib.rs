@@ -9,7 +9,7 @@
 //! integration test exercise `cargo stylus verify` against a real multi-fragment deployment.
 
 #![cfg_attr(not(any(test, feature = "export-abi")), no_main)]
-#![cfg_attr(feature = "contract-client-gen", allow(unused_imports))]
+#![cfg_attr(feature = "contract-client-gen", allow(unused_imports, dead_code))]
 
 extern crate alloc;
 
