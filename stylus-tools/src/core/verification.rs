@@ -13,11 +13,7 @@ use alloy::{
 
 use crate::{
     core::{
-        code::{
-            contract::ContractCode,
-            fragments::CodeFragments,
-            Code,
-        },
+        code::{contract::ContractCode, fragments::CodeFragments, Code},
         deployment::{
             deployer::{
                 get_address_from_receipt, stylus_constructorCall, StylusDeployer::deployCall,
@@ -61,9 +57,9 @@ pub async fn verify(
     // the contract address.
     // Rebuild with the default check config, matching deploy: neither queries the chain's actual
     // `max_code_size` and both assume `DEFAULT_MAX_CODE_SIZE` for now, so local fragmentation here
-    // reproduces the deployment's. On a chain with a non-default max code size this rebuild must use
-    // that value (as the deployment would have), or fragmented contracts will chunk differently and
-    // mis-verify.
+    // reproduces the deployment's. On a chain with a non-default max code size this rebuild must
+    // use that value (as the deployment would have), or fragmented contracts will chunk
+    // differently and mis-verify.
     let status = contract.check(None, &Default::default(), provider).await?;
 
     match status.code() {
