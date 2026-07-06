@@ -27,6 +27,7 @@ members = [
     "examples/function",
     "examples/hello_world",
     "examples/inheritance",
+    "examples/large_contract",
     "examples/mapping",
     "examples/nested_structs",
     "examples/primitive_data_types",

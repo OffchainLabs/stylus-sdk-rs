@@ -21,8 +21,15 @@ pub const DEVNET_PRIVATE_KEY: &str =
     "b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659";
 
 const NITRO_IMAGE_NAME: &str = "offchainlabs/nitro-node";
-const NITRO_IMAGE_TAG: &str = "v3.5.6-9a29a1e";
+const NITRO_IMAGE_TAG: &str = "v3.11.1-8512b8c";
 const NITRO_PORT: u16 = 8547;
+
+/// ArbOS version to upgrade the devnode to during setup.
+///
+/// The `--dev` node boots at an older ArbOS version; ArbOS 60 is the first version that supports
+/// larger Stylus contracts (fragmented deployment), so it must be enabled explicitly for the
+/// fragment deploy/verify paths to work.
+const ARBOS_VERSION: u64 = 60;
 
 mod bytecode;
 
@@ -47,6 +54,7 @@ sol! {
     interface ArbOwner {
         function addWasmCacheManager(address manager) external;
         function setL1PricePerUnit(uint256 value) external;
+        function scheduleArbOSUpgrade(uint64 newVersion, uint64 timestamp) external;
     }
 }
 
@@ -130,6 +138,19 @@ impl Node {
             .await?
             .watch()
             .await?;
+
+        // Upgrade ArbOS so that larger Stylus contracts (fragmented deployment) are supported.
+        // A timestamp of 0 activates the upgrade immediately (on the next block). Check the receipt
+        // status so a reverted upgrade fails loudly here rather than as opaque deploy errors later.
+        let receipt = arbowner
+            .scheduleArbOSUpgrade(ARBOS_VERSION, 0)
+            .send()
+            .await?
+            .get_receipt()
+            .await?;
+        if !receipt.status() {
+            eyre::bail!("ArbOS upgrade to version {ARBOS_VERSION} reverted");
+        }
 
         // Send funds to CREATE2 factory deployer
         let factory_deployer = address!("0x3fab184622dc19b6109349b94811493bf2a45362");

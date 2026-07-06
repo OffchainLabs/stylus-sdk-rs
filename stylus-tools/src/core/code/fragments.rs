@@ -46,6 +46,18 @@ impl CodeFragments {
         }
     }
 
+    /// Assemble already-split fragments with a known uncompressed wasm size.
+    #[cfg(test)]
+    pub(crate) fn from_fragments(
+        uncompressed_wasm_size: u32,
+        fragments: Vec<CodeFragment>,
+    ) -> Self {
+        Self {
+            fragments,
+            uncompressed_wasm_size,
+        }
+    }
+
     /// Get a slice containing all fragments
     pub fn as_slice(&self) -> &[CodeFragment] {
         &self.fragments
