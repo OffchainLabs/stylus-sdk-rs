@@ -37,6 +37,7 @@ pub struct Args {
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider().await?;
 
+    let mut any_failed = false;
     for (contract, deployment_tx) in izip!(args.project.contracts()?, args.deployment_tx) {
         if args.verification.no_verify {
             let hash = decode0x(&deployment_tx)?;
@@ -50,6 +51,7 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                 }
                 stylus_tools::core::verification::VerificationStatus::Failure(failure) => {
                     println!("Verification failed: {failure}");
+                    any_failed = true;
                 }
             }
         } else {
@@ -75,5 +77,8 @@ pub async fn exec(args: Args) -> CargoStylusResult {
         }
     }
 
+    if any_failed {
+        return Err(eyre!("Verification failed").into());
+    }
     Ok(())
 }

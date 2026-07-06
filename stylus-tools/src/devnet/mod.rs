@@ -140,13 +140,17 @@ impl Node {
             .await?;
 
         // Upgrade ArbOS so that larger Stylus contracts (fragmented deployment) are supported.
-        // A timestamp of 0 activates the upgrade immediately (on the next block).
-        arbowner
+        // A timestamp of 0 activates the upgrade immediately (on the next block). Check the receipt
+        // status so a reverted upgrade fails loudly here rather than as opaque deploy errors later.
+        let receipt = arbowner
             .scheduleArbOSUpgrade(ARBOS_VERSION, 0)
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
+        if !receipt.status() {
+            eyre::bail!("ArbOS upgrade to version {ARBOS_VERSION} reverted");
+        }
 
         // Send funds to CREATE2 factory deployer
         let factory_deployer = address!("0x3fab184622dc19b6109349b94811493bf2a45362");

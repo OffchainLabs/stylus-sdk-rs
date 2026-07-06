@@ -7,19 +7,23 @@ use alloy::{
     consensus::Transaction,
     primitives::{Address, Bytes, TxHash},
     providers::Provider,
+    rpc::types::TransactionReceipt,
     sol_types::SolCall,
 };
 
 use crate::{
     core::{
         code::{
-            contract::{ContractCode, RootContractError},
-            fragments::{CodeFragment, CodeFragments},
+            contract::ContractCode,
+            fragments::CodeFragments,
             Code,
         },
         deployment::{
-            deployer::{stylus_constructorCall, StylusDeployer::deployCall, ADDRESS},
-            prelude::DeploymentCalldata,
+            deployer::{
+                get_address_from_receipt, stylus_constructorCall, StylusDeployer::deployCall,
+                ADDRESS,
+            },
+            prelude::{DeploymentCalldata, PRELUDE_LENGTH},
         },
         project::contract::Contract,
         reflection,
@@ -43,27 +47,53 @@ pub async fn verify(
     if !skip_clean {
         cargo::clean()?;
     }
-    let deployment_success = provider
+    let receipt = provider
         .get_transaction_receipt(tx_hash)
         .await?
-        .map(|receipt| receipt.status())
         .ok_or(TransactionReceiptError)?;
-    if !deployment_success {
+    if !receipt.status() {
         return Err(TxNotSuccessful);
     }
 
-    // Rebuild the contract locally and extract the code that the deployment transaction installed
-    // on-chain. Both are independent of whether the contract fits in a single chunk or is split
-    // into fragments.
+    // Rebuild the contract locally and compare it against the code the deployment installed
+    // on-chain. A single-chunk contract is verified against the deployment calldata (prelude
+    // included); a fragmented contract is verified against the root contract actually deployed at
+    // the contract address.
+    // Rebuild with the default check config, matching deploy: neither queries the chain's actual
+    // `max_code_size` and both assume `DEFAULT_MAX_CODE_SIZE` for now, so local fragmentation here
+    // reproduces the deployment's. On a chain with a non-default max code size this rebuild must use
+    // that value (as the deployment would have), or fragmented contracts will chunk differently and
+    // mis-verify.
     let status = contract.check(None, &Default::default(), provider).await?;
-    let onchain = extract_deployment_calldata(&tx)?;
 
     match status.code() {
-        Code::Contract(contract) => Ok(compare_calldata(
-            &onchain,
-            &DeploymentCalldata::new(contract.as_slice()),
-        )),
-        Code::Fragments(fragments) => verify_fragments(&onchain, fragments, provider).await,
+        Code::Contract(contract) => {
+            let onchain = extract_deployment_calldata(&tx)?;
+            Ok(compare_calldata(
+                &onchain,
+                &DeploymentCalldata::new(contract.as_slice()),
+            ))
+        }
+        Code::Fragments(fragments) => {
+            let address = deployed_address(&tx, &receipt)?;
+            verify_fragments(address, fragments, provider).await
+        }
+    }
+}
+
+/// Resolve the address at which a deployment transaction installed its contract.
+///
+/// A plain CREATE transaction records the address in the receipt directly; a deployment routed
+/// through the [`StylusDeployer`](deployCall) emits it in a `ContractDeployed` event.
+fn deployed_address(
+    tx: &impl Transaction,
+    receipt: &TransactionReceipt,
+) -> Result<Address, VerificationError> {
+    match tx.to() {
+        None => receipt
+            .contract_address
+            .ok_or(VerificationError::NoContractAddress),
+        Some(_) => Ok(get_address_from_receipt(receipt)?),
     }
 }
 
@@ -78,7 +108,7 @@ pub async fn verify(
 fn extract_deployment_calldata(
     tx: &impl Transaction,
 ) -> Result<DeploymentCalldata, VerificationError> {
-    match tx.to() {
+    let calldata = match tx.to() {
         Some(deployer_address) => {
             reflection::constructor()?.ok_or(VerificationError::NoConstructor)?;
             let deploy_call = deployCall::abi_decode(tx.input())
@@ -92,10 +122,16 @@ fn extract_deployment_calldata(
             if deployer_address != ADDRESS {
                 return Err(InvalidDeployerAddress);
             }
-            Ok(DeploymentCalldata(deploy_call.bytecode.to_vec()))
+            DeploymentCalldata(deploy_call.bytecode.to_vec())
         }
-        None => Ok(DeploymentCalldata(tx.input().to_vec())),
+        None => DeploymentCalldata(tx.input().to_vec()),
+    };
+    // The calldata comes from untrusted transaction bytes; guard the fixed-offset prelude/wasm
+    // accessors against input too short to contain a prelude (they would otherwise panic).
+    if calldata.0.len() < PRELUDE_LENGTH {
+        return Err(VerificationError::CalldataTooShort);
     }
+    Ok(calldata)
 }
 
 /// Compare the on-chain deployment calldata against the locally built calldata for a single-chunk
@@ -124,63 +160,68 @@ fn compare_calldata(
     })
 }
 
-/// Verify a fragmented deployment.
+/// Verify a fragmented deployment against the local build.
 ///
-/// The deployment transaction installs a *root* contract that records the uncompressed wasm size
-/// and the addresses of the individual fragment contracts. We parse those out, fetch the code
-/// deployed at each fragment address, and compare it against the locally built fragments.
+/// Reads the root contract actually deployed at `address` (rather than trusting the transaction's
+/// claimed payload, which a non-standard prelude could contradict), fetches the code at each
+/// fragment address it points to, and compares it against the locally built fragments.
 async fn verify_fragments(
-    onchain: &DeploymentCalldata,
+    address: Address,
     local: &CodeFragments,
     provider: &impl Provider,
 ) -> Result<VerificationStatus, VerificationError> {
-    let (onchain_uncompressed_size, addresses) =
-        ContractCode::parse_root_contract(onchain.compressed_wasm())?;
+    let root_code = provider.get_code_at(address).await?;
+    let (onchain_uncompressed_size, addresses) = match ContractCode::parse_root_contract(&root_code)
+    {
+        Ok(parsed) => parsed,
+        // Local build fragmented but the deployed code isn't a root contract
+        Err(_) => {
+            return Ok(VerificationStatus::Failure(
+                VerificationFailure::FragmentationMismatch,
+            ))
+        }
+    };
 
-    let mut onchain_fragment_code = Vec::with_capacity(addresses.len());
-    for address in &addresses {
-        onchain_fragment_code.push(provider.get_code_at(*address).await?);
+    let mut fragments = Vec::with_capacity(addresses.len());
+    for address in addresses {
+        let code = provider.get_code_at(address).await?;
+        fragments.push((address, code));
     }
 
     Ok(compare_fragments(
-        local.uncompressed_wasm_size(),
-        local.as_slice(),
-        onchain_uncompressed_size,
-        &addresses,
-        &onchain_fragment_code,
+        local,
+        &OnchainFragments {
+            uncompressed_wasm_size: onchain_uncompressed_size,
+            fragments,
+        },
     ))
 }
 
-/// Compare a locally built set of fragments against the code fetched from a fragmented deployment.
-///
-/// `onchain_addresses` and `onchain_fragment_code` are parallel: entry `i` is the address and the
-/// deployed code of the `i`th fragment recorded in the root contract.
-fn compare_fragments(
-    local_uncompressed_size: u32,
-    local_fragments: &[CodeFragment],
-    onchain_uncompressed_size: u32,
-    onchain_addresses: &[Address],
-    onchain_fragment_code: &[Bytes],
-) -> VerificationStatus {
-    if onchain_uncompressed_size != local_uncompressed_size {
+/// A fragmented deployment as read from on-chain: the uncompressed wasm size recorded in the root
+/// contract, paired with each fragment's address and the code deployed there.
+struct OnchainFragments {
+    uncompressed_wasm_size: u32,
+    fragments: Vec<(Address, Bytes)>,
+}
+
+/// Compare a locally built set of fragments against the code read from a fragmented deployment.
+fn compare_fragments(local: &CodeFragments, onchain: &OnchainFragments) -> VerificationStatus {
+    if onchain.uncompressed_wasm_size != local.uncompressed_wasm_size() {
         return VerificationStatus::Failure(VerificationFailure::SizeMismatch {
-            tx: onchain_uncompressed_size,
-            build: local_uncompressed_size,
+            tx: onchain.uncompressed_wasm_size,
+            build: local.uncompressed_wasm_size(),
         });
     }
 
-    if onchain_addresses.len() != local_fragments.len() {
+    if onchain.fragments.len() != local.fragment_count() {
         return VerificationStatus::Failure(VerificationFailure::FragmentCountMismatch {
-            tx: onchain_addresses.len(),
-            build: local_fragments.len(),
+            tx: onchain.fragments.len(),
+            build: local.fragment_count(),
         });
     }
 
-    for (index, ((onchain_code, address), local_fragment)) in onchain_fragment_code
-        .iter()
-        .zip(onchain_addresses)
-        .zip(local_fragments)
-        .enumerate()
+    for (index, ((address, onchain_code), local_fragment)) in
+        onchain.fragments.iter().zip(local.as_slice()).enumerate()
     {
         let build = local_fragment.as_slice();
         if onchain_code.as_ref() != build {
@@ -211,6 +252,8 @@ pub enum VerificationFailure {
         tx_wasm_length: usize,
         build_wasm_length: usize,
     },
+    /// The local build fragmented, but the on-chain deployment is not a fragmented contract.
+    FragmentationMismatch,
     /// The uncompressed wasm size recorded in the root contract did not match the local build.
     SizeMismatch { tx: u32, build: u32 },
     /// The number of fragments in the deployment did not match the local build.
@@ -244,6 +287,13 @@ impl fmt::Display for VerificationFailure {
                 write!(
                     f,
                     "; compressed wasm length (tx: {tx_wasm_length}, build: {build_wasm_length})"
+                )
+            }
+            Self::FragmentationMismatch => {
+                write!(
+                    f,
+                    "local build is fragmented but the on-chain deployment is not a fragmented \
+                     contract (check that the toolchain and max code size match the deployment)"
                 )
             }
             Self::SizeMismatch { tx, build } => {
@@ -296,11 +346,14 @@ pub enum VerificationError {
     Reflection(#[from] crate::core::reflection::ReflectionError),
     #[error("{0}")]
     Command(#[from] crate::error::CommandError),
-    #[error("deployment transaction is not a well-formed fragmented contract: {0}")]
-    RootContract(#[from] RootContractError),
-
+    #[error("{0}")]
+    Deployment(#[from] crate::core::deployment::DeploymentError),
     #[error("No code at address")]
     NoCodeAtAddress,
+    #[error("Deployment transaction receipt has no contract address")]
+    NoContractAddress,
+    #[error("Deployment calldata is too short to contain a prelude")]
+    CalldataTooShort,
     #[error("Deployment transaction uses constructor but the local project doesn't have one")]
     NoConstructor,
     #[error("Failed to decode the deployer call from the transaction input")]
@@ -318,47 +371,52 @@ pub enum VerificationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::code::fragments::CodeFragment;
 
     /// Build local fragments (prefixing each chunk) from raw wasm chunks.
-    fn local_fragments(chunks: &[&[u8]]) -> Vec<CodeFragment> {
-        chunks
+    fn local_fragments(uncompressed_wasm_size: u32, chunks: &[&[u8]]) -> CodeFragments {
+        let fragments = chunks
             .iter()
             .map(|chunk| CodeFragment::new(chunk))
-            .collect()
+            .collect();
+        CodeFragments::from_fragments(uncompressed_wasm_size, fragments)
     }
 
-    /// The on-chain code deployed at each fragment address equals the fragment bytes verbatim.
-    fn onchain_code(fragments: &[CodeFragment]) -> Vec<Bytes> {
-        fragments
+    /// On-chain fragments whose deployed code equals each local fragment's bytes verbatim.
+    fn matching_onchain(uncompressed_wasm_size: u32, local: &CodeFragments) -> OnchainFragments {
+        let fragments = local
+            .as_slice()
             .iter()
-            .map(|fragment| Bytes::copy_from_slice(fragment.as_slice()))
-            .collect()
-    }
-
-    fn addresses(count: usize) -> Vec<Address> {
-        (0..count)
-            .map(|i| Address::with_last_byte(i as u8))
-            .collect()
+            .enumerate()
+            .map(|(i, fragment)| {
+                (
+                    Address::with_last_byte(i as u8),
+                    Bytes::copy_from_slice(fragment.as_slice()),
+                )
+            })
+            .collect();
+        OnchainFragments {
+            uncompressed_wasm_size,
+            fragments,
+        }
     }
 
     #[test]
     fn matching_fragments_succeed() {
-        let local = local_fragments(&[b"alpha", b"beta", b"gamma"]);
-        let code = onchain_code(&local);
-        let addrs = addresses(local.len());
+        let local = local_fragments(100, &[b"alpha", b"beta", b"gamma"]);
+        let onchain = matching_onchain(100, &local);
         assert!(matches!(
-            compare_fragments(100, &local, 100, &addrs, &code),
+            compare_fragments(&local, &onchain),
             VerificationStatus::Success
         ));
     }
 
     #[test]
     fn size_mismatch_fails() {
-        let local = local_fragments(&[b"alpha"]);
-        let code = onchain_code(&local);
-        let addrs = addresses(local.len());
+        let local = local_fragments(100, &[b"alpha"]);
+        let onchain = matching_onchain(101, &local);
         assert!(matches!(
-            compare_fragments(100, &local, 101, &addrs, &code),
+            compare_fragments(&local, &onchain),
             VerificationStatus::Failure(VerificationFailure::SizeMismatch {
                 tx: 101,
                 build: 100
@@ -368,11 +426,11 @@ mod tests {
 
     #[test]
     fn fragment_count_mismatch_fails() {
-        let local = local_fragments(&[b"alpha", b"beta"]);
-        let code = onchain_code(&local[..1]);
-        let addrs = addresses(1);
+        let local = local_fragments(100, &[b"alpha", b"beta"]);
+        let mut onchain = matching_onchain(100, &local);
+        onchain.fragments.truncate(1);
         assert!(matches!(
-            compare_fragments(100, &local, 100, &addrs, &code),
+            compare_fragments(&local, &onchain),
             VerificationStatus::Failure(VerificationFailure::FragmentCountMismatch {
                 tx: 1,
                 build: 2
@@ -382,13 +440,12 @@ mod tests {
 
     #[test]
     fn fragment_byte_mismatch_fails() {
-        let local = local_fragments(&[b"alpha", b"beta"]);
-        let mut code = onchain_code(&local);
-        let mut tampered = code[1].to_vec();
+        let local = local_fragments(100, &[b"alpha", b"beta"]);
+        let mut onchain = matching_onchain(100, &local);
+        let mut tampered = onchain.fragments[1].1.to_vec();
         *tampered.last_mut().unwrap() ^= 0xff;
-        code[1] = Bytes::from(tampered);
-        let addrs = addresses(local.len());
-        match compare_fragments(100, &local, 100, &addrs, &code) {
+        onchain.fragments[1].1 = Bytes::from(tampered);
+        match compare_fragments(&local, &onchain) {
             VerificationStatus::Failure(VerificationFailure::FragmentMismatch {
                 index,
                 missing,
@@ -403,11 +460,10 @@ mod tests {
 
     #[test]
     fn missing_fragment_code_fails() {
-        let local = local_fragments(&[b"alpha", b"beta"]);
-        let mut code = onchain_code(&local);
-        code[0] = Bytes::new();
-        let addrs = addresses(local.len());
-        match compare_fragments(100, &local, 100, &addrs, &code) {
+        let local = local_fragments(100, &[b"alpha", b"beta"]);
+        let mut onchain = matching_onchain(100, &local);
+        onchain.fragments[0].1 = Bytes::new();
+        match compare_fragments(&local, &onchain) {
             VerificationStatus::Failure(VerificationFailure::FragmentMismatch {
                 index,
                 missing,

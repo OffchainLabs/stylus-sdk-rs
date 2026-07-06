@@ -57,6 +57,7 @@ jobs:
           - "function"
           - "hello_world"
           - "inheritance"
+          - "large_contract"
           - "mapping"
           - "nested_structs"
           - "primitive_data_types"

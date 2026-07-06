@@ -10,7 +10,7 @@ const INITCODE_LENGTH: usize = 42;
 const METADATA_LENGTH: usize = 1;
 
 /// Total length of prelude (initcode + metadata), not including contract code.
-const PRELUDE_LENGTH: usize = INITCODE_LENGTH + METADATA_LENGTH;
+pub(crate) const PRELUDE_LENGTH: usize = INITCODE_LENGTH + METADATA_LENGTH;
 
 /// Calldata to send in deployment transaction.
 #[derive(Debug, PartialEq)]

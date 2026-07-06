@@ -3,7 +3,11 @@
 
 #[cfg(feature = "integration-tests")]
 mod integration_test {
-    use alloy::{providers::Provider, sol};
+    use alloy::{
+        primitives::{Keccak256, B256},
+        providers::Provider,
+        sol,
+    };
     use eyre::Result;
     use stylus_tools::{core::code::prefixes::ROOT_NO_DICT, devnet::Node};
 
@@ -24,6 +28,26 @@ interface ILargeContract {
 
     /// Size of the blob embedded in the contract (see `src/lib.rs`).
     const BLOB_LEN: u64 = 48 * 1024;
+
+    /// Keccak256 of the embedded blob, computed independently of the contract by mirroring
+    /// `build_blob()` from `src/lib.rs` (kept in sync).
+    fn expected_blob_hash() -> B256 {
+        let mut hasher = Keccak256::new();
+        let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut i: u64 = 0;
+        while i < BLOB_LEN {
+            state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+            let mut z = state;
+            z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+            z ^= z >> 31;
+            let bytes = z.to_le_bytes();
+            let take = ((BLOB_LEN - i) as usize).min(bytes.len());
+            hasher.update(&bytes[..take]);
+            i += take as u64;
+        }
+        hasher.finalize()
+    }
 
     /// Deploys the intentionally-large contract (which is split into multiple fragments) and
     /// verifies it end-to-end. This exercises `cargo stylus verify`'s fragmented-deployment path.
@@ -70,8 +94,15 @@ interface ILargeContract {
         );
         println!("Verified fragmented contract with tx hash {tx_hash}");
 
-        // The deployed contract still functions: the embedded blob survived deployment.
+        // The embedded blob survived deployment: its on-chain keccak matches the locally computed
+        // hash, proving the 48 KiB data segment round-tripped through the fragmented deployment.
         let contract = ILargeContract::ILargeContractInstance::new(address, provider);
+        let hash = contract.blobHash().call().await?;
+        assert_eq!(
+            hash,
+            expected_blob_hash(),
+            "on-chain blob hash does not match locally computed hash"
+        );
         let len = contract.blobLen().call().await?;
         assert_eq!(len, BLOB_LEN);
 
