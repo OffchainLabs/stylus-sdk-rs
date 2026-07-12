@@ -130,12 +130,7 @@ impl TryFrom<&Package> for Contract {
         let version = package.version.clone();
         // First, let's try to find if the library's name is set, since this will interfere with
         // finding the wasm file in the deps directory if it's different.
-        let name = package
-            .targets
-            .iter()
-            .find_map(|t| t.kind.contains(&TargetKind::Lib).then(|| t.name.clone()))
-            // If that doesn't work, then we can use the package name, and break normally.
-            .unwrap_or_else(|| package.name.to_string());
+        let name = build_target_name(package);
         Ok(Self {
             package: package.clone(),
             stable,
@@ -143,6 +138,27 @@ impl TryFrom<&Package> for Contract {
             name,
         })
     }
+}
+
+/// Whether a cargo target's kinds make it the crate's library output.
+///
+/// Stylus contracts are built as `cdylib`, whose kind is [`TargetKind::CDyLib`] in cargo
+/// metadata, not [`TargetKind::Lib`]. Both must be accepted so the (already underscore-
+/// normalized) target name is used to locate the compiled wasm. See issue #439.
+fn is_lib_kind(kind: &[TargetKind]) -> bool {
+    kind.contains(&TargetKind::Lib) || kind.contains(&TargetKind::CDyLib)
+}
+
+/// Resolves the name used to find the compiled wasm in the `deps` directory.
+///
+/// Prefers the library target name (Cargo normalizes hyphens to underscores for it) and only
+/// falls back to the package name (which keeps hyphens) when no library target is present.
+fn build_target_name(package: &Package) -> String {
+    package
+        .targets
+        .iter()
+        .find_map(|t| is_lib_kind(&t.kind).then(|| t.name.clone()))
+        .unwrap_or_else(|| package.name.to_string())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -188,5 +204,19 @@ impl ContractStatus {
             Self::Active { .. } => U256::ZERO,
             Self::Ready { fee, .. } => *fee,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cdylib_is_recognized_as_lib_kind() {
+        // A Stylus crate is `crate-type = ["cdylib", "rlib"]`; cargo metadata reports its
+        // kind as CDyLib, not Lib, so the wasm-output target must still be recognized here.
+        assert!(is_lib_kind(&[TargetKind::CDyLib, TargetKind::RLib]));
+        assert!(is_lib_kind(&[TargetKind::Lib]));
+        assert!(!is_lib_kind(&[TargetKind::Bin]));
     }
 }
