@@ -5,7 +5,7 @@
 
 use std::{fs, path::Path};
 
-use crate::utils::wasm;
+use crate::{core::optimize::WasmOptConfig, utils::wasm};
 
 /// Maximum brotli compression level used for Stylus contracts.
 pub const BROTLI_COMPRESSION_LEVEL: u32 = 11;
@@ -17,13 +17,25 @@ pub const PROJECT_HASH_SECTION_NAME: &str = "project_hash";
 pub fn process_wasm_file(
     filename: impl AsRef<Path>,
     project_hash: [u8; 32],
+    wasm_opt: Option<&WasmOptConfig>,
 ) -> Result<ProcessedWasm, WasmError> {
     let wasm = fs::read(filename).map_err(WasmError::Read)?;
-    process_wasm(&wasm, project_hash)
+    process_wasm(&wasm, project_hash, wasm_opt)
 }
 
-pub fn process_wasm(wasm: &[u8], project_hash: [u8; 32]) -> Result<ProcessedWasm, WasmError> {
+pub fn process_wasm(
+    wasm: &[u8],
+    project_hash: [u8; 32],
+    wasm_opt: Option<&WasmOptConfig>,
+) -> Result<ProcessedWasm, WasmError> {
     let wasm = wasm::remove_dangling_references(wasm)?;
+    // Apply the pinned wasm-opt step before stripping metadata: the strip below then removes any
+    // `producers`/`target_features`/`name` sections wasm-opt may leave, keeping the output
+    // deterministic, and the `project_hash` section (added afterward) is untouched by wasm-opt.
+    let wasm = match wasm_opt {
+        Some(config) => crate::core::optimize::optimize(&wasm, config)?,
+        None => wasm,
+    };
     let wasm = wasm::strip_user_metadata(wasm).map_err(WasmError::StripUserMetadata)?;
     let wasm = wasm::add_custom_section(wasm, PROJECT_HASH_SECTION_NAME, project_hash)
         .map_err(WasmError::AddProjectHash)?;
@@ -81,4 +93,6 @@ pub enum WasmError {
     Wat2Wasm(wat::Error),
     #[error("failed to compress Wasm bytes")]
     BrotliCompress(std::io::Error),
+    #[error("{0}")]
+    WasmOpt(#[from] crate::core::optimize::WasmOptError),
 }

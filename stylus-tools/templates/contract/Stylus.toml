@@ -3,3 +3,10 @@
 [workspace.networks]
 
 [contract]
+
+# Optional: apply a pinned wasm-opt (Binaryen) optimization step to reduce the
+# contract's binary size. The same version and flags are replayed during
+# `cargo stylus verify` so the deployed bytes remain reproducibly verifiable.
+# [wasm-opt]
+# version = "131"
+# flags = ["-Oz"]

@@ -15,6 +15,7 @@ use crate::{
             wasm::{compress_wasm, process_wasm_file},
             Code,
         },
+        optimize::WasmOptConfig,
         project::{
             contract::{Contract, ContractStatus},
             hash_project, ProjectConfig, ProjectHash,
@@ -48,6 +49,8 @@ pub enum CheckError {
     Project(#[from] crate::core::project::ProjectError),
     #[error("{0}")]
     Wasm(#[from] crate::core::code::wasm::WasmError),
+    #[error("{0}")]
+    WasmOpt(#[from] crate::core::optimize::WasmOptError),
 }
 
 /// Checks that a contract is valid and can be deployed onchain.
@@ -59,22 +62,34 @@ pub async fn check_contract(
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
+    // Resolve the pinned wasm-opt recipe (if any) from the contract's own Stylus.toml. Sourcing it
+    // here means deploy and verify (which both rebuild through this function) stay consistent.
+    let wasm_opt = WasmOptConfig::resolve_for_contract(contract)?;
     let wasm_file = build_contract(contract, &config.build)?;
     let dir = env::current_dir()?;
-    let project_hash = hash_project(dir, &config.project, &config.build)?;
-    let status = check_wasm_file(&wasm_file, project_hash, address, config, provider).await?;
+    let project_hash = hash_project(dir, &config.project, &config.build, wasm_opt.as_ref())?;
+    let status = check_wasm_file(
+        &wasm_file,
+        project_hash,
+        wasm_opt.as_ref(),
+        address,
+        config,
+        provider,
+    )
+    .await?;
     Ok(status)
 }
 
 pub async fn check_wasm_file(
     wasm_file: impl AsRef<Path>,
     project_hash: ProjectHash,
+    wasm_opt: Option<&WasmOptConfig>,
     contract_address: Option<Address>,
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
     debug!(@grey, "reading wasm file at {}", wasm_file.as_ref().to_string_lossy().lavender());
-    let processed = process_wasm_file(wasm_file, project_hash)?;
+    let processed = process_wasm_file(wasm_file, project_hash, wasm_opt)?;
     let compressed = compress_wasm(&processed)?;
     let code = Code::split_if_large(
         &compressed,

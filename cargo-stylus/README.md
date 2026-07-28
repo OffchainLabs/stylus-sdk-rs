@@ -260,6 +260,24 @@ We recommend optimizing your Stylus contract's sizes to smaller sizes, but keep 
 
 For a deep-dive into the different options for optimizing binary sizes using cargo stylus, see [OPTIMIZING_BINARIES.md](./main/OPTIMIZING_BINARIES.md).
 
+### Reproducible `wasm-opt` optimization
+
+For contracts that need a [Binaryen](https://github.com/WebAssembly/binaryen) `wasm-opt` pass to fit under the size limit, cargo-stylus can apply a **pinned** `wasm-opt` step as part of the build and **replay it identically during verification**, so the deployed bytes still verify reproducibly (including Arbiscan managed verification).
+
+Declare a `[wasm-opt]` table in your `Stylus.toml`:
+
+```toml
+[wasm-opt]
+version = "131"     # pinned Binaryen version (a plain version number; see the
+                    # Binaryen releases and pin the one you validate against)
+flags = ["-Oz"]     # passed verbatim to wasm-opt, in order
+```
+
+- **Opt-in and layered.** A contract is optimized only if its own `Stylus.toml` contains a `[wasm-opt]` table. In a workspace, a `[wasm-opt]` table at the workspace root provides shared defaults (`version`/`flags`) that opted-in contracts inherit; a bare `[wasm-opt]` table in a contract means "opt in and inherit the workspace recipe", and any field it sets overrides the default. For a single-contract project the lone `Stylus.toml` opts the contract in.
+- **Reproducibility.** The version + flags are folded into the deployment's `project_hash`, and the reproducible Docker build installs the pinned `wasm-opt` automatically. Running `cargo stylus deploy`/`verify` without `--no-verify` (the default) needs no local Binaryen install.
+- **Local builds.** With `--no-verify`, cargo-stylus shells out to `wasm-opt` on your `PATH` and errors if its version does not match the pinned one — prefer the reproducible (Docker) build rather than hand-installing a specific version.
+- **Flags.** `wasm-opt` optimizes within the module's existing feature set and won't introduce disallowed WebAssembly features, but choose flags that keep the output within [Stylus's supported feature set](./main/VALID_WASM.md); invalid output is rejected at activation.
+
 ## Command Reference
 
 Below are the major commands with their syntax, common options, and examples:

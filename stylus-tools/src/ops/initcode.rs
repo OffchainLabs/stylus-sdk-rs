@@ -11,6 +11,7 @@ use crate::core::{
         Code,
     },
     deployment::prelude::DeploymentCalldata,
+    optimize::WasmOptConfig,
     project::{contract::Contract, hash_project, ProjectConfig},
 };
 
@@ -21,10 +22,11 @@ pub fn write_initcode(
     project_config: &ProjectConfig,
     mut output: impl io::Write,
 ) -> eyre::Result<()> {
+    let wasm_opt = WasmOptConfig::resolve_for_contract(contract)?;
     let wasm_file = build_contract(contract, build_config)?;
     let dir = env::current_dir()?;
-    let project_hash = hash_project(dir, project_config, build_config)?;
-    let processed = process_wasm_file(&wasm_file, project_hash)?;
+    let project_hash = hash_project(dir, project_config, build_config, wasm_opt.as_ref())?;
+    let processed = process_wasm_file(&wasm_file, project_hash, wasm_opt.as_ref())?;
     let compressed = compress_wasm(&processed)?;
     let code = Code::split_if_large(
         &compressed,

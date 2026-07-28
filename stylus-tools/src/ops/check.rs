@@ -31,9 +31,11 @@ pub async fn check_wasm_file(
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> eyre::Result<ContractStatus> {
+    // A raw `--wasm-file` is checked as-is: there is no project to resolve a wasm-opt recipe from.
     let status = crate::core::check::check_wasm_file(
         wasm_file,
         project_hash,
+        None,
         contract_address,
         config,
         provider,

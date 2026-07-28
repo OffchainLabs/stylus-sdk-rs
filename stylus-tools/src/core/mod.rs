@@ -11,6 +11,7 @@ pub mod deployment;
 pub mod manifest;
 pub mod message;
 pub mod network;
+pub mod optimize;
 pub mod project;
 pub mod reflection;
 pub mod tracing;

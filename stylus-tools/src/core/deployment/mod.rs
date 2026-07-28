@@ -85,8 +85,16 @@ pub async fn estimate_gas_wasm_file(
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<u64, DeploymentError> {
-    let status =
-        check_wasm_file(wasm_file, Default::default(), None, &config.check, provider).await?;
+    // A raw `--wasm-file` is deployed as-is: there is no project to resolve a wasm-opt recipe from.
+    let status = check_wasm_file(
+        wasm_file,
+        Default::default(),
+        None,
+        None,
+        &config.check,
+        provider,
+    )
+    .await?;
     let from_address = provider.default_signer_address();
     debug!(@grey, "sender address: {}", from_address.debug_lavender());
 
@@ -273,8 +281,16 @@ pub async fn deploy_wasm_file(
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<(), DeploymentError> {
-    let status =
-        check_wasm_file(wasm_file, Default::default(), None, &config.check, provider).await?;
+    // A raw `--wasm-file` is deployed as-is: there is no project to resolve a wasm-opt recipe from.
+    let status = check_wasm_file(
+        wasm_file,
+        Default::default(),
+        None,
+        None,
+        &config.check,
+        provider,
+    )
+    .await?;
     let from_address = provider.default_signer_address();
     debug!(@grey, "sender address: {}", from_address.debug_lavender());
     let data_fee = status.suggest_fee() + config.constructor_value;

@@ -68,6 +68,7 @@ jobs:
           - "tuples"
           - "variables"
           - "verify_signature"
+          - "wasm_opt"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -102,6 +103,18 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Install pinned Binaryen for the wasm_opt example
+        if: ${{ matrix.test == 'wasm_opt' }}
+        shell: bash
+        run: |
+          version=131
+          tarball="binaryen-version_${version}-x86_64-linux.tar.gz"
+          base="https://github.com/WebAssembly/binaryen/releases/download/version_${version}"
+          curl -fsSL --proto '=https' --tlsv1.2 -O "${base}/${tarball}"
+          curl -fsSL --proto '=https' --tlsv1.2 -O "${base}/${tarball}.sha256"
+          sha256sum -c "${tarball}.sha256"
+          tar -xzf "${tarball}"
+          echo "${PWD}/binaryen-version_${version}/bin" >> "${GITHUB_PATH}"
       - name: Run integration tests for ${{ matrix.test }}
         shell: bash
         run: ./ci/integration_test.sh --example ${{ matrix.test }}

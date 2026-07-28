@@ -14,7 +14,10 @@ use tiny_keccak::{Hasher, Keccak};
 
 use super::{ProjectConfig, ProjectError};
 use crate::{
-    core::build::{BuildConfig, OptLevel},
+    core::{
+        build::{BuildConfig, OptLevel},
+        optimize::WasmOptConfig,
+    },
     utils::{cargo, toolchain::find_toolchain_file},
 };
 
@@ -24,6 +27,7 @@ pub fn hash_project(
     dir: impl AsRef<Path>,
     config: &ProjectConfig,
     build: &BuildConfig,
+    wasm_opt: Option<&WasmOptConfig>,
 ) -> Result<ProjectHash, ProjectError> {
     let cargo_version = cargo::version()?;
 
@@ -34,6 +38,10 @@ pub fn hash_project(
     } else {
         keccak.update(&[1]);
     }
+
+    // Bind the wasm-opt recipe into the hash so the on-chain bytes depend on the exact
+    // optimization; a mismatched verification then surfaces cleanly rather than silently.
+    keccak.update(&wasm_opt_preimage(wasm_opt));
 
     // Fetch the Rust toolchain toml file from the project root. Assert that it exists and add it to
     // the files in the directory to hash.
@@ -66,6 +74,29 @@ pub fn hash_project(
         hex::encode(project_hash)
     );
     Ok(project_hash)
+}
+
+/// Deterministic, order-sensitive preimage of the wasm-opt recipe for the project hash.
+///
+/// Flag order is significant — wasm-opt applies passes in the given order and produces different
+/// bytes — so this must not be sorted/canonicalized: different orderings must hash differently.
+/// Fields are length-prefixed so distinct recipes can never produce the same preimage.
+fn wasm_opt_preimage(wasm_opt: Option<&WasmOptConfig>) -> Vec<u8> {
+    let mut buf = Vec::new();
+    match wasm_opt {
+        None => buf.push(0),
+        Some(cfg) => {
+            buf.push(1);
+            buf.extend_from_slice(&(cfg.version.len() as u64).to_be_bytes());
+            buf.extend_from_slice(cfg.version.as_bytes());
+            buf.extend_from_slice(&(cfg.flags.len() as u64).to_be_bytes());
+            for flag in &cfg.flags {
+                buf.extend_from_slice(&(flag.len() as u64).to_be_bytes());
+                buf.extend_from_slice(flag.as_bytes());
+            }
+        }
+    }
+    buf
 }
 
 fn all_paths(
@@ -136,4 +167,57 @@ fn read_file_preimage(filename: &Path) -> Result<Vec<u8>, ProjectError> {
     file.read_to_end(&mut contents)
         .map_err(|e| ProjectError::FileRead(filename.to_path_buf(), e))?;
     Ok(contents)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(version: &str, flags: &[&str]) -> WasmOptConfig {
+        WasmOptConfig {
+            version: version.to_string(),
+            flags: flags.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    #[test]
+    fn disabled_differs_from_enabled() {
+        let enabled = config("117", &["-Oz"]);
+        assert_ne!(
+            wasm_opt_preimage(None),
+            wasm_opt_preimage(Some(&enabled)),
+            "enabling wasm-opt must change the project hash"
+        );
+    }
+
+    #[test]
+    fn identical_recipes_match() {
+        let a = config("117", &["-Oz", "--strip-producers"]);
+        let b = config("117", &["-Oz", "--strip-producers"]);
+        assert_eq!(wasm_opt_preimage(Some(&a)), wasm_opt_preimage(Some(&b)));
+    }
+
+    #[test]
+    fn flag_order_is_significant() {
+        let a = config("117", &["-O2", "--flatten"]);
+        let b = config("117", &["--flatten", "-O2"]);
+        assert_ne!(
+            wasm_opt_preimage(Some(&a)),
+            wasm_opt_preimage(Some(&b)),
+            "flag order changes wasm-opt output, so it must change the hash"
+        );
+    }
+
+    #[test]
+    fn version_and_flags_are_distinguished() {
+        // Length-prefixing prevents ambiguity between where the version ends and flags begin.
+        assert_ne!(
+            wasm_opt_preimage(Some(&config("117", &["-Oz"]))),
+            wasm_opt_preimage(Some(&config("116", &["-Oz"]))),
+        );
+        assert_ne!(
+            wasm_opt_preimage(Some(&config("117", &["-Oz"]))),
+            wasm_opt_preimage(Some(&config("117", &[]))),
+        );
+    }
 }

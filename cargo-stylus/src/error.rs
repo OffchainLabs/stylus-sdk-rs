@@ -94,3 +94,12 @@ impl From<stylus_tools::core::network::NetworkError> for CargoStylusError {
         }
     }
 }
+
+impl From<stylus_tools::core::optimize::WasmOptError> for CargoStylusError {
+    fn from(err: stylus_tools::core::optimize::WasmOptError) -> Self {
+        Self {
+            error: err.into(),
+            exit_code: ExitCode::FAILURE,
+        }
+    }
+}

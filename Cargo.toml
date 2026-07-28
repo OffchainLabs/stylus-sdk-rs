@@ -38,6 +38,7 @@ members = [
     "examples/tuples",
     "examples/variables",
     "examples/verify_signature",
+    "examples/wasm_opt",
 ]
 resolver = "2"
 

@@ -14,6 +14,7 @@ use crate::utils::{
 pub fn run_reproducible(
     package: &Package,
     cargo_stylus_version: Option<String>,
+    wasm_opt_version: Option<String>,
     command_line: impl IntoIterator<Item = String>,
 ) -> Result<(), ReproducibleBuildError> {
     validate_host()?;
@@ -24,7 +25,11 @@ pub fn run_reproducible(
     );
 
     let selected_cargo_stylus_version = select_stylus_version(cargo_stylus_version)?;
-    let image_name = create_image(&selected_cargo_stylus_version, &toolchain_channel)?;
+    let image_name = create_image(
+        &selected_cargo_stylus_version,
+        &toolchain_channel,
+        wasm_opt_version.as_deref(),
+    )?;
 
     // Currently only calling cargo stylus is supported (not cargo stylus-beta for instance)
     let mut args = vec!["cargo".to_string(), "stylus".to_string()];
@@ -44,8 +49,9 @@ pub fn run_reproducible(
 fn create_image(
     cargo_stylus_version: &Version,
     toolchain_version: &str,
+    wasm_opt_version: Option<&str>,
 ) -> Result<String, DockerError> {
-    let name = image_name(cargo_stylus_version, toolchain_version);
+    let name = image_name(cargo_stylus_version, toolchain_version, wasm_opt_version);
 
     // First, check if image exists locally
     if docker::image_exists_locally(&name)? {
@@ -72,16 +78,44 @@ fn create_image(
 
     info!(@grey, "Image exists, building container with base image: {base_image}");
 
+    // Optionally install the pinned Binaryen `wasm-opt` so the reproducible build applies the
+    // same optimization step as verification. The release tarball is downloaded over HTTPS and
+    // verified against its published SHA-256 checksum before extraction. The tarball keeps
+    // `wasm-opt` next to its shared library, so the whole tree is extracted to /opt and its bin/
+    // added to PATH.
+    //
+    // `version` is validated to be digits-only (see `optimize::is_valid_version`) before reaching
+    // here, so interpolating it into this `RUN` cannot inject shell metacharacters.
+    let binaryen_layer = match wasm_opt_version {
+        Some(version) => {
+            let tarball = format!("binaryen-version_{version}-x86_64-linux.tar.gz");
+            let base_url = format!(
+                "https://github.com/WebAssembly/binaryen/releases/download/version_{version}"
+            );
+            format!(
+                r#"            RUN cd /tmp \
+                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball} \
+                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball}.sha256 \
+                && sha256sum -c {tarball}.sha256 \
+                && tar -xzf {tarball} -C /opt \
+                && rm {tarball} {tarball}.sha256
+            ENV PATH="/opt/binaryen-version_{version}/bin:${{PATH}}"
+"#
+            )
+        }
+        None => String::new(),
+    };
+
     // Create temporary Dockerfile
     let dockerfile_content = format!(
         r#"\
             ARG BUILD_PLATFORM=linux/amd64
             FROM --platform=${{BUILD_PLATFORM}} {base_image} AS base
-            RUN rustup toolchain install {toolchain_version}-x86_64-unknown-linux-gnu 
+            RUN rustup toolchain install {toolchain_version}-x86_64-unknown-linux-gnu
             RUN rustup default {toolchain_version}-x86_64-unknown-linux-gnu
             RUN rustup target add wasm32-unknown-unknown
             RUN rustup component add rust-src --toolchain {toolchain_version}-x86_64-unknown-linux-gnu
-        "#
+{binaryen_layer}        "#
     );
 
     // Write to temporary file (automatically cleaned up when dropped)
@@ -96,8 +130,17 @@ fn create_image(
     Ok(name)
 }
 
-fn image_name(cargo_stylus_version: &Version, toolchain_version: &str) -> String {
-    format!("cargo-stylus-base-{cargo_stylus_version}-toolchain-{toolchain_version}")
+fn image_name(
+    cargo_stylus_version: &Version,
+    toolchain_version: &str,
+    wasm_opt_version: Option<&str>,
+) -> String {
+    let base = format!("cargo-stylus-base-{cargo_stylus_version}-toolchain-{toolchain_version}");
+    match wasm_opt_version {
+        // Distinct cached image per Binaryen version so different pins don't collide.
+        Some(version) => format!("{base}-binaryen-{version}"),
+        None => base,
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
