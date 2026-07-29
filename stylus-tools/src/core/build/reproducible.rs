@@ -6,9 +6,12 @@ use std::{cmp::Ordering, io::Write};
 use cargo_metadata::{semver::Version, MetadataCommand, Package};
 use tempfile::NamedTempFile;
 
-use crate::utils::{
-    docker::{self, validate_host, DockerError},
-    toolchain::{get_toolchain_channel, ToolchainError},
+use crate::{
+    core::optimize::MIN_CARGO_STYLUS_VERSION,
+    utils::{
+        docker::{self, validate_host, DockerError},
+        toolchain::{get_toolchain_channel, ToolchainError},
+    },
 };
 
 pub fn run_reproducible(
@@ -25,6 +28,20 @@ pub fn run_reproducible(
     );
 
     let selected_cargo_stylus_version = select_stylus_version(cargo_stylus_version)?;
+
+    // A [wasm-opt] recipe is only honored by base images from MIN_CARGO_STYLUS_VERSION onward.
+    // Refuse rather than silently deploy unoptimized bytes that would still verify green.
+    if wasm_opt_version.is_some() {
+        let min = Version::parse(MIN_CARGO_STYLUS_VERSION)
+            .expect("MIN_CARGO_STYLUS_VERSION is a valid semver version");
+        if selected_cargo_stylus_version < min {
+            return Err(ReproducibleBuildError::WasmOptUnsupported {
+                selected: selected_cargo_stylus_version,
+                min,
+            });
+        }
+    }
+
     let image_name = create_image(
         &selected_cargo_stylus_version,
         &toolchain_channel,
@@ -80,9 +97,9 @@ fn create_image(
 
     // Optionally install the pinned Binaryen `wasm-opt` so the reproducible build applies the
     // same optimization step as verification. The release tarball is downloaded over HTTPS and
-    // verified against its published SHA-256 checksum before extraction. The tarball keeps
-    // `wasm-opt` next to its shared library, so the whole tree is extracted to /opt and its bin/
-    // added to PATH.
+    // verified against its published SHA-256 checksum before extraction. The tarball bundles
+    // `wasm-opt` alongside its supporting library files, so the whole tree is extracted to /opt and
+    // its bin/ added to PATH.
     //
     // `version` is validated to be digits-only (see `optimize::is_valid_version`) before reaching
     // here, so interpolating it into this `RUN` cannot inject shell metacharacters.
@@ -151,6 +168,11 @@ pub enum ReproducibleBuildError {
     Toolchain(#[from] ToolchainError),
     #[error("cargo metadata error: {0}")]
     CargoMetadata(#[from] cargo_metadata::Error),
+    #[error(
+        "cargo-stylus {selected} does not support the [wasm-opt] table (added in {min}); \
+remove --cargo-stylus-version or select version {min} or newer"
+    )]
+    WasmOptUnsupported { selected: Version, min: Version },
 }
 
 /// Returns the selected cargo_stylus_version if `cargo_stylus_version` is Some, otherwise returns
@@ -208,7 +230,26 @@ fn select_stylus_version(
 mod tests {
     use cargo_metadata::semver::Version;
 
-    use super::select_stylus_version;
+    use super::{image_name, select_stylus_version};
+
+    #[test]
+    fn image_name_encodes_binaryen_version() {
+        let version = Version::parse("0.10.9").unwrap();
+        assert_eq!(
+            image_name(&version, "1.91.0", None),
+            "cargo-stylus-base-0.10.9-toolchain-1.91.0"
+        );
+        assert_eq!(
+            image_name(&version, "1.91.0", Some("131")),
+            "cargo-stylus-base-0.10.9-toolchain-1.91.0-binaryen-131"
+        );
+        // Different Binaryen pins must yield different cache keys, or a bumped pin would silently
+        // reuse the image (and the wasm-opt) of the previous version.
+        assert_ne!(
+            image_name(&version, "1.91.0", Some("131")),
+            image_name(&version, "1.91.0", Some("132"))
+        );
+    }
 
     #[test]
     fn test_select_stylus_version() {

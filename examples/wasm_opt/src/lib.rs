@@ -5,8 +5,8 @@
 //!
 //! The `[wasm-opt]` table in this crate's `Stylus.toml` enables a reproducible optimization pass
 //! (`wasm-opt -Oz`) that is applied at deploy time and replayed identically during
-//! `cargo stylus verify`, so the deployed bytes stay reproducibly verifiable (including via
-//! Arbiscan managed verification). The contract itself is a simple counter; the integration test
+//! `cargo stylus verify`, so the deployed bytes stay reproducibly verifiable. The contract itself
+//! is a simple counter; the integration test
 //! in `tests/` deploys and verifies it, then exercises the counter to confirm optimization
 //! preserved the contract's behavior.
 

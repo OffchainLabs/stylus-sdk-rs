@@ -15,6 +15,7 @@ eyre = "0.6"
 tokio = "1.44"
 stylus-sdk = { workspace = true, features = ["stylus-test"] }
 stylus-tools.workspace = true
+wat = "1.230"
 
 [features]
 export-abi = ["stylus-sdk/export-abi"]

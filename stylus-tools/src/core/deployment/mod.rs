@@ -85,7 +85,8 @@ pub async fn estimate_gas_wasm_file(
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<u64, DeploymentError> {
-    // A raw `--wasm-file` is deployed as-is: there is no project to resolve a wasm-opt recipe from.
+    // A raw `--wasm-file` has no Stylus project to resolve a [wasm-opt] recipe from, so no wasm-opt
+    // pass is applied; the bytes are still stripped and tagged with a zeroed project hash.
     let status = check_wasm_file(
         wasm_file,
         Default::default(),
@@ -281,7 +282,8 @@ pub async fn deploy_wasm_file(
     config: &DeploymentConfig,
     provider: &(impl Provider + WalletProvider),
 ) -> Result<(), DeploymentError> {
-    // A raw `--wasm-file` is deployed as-is: there is no project to resolve a wasm-opt recipe from.
+    // A raw `--wasm-file` has no Stylus project to resolve a [wasm-opt] recipe from, so no wasm-opt
+    // pass is applied; the bytes are still stripped and tagged with a zeroed project hash.
     let status = check_wasm_file(
         wasm_file,
         Default::default(),

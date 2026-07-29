@@ -59,4 +59,40 @@ interface ICounter {
 
         Ok(())
     }
+
+    /// Directly exercises the pinned `wasm-opt` step. The deploy/verify test above is a symmetric
+    /// self-comparison and would still pass if optimization were silently skipped on both sides;
+    /// this fails unless `wasm-opt` actually ran and changed the bytes.
+    #[test]
+    fn wasm_opt_shrinks_module() -> Result<()> {
+        use stylus_tools::core::optimize::{optimize, WasmOptConfig};
+
+        // `$dead` is never exported or called, so `-Oz` dead-code-eliminates it and the output is
+        // strictly smaller than the input.
+        let wasm = wat::parse_str(
+            r#"
+            (module
+              (func (export "main") (result i32)
+                i32.const 42)
+              (func $dead (result i32)
+                (i32.add (i32.const 1)
+                  (i32.add (i32.const 2)
+                    (i32.add (i32.const 3)
+                      (i32.add (i32.const 4) (i32.const 5)))))))
+            "#,
+        )?;
+
+        let config = WasmOptConfig {
+            version: "131".to_string(),
+            flags: vec!["-Oz".to_string()],
+        };
+        let optimized = optimize(&wasm, &config)?;
+        assert!(
+            optimized.len() < wasm.len(),
+            "wasm-opt did not shrink the module ({} -> {} bytes)",
+            wasm.len(),
+            optimized.len()
+        );
+        Ok(())
+    }
 }

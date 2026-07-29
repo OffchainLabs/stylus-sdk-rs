@@ -84,7 +84,7 @@ pub fn hash_project(
 fn wasm_opt_preimage(wasm_opt: Option<&WasmOptConfig>) -> Vec<u8> {
     let mut buf = Vec::new();
     match wasm_opt {
-        None => buf.push(0),
+        None => {}
         Some(cfg) => {
             buf.push(1);
             buf.extend_from_slice(&(cfg.version.len() as u64).to_be_bytes());
@@ -218,6 +218,12 @@ mod tests {
         assert_ne!(
             wasm_opt_preimage(Some(&config("117", &["-Oz"]))),
             wasm_opt_preimage(Some(&config("117", &[]))),
+        );
+        // Both recipes share the naive concatenation "117-Oz"; only the length prefixes keep the
+        // version/flag boundary unambiguous and the preimages distinct.
+        assert_ne!(
+            wasm_opt_preimage(Some(&config("117", &["-Oz"]))),
+            wasm_opt_preimage(Some(&config("11", &["7-Oz"]))),
         );
     }
 }

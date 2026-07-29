@@ -31,7 +31,8 @@ pub async fn check_wasm_file(
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> eyre::Result<ContractStatus> {
-    // A raw `--wasm-file` is checked as-is: there is no project to resolve a wasm-opt recipe from.
+    // A raw `--wasm-file` has no Stylus project to resolve a [wasm-opt] recipe from, so no wasm-opt
+    // pass is applied; the bytes are still stripped and tagged with a zeroed project hash.
     let status = crate::core::check::check_wasm_file(
         wasm_file,
         project_hash,

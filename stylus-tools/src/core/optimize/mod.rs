@@ -3,7 +3,7 @@
 
 //! Reproducible `wasm-opt` (Binaryen) post-build optimization.
 //!
-//! Large Stylus contracts may exceed the on-chain activation size limit unless the release Wasm
+//! Large Stylus contracts may exceed the on-chain code size limit unless the release Wasm
 //! is optimized with a pinned [Binaryen] `wasm-opt` before deployment. To keep such contracts
 //! reproducibly verifiable, the exact optimization recipe (a pinned `wasm-opt` version and set of
 //! flags) is declared in `Stylus.toml` and applied identically during both deploy and
@@ -38,6 +38,11 @@ use crate::{
 
 /// Name of the `wasm-opt` binary, expected on `PATH`.
 pub const WASM_OPT_BIN: &str = "wasm-opt";
+
+/// First cargo-stylus version whose baked-in base image understands the `[wasm-opt]` table. Older
+/// binaries silently ignore it, so a reproducible build against them would deploy unoptimized bytes
+/// while still verifying green.
+pub const MIN_CARGO_STYLUS_VERSION: &str = "0.10.9";
 
 /// A resolved, ready-to-apply `wasm-opt` optimization recipe for a single contract.
 ///
@@ -80,20 +85,36 @@ impl WasmOptConfig {
             load_wasm_opt_table(workspace_toml.as_std_path())?
         };
 
-        let version = contract_table
-            .version
-            .or_else(|| workspace_table.as_ref().and_then(|w| w.version.clone()))
-            .ok_or_else(|| WasmOptError::MissingVersion(contract.name().to_string()))?;
-        if !is_valid_version(&version) {
-            return Err(WasmOptError::InvalidVersion(version));
+        let config = merge_tables(contract.name(), contract_table, workspace_table)?;
+        if config.flags.is_empty() {
+            warn!(@yellow,
+                "[wasm-opt] is enabled for contract '{}' but no flags are set, so wasm-opt will run no optimization passes; add flags (e.g. [\"-Oz\"]) or remove the [wasm-opt] table",
+                contract.name()
+            );
         }
-        let flags = contract_table
-            .flags
-            .or_else(|| workspace_table.and_then(|w| w.flags))
-            .unwrap_or_default();
-
-        Ok(Some(Self { version, flags }))
+        Ok(Some(config))
     }
+}
+
+/// Merge a contract's `[wasm-opt]` table over the workspace-root defaults (contract values win),
+/// yielding the resolved recipe.
+fn merge_tables(
+    contract_name: &str,
+    contract: TomlWasmOpt,
+    workspace: Option<TomlWasmOpt>,
+) -> Result<WasmOptConfig, WasmOptError> {
+    let version = contract
+        .version
+        .or_else(|| workspace.as_ref().and_then(|w| w.version.clone()))
+        .ok_or_else(|| WasmOptError::MissingVersion(contract_name.to_string()))?;
+    if !is_valid_version(&version) {
+        return Err(WasmOptError::InvalidVersion(version));
+    }
+    let flags = contract
+        .flags
+        .or_else(|| workspace.and_then(|w| w.flags))
+        .unwrap_or_default();
+    Ok(WasmOptConfig { version, flags })
 }
 
 /// Optimize Wasm bytecode with the pinned `wasm-opt`, returning the optimized bytes.
@@ -101,9 +122,8 @@ impl WasmOptConfig {
 /// The installed `wasm-opt` version is verified against the pinned version first, so a mismatched
 /// local Binaryen fails loudly rather than silently producing non-reproducible bytes.
 ///
-/// `wasm-opt` reads its input from a file and writes its output with `-o`; it does not support
-/// streaming stdin/stdout reliably across versions, so the Wasm is round-tripped through a
-/// temporary directory (cleaned up on drop).
+/// `wasm-opt` reads its input from a file and writes its output with `-o`, so the Wasm is
+/// round-tripped through a temporary directory (cleaned up on drop).
 pub fn optimize(wasm: &[u8], config: &WasmOptConfig) -> Result<Vec<u8>, WasmOptError> {
     verify_version(&config.version)?;
 
@@ -133,8 +153,13 @@ pub fn verify_version(expected: &str) -> Result<(), WasmOptError> {
         .output()
         .map_err(map_spawn_error)?;
     let stdout = CommandFailure::check(WASM_OPT_BIN, output)?;
-    let found = parse_version(&stdout)
-        .ok_or_else(|| WasmOptError::VersionParse(stdout.trim().to_string()))?;
+    check_installed_version(expected, &stdout)
+}
+
+/// Compare the pinned version against `wasm-opt --version` output.
+fn check_installed_version(expected: &str, version_output: &str) -> Result<(), WasmOptError> {
+    let found = parse_version(version_output)
+        .ok_or_else(|| WasmOptError::VersionParse(version_output.trim().to_string()))?;
     if found != expected {
         return Err(WasmOptError::VersionMismatch {
             expected: expected.to_string(),
@@ -180,8 +205,10 @@ struct WasmOptManifest {
 }
 
 /// Serialized form of the `[wasm-opt]` table. All fields are optional so that a contract may opt
-/// in with a bare table and inherit the workspace-root defaults.
+/// in with a bare table and inherit the workspace-root defaults. Unknown keys are rejected so a
+/// typo like `flag = [...]` fails loudly instead of silently resolving to zero flags.
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TomlWasmOpt {
     version: Option<String>,
     flags: Option<Vec<String>>,
@@ -221,8 +248,8 @@ pub enum WasmOptError {
 
     #[error(
         "`{bin}` (Binaryen) not found on PATH, but a [wasm-opt] table in Stylus.toml requests it. \
-Run the reproducible build (without --no-verify) to have cargo-stylus install and use the pinned version automatically, \
-or install Binaryen locally for a non-reproducible local build",
+Install the pinned Binaryen version locally, or for `deploy`/`verify` run the reproducible build \
+(without --no-verify), which installs and uses the pinned version automatically",
         bin = WASM_OPT_BIN
     )]
     NotFound,
@@ -230,8 +257,8 @@ or install Binaryen locally for a non-reproducible local build",
     VersionParse(String),
     #[error(
         "wasm-opt version mismatch: Stylus.toml pins version {expected} but the wasm-opt on PATH is version {found}. \
-Run the reproducible build (without --no-verify) to have cargo-stylus install and use the pinned version automatically, \
-or install Binaryen version {expected} locally"
+Install Binaryen version {expected} locally, or for `deploy`/`verify` run the reproducible build \
+(without --no-verify), which installs and uses the pinned version automatically"
     )]
     VersionMismatch { expected: String, found: String },
 }
@@ -267,5 +294,77 @@ mod tests {
         assert!(!is_valid_version(""));
         assert!(!is_valid_version("version_117"));
         assert!(!is_valid_version("117-rc1"));
+    }
+
+    fn table(version: Option<&str>, flags: Option<&[&str]>) -> TomlWasmOpt {
+        TomlWasmOpt {
+            version: version.map(str::to_string),
+            flags: flags.map(|f| f.iter().map(|s| s.to_string()).collect()),
+        }
+    }
+
+    #[test]
+    fn merge_contract_only() {
+        let resolved = merge_tables("c", table(Some("131"), Some(&["-Oz"])), None).unwrap();
+        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
+    }
+
+    #[test]
+    fn merge_inherits_workspace_defaults() {
+        let workspace = table(Some("131"), Some(&["-Oz"]));
+        let resolved = merge_tables("c", table(None, None), Some(workspace)).unwrap();
+        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
+    }
+
+    #[test]
+    fn merge_contract_overrides_workspace() {
+        let workspace = table(Some("116"), Some(&["-O2"]));
+        let contract = table(Some("131"), Some(&["-Oz"]));
+        let resolved = merge_tables("c", contract, Some(workspace)).unwrap();
+        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
+    }
+
+    #[test]
+    fn merge_mixes_version_and_flags_across_levels() {
+        let workspace = table(Some("131"), Some(&["-O2"]));
+        let contract = table(None, Some(&["-Oz"]));
+        let resolved = merge_tables("c", contract, Some(workspace)).unwrap();
+        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
+    }
+
+    #[test]
+    fn merge_missing_version_errors() {
+        let err = merge_tables("mycontract", table(None, Some(&["-Oz"])), None).unwrap_err();
+        assert!(matches!(err, WasmOptError::MissingVersion(name) if name == "mycontract"));
+    }
+
+    #[test]
+    fn merge_invalid_version_errors() {
+        let err = merge_tables("c", table(Some("1.31"), None), None).unwrap_err();
+        assert!(matches!(err, WasmOptError::InvalidVersion(v) if v == "1.31"));
+    }
+
+    #[test]
+    fn check_installed_version_matches() {
+        assert!(check_installed_version("117", "wasm-opt version 117").is_ok());
+    }
+
+    #[test]
+    fn check_installed_version_mismatch() {
+        let err = check_installed_version("131", "wasm-opt version 117").unwrap_err();
+        assert!(matches!(
+            err,
+            WasmOptError::VersionMismatch { expected, found } if expected == "131" && found == "117"
+        ));
+    }
+
+    #[test]
+    fn check_installed_version_unparseable() {
+        let err = check_installed_version("117", "garbage output").unwrap_err();
+        assert!(matches!(err, WasmOptError::VersionParse(_)));
     }
 }

@@ -5736,6 +5736,7 @@ dependencies = [
  "stylus-sdk",
  "stylus-tools",
  "tokio",
+ "wat",
 ]
 
 [[package]]
