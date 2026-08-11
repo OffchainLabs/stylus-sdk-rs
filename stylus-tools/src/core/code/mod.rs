@@ -7,7 +7,10 @@ use std::path::Path;
 
 use alloy::primitives::B256;
 
-use crate::core::code::wasm::{compress_wasm, process_wasm_file, CompressedWasm, WasmError};
+use crate::core::{
+    code::wasm::{compress_wasm, process_wasm_file, CompressedWasm, WasmError},
+    optimize::WasmOptConfig,
+};
 
 pub mod contract;
 pub mod fragments;
@@ -36,9 +39,10 @@ impl Code {
     pub fn from_wasm_file(
         filename: impl AsRef<Path>,
         project_hash: [u8; 32],
+        wasm_opt: Option<&WasmOptConfig>,
         max_code_size: u64,
     ) -> Result<Self, WasmError> {
-        let processed = process_wasm_file(filename, project_hash)?;
+        let processed = process_wasm_file(filename, project_hash, wasm_opt)?;
         let compressed = compress_wasm(&processed)?;
         Ok(Self::split_if_large(
             &compressed,

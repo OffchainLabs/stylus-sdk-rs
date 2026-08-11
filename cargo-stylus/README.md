@@ -260,6 +260,25 @@ We recommend optimizing your Stylus contract's sizes to smaller sizes, but keep 
 
 For a deep-dive into the different options for optimizing binary sizes using cargo stylus, see [OPTIMIZING_BINARIES.md](./main/OPTIMIZING_BINARIES.md).
 
+### Reproducible `wasm-opt` optimization
+
+For contracts that need a [Binaryen](https://github.com/WebAssembly/binaryen) `wasm-opt` pass to fit under the size limit, cargo-stylus can apply a **pinned** `wasm-opt` step as part of the build and **replay it identically during verification**, so the deployed bytes still verify reproducibly.
+
+Declare a `[wasm-opt]` table in your `Stylus.toml`:
+
+```toml
+[wasm-opt]
+version = "131"     # pinned Binaryen version (a plain version number; see the
+                    # Binaryen releases and pin the one you validate against)
+flags = ["-Oz"]     # passed verbatim to wasm-opt, in order
+```
+
+- **Opt-in and layered.** A contract is optimized only if its own `Stylus.toml` contains a `[wasm-opt]` table. In a workspace, a `[wasm-opt]` table at the workspace root provides shared defaults (`version`/`flags`) that opted-in contracts inherit; a bare `[wasm-opt]` table in a contract means "opt in and inherit the workspace recipe", and any field it sets overrides the default. For a single-contract project the lone `Stylus.toml` opts the contract in.
+- **Reproducibility.** The version + flags are folded into the deployment's `project_hash`, and the reproducible Docker build installs the pinned `wasm-opt` automatically. Running `cargo stylus deploy`/`verify` without `--no-verify` (the default) needs no local Binaryen install.
+- **Local builds.** Commands that build locally — `deploy`/`verify` with `--no-verify`, and `check`/`get-initcode`, which have no reproducible path — shell out to `wasm-opt` on your `PATH` and error if its version does not match the pinned one. For `deploy`/`verify`, prefer the reproducible (Docker) build rather than hand-installing a specific version.
+- **Flags.** Flags are passed to `wasm-opt` verbatim and can change which instructions it emits, so choose flags that keep the output within Stylus's supported WebAssembly feature set; invalid output is rejected at activation.
+- **`--wasm-file` bypasses wasm-opt.** Commands given a prebuilt Wasm via `--wasm-file` have no Stylus project to resolve a recipe from, so the `[wasm-opt]` table is not applied — optimize such files yourself before passing them in.
+
 ## Command Reference
 
 Below are the major commands with their syntax, common options, and examples:

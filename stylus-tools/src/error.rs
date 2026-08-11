@@ -23,8 +23,7 @@ pub enum Error {
     #[error("toml deserialize error: {0}")]
     TomlDeserialize(#[from] toml::de::Error),
 
-    // TODO: better error formatting
-    #[error("command failed (exit code: {code:?})", code = .0.exit_code)]
+    #[error("`{name}` failed (exit code: {code:?})\n{stderr}", name = .0.process_name, code = .0.exit_code, stderr = .0.stderr)]
     CommandFailure(crate::core::message::ProcessOutput),
     #[error("{0}")]
     Build(#[from] crate::core::build::BuildError),
@@ -41,7 +40,7 @@ pub enum CommandError {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("command failed (exit code: {code:?}", code = .0.exit_code)]
+#[error("`{name}` failed (exit code: {code:?})\n{stderr}", name = .0.process_name, code = .0.exit_code, stderr = .0.stderr)]
 pub struct CommandFailure(crate::core::message::ProcessOutput);
 
 impl CommandFailure {

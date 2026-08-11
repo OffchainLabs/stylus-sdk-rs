@@ -1,0 +1,8 @@
+[contract]
+
+# Opt this contract into a pinned, reproducible wasm-opt (Binaryen) optimization
+# step. The same version and flags are applied at deploy time and replayed during
+# `cargo stylus verify`, so the deployed bytes remain reproducibly verifiable.
+[wasm-opt]
+version = "131"
+flags = ["-Oz"]

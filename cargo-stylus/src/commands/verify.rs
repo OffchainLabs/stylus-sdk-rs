@@ -4,7 +4,7 @@
 use alloy::primitives::TxHash;
 use eyre::eyre;
 use itertools::izip;
-use stylus_tools::core::build::reproducible::run_reproducible;
+use stylus_tools::core::{build::reproducible::run_reproducible, optimize::WasmOptConfig};
 
 use crate::{
     common_args::{ProjectArgs, ProviderArgs, VerificationArgs},
@@ -69,9 +69,14 @@ pub async fn exec(args: Args) -> CargoStylusResult {
             if args.skip_clean {
                 cli_args.push("--skip-clean".into());
             }
+            // Resolve the pinned wasm-opt version so the reproducible image installs the same
+            // wasm-opt used at deploy time (and thus reproduces identical bytes).
+            let wasm_opt_version =
+                WasmOptConfig::resolve_for_contract(&contract)?.map(|c| c.version);
             run_reproducible(
                 &contract.package,
                 args.cargo_stylus_version.clone(),
+                wasm_opt_version,
                 cli_args,
             )?;
         }

@@ -7,6 +7,7 @@ use alloy::primitives::{utils::parse_ether, Address, B256, U256};
 use eyre::eyre;
 use stylus_tools::core::{
     build::reproducible::run_reproducible, deployment, deployment::deployer::ADDRESS,
+    optimize::WasmOptConfig,
 };
 
 use crate::{
@@ -133,9 +134,13 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                 contract.package.name.to_string(),
             ];
             cli_args.extend(args.to_cli_args());
+            // Resolve the pinned wasm-opt version so the reproducible image installs it.
+            let wasm_opt_version =
+                WasmOptConfig::resolve_for_contract(contract)?.map(|c| c.version);
             run_reproducible(
                 &contract.package,
                 args.cargo_stylus_version.clone(),
+                wasm_opt_version,
                 cli_args,
             )?;
         }
