@@ -62,7 +62,8 @@ pub async fn check_contract(
     config: &CheckConfig,
     provider: &impl Provider,
 ) -> Result<ContractStatus, CheckError> {
-    // Resolve the pinned wasm-opt recipe (if any) from the contract's own Stylus.toml. Sourcing it
+    // Resolve the pinned wasm-opt recipe (if any): opt-in comes from the contract's own
+    // Stylus.toml, with unset values inherited from the workspace-root defaults. Sourcing it
     // here means deploy and verify (which both rebuild through this function) stay consistent.
     let wasm_opt = WasmOptConfig::resolve_for_contract(contract)?;
     let wasm_file = build_contract(contract, &config.build)?;

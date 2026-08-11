@@ -83,7 +83,7 @@ interface ICounter {
         )?;
 
         let config = WasmOptConfig {
-            version: "131".to_string(),
+            version: "131".parse()?,
             flags: vec!["-Oz".to_string()],
         };
         let optimized = optimize(&wasm, &config)?;
@@ -93,6 +93,29 @@ interface ICounter {
             wasm.len(),
             optimized.len()
         );
+        Ok(())
+    }
+
+    /// Loads this example's real `Stylus.toml` through resolution and pins the resolved recipe.
+    /// The deploy/verify test is symmetric — it still passes if opt-in detection silently
+    /// regresses to `None` on both sides — so this assertion is what makes such a regression
+    /// fail the suite.
+    #[test]
+    fn wasm_opt_recipe_resolves_from_manifest() -> Result<()> {
+        use cargo_metadata::MetadataCommand;
+        use stylus_tools::core::{optimize::WasmOptConfig, project::contract::Contract};
+
+        let metadata = MetadataCommand::new().no_deps().exec()?;
+        let package = metadata
+            .packages
+            .iter()
+            .find(|p| p.name.as_str() == "stylus-wasm-opt")
+            .expect("example package present in workspace metadata");
+        let contract = Contract::try_from(package)?;
+        let config = WasmOptConfig::resolve_for_contract(&contract)?
+            .expect("example's Stylus.toml opts into [wasm-opt]");
+        assert_eq!(config.version.as_str(), "131");
+        assert_eq!(config.flags, vec!["-Oz".to_string()]);
         Ok(())
     }
 }

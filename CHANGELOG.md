@@ -2,6 +2,12 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.9](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.9) - 2026-08-11
+
+### New
+
+- Add opt-in reproducible `wasm-opt` (Binaryen) optimization: a `[wasm-opt]` table in `Stylus.toml` pins a Binaryen version and flags, applied identically during deploy and verification and folded into the project hash [#449](https://github.com/OffchainLabs/stylus-sdk-rs/pull/449)
+
 ## [0.10.8](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.8) - 2026-07-06
 
 ### Fixed

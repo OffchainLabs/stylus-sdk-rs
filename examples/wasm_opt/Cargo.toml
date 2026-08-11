@@ -11,6 +11,7 @@ stylus-sdk.workspace = true
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["contract", "signer-local", "rpc-types", "sha3-keccak"] }
+cargo_metadata = "0.20"
 eyre = "0.6"
 tokio = "1.44"
 stylus-sdk = { workspace = true, features = ["stylus-test"] }

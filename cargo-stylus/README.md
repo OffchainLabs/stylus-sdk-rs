@@ -277,6 +277,7 @@ flags = ["-Oz"]     # passed verbatim to wasm-opt, in order
 - **Reproducibility.** The version + flags are folded into the deployment's `project_hash`, and the reproducible Docker build installs the pinned `wasm-opt` automatically. Running `cargo stylus deploy`/`verify` without `--no-verify` (the default) needs no local Binaryen install.
 - **Local builds.** Commands that build locally — `deploy`/`verify` with `--no-verify`, and `check`/`get-initcode`, which have no reproducible path — shell out to `wasm-opt` on your `PATH` and error if its version does not match the pinned one. For `deploy`/`verify`, prefer the reproducible (Docker) build rather than hand-installing a specific version.
 - **Flags.** Flags are passed to `wasm-opt` verbatim and can change which instructions it emits, so choose flags that keep the output within Stylus's supported WebAssembly feature set; invalid output is rejected at activation.
+- **`--wasm-file` bypasses wasm-opt.** Commands given a prebuilt Wasm via `--wasm-file` have no Stylus project to resolve a recipe from, so the `[wasm-opt]` table is not applied — optimize such files yourself before passing them in.
 
 ## Command Reference
 

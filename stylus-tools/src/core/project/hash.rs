@@ -86,11 +86,15 @@ fn wasm_opt_preimage(wasm_opt: Option<&WasmOptConfig>) -> Vec<u8> {
     match wasm_opt {
         None => {}
         Some(cfg) => {
+            // Destructured exhaustively so a future field is a compile error here, forcing an
+            // explicit decision on whether it is hash-relevant.
+            let WasmOptConfig { version, flags } = cfg;
+            let version = version.as_str();
             buf.push(1);
-            buf.extend_from_slice(&(cfg.version.len() as u64).to_be_bytes());
-            buf.extend_from_slice(cfg.version.as_bytes());
-            buf.extend_from_slice(&(cfg.flags.len() as u64).to_be_bytes());
-            for flag in &cfg.flags {
+            buf.extend_from_slice(&(version.len() as u64).to_be_bytes());
+            buf.extend_from_slice(version.as_bytes());
+            buf.extend_from_slice(&(flags.len() as u64).to_be_bytes());
+            for flag in flags {
                 buf.extend_from_slice(&(flag.len() as u64).to_be_bytes());
                 buf.extend_from_slice(flag.as_bytes());
             }
@@ -175,7 +179,7 @@ mod tests {
 
     fn config(version: &str, flags: &[&str]) -> WasmOptConfig {
         WasmOptConfig {
-            version: version.to_string(),
+            version: version.parse().unwrap(),
             flags: flags.iter().map(|s| s.to_string()).collect(),
         }
     }

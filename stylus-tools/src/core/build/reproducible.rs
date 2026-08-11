@@ -7,7 +7,7 @@ use cargo_metadata::{semver::Version, MetadataCommand, Package};
 use tempfile::NamedTempFile;
 
 use crate::{
-    core::optimize::MIN_CARGO_STYLUS_VERSION,
+    core::optimize::{BinaryenVersion, MIN_CARGO_STYLUS_VERSION},
     utils::{
         docker::{self, validate_host, DockerError},
         toolchain::{get_toolchain_channel, ToolchainError},
@@ -17,7 +17,7 @@ use crate::{
 pub fn run_reproducible(
     package: &Package,
     cargo_stylus_version: Option<String>,
-    wasm_opt_version: Option<String>,
+    wasm_opt_version: Option<BinaryenVersion>,
     command_line: impl IntoIterator<Item = String>,
 ) -> Result<(), ReproducibleBuildError> {
     validate_host()?;
@@ -45,7 +45,7 @@ pub fn run_reproducible(
     let image_name = create_image(
         &selected_cargo_stylus_version,
         &toolchain_channel,
-        wasm_opt_version.as_deref(),
+        wasm_opt_version.as_ref(),
     )?;
 
     // Currently only calling cargo stylus is supported (not cargo stylus-beta for instance)
@@ -66,7 +66,7 @@ pub fn run_reproducible(
 fn create_image(
     cargo_stylus_version: &Version,
     toolchain_version: &str,
-    wasm_opt_version: Option<&str>,
+    wasm_opt_version: Option<&BinaryenVersion>,
 ) -> Result<String, DockerError> {
     let name = image_name(cargo_stylus_version, toolchain_version, wasm_opt_version);
 
@@ -95,33 +95,7 @@ fn create_image(
 
     info!(@grey, "Image exists, building container with base image: {base_image}");
 
-    // Optionally install the pinned Binaryen `wasm-opt` so the reproducible build applies the
-    // same optimization step as verification. The release tarball is downloaded over HTTPS and
-    // verified against its published SHA-256 checksum before extraction. The tarball bundles
-    // `wasm-opt` alongside its supporting library files, so the whole tree is extracted to /opt and
-    // its bin/ added to PATH.
-    //
-    // `version` is validated to be digits-only (see `optimize::is_valid_version`) before reaching
-    // here, so interpolating it into this `RUN` cannot inject shell metacharacters.
-    let binaryen_layer = match wasm_opt_version {
-        Some(version) => {
-            let tarball = format!("binaryen-version_{version}-x86_64-linux.tar.gz");
-            let base_url = format!(
-                "https://github.com/WebAssembly/binaryen/releases/download/version_{version}"
-            );
-            format!(
-                r#"            RUN cd /tmp \
-                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball} \
-                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball}.sha256 \
-                && sha256sum -c {tarball}.sha256 \
-                && tar -xzf {tarball} -C /opt \
-                && rm {tarball} {tarball}.sha256
-            ENV PATH="/opt/binaryen-version_{version}/bin:${{PATH}}"
-"#
-            )
-        }
-        None => String::new(),
-    };
+    let binaryen_layer = wasm_opt_version.map(binaryen_layer).unwrap_or_default();
 
     // Create temporary Dockerfile
     let dockerfile_content = format!(
@@ -147,10 +121,34 @@ fn create_image(
     Ok(name)
 }
 
+/// Dockerfile fragment installing the pinned Binaryen `wasm-opt` so the reproducible build applies
+/// the same optimization step as verification. The release tarball is downloaded over HTTPS and
+/// verified against its published SHA-256 checksum before extraction. The tarball bundles
+/// `wasm-opt` alongside its supporting library files, so the whole tree is extracted to /opt and
+/// its bin/ added to PATH.
+///
+/// `BinaryenVersion` is digits-only by construction, so interpolating it into this `RUN` cannot
+/// inject shell metacharacters.
+fn binaryen_layer(version: &BinaryenVersion) -> String {
+    let tarball = format!("binaryen-version_{version}-x86_64-linux.tar.gz");
+    let base_url =
+        format!("https://github.com/WebAssembly/binaryen/releases/download/version_{version}");
+    format!(
+        r#"            RUN cd /tmp \
+                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball} \
+                && curl -fsSL --proto '=https' --tlsv1.2 -O {base_url}/{tarball}.sha256 \
+                && sha256sum -c {tarball}.sha256 \
+                && tar -xzf {tarball} -C /opt \
+                && rm {tarball} {tarball}.sha256
+            ENV PATH="/opt/binaryen-version_{version}/bin:${{PATH}}"
+"#
+    )
+}
+
 fn image_name(
     cargo_stylus_version: &Version,
     toolchain_version: &str,
-    wasm_opt_version: Option<&str>,
+    wasm_opt_version: Option<&BinaryenVersion>,
 ) -> String {
     let base = format!("cargo-stylus-base-{cargo_stylus_version}-toolchain-{toolchain_version}");
     match wasm_opt_version {
@@ -170,7 +168,8 @@ pub enum ReproducibleBuildError {
     CargoMetadata(#[from] cargo_metadata::Error),
     #[error(
         "cargo-stylus {selected} does not support the [wasm-opt] table (added in {min}); \
-remove --cargo-stylus-version or select version {min} or newer"
+select version {min} or newer with --cargo-stylus-version, or upgrade cargo-stylus if no \
+version was selected explicitly"
     )]
     WasmOptUnsupported { selected: Version, min: Version },
 }
@@ -230,7 +229,11 @@ fn select_stylus_version(
 mod tests {
     use cargo_metadata::semver::Version;
 
-    use super::{image_name, select_stylus_version};
+    use super::{binaryen_layer, image_name, select_stylus_version, BinaryenVersion};
+
+    fn binaryen(version: &str) -> BinaryenVersion {
+        version.parse().unwrap()
+    }
 
     #[test]
     fn image_name_encodes_binaryen_version() {
@@ -240,15 +243,29 @@ mod tests {
             "cargo-stylus-base-0.10.9-toolchain-1.91.0"
         );
         assert_eq!(
-            image_name(&version, "1.91.0", Some("131")),
+            image_name(&version, "1.91.0", Some(&binaryen("131"))),
             "cargo-stylus-base-0.10.9-toolchain-1.91.0-binaryen-131"
         );
         // Different Binaryen pins must yield different cache keys, or a bumped pin would silently
         // reuse the image (and the wasm-opt) of the previous version.
         assert_ne!(
-            image_name(&version, "1.91.0", Some("131")),
-            image_name(&version, "1.91.0", Some("132"))
+            image_name(&version, "1.91.0", Some(&binaryen("131"))),
+            image_name(&version, "1.91.0", Some(&binaryen("132")))
         );
+    }
+
+    /// The rendered Binaryen layer is never executed in tests or CI (the integration harness runs
+    /// wasm-opt in-process), so pin its load-bearing lines here: the release URL, the checksum
+    /// verification, and the PATH entry.
+    #[test]
+    fn binaryen_layer_renders_install_commands() {
+        let layer = binaryen_layer(&binaryen("131"));
+        assert!(layer.contains(
+            "https://github.com/WebAssembly/binaryen/releases/download/version_131\
+/binaryen-version_131-x86_64-linux.tar.gz"
+        ));
+        assert!(layer.contains("sha256sum -c binaryen-version_131-x86_64-linux.tar.gz.sha256"));
+        assert!(layer.contains(r#"ENV PATH="/opt/binaryen-version_131/bin:${PATH}""#));
     }
 
     #[test]

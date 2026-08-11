@@ -26,7 +26,7 @@
 //!
 //! [Binaryen]: https://github.com/WebAssembly/binaryen
 
-use std::{fs, path::Path, process::Command};
+use std::{fmt, fs, path::Path, process::Command, str::FromStr};
 
 use cargo_metadata::MetadataCommand;
 use serde::Deserialize;
@@ -44,14 +44,50 @@ pub const WASM_OPT_BIN: &str = "wasm-opt";
 /// while still verifying green.
 pub const MIN_CARGO_STYLUS_VERSION: &str = "0.10.9";
 
+/// A validated Binaryen version number (e.g. `"131"`): a non-empty run of ASCII digits with no
+/// leading zeros.
+///
+/// Carrying the invariant in the type is what makes the version safe to interpolate into the
+/// reproducible build's Dockerfile (no shell metacharacters) and into the Binaryen release URL
+/// (no leading zeros, which would 404).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BinaryenVersion(String);
+
+impl BinaryenVersion {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl FromStr for BinaryenVersion {
+    type Err = WasmOptError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let valid = !s.is_empty()
+            && s.bytes().all(|b| b.is_ascii_digit())
+            && (s.len() == 1 || !s.starts_with('0'));
+        if valid {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(WasmOptError::InvalidVersion(s.to_string()))
+        }
+    }
+}
+
+impl fmt::Display for BinaryenVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
 /// A resolved, ready-to-apply `wasm-opt` optimization recipe for a single contract.
 ///
 /// This is the single source of truth used by both deploy and verification: applied inside the
 /// Wasm processing funnel and folded into the `project_hash`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WasmOptConfig {
-    /// Pinned Binaryen version, as a plain version number (e.g. `"131"`).
-    pub version: String,
+    /// Pinned Binaryen version.
+    pub version: BinaryenVersion,
     /// Flags passed verbatim to `wasm-opt` (e.g. `["-Oz"]`).
     pub flags: Vec<String>,
 }
@@ -106,10 +142,8 @@ fn merge_tables(
     let version = contract
         .version
         .or_else(|| workspace.as_ref().and_then(|w| w.version.clone()))
-        .ok_or_else(|| WasmOptError::MissingVersion(contract_name.to_string()))?;
-    if !is_valid_version(&version) {
-        return Err(WasmOptError::InvalidVersion(version));
-    }
+        .ok_or_else(|| WasmOptError::MissingVersion(contract_name.to_string()))?
+        .parse::<BinaryenVersion>()?;
     let flags = contract
         .flags
         .or_else(|| workspace.and_then(|w| w.flags))
@@ -147,7 +181,7 @@ pub fn optimize(wasm: &[u8], config: &WasmOptConfig) -> Result<Vec<u8>, WasmOptE
 }
 
 /// Verify that the `wasm-opt` on `PATH` matches the pinned version.
-pub fn verify_version(expected: &str) -> Result<(), WasmOptError> {
+pub fn verify_version(expected: &BinaryenVersion) -> Result<(), WasmOptError> {
     let output = Command::new(WASM_OPT_BIN)
         .arg("--version")
         .output()
@@ -157,10 +191,13 @@ pub fn verify_version(expected: &str) -> Result<(), WasmOptError> {
 }
 
 /// Compare the pinned version against `wasm-opt --version` output.
-fn check_installed_version(expected: &str, version_output: &str) -> Result<(), WasmOptError> {
+fn check_installed_version(
+    expected: &BinaryenVersion,
+    version_output: &str,
+) -> Result<(), WasmOptError> {
     let found = parse_version(version_output)
         .ok_or_else(|| WasmOptError::VersionParse(version_output.trim().to_string()))?;
-    if found != expected {
+    if found != expected.as_str() {
         return Err(WasmOptError::VersionMismatch {
             expected: expected.to_string(),
             found,
@@ -182,11 +219,6 @@ fn parse_version(output: &str) -> Option<String> {
         .take_while(char::is_ascii_digit)
         .collect();
     (!digits.is_empty()).then_some(digits)
-}
-
-/// A valid pinned version is a non-empty run of ASCII digits (e.g. `"131"`).
-fn is_valid_version(version: &str) -> bool {
-    !version.is_empty() && version.bytes().all(|b| b.is_ascii_digit())
 }
 
 fn map_spawn_error(e: std::io::Error) -> WasmOptError {
@@ -215,11 +247,15 @@ struct TomlWasmOpt {
 }
 
 /// Parse the `[wasm-opt]` table out of a `Stylus.toml`, if the file exists.
+///
+/// Only `NotFound` maps to "no manifest" — a `Path::exists()` pre-check would swallow other
+/// errors (e.g. permission denied), silently reading an opted-in contract as not opted in.
 fn load_wasm_opt_table(path: &Path) -> Result<Option<TomlWasmOpt>, WasmOptError> {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let contents = fs::read_to_string(path)?;
+    let contents = match fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
     let manifest: WasmOptManifest = toml::from_str(&contents)?;
     Ok(manifest.wasm_opt)
 }
@@ -290,10 +326,13 @@ mod tests {
 
     #[test]
     fn validates_version_numbers() {
-        assert!(is_valid_version("117"));
-        assert!(!is_valid_version(""));
-        assert!(!is_valid_version("version_117"));
-        assert!(!is_valid_version("117-rc1"));
+        assert!("117".parse::<BinaryenVersion>().is_ok());
+        assert!("0".parse::<BinaryenVersion>().is_ok());
+        assert!("".parse::<BinaryenVersion>().is_err());
+        assert!("version_117".parse::<BinaryenVersion>().is_err());
+        assert!("117-rc1".parse::<BinaryenVersion>().is_err());
+        // Leading zeros would 404 in the Binaryen release URL.
+        assert!("0131".parse::<BinaryenVersion>().is_err());
     }
 
     fn table(version: Option<&str>, flags: Option<&[&str]>) -> TomlWasmOpt {
@@ -306,7 +345,7 @@ mod tests {
     #[test]
     fn merge_contract_only() {
         let resolved = merge_tables("c", table(Some("131"), Some(&["-Oz"])), None).unwrap();
-        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.version.as_str(), "131");
         assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
     }
 
@@ -314,7 +353,7 @@ mod tests {
     fn merge_inherits_workspace_defaults() {
         let workspace = table(Some("131"), Some(&["-Oz"]));
         let resolved = merge_tables("c", table(None, None), Some(workspace)).unwrap();
-        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.version.as_str(), "131");
         assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
     }
 
@@ -323,7 +362,7 @@ mod tests {
         let workspace = table(Some("116"), Some(&["-O2"]));
         let contract = table(Some("131"), Some(&["-Oz"]));
         let resolved = merge_tables("c", contract, Some(workspace)).unwrap();
-        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.version.as_str(), "131");
         assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
     }
 
@@ -332,7 +371,7 @@ mod tests {
         let workspace = table(Some("131"), Some(&["-O2"]));
         let contract = table(None, Some(&["-Oz"]));
         let resolved = merge_tables("c", contract, Some(workspace)).unwrap();
-        assert_eq!(resolved.version, "131");
+        assert_eq!(resolved.version.as_str(), "131");
         assert_eq!(resolved.flags, vec!["-Oz".to_string()]);
     }
 
@@ -350,12 +389,13 @@ mod tests {
 
     #[test]
     fn check_installed_version_matches() {
-        assert!(check_installed_version("117", "wasm-opt version 117").is_ok());
+        assert!(check_installed_version(&"117".parse().unwrap(), "wasm-opt version 117").is_ok());
     }
 
     #[test]
     fn check_installed_version_mismatch() {
-        let err = check_installed_version("131", "wasm-opt version 117").unwrap_err();
+        let err =
+            check_installed_version(&"131".parse().unwrap(), "wasm-opt version 117").unwrap_err();
         assert!(matches!(
             err,
             WasmOptError::VersionMismatch { expected, found } if expected == "131" && found == "117"
@@ -364,7 +404,51 @@ mod tests {
 
     #[test]
     fn check_installed_version_unparseable() {
-        let err = check_installed_version("117", "garbage output").unwrap_err();
+        let err = check_installed_version(&"117".parse().unwrap(), "garbage output").unwrap_err();
         assert!(matches!(err, WasmOptError::VersionParse(_)));
+    }
+
+    /// Write `contents` as a Stylus.toml in a fresh tempdir and load its [wasm-opt] table.
+    fn load_from_str(contents: &str) -> Result<Option<TomlWasmOpt>, WasmOptError> {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(manifest::FILENAME);
+        fs::write(&path, contents).unwrap();
+        load_wasm_opt_table(&path)
+    }
+
+    #[test]
+    fn loads_wasm_opt_table() {
+        let table = load_from_str(
+            r#"
+            [contract]
+
+            [wasm-opt]
+            version = "131"
+            flags = ["-Oz"]
+            "#,
+        )
+        .unwrap()
+        .expect("table should be present");
+        assert_eq!(table.version.as_deref(), Some("131"));
+        assert_eq!(table.flags, Some(vec!["-Oz".to_string()]));
+    }
+
+    #[test]
+    fn load_without_table_is_none() {
+        assert!(load_from_str("[contract]\n").unwrap().is_none());
+    }
+
+    #[test]
+    fn load_missing_file_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join(manifest::FILENAME);
+        assert!(load_wasm_opt_table(&missing).unwrap().is_none());
+    }
+
+    #[test]
+    fn load_rejects_unknown_keys() {
+        // A typo inside the table must fail loudly, not resolve to a defaulted recipe.
+        let err = load_from_str("[wasm-opt]\nflag = [\"-Oz\"]\n").unwrap_err();
+        assert!(matches!(err, WasmOptError::TomlRead(_)));
     }
 }
