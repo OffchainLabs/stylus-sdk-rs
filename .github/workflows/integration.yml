@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install stable
         uses: dtolnay/rust-toolchain@1.91.0
       - name: Get latest cargo-stylus version
@@ -71,7 +71,7 @@ jobs:
           - "wasm_opt"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -127,7 +127,7 @@ jobs:
         toolchain: [1.91.0, nightly-2025-10-01]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@stable
         with:
