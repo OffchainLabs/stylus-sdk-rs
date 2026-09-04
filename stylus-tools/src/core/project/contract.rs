@@ -110,9 +110,11 @@ impl Contract {
         &self,
         tx_hash: TxHash,
         skip_clean: bool,
+        deployer_address: Address,
         provider: &impl Provider,
     ) -> eyre::Result<VerificationStatus> {
-        let status = verification::verify(self, tx_hash, skip_clean, provider).await?;
+        let status =
+            verification::verify(self, tx_hash, skip_clean, deployer_address, provider).await?;
         Ok(status)
     }
 

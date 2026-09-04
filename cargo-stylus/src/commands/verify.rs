@@ -1,12 +1,13 @@
 // Copyright 2025, Offchain Labs, Inc.
 // For licensing, see https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/licenses/COPYRIGHT.md
 
-use alloy::primitives::TxHash;
+use alloy::primitives::{Address, TxHash};
 use eyre::eyre;
 use itertools::izip;
 use stylus_tools::core::{build::reproducible::run_reproducible, optimize::WasmOptConfig};
 
 use crate::{
+    commands::deploy::STYLUS_DEPLOYER_ADDRESS,
     common_args::{ProjectArgs, ProviderArgs, VerificationArgs},
     error::CargoStylusResult,
     utils::decode0x,
@@ -25,6 +26,11 @@ pub struct Args {
 
     #[arg(long)]
     skip_clean: bool,
+    /// The address of the deployer contract the deployment went through, for contracts with a
+    /// constructor. Defaults to the canonical StylusDeployer; pass the value given to
+    /// `cargo stylus deploy --deployer-address` on chains that use their own copy.
+    #[arg(long, value_name = "DEPLOYER_ADDRESS", default_value_t = STYLUS_DEPLOYER_ADDRESS)]
+    deployer_address: Address,
 
     #[command(flatten)]
     project: ProjectArgs,
@@ -45,7 +51,10 @@ pub async fn exec(args: Args) -> CargoStylusResult {
                 return Err(eyre!("Invalid hash").into());
             }
             let hash = TxHash::from_slice(&hash);
-            match contract.verify(hash, args.skip_clean, &provider).await? {
+            match contract
+                .verify(hash, args.skip_clean, args.deployer_address, &provider)
+                .await?
+            {
                 stylus_tools::core::verification::VerificationStatus::Success => {
                     println!("Verification successful");
                 }
@@ -68,6 +77,10 @@ pub async fn exec(args: Args) -> CargoStylusResult {
             cli_args.push(deployment_tx);
             if args.skip_clean {
                 cli_args.push("--skip-clean".into());
+            }
+            if args.deployer_address != STYLUS_DEPLOYER_ADDRESS {
+                cli_args.push("--deployer-address".into());
+                cli_args.push(args.deployer_address.to_string());
             }
             // Resolve the pinned wasm-opt version so the reproducible image installs the same
             // wasm-opt used at deploy time (and thus reproduces identical bytes).
