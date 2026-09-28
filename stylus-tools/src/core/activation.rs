@@ -53,6 +53,9 @@ pub enum ActivationError {
          Please ensure that your contract has an #[entrypoint] defined on your main struct"
     )]
     MissingEntrypoint,
+
+    #[error("Stylus activations are currently paused on this chain")]
+    ActivationsPaused,
 }
 
 impl From<alloy::contract::Error> for ActivationError {
@@ -130,13 +133,22 @@ pub async fn data_fee(
     }
 
     let state_override = StateOverride::from_iter(state_override);
-    let result = arbwasm
+    let result = match arbwasm
         .activateProgram(address)
         .state(state_override)
         .from(random_sender_addr)
         .value(parse_ether("1").unwrap())
         .call()
-        .await?;
+        .await
+    {
+        Ok(result) => result,
+        Err(err) => {
+            if activations_paused(provider).await {
+                return Err(ActivationError::ActivationsPaused);
+            }
+            return Err(err.into());
+        }
+    };
 
     let data_fee = result.dataFee;
     let bump = config.data_fee_bump_percent;
@@ -148,6 +160,18 @@ pub async fn data_fee(
     );
 
     Ok(adjusted)
+}
+
+/// Activation gas charge above which activations are considered paused.
+const PAUSED_ACTIVATION_GAS: u64 = 30_000_000;
+
+/// Returns whether the chain owner has paused Stylus activations.
+async fn activations_paused(provider: &impl Provider) -> bool {
+    precompiles::arb_wasm(provider)
+        .activationGas()
+        .call()
+        .await
+        .is_ok_and(|gas| gas > PAUSED_ACTIVATION_GAS)
 }
 
 /// Estimate gas cost for Stylus contract activation.
