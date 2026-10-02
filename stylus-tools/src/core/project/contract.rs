@@ -22,7 +22,7 @@ use crate::{
     error::decode_contract_error,
     ops,
     precompiles::{self, ArbWasm::ArbWasmErrors},
-    utils::toolchain::get_toolchain_channel,
+    utils::toolchain::{get_toolchain_channel, supports_immediate_abort},
 };
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub struct Contract {
     pub package: Package,
 
     // Toolchain metadata
-    stable: bool,
+    toolchain_channel: String,
 
     // Cargo metadata
     name: String,
@@ -52,7 +52,13 @@ impl Contract {
     }
 
     pub fn stable(&self) -> bool {
-        self.stable
+        !self.toolchain_channel.contains("nightly")
+    }
+
+    /// Whether the project's nightly toolchain requires the `immediate-abort` panic strategy
+    /// instead of the removed `panic_immediate_abort` build-std feature.
+    pub fn supports_immediate_abort(&self) -> bool {
+        supports_immediate_abort(&self.toolchain_channel)
     }
 
     pub fn name(&self) -> &str {
@@ -126,7 +132,6 @@ impl TryFrom<&Package> for Contract {
 
     fn try_from(package: &Package) -> Result<Self, Self::Error> {
         let toolchain_channel = get_toolchain_channel(package)?;
-        let stable = !toolchain_channel.contains("nightly");
         let version = package.version.clone();
         // First, let's try to find if the library's name is set, since this will interfere with
         // finding the wasm file in the deps directory if it's different.
@@ -138,7 +143,7 @@ impl TryFrom<&Package> for Contract {
             .unwrap_or_else(|| package.name.to_string());
         Ok(Self {
             package: package.clone(),
-            stable,
+            toolchain_channel,
             version,
             name,
         })
