@@ -2,6 +2,12 @@
 
 These crates follow [semver](https://semver.org).
 
+## Unreleased
+
+### New
+
+- Add `--deployer-address` to `cargo stylus verify`, mirroring the flag on `deploy`: a contract with a constructor deployed through a non-canonical `StylusDeployer` (Orbit chains that deployed their own copy) can now be verified against that deployer instead of failing with `Invalid deployer address`
+
 ## [0.10.9](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.9) - 2026-08-11
 
 ### New

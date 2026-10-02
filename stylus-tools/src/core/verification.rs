@@ -15,10 +15,7 @@ use crate::{
     core::{
         code::{contract::ContractCode, fragments::CodeFragments, Code},
         deployment::{
-            deployer::{
-                get_address_from_receipt, stylus_constructorCall, StylusDeployer::deployCall,
-                ADDRESS,
-            },
+            deployer::{get_address_from_receipt, stylus_constructorCall, StylusDeployer::deployCall},
             prelude::{DeploymentCalldata, PRELUDE_LENGTH},
         },
         project::contract::Contract,
@@ -30,10 +27,17 @@ use crate::{
     utils::cargo,
 };
 
+/// Verify that the contract installed by `tx_hash` was built from this project.
+///
+/// `deployer_address` is the [`StylusDeployer`](deployCall) a constructor deployment is expected
+/// to have gone through. Chains without the canonical deployer (Orbit chains that deployed their
+/// own copy) pass the address they deployed with, the same value `cargo stylus deploy` took as
+/// `--deployer-address`.
 pub async fn verify(
     contract: &Contract,
     tx_hash: TxHash,
     skip_clean: bool,
+    deployer_address: Address,
     provider: &impl Provider,
 ) -> Result<VerificationStatus, VerificationError> {
     let tx = provider
@@ -64,7 +68,7 @@ pub async fn verify(
 
     match status.code() {
         Code::Contract(contract) => {
-            let onchain = extract_deployment_calldata(&tx)?;
+            let onchain = extract_deployment_calldata(&tx, deployer_address)?;
             Ok(compare_calldata(
                 &onchain,
                 &DeploymentCalldata::new(contract.as_slice()),
@@ -100,9 +104,13 @@ fn deployed_address(
 /// `bytecode` field of the call. In both cases the returned calldata's [`compressed_wasm`] is the
 /// code that ends up deployed on-chain (a single contract, or a fragment root).
 ///
+/// A constructor deployment must have been sent to `expected_deployer`: the deployer is what ran
+/// the constructor, so a deployment through some other contract is not the one being verified.
+///
 /// [`compressed_wasm`]: DeploymentCalldata::compressed_wasm
 fn extract_deployment_calldata(
     tx: &impl Transaction,
+    expected_deployer: Address,
 ) -> Result<DeploymentCalldata, VerificationError> {
     let calldata = match tx.to() {
         Some(deployer_address) => {
@@ -115,7 +123,7 @@ fn extract_deployment_calldata(
             if !constructor_called {
                 return Err(InvalidInitData);
             }
-            if deployer_address != ADDRESS {
+            if deployer_address != expected_deployer {
                 return Err(InvalidDeployerAddress);
             }
             DeploymentCalldata(deploy_call.bytecode.to_vec())
