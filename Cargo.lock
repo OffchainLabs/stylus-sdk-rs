@@ -1526,11 +1526,17 @@ dependencies = [
  "lazy_static",
  "libloading",
  "log",
+ "once_cell",
  "parking_lot",
+ "reqwest 0.12.28",
  "rustc-host",
+ "serde",
+ "serde_json",
  "simple_logger",
  "stylus-tools",
+ "tempfile",
  "tokio",
+ "uuid 1.23.1",
 ]
 
 [[package]]
@@ -4532,7 +4538,9 @@ dependencies = [
  "base64",
  "bytes",
  "encoding_rs",
+ "futures-channel",
  "futures-core",
+ "futures-util",
  "h2",
  "hickory-resolver",
  "http",

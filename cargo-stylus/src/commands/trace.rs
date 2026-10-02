@@ -18,7 +18,11 @@ pub struct Args {
 
 pub async fn exec(args: Args) -> CargoStylusResult {
     let provider = args.provider.build_provider().await?;
-    let trace = Trace::new(args.trace.tx, &args.trace.config, &provider)
+    let tx = args
+        .trace
+        .tx
+        .ok_or_else(|| eyre::eyre!("missing tx hash - use --tx <HASH>"))?;
+    let trace = Trace::new(tx, &args.trace.config, &provider)
         .await
         .map_err(eyre::Error::from)?;
     println!("{}", trace.json());

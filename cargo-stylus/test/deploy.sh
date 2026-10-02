@@ -15,13 +15,11 @@ echo "RPC URL: ${RPC_URL}"
 echo ""
 
 # Check dependencies
-# Try cargo-stylus-beta first, fallback to cargo-stylus
-if command -v cargo-stylus-beta &> /dev/null; then
-    CARGO_STYLUS="cargo stylus-beta"
-elif command -v cargo-stylus &> /dev/null; then
+# Try cargo-stylus first, fallback to cargo-stylus
+if command -v cargo-stylus &> /dev/null; then
     CARGO_STYLUS="cargo stylus"
 else
-    echo "Error: neither cargo-stylus-beta nor cargo-stylus found in PATH"
+    echo "Error: cargo-stylus not found in PATH"
     echo "Install with: cargo install --path cargo-stylus"
     exit 1
 fi
