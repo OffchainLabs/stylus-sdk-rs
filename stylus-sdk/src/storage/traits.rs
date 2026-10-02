@@ -300,11 +300,13 @@ pub trait GlobalStorage {
         debug_assert!(B / 8 + offset <= 32);
 
         if B == 256 {
-            return Self::set_word(
-                host,
-                key,
-                FixedBytes::from_slice(&value.to_be_bytes::<32>()),
-            );
+            // ruint >= 1.17 requires BYTES == Self::BYTES in to_be_bytes.
+            debug_assert_eq!(L, 4);
+            let mut bytes = [0u8; 32];
+            for (i, limb) in value.as_limbs().iter().rev().take(4).enumerate() {
+                bytes[i * 8..(i + 1) * 8].copy_from_slice(&limb.to_be_bytes());
+            }
+            return Self::set_word(host, key, FixedBytes::from_slice(&bytes));
         }
 
         let mut word = Self::get_word(host.clone(), key);
@@ -366,5 +368,42 @@ pub trait GlobalStorage {
     /// [`SSTORE`]: https://www.evm.codes/#55
     unsafe fn clear_word(host: VM, key: U256) {
         Self::set_word(host, key, B256::ZERO)
+    }
+}
+
+#[cfg(all(test, feature = "stylus-test"))]
+mod tests {
+    use alloy_primitives::{Uint, B256, U256};
+    use stylus_test::vm::TestVM;
+
+    use crate::storage::{StorageU256, StorageU8};
+
+    #[test]
+    fn set_uint_writes_full_word_big_endian() {
+        let vm = TestVM::new();
+        let mut storage = StorageU256::from(&vm);
+        let value = U256::from_limbs([
+            0x0102_0304_0506_0708,
+            0x1112_1314_1516_1718,
+            0x2122_2324_2526_2728,
+            0x3132_3334_3536_3738,
+        ]);
+
+        storage.set(value);
+
+        assert_eq!(vm.get_storage(U256::ZERO), B256::from(value));
+        assert_eq!(storage.get(), value);
+    }
+
+    #[test]
+    fn set_uint_writes_sub_word_value() {
+        let vm = TestVM::new();
+        let mut storage = StorageU8::from(&vm);
+        let value = Uint::from(0xabu8);
+
+        storage.set(value);
+
+        assert_eq!(vm.get_storage(U256::ZERO)[0], 0xab);
+        assert_eq!(storage.get(), value);
     }
 }

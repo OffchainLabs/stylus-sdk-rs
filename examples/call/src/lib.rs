@@ -95,7 +95,8 @@ impl ExampleContract {
         let vm = storage.borrow().vm();
         let msg_value = vm.msg_value(); // Use the transferred value
         let gas = vm.evm_gas_left() / 2; // Use half the remaining gas
-        let config = Call::new_payable(storage, msg_value).gas(gas); // Take exclusive access to all contract storage
+        let config = Call::new_payable(storage, msg_value).gas(gas); // Take exclusive access to all
+                                                                     // contract storage
         Ok(account.make_payment(storage.borrow().vm(), config, user)?) // Call using the configured
                                                                        // parameters
     }
