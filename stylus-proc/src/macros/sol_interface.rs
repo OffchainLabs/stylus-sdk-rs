@@ -89,6 +89,10 @@ struct Interface {
     impl_deref: syn::ItemImpl,
     impl_from_address: syn::ItemImpl,
     impl_abi_proxy: ImplAbiProxy,
+    /// Tracks how many times a Solidity function name has already been seen, so
+    /// overloaded functions (same name, different parameters) can be given distinct
+    /// Rust method names instead of colliding as duplicate `impl` items.
+    name_counts: std::collections::HashMap<String, usize>,
 }
 
 impl Interface {
@@ -101,7 +105,20 @@ impl Interface {
         params: FunctionParameters,
         return_type: syn::Type,
     ) {
-        let rust_name = syn::Ident::new(&name.to_string().to_case(Case::Snake), name.span());
+        // Solidity allows function overloading (same name, different parameter types),
+        // but the generated Rust `impl` cannot have two methods with the same name.
+        // Disambiguate overloads by suffixing every occurrence after the first with
+        // its zero-based overload index, e.g. `safe_transfer_from`, `safe_transfer_from_1`.
+        let sol_name = name.to_string();
+        let occurrence = self.name_counts.entry(sol_name.clone()).or_insert(0);
+        let base_name = sol_name.to_case(Case::Snake);
+        let rust_name_string = if *occurrence == 0 {
+            base_name
+        } else {
+            format!("{base_name}_{occurrence}")
+        };
+        *occurrence += 1;
+        let rust_name = syn::Ident::new(&rust_name_string, name.span());
 
         // build selector
         let selector = build_selector(name, params.params.iter().map(|p| &p.type_info.sol_type));
@@ -192,6 +209,7 @@ impl From<&syn_solidity::ItemContract> for Interface {
                 &AlloyAddress.as_type(),
                 &SolAddress.as_type(),
             ),
+            name_counts: std::collections::HashMap::new(),
         };
 
         iface.visit_item_contract(contract);
@@ -485,6 +503,41 @@ mod tests {
                     }
                 }
             },
+        );
+    }
+
+    /// Regression test for https://github.com/OffchainLabs/stylus-sdk-rs/issues/359:
+    /// overloaded Solidity functions (same name, different parameters) used to produce
+    /// two identically-named Rust methods in the same `impl` block, which fails to
+    /// compile with E0592 ("duplicate definitions"). Each overload after the first must
+    /// now get a disambiguated Rust name.
+    #[test]
+    fn test_sol_interface_overloaded_functions() {
+        let file = syn_solidity::parse2(quote! {
+            interface IOverload {
+                function safeTransferFrom(address from, address to, uint256 tokenId) external;
+                function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
+            }
+        })
+        .unwrap();
+        let visitor = SolInterfaceVisitor::from(&file);
+        let fn_names: Vec<String> = visitor.interfaces[0]
+            .item_impl
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                syn::ImplItem::Fn(f) => Some(f.sig.ident.to_string()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            fn_names,
+            vec![
+                "new".to_string(),
+                "safe_transfer_from".to_string(),
+                "safe_transfer_from_1".to_string(),
+            ],
+            "overloaded Solidity functions must generate distinct Rust method names"
         );
     }
 }
