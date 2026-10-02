@@ -2,6 +2,16 @@
 
 These crates follow [semver](https://semver.org).
 
+## [0.10.10](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.10) - 2026-10-02
+
+### New
+
+- Detect when Stylus activations are paused on the target chain and report a clear `ActivationsPaused` error instead of a generic activation failure [#458](https://github.com/OffchainLabs/stylus-sdk-rs/pull/458)
+
+### Fixed
+
+- Support `ruint >=1.17.1` and drop the vulnerable exact pin [#457](https://github.com/OffchainLabs/stylus-sdk-rs/pull/457)
+
 ## [0.10.9](https://github.com/OffchainLabs/stylus-sdk-rs/releases/tag/v0.10.9) - 2026-08-11
 
 ### New
