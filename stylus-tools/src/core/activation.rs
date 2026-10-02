@@ -53,6 +53,16 @@ pub enum ActivationError {
          Please ensure that your contract has an #[entrypoint] defined on your main struct"
     )]
     MissingEntrypoint,
+
+    #[error(
+        "Stylus activations appear to be paused on this chain \
+         (activation gas charge is {activation_gas})"
+    )]
+    ActivationsPaused {
+        activation_gas: u64,
+        #[source]
+        source: alloy::contract::Error,
+    },
 }
 
 impl From<alloy::contract::Error> for ActivationError {
@@ -130,13 +140,25 @@ pub async fn data_fee(
     }
 
     let state_override = StateOverride::from_iter(state_override);
-    let result = arbwasm
+    let result = match arbwasm
         .activateProgram(address)
         .state(state_override)
         .from(random_sender_addr)
         .value(parse_ether("1").unwrap())
         .call()
-        .await?;
+        .await
+    {
+        Ok(result) => result,
+        Err(err) => {
+            if let Some(activation_gas) = paused_activation_gas(provider).await {
+                return Err(ActivationError::ActivationsPaused {
+                    activation_gas,
+                    source: err,
+                });
+            }
+            return Err(err.into());
+        }
+    };
 
     let data_fee = result.dataFee;
     let bump = config.data_fee_bump_percent;
@@ -148,6 +170,19 @@ pub async fn data_fee(
     );
 
     Ok(adjusted)
+}
+
+/// Activation gas charge above which activations are considered paused.
+const PAUSED_ACTIVATION_GAS: u64 = 30_000_000;
+
+/// Returns the activation gas charge if the chain owner has paused Stylus activations.
+async fn paused_activation_gas(provider: &impl Provider) -> Option<u64> {
+    let gas = precompiles::arb_wasm(provider)
+        .activationGas()
+        .call()
+        .await
+        .ok()?;
+    (gas > PAUSED_ACTIVATION_GAS).then_some(gas)
 }
 
 /// Estimate gas cost for Stylus contract activation.
@@ -168,4 +203,80 @@ pub async fn estimate_gas(
         .await?;
 
     Ok(gas)
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy::{
+        primitives::B256, providers::ProviderBuilder, rpc::json_rpc::ErrorPayload,
+        transports::mock::Asserter,
+    };
+
+    use super::*;
+
+    /// Nitro's response when `activateProgram` fails the up-front activation gas charge
+    /// (an out-of-gas converted to `ErrExecutionReverted` with empty revert data).
+    fn execution_reverted() -> ErrorPayload {
+        ErrorPayload {
+            code: 3,
+            message: "execution reverted".into(),
+            data: Some(serde_json::value::to_raw_value("0x").unwrap()),
+        }
+    }
+
+    /// ABI-encoded `uint64` return value for the mocked `activationGas()` call.
+    fn activation_gas_response(gas: u64) -> B256 {
+        B256::from(U256::from(gas))
+    }
+
+    async fn run_data_fee(asserter: Asserter) -> Result<U256, ActivationError> {
+        let provider = ProviderBuilder::new().connect_mocked_client(asserter);
+        data_fee(
+            &Code::new_from_code(&[]),
+            Address::ZERO,
+            &ActivationConfig::default(),
+            &provider,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn detects_paused_activations() {
+        let asserter = Asserter::new();
+        asserter.push_failure(execution_reverted());
+        asserter.push_success(&activation_gas_response(u64::MAX));
+
+        match run_data_fee(asserter).await {
+            Err(ActivationError::ActivationsPaused { activation_gas, .. }) => {
+                assert_eq!(activation_gas, u64::MAX);
+            }
+            other => panic!("expected ActivationsPaused, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn passes_through_errors_when_activation_gas_is_normal() {
+        let asserter = Asserter::new();
+        asserter.push_failure(execution_reverted());
+        asserter.push_success(&activation_gas_response(2_000_000));
+
+        match run_data_fee(asserter).await {
+            Err(ActivationError::Contract(_)) => {}
+            other => panic!("expected Contract error, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn passes_through_errors_when_probe_fails() {
+        // On chains without `activationGas()` (ArbOS < 60) the probe errors and the
+        // original failure must be reported unchanged.
+        let asserter = Asserter::new();
+        asserter.push_failure(execution_reverted());
+        asserter.push_failure_msg("intrinsic gas too low: method not found");
+
+        match run_data_fee(asserter).await {
+            Err(ActivationError::Contract(_)) => {}
+            other => panic!("expected Contract error, got {other:?}"),
+        }
+    }
 }

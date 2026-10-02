@@ -6,6 +6,7 @@ pragma solidity >=0.4.21 <0.9.0;
 
 /// @title Methods for managing user programs
 /// @notice Precompiled contract that exists in every Arbitrum chain at 0x0000000000000000000000000000000000000071.
+/// @notice Available in ArbOS version 30 and above
 #[sol(rpc)]
 interface ArbWasm {
     /// @notice Activate a wasm program
@@ -108,6 +109,11 @@ interface ArbWasm {
     /// @notice Gets the number of extra programs ArbOS caches during a given block.
     /// @return count the number of same-block programs.
     function blockCacheSize() external view returns (uint16 count);
+
+    /// @notice Gets the constant gas charge applied before each stylus contract activation.
+    /// @notice Available in ArbOS version 60 and above
+    /// @return gas the activation gas charge
+    function activationGas() external view returns (uint64 gas);
 
     event ProgramActivated(
         bytes32 indexed codehash,
