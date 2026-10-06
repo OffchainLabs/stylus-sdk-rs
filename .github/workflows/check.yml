@@ -9,7 +9,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - name: Install nightly with rustfmt
@@ -18,15 +18,11 @@ jobs:
           toolchain: nightly
           components: rustfmt
       - name: cargo +nightly fmt --check
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: fmt
-          args: --check
+        run: cargo +nightly fmt --check
   yamlfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
       - name: install yamlfmt
         run: |
@@ -42,7 +38,7 @@ jobs:
       matrix:
         toolchain: [1.91.0, nightly-2025-10-01]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - name: Install ${{ matrix.toolchain }}
