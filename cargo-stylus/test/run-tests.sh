@@ -37,20 +37,16 @@ echo "Using deployed contract: ${COUNTER_ADDRESS}"
 echo "Using transaction: ${COUNTER_TX}"
 echo ""
 
-# Find cargo-stylus-beta or cargo-stylus
-if command -v cargo-stylus-beta &> /dev/null; then
-    CARGO_STYLUS="cargo-stylus-beta"
-elif command -v cargo-stylus &> /dev/null; then
+# Find cargo-stylus
+if command -v cargo-stylus &> /dev/null; then
     CARGO_STYLUS="cargo-stylus"
-elif [ -f "${PROJECT_DIR}/target/release/cargo-stylus-beta" ]; then
-    CARGO_STYLUS="${PROJECT_DIR}/target/release/cargo-stylus-beta"
 elif [ -f "${PROJECT_DIR}/target/release/cargo-stylus" ]; then
     CARGO_STYLUS="${PROJECT_DIR}/target/release/cargo-stylus"
 else
-    echo -e "${YELLOW}Building cargo-stylus-beta...${NC}"
+    echo -e "${YELLOW}Building cargo-stylus...${NC}"
     cd "${PROJECT_DIR}"
     cargo build --release
-    CARGO_STYLUS="${PROJECT_DIR}/target/release/cargo-stylus-beta"
+    CARGO_STYLUS="${PROJECT_DIR}/target/release/cargo-stylus"
 fi
 
 echo "Using: ${CARGO_STYLUS}"
