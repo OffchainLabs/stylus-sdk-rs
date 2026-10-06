@@ -20,6 +20,21 @@ const INVALID_CHANNEL_MSG: &str =
     "the channel in your project's rust-toolchain.toml's toolchain section must be a specific version e.g., '1.80.0' or 'nightly-YYYY-MM-DD'. \
     To ensure reproducibility, it cannot be a generic channel like 'stable', 'nightly', or 'beta'";
 
+/// The first nightly whose Cargo understands `panic = "immediate-abort"` (rust-lang/cargo#16041).
+/// The compiler gained the strategy slightly earlier (nightly-2025-09-24, rust-lang/rust#146317),
+/// but during the brief gap in between it can only be enabled through `RUSTFLAGS`, which would
+/// override the project's `target.<triple>.rustflags`; those nightlies keep using the legacy
+/// build-std feature instead.
+const IMMEDIATE_ABORT_CARGO_NIGHTLY: &str = "2025-10-05";
+
+/// Returns whether a nightly channel can enable `immediate-abort` through the Cargo profile.
+/// Stable channels always return `false` since they never receive the unstable build flags.
+pub fn supports_immediate_abort(channel: &str) -> bool {
+    channel
+        .strip_prefix("nightly-")
+        .is_some_and(|date| date >= IMMEDIATE_ABORT_CARGO_NIGHTLY)
+}
+
 pub fn get_toolchain_channel(package: &Package) -> Result<String, ToolchainError> {
     let dir = package.manifest_path.parent().unwrap();
     let toolchain_path = find_toolchain_file(dir)?;
