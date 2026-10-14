@@ -121,6 +121,22 @@ impl Contract {
     }
 }
 
+/// Returns the name of the first library target, if any.
+///
+/// Cargo normalizes library names (e.g. hyphens become underscores) and names the
+/// compiled artifact after them. Stylus contracts build as `cdylib`, which `cargo
+/// metadata` reports as [`TargetKind::CDyLib`], so both kinds are accepted.
+fn lib_target_name(targets: &[cargo_metadata::Target]) -> Option<String> {
+    targets
+        .iter()
+        .find(|t| {
+            t.kind
+                .iter()
+                .any(|k| matches!(k, TargetKind::Lib | TargetKind::CDyLib))
+        })
+        .map(|t| t.name.clone())
+}
+
 impl TryFrom<&Package> for Contract {
     type Error = ContractError;
 
@@ -128,14 +144,9 @@ impl TryFrom<&Package> for Contract {
         let toolchain_channel = get_toolchain_channel(package)?;
         let stable = !toolchain_channel.contains("nightly");
         let version = package.version.clone();
-        // First, let's try to find if the library's name is set, since this will interfere with
-        // finding the wasm file in the deps directory if it's different.
-        let name = package
-            .targets
-            .iter()
-            .find_map(|t| t.kind.contains(&TargetKind::Lib).then(|| t.name.clone()))
-            // If that doesn't work, then we can use the package name, and break normally.
-            .unwrap_or_else(|| package.name.to_string());
+        // Prefer the library target name: Cargo normalizes it (hyphens become
+        // underscores) and that is the name of the wasm file in the deps directory.
+        let name = lib_target_name(&package.targets).unwrap_or_else(|| package.name.to_string());
         Ok(Self {
             package: package.clone(),
             stable,
@@ -188,5 +199,50 @@ impl ContractStatus {
             Self::Active { .. } => U256::ZERO,
             Self::Ready { fee, .. } => *fee,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cargo_metadata::Target;
+
+    use super::*;
+
+    fn target(kind: &[&str], name: &str) -> Target {
+        serde_json::from_value(serde_json::json!({
+            "kind": kind,
+            "crate_types": kind,
+            "name": name,
+            "src_path": "/tmp/stylus-tools-test/src/lib.rs",
+            "edition": "2021",
+            "doc": true,
+            "doctest": true,
+            "test": true,
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn lib_target_name_for_cdylib() {
+        // `crate-type = ["cdylib", "rlib"]` is reported as CDyLib/RLib by cargo
+        // metadata, never as Lib; the package name may contain hyphens while the
+        // artifact name always uses underscores.
+        let targets = [target(&["cdylib", "rlib"], "nimbus_contracts")];
+        assert_eq!(
+            lib_target_name(&targets).as_deref(),
+            Some("nimbus_contracts")
+        );
+    }
+
+    #[test]
+    fn lib_target_name_for_plain_lib() {
+        let targets = [target(&["lib"], "my_contract")];
+        assert_eq!(lib_target_name(&targets).as_deref(), Some("my_contract"));
+    }
+
+    #[test]
+    fn lib_target_name_without_library_target() {
+        let targets = [target(&["bin"], "nimbus-contracts")];
+        assert_eq!(lib_target_name(&targets), None);
     }
 }
