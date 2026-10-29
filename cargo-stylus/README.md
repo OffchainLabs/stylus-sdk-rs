@@ -28,7 +28,7 @@ A cargo subcommand for building, verifying, and deploying Arbitrum Stylus WASM c
 
 ## Quick Start
 
-![Image](./header.png)
+![Image](https://raw.githubusercontent.com/OffchainLabs/cargo-stylus/main/header.png)
 
 ### Quick Usage
 
@@ -146,7 +146,7 @@ Location:
     prover/src/binary.rs:493:9, data: None
 ```
 
-To read more about what counts as valid vs. invalid user WASM contracts, see [VALID_WASM](./main/VALID_WASM.md).
+To read more about what counts as valid vs. invalid user WASM contracts, see [VALID_WASM](https://github.com/OffchainLabs/cargo-stylus/blob/main/main/VALID_WASM.md).
 
 If your contract succeeds, you'll see the following message:
 
@@ -258,7 +258,7 @@ Brotli-compressed, Stylus contract WASM binaries must fit within the **24Kb** [c
 
 We recommend optimizing your Stylus contract's sizes to smaller sizes, but keep in mind the safety tradeoffs of using some of the more advanced optimizations. However, some small contracts when compiled to much smaller sizes can suffer performance penalties.
 
-For a deep-dive into the different options for optimizing binary sizes using cargo stylus, see [OPTIMIZING_BINARIES.md](./main/OPTIMIZING_BINARIES.md).
+For a deep-dive into the different options for optimizing binary sizes using cargo stylus, see [OPTIMIZING_BINARIES.md](https://github.com/OffchainLabs/cargo-stylus/blob/main/main/OPTIMIZING_BINARIES.md).
 
 ### Reproducible `wasm-opt` optimization
 
@@ -433,7 +433,7 @@ cargo stylus export-abi --rust-features=feature1,feature2
 **Error**: Contract exceeds 24KB after compression
 **Solution**:
 
-- Check [OPTIMIZING_BINARIES.md](./main/OPTIMIZING_BINARIES.md) for optimization techniques
+- Check [OPTIMIZING_BINARIES.md](https://github.com/OffchainLabs/cargo-stylus/blob/main/main/OPTIMIZING_BINARIES.md) for optimization techniques
 - Use `#[no_std]` to avoid the Rust standard library
 - Remove unused dependencies from your `Cargo.toml`
 - Use the `opt-level = "z"` optimization in your release profile
@@ -444,7 +444,7 @@ cargo stylus export-abi --rust-features=feature1,feature2
 **Solution**:
 
 - Ensure you're using a supported version of the stylus-sdk
-- Check [VALID_WASM.md](./main/VALID_WASM.md) for limitations on WASM features
+- Check [VALID_WASM.md](https://github.com/OffchainLabs/cargo-stylus/blob/main/main/VALID_WASM.md) for limitations on WASM features
 - Make sure your contract properly exports the required entrypoint functions
 
 #### Activation Failures
